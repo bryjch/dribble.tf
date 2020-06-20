@@ -8,6 +8,7 @@ import * as THREE from 'three'
 import Stats from 'stats.js'
 import SpriteText from 'three-spritetext'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
+import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer'
 
 import { DemoControls } from './DemoControls'
 
@@ -50,7 +51,6 @@ export class DemoViewer extends React.Component {
   lastFrameTime = 0
 
   state = {
-    renderer: null,
     scene: null,
     world: null,
     map: null,
@@ -62,6 +62,9 @@ export class DemoViewer extends React.Component {
     playing: false,
     playSpeed: 1,
   }
+
+  webglRenderer = null
+  labelRenderer = null
 
   //
   // ─── LIFECYCLE ──────────────────────────────────────────────────────────────────
@@ -114,13 +117,21 @@ export class DemoViewer extends React.Component {
     camera.updateProjectionMatrix()
     camera.position.set(0, -4000, 2000)
 
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({
+    // Renderers
+    const { clientWidth, clientHeight } = this.canvas
+
+    const webglRenderer = new THREE.WebGLRenderer({
       canvas: this.canvas,
       antialias: ENABLE_ANTIALIAS,
     })
-    const { clientWidth, clientHeight } = this.canvas
-    renderer.setSize(clientWidth, clientHeight, false)
+    webglRenderer.setSize(clientWidth, clientHeight, false)
+    this.webglRenderer = webglRenderer
+
+    const labelRenderer = new CSS2DRenderer()
+    labelRenderer.setSize(clientWidth, clientHeight)
+    labelRenderer.domElement.classList.add('label-renderer')
+    this.labelRendererContainer.appendChild(labelRenderer.domElement)
+    this.labelRenderer = labelRenderer
 
     // Lighting
     const ambientLight = new THREE.AmbientLight('#ffffff', 0.3)
@@ -146,14 +157,13 @@ export class DemoViewer extends React.Component {
     // Stats
     const stats = new Stats()
     stats.showPanel(0)
-    this.canvasContainer.appendChild(stats.dom)
+    this.labelRenderer.domElement.appendChild(stats.dom)
     this.stats = stats
 
     // Store references
     // TODO: These don't actually need to be in React state
     // Consider making them class variables instead
     await this.setState({
-      renderer: renderer,
       scene: scene,
       camera: camera,
       controls: controls,
@@ -168,7 +178,7 @@ export class DemoViewer extends React.Component {
 
   animate = async timestamp => {
     const { parser } = this.props
-    const { renderer, scene, camera, actors, controls, playSpeed } = this.state
+    const { scene, camera, actors, controls, playSpeed } = this.state
     const { tick, maxTicks } = this.state
 
     // Start logging performance
@@ -195,13 +205,14 @@ export class DemoViewer extends React.Component {
         const player = players[index]
         actor.rotation.set(0, 0, player.viewAngle)
         actor.position.set(player.position.x, player.position.y, player.position.z)
-        actor.visible = player.health > 0
+        actor.updateVisibility(player.health > 0)
       })
     }
 
     // Render the THREE.js scene
     controls.update()
-    renderer.render(scene, camera)
+    this.webglRenderer.render(scene, camera)
+    this.labelRenderer.render(scene, camera)
 
     // End logging performance
     this.stats.end()
@@ -264,20 +275,25 @@ export class DemoViewer extends React.Component {
     const newActors = []
 
     players.forEach(player => {
+      // TODO: Extract actor to separate file / class
       const geometry = new THREE.BoxGeometry(ACTOR_SIZE.x, ACTOR_SIZE.y, ACTOR_SIZE.z)
       const material = new THREE.MeshLambertMaterial({
         color: player.user.team,
       })
       const actor = new THREE.Mesh(geometry, material)
 
-      const txtName = new SpriteText(player.user.name)
-      txtName.position.add(new THREE.Vector3(0, 0, ACTOR_SIZE.z))
-      txtName.backgroundColor = '#000000'
-      txtName.fontFace = 'monospace'
-      txtName.textHeight = 50
-      txtName.padding = 2
+      const nameDiv = document.createElement('div')
+      nameDiv.className = 'label player-name'
+      nameDiv.textContent = player.user.name
+      const nameLabel = new CSS2DObject(nameDiv)
+      nameLabel.position.add(new THREE.Vector3(0, 0, ACTOR_SIZE.z))
+      actor.add(nameLabel)
 
-      actor.add(txtName)
+      actor.updateVisibility = visible => {
+        actor.visible = visible
+        nameLabel.visible = visible
+      }
+
       scene.add(actor)
       newActors.push(actor)
     })
@@ -380,10 +396,12 @@ export class DemoViewer extends React.Component {
     const players = parser ? parser.getPlayersAtTick(tick) : null
 
     return (
-      <>
-        <div className="canvas-container" ref={el => (this.canvasContainer = el)}>
+      <div className="demo-viewer">
+        <div className="webgl-renderer-container">
           <canvas ref={el => (this.canvas = el)}></canvas>
         </div>
+
+        <div className="label-renderer-container" ref={el => (this.labelRendererContainer = el)} />
 
         <div className="ui-layer settings">
           <div className="panel">
@@ -434,8 +452,11 @@ export class DemoViewer extends React.Component {
                 .sort((a, b) => (a.user.team > b.user.team ? -1 : 1))
                 .map(player => (
                   <div>
-                    <span style={{ color: player.user.team }}>{player.user.name}</span>:{' '}
-                    {JSON.stringify(player.position)}
+                    <span style={{ color: player.user.team }}>{player.user.name} </span>
+                    <span style={{ display: 'inline-block', width: '1.5rem' }}>
+                      {player.health}
+                    </span>
+                    {false && JSON.stringify(player.position)}
                   </div>
                 ))}
             </div>
@@ -459,16 +480,43 @@ export class DemoViewer extends React.Component {
           </div>
         )}
 
+        <style>{`
+          .label.player-name {
+            color: #ffffff;
+            background-color: rgba(0, 0, 0, 0.7);
+            font-family: monospace;
+            font-size: 0.9rem;
+            line-height: 0.9rem;
+            padding: 0.2rem 0.3rem;
+            border-radius: 3px;
+          }
+        `}</style>
+
         <style jsx>{`
-          .canvas-container {
+          .demo-viewer {
             width: 100vw;
             height: 100vh;
+          }
+
+          .webgl-renderer-container {
+            width: 100%;
+            height: 100%;
 
             canvas {
               width: 100%;
               height: 100%;
               background-color: #eeeeee;
             }
+          }
+
+          .label-renderer-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            overflow: hidden;
+            pointer-events: none;
           }
 
           .ui-layer {
@@ -512,7 +560,7 @@ export class DemoViewer extends React.Component {
             }
           }
         `}</style>
-      </>
+      </div>
     )
   }
 }
