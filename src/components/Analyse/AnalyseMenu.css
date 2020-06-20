@@ -1,0 +1,42 @@
+.analyse-menu {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0.5;
+  transition: all 0.5s;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  .share-session {
+
+    background: transparent;
+    color: white;
+    font-size: 200%;
+    width: 32px;
+    height: 32px;
+    margin: 10px;
+    border: none;
+    cursor: pointer;
+    background-image: url("../images/link_white.svg");
+    background-size: contain;
+
+    &:active, &:focus {
+      outline: none;
+    }
+  }
+
+  .share-text {
+    color: white;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    margin-top: 0;
+    border: 1px #888 solid;
+    border-radius: 5px;
+
+    &:active, &:focus {
+      outline: none;
+    }
+  }
+}
