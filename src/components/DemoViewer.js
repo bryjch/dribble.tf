@@ -7,8 +7,9 @@ import humanizeDuration from 'humanize-duration'
 import * as THREE from 'three'
 import Stats from 'stats.js'
 import SpriteText from 'three-spritetext'
-import { MapControls } from 'three/examples/jsm/controls/OrbitControls'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
+
+import { DemoControls } from './DemoControls'
 
 //
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────────
@@ -140,14 +141,7 @@ export class DemoViewer extends React.Component {
     scene.add(grid)
 
     // Controls
-    const controls = new MapControls(camera, this.canvas)
-    controls.enablePan = true
-    controls.enableRotate = true
-    controls.maxPolarAngle = Math.PI / 2.25
-    controls.minDistance = 10
-    controls.maxDistance = 10000
-    controls.enableDamping = true
-    controls.dampingFactor = 0.075
+    const controls = new DemoControls(camera, this.canvas)
 
     // Stats
     const stats = new Stats()
@@ -551,4 +545,8 @@ export const addDebugAxes = (position, scene) => {
   } catch (error) {
     console.error(error)
   }
+}
+
+export const objectToVector3 = ({ x, y, z }) => {
+  return new THREE.Vector3(x, y, z)
 }
