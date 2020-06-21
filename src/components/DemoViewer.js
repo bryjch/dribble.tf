@@ -294,7 +294,7 @@ export class DemoViewer extends React.Component {
       nameDiv.textContent = player.user.name
 
       const nameLabel = new CSS2DObject(this.nameplates[index])
-      nameLabel.position.add(new THREE.Vector3(0, 0, ACTOR_SIZE.z))
+      nameLabel.position.add(new THREE.Vector3(0, 0, ACTOR_SIZE.z * 1.5))
       actor.add(nameLabel)
 
       actor.updateVisibility = visible => {

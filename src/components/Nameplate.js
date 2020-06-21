@@ -7,22 +7,28 @@ const classIcons = require('../assets/class-icons-64.png')
 const CLASS_ICON_SIZE = '1.2rem'
 const HEALTH_BUFFED_COLOR = '#6ed6ff'
 const HEALTH_LOW_COLOR = '#ff6262'
+const HEALTH_BLUE_COLOR = '#88aeb8'
+const HEALTH_RED_COLOR = '#ac2641'
 
 export const Nameplate = React.forwardRef((props, ref) => {
+  const healthPercent = (props.health / HEALTH_MAP[props.classId]) * 100
+  const healthColor = props.user.team === 'blue' ? HEALTH_BLUE_COLOR : HEALTH_RED_COLOR
   const healthCls = []
-  if (props.health / HEALTH_MAP[props.classId] > 1) healthCls.push('buffed')
-  if (props.health / HEALTH_MAP[props.classId] < 0.4) healthCls.push('low')
+  if (healthPercent > 100) healthCls.push('buffed')
+  if (healthPercent < 40) healthCls.push('low')
 
   return (
     <>
       <div className="nameplate" ref={ref}>
         <div className="name">{props.user.name}</div>
 
-        <div className="panel">
-          <div className="class">
-            <div className={`icon ${CLASS_MAP[props.classId]}`} />
-          </div>
-          <div className={`health ${healthCls.join(' ')}`}>{props.health}</div>
+        <div className="healthbar">
+          <div className="fill" />
+          <div className="overbuff" />
+        </div>
+
+        <div className="class">
+          <div className={`icon ${CLASS_MAP[props.classId]}`} />
         </div>
       </div>
 
@@ -39,20 +45,37 @@ export const Nameplate = React.forwardRef((props, ref) => {
             color: #222222;
           }
 
-          .panel {
-            display: flex;
-            flex-flow: row nowrap;
-            justify-content: center;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: #ffffff;
-            padding: 0.2rem 0.3rem;
-            border-radius: 3px;
+          .healthbar {
+            position: relative;
+            width: 80px;
+            height: 6px;
+            background-color: #8f7b89;
+            overflow: hidden;
+            margin-bottom: 0.3rem;
+
+            .fill {
+              position: absolute;
+              top: 0;
+              left: 0;
+              bottom: 0;
+              width: ${healthPercent + '%'};
+              background-color: ${healthColor};
+            }
+
+            .overbuff {
+              position: absolute;
+              top: 0;
+              left: 0;
+              bottom: 0;
+              width: ${healthPercent - 100 + '%'};
+              background-color: #eeeeee;
+            }
           }
 
           .class {
-            font-size: 1.2rem;
-            line-height: 1.2rem;
-            margin-right: 0.2rem;
+            border-radius: 50%;
+            background-color: ${healthColor};
+            border: 3px solid rgba(0, 0, 0, 0.2);
 
             .icon {
               width: ${CLASS_ICON_SIZE};
@@ -104,6 +127,8 @@ export const Nameplate = React.forwardRef((props, ref) => {
           }
 
           .health {
+            font-weight: bold;
+
             &.buffed {
               color: ${HEALTH_BUFFED_COLOR};
             }
