@@ -4,7 +4,7 @@ import { CLASS_MAP, HEALTH_MAP } from './Mappings'
 
 const classIcons = require('../assets/class-icons-64.png')
 
-const CLASS_ICON_SIZE = '1.2rem'
+const CLASS_ICON_SIZE = '1.5rem'
 const HEALTH_BUFFED_COLOR = '#6ed6ff'
 const HEALTH_LOW_COLOR = '#ff6262'
 const HEALTH_BLUE_COLOR = '#88aeb8'
@@ -82,46 +82,42 @@ export const Nameplate = React.forwardRef((props, ref) => {
               height: ${CLASS_ICON_SIZE};
               background: url(${classIcons});
               background-size: ${CLASS_ICON_SIZE};
-
-              &.empty {
-                width: 0;
-                height: 0;
-              }
+              background-position-y: 0;
 
               &.scout {
-                background-position-y: 0px;
-              }
-
-              &.soldier {
                 background-position-y: ${`calc(${CLASS_ICON_SIZE} * -1)`};
               }
 
-              &.pyro {
+              &.soldier {
                 background-position-y: ${`calc(${CLASS_ICON_SIZE} * -2)`};
               }
 
-              &.demoman {
+              &.pyro {
                 background-position-y: ${`calc(${CLASS_ICON_SIZE} * -3)`};
               }
 
-              &.heavy {
+              &.demoman {
                 background-position-y: ${`calc(${CLASS_ICON_SIZE} * -4)`};
               }
 
-              &.engineer {
+              &.heavy {
                 background-position-y: ${`calc(${CLASS_ICON_SIZE} * -5)`};
               }
 
-              &.medic {
+              &.engineer {
                 background-position-y: ${`calc(${CLASS_ICON_SIZE} * -6)`};
               }
 
-              &.sniper {
+              &.medic {
                 background-position-y: ${`calc(${CLASS_ICON_SIZE} * -7)`};
               }
 
-              &.spy {
+              &.sniper {
                 background-position-y: ${`calc(${CLASS_ICON_SIZE} * -8)`};
+              }
+
+              &.spy {
+                background-position-y: ${`calc(${CLASS_ICON_SIZE} * -9)`};
               }
             }
           }
