@@ -11,6 +11,7 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer'
 
 import { DemoControls } from './DemoControls'
+import { Nameplate } from './Nameplate'
 
 //
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────────
@@ -56,6 +57,7 @@ export class DemoViewer extends React.Component {
     map: null,
     camera: null,
     controls: null,
+    players: [],
     actors: [],
     tick: 1,
     maxTicks: 100,
@@ -64,7 +66,11 @@ export class DemoViewer extends React.Component {
   }
 
   webglRenderer = null
-  labelRenderer = null
+  css2dRenderer = null
+
+  // Keep track of references to nameplates so can be accessed by both
+  // React DOM and three.js CSS2D
+  nameplates = []
 
   //
   // ─── LIFECYCLE ──────────────────────────────────────────────────────────────────
@@ -73,7 +79,7 @@ export class DemoViewer extends React.Component {
   componentDidMount() {
     this.init()
 
-    this.canvas.addEventListener('keydown', event => {
+    this.demoViewer.addEventListener('keydown', event => {
       switch (event.code) {
         case 'Space':
           event.preventDefault()
@@ -113,25 +119,26 @@ export class DemoViewer extends React.Component {
 
     // Camera
     const camera = new THREE.PerspectiveCamera(70, 2, 0.1, 15000)
-    camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight
+    camera.aspect = this.demoViewer.clientWidth / this.demoViewer.clientHeight
     camera.updateProjectionMatrix()
     camera.position.set(0, -4000, 2000)
 
     // Renderers
-    const { clientWidth, clientHeight } = this.canvas
+    const { clientWidth, clientHeight } = this.demoViewer
 
     const webglRenderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
       antialias: ENABLE_ANTIALIAS,
     })
     webglRenderer.setSize(clientWidth, clientHeight, false)
+    webglRenderer.domElement.classList.add('webgl-renderer')
+    this.webglRendererContainer.appendChild(webglRenderer.domElement)
     this.webglRenderer = webglRenderer
 
-    const labelRenderer = new CSS2DRenderer()
-    labelRenderer.setSize(clientWidth, clientHeight)
-    labelRenderer.domElement.classList.add('label-renderer')
-    this.labelRendererContainer.appendChild(labelRenderer.domElement)
-    this.labelRenderer = labelRenderer
+    const css2dRenderer = new CSS2DRenderer()
+    css2dRenderer.setSize(clientWidth, clientHeight)
+    css2dRenderer.domElement.classList.add('css2d-renderer')
+    this.css2dRendererContainer.appendChild(css2dRenderer.domElement)
+    this.css2dRenderer = css2dRenderer
 
     // Lighting
     const ambientLight = new THREE.AmbientLight('#ffffff', 0.3)
@@ -152,12 +159,12 @@ export class DemoViewer extends React.Component {
     scene.add(grid)
 
     // Controls
-    const controls = new DemoControls(camera, this.canvas)
+    const controls = new DemoControls(camera, webglRenderer.domElement)
 
     // Stats
     const stats = new Stats()
     stats.showPanel(0)
-    this.labelRenderer.domElement.appendChild(stats.dom)
+    this.css2dRenderer.domElement.appendChild(stats.dom)
     this.stats = stats
 
     // Store references
@@ -198,11 +205,11 @@ export class DemoViewer extends React.Component {
     if (this.state.playing) await this.setState({ tick: targetTick })
 
     // Update the positions of each actor
-    let players = parser ? parser.getPlayersAtTick(tick) : null
+    let playersThisTick = parser ? parser.getPlayersAtTick(tick) : null
 
-    if (players) {
+    if (playersThisTick) {
       actors.forEach((actor, index) => {
-        const player = players[index]
+        const player = playersThisTick[index]
         actor.rotation.set(0, 0, player.viewAngle)
         actor.position.set(player.position.x, player.position.y, player.position.z)
         actor.updateVisibility(player.health > 0)
@@ -212,7 +219,7 @@ export class DemoViewer extends React.Component {
     // Render the THREE.js scene
     controls.update()
     this.webglRenderer.render(scene, camera)
-    this.labelRenderer.render(scene, camera)
+    this.css2dRenderer.render(scene, camera)
 
     // End logging performance
     this.stats.end()
@@ -266,7 +273,7 @@ export class DemoViewer extends React.Component {
   updateScene = async parser => {
     const { scene, camera, controls, actors, map } = this.state
 
-    const players = parser.getPlayersAtTick(1)
+    const playersThisTick = parser.getPlayersAtTick(1)
 
     // Remove old actors
     actors.forEach(actor => scene.remove(actor))
@@ -274,7 +281,7 @@ export class DemoViewer extends React.Component {
     // Add new actors
     const newActors = []
 
-    players.forEach(player => {
+    playersThisTick.forEach((player, index) => {
       // TODO: Extract actor to separate file / class
       const geometry = new THREE.BoxGeometry(ACTOR_SIZE.x, ACTOR_SIZE.y, ACTOR_SIZE.z)
       const material = new THREE.MeshLambertMaterial({
@@ -285,7 +292,8 @@ export class DemoViewer extends React.Component {
       const nameDiv = document.createElement('div')
       nameDiv.className = 'label player-name'
       nameDiv.textContent = player.user.name
-      const nameLabel = new CSS2DObject(nameDiv)
+
+      const nameLabel = new CSS2DObject(this.nameplates[index])
       nameLabel.position.add(new THREE.Vector3(0, 0, ACTOR_SIZE.z))
       actor.add(nameLabel)
 
@@ -393,15 +401,22 @@ export class DemoViewer extends React.Component {
     const { playing, tick, maxTicks } = this.state
     const { parser } = this.props
 
-    const players = parser ? parser.getPlayersAtTick(tick) : null
+    const playersThisTick = parser ? parser.getPlayersAtTick(tick) : null
 
     return (
-      <div className="demo-viewer">
-        <div className="webgl-renderer-container">
-          <canvas ref={el => (this.canvas = el)}></canvas>
-        </div>
+      <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
+        <div className="webgl-renderer-container" ref={el => (this.webglRendererContainer = el)} />
 
-        <div className="label-renderer-container" ref={el => (this.labelRendererContainer = el)} />
+        <div className="css2d-renderer-container" ref={el => (this.css2dRendererContainer = el)}>
+          {!!playersThisTick &&
+            playersThisTick.map((player, index) => (
+              <Nameplate
+                key={`nameplate-${index}-${player.id}`}
+                ref={el => (this.nameplates[index] = el)}
+                {...player}
+              />
+            ))}
+        </div>
 
         <div className="ui-layer settings">
           <div className="panel">
@@ -445,13 +460,13 @@ export class DemoViewer extends React.Component {
 
         {/* PLAYER DEBUG COORDINATES */}
 
-        {players && (
+        {playersThisTick && (
           <div className="ui-layer players">
             <div className="panel">
-              {players
+              {playersThisTick
                 .sort((a, b) => (a.user.team > b.user.team ? -1 : 1))
-                .map(player => (
-                  <div>
+                .map((player, index) => (
+                  <div key={`player-debug-info-${index}`}>
                     <span style={{ color: player.user.team }}>{player.user.name} </span>
                     <span style={{ display: 'inline-block', width: '1.5rem' }}>
                       {player.health}
@@ -509,7 +524,7 @@ export class DemoViewer extends React.Component {
             }
           }
 
-          .label-renderer-container {
+          .css2d-renderer-container {
             width: 100%;
             height: 100%;
             position: absolute;
