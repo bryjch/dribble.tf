@@ -52,13 +52,13 @@ var DemoControls = function (object, domElement) {
 
   // Set to false to disable rotating
   this.enableRotate = true
-  this.rotateSpeed = 1.0
+  this.rotateSpeed = 0.33
 
   // Set to false to disable panning
   this.enablePan = true
-  this.panSpeed = 1.0
+  this.panSpeed = 0.5
   this.screenSpacePanning = false // if true, pan in screen-space
-  this.keyPanSpeed = 5.0 // pixels moved per arrow key push
+  this.keyPanSpeed = 1.0 // pixels moved per arrow key push
 
   // Set to true to automatically rotate around the target
   // If auto-rotate is enabled, you must call controls.update() in your animation loop
