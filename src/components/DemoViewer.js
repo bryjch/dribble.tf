@@ -21,6 +21,29 @@ const ENABLE_ANTIALIAS = true
 const ENABLE_FOG = true
 const ACTOR_SIZE = { x: 49, y: 49, z: 83 }
 
+const PLAY_SPEED_OPTIONS = [
+  {
+    label: 'x0.1',
+    value: 0.1,
+  },
+  {
+    label: 'x0.5',
+    value: 0.5,
+  },
+  {
+    label: 'x1',
+    value: 1,
+  },
+  {
+    label: 'x2',
+    value: 2,
+  },
+  {
+    label: 'x3',
+    value: 3,
+  },
+]
+
 //
 // ─── MATERIALS ──────────────────────────────────────────────────────────────────
 //
@@ -44,13 +67,6 @@ const MAP_DEFAULT_MATERIAL = (opts = {}) =>
 //
 
 export class DemoViewer extends React.Component {
-  keyPressed = null
-
-  intervalPerTick = 0.03
-  playStartTick = 0
-  playStartTime = 0
-  lastFrameTime = 0
-
   state = {
     scene: null,
     world: null,
@@ -65,6 +81,13 @@ export class DemoViewer extends React.Component {
     playSpeed: 1,
   }
 
+  // Playback tracking variables
+  intervalPerTick = 0.03
+  playStartTick = 0
+  playStartTime = 0
+  lastFrameTime = 0
+
+  // THREE.js renderers
   webglRenderer = null
   css2dRenderer = null
 
@@ -78,19 +101,11 @@ export class DemoViewer extends React.Component {
 
   componentDidMount() {
     this.init()
+    this.demoViewer.addEventListener('keydown', this.handleKeyDown)
+  }
 
-    this.demoViewer.addEventListener('keydown', event => {
-      switch (event.code) {
-        case 'Space':
-          event.preventDefault()
-          event.stopPropagation()
-          this.togglePlayback()
-          break
-
-        default:
-          break
-      }
-    })
+  componentWillUnmount() {
+    this.demoViewer.removeEventListener('keydown', this.handleKeyDown)
   }
 
   componentDidUpdate(prevProps) {
@@ -98,6 +113,33 @@ export class DemoViewer extends React.Component {
       console.log('Parser received:')
       console.log(this.props.parser)
       this.updateScene(this.props.parser)
+    }
+  }
+
+  handleKeyDown = event => {
+    let preventDefaultEvent = true
+
+    switch (event.code) {
+      case 'Space':
+        this.togglePlayback()
+        break
+
+      case 'Comma':
+        this.decreasePlaySpeed()
+        break
+
+      case 'Period':
+        this.increasePlaySpeed()
+        break
+
+      default:
+        preventDefaultEvent = false
+        break
+    }
+
+    if (preventDefaultEvent) {
+      event.preventDefault()
+      event.stopPropagation()
     }
   }
 
@@ -388,9 +430,22 @@ export class DemoViewer extends React.Component {
     this.state.playing ? this.pause() : this.play()
   }
 
-  changePlaySpeed = async ({ target }) => {
-    // TODO: Fix tick-skipping problem when changing play speed
-    this.setState({ playSpeed: target.value })
+  decreasePlaySpeed = () => {
+    let currentIndex = PLAY_SPEED_OPTIONS.findIndex(({ value }) => value === this.state.playSpeed)
+    const nextIndex = clamp(currentIndex - 1, 0, PLAY_SPEED_OPTIONS.length - 1)
+    this.changePlaySpeed(PLAY_SPEED_OPTIONS[nextIndex].value)
+  }
+
+  increasePlaySpeed = () => {
+    let currentIndex = PLAY_SPEED_OPTIONS.findIndex(({ value }) => value === this.state.playSpeed)
+    const nextIndex = clamp(currentIndex + 1, 0, PLAY_SPEED_OPTIONS.length - 1)
+    this.changePlaySpeed(PLAY_SPEED_OPTIONS[nextIndex].value)
+  }
+
+  changePlaySpeed = async speed => {
+    this.playStartTick = this.state.tick
+    this.playStartTime = window.performance.now()
+    this.setState({ playSpeed: Number(speed) })
   }
 
   //
@@ -398,7 +453,7 @@ export class DemoViewer extends React.Component {
   //
 
   render() {
-    const { playing, tick, maxTicks } = this.state
+    const { playing, playSpeed, tick, maxTicks } = this.state
     const { parser } = this.props
 
     const playersThisTick = parser ? parser.getPlayersAtTick(tick) : null
@@ -439,10 +494,16 @@ export class DemoViewer extends React.Component {
               <button onClick={this.togglePlayback}>{playing ? 'Pause' : 'Play'}</button>
               <button onClick={this.goToTick.bind(this, tick + 1)}>{'>'}</button>
               <button onClick={this.goToTick.bind(this, maxTicks)}>{'>>'}</button>
-              <select defaultValue={1} onChange={this.changePlaySpeed} className="ml-2">
-                <option value={0.5}>x0.5</option>
-                <option value={1}>x1</option>
-                <option value={2}>x2</option>
+              <select
+                value={playSpeed}
+                onChange={({ target }) => this.changePlaySpeed(target.value)}
+                className="ml-2"
+              >
+                {PLAY_SPEED_OPTIONS.map(({ label, value }) => (
+                  <option key={`play-speed-option-${label}`} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             </div>
 
