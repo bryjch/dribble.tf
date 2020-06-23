@@ -282,41 +282,62 @@ export class DemoViewer extends React.Component {
 
   // TODO: Load map via value in parser header - by checking some mapping object
   // TODO: Remove the hardcoded process.obj value
-  addMap = (position, scene) => {
-    try {
-      const objLoader = new OBJLoader()
-      const objFile = require('../assets/process.obj')
-      const objMat = MAP_DEFAULT_MATERIAL()
+  loadMap = async (map, position) => {
+    return new Promise((resolve, reject) => {
+      const loadStartTime = window.performance.now()
 
-      const onLoad = obj => {
-        obj.traverse(child => {
-          if (child.isMesh) {
-            child.material = objMat
-            child.geometry.computeFaceNormals()
-            child.geometry.computeVertexNormals()
-          }
-        })
-        obj.position.copy(position)
-        scene.add(obj)
+      try {
+        const objLoader = new OBJLoader()
+        const mapFile = require('../assets/process.obj')
+        const mapMat = MAP_DEFAULT_MATERIAL()
 
-        this.setState({ map: obj })
-      }
+        const onLoad = mapObj => {
+          const downloadDoneTime = window.performance.now()
+          console.log(
+            `Map loaded. Took ${humanizeDuration(downloadDoneTime - loadStartTime, {
+              maxDecimalPoints: 5,
+            })}.`
+          )
 
-      const onProgress = xhr => {
-        if (xhr.lengthComputable) {
-          const percentComplete = (xhr.loaded / xhr.total) * 100
-          console.log(`Map loaded: ${Math.round(percentComplete, 2)}%`)
+          mapObj.traverse(child => {
+            if (child.isMesh) {
+              child.material = mapMat
+              child.geometry.computeFaceNormals()
+              child.geometry.computeVertexNormals()
+            }
+          })
+
+          const normalsDoneTime = window.performance.now()
+          console.log(
+            `Map normals generated. Took ${humanizeDuration(normalsDoneTime - downloadDoneTime, {
+              maxDecimalPoints: 5,
+            })}.`
+          )
+
+          mapObj.position.copy(position)
+
+          resolve(mapObj)
         }
-      }
 
-      const onError = error => {
-        throw error
-      }
+        const onProgress = xhr => {
+          // TODO: The lengthComputable seems to be false after being deployed to
+          // Netlify. This may be due to some content headers needing to be set:
+          // https://community.netlify.com/t/progressevent-total-is-0-for-asset-on-deployed-site-but-works-in-local-environment/3747
+          if (xhr.lengthComputable) {
+            const percentComplete = (xhr.loaded / xhr.total) * 100
+            console.log(`Map load progress: ${Math.round(percentComplete, 2)}%`)
+          }
+        }
 
-      objLoader.load(objFile, onLoad, onProgress, onError)
-    } catch (error) {
-      console.error(error)
-    }
+        const onError = error => {
+          throw error
+        }
+
+        objLoader.load(mapFile, onLoad, onProgress, onError)
+      } catch (error) {
+        reject(error)
+      }
+    })
   }
 
   updateScene = async parser => {
@@ -336,15 +357,17 @@ export class DemoViewer extends React.Component {
     if (actors) scene.remove(actors)
     scene.add(newActors)
 
-    // Add new world
+    // Update world map
     const xTotal = parser.world.boundaryMax.x - parser.world.boundaryMin.x
     const yTotal = parser.world.boundaryMax.y - parser.world.boundaryMin.y
-    const zOffset = -parser.world.boundaryMin.z - ACTOR_SIZE.z / 2
+    const zOffset = -parser.world.boundaryMin.z - ActorDimensions.z / 2
     const mapPosition = new THREE.Vector3(xTotal * 0.5, yTotal * 0.5, zOffset)
 
-    this.addMap(mapPosition, scene)
+    const newMap = await this.loadMap('MAP_NAME', mapPosition)
+    if (map) scene.remove(map)
+    scene.add(newMap)
 
-    // Update camera & control positions
+    // Update camera & controls
     camera.position.copy(mapPosition).add(new THREE.Vector3(3000, -3000, 3000))
     controls.target.copy(mapPosition).add(new THREE.Vector3(0, 0, 500))
 
@@ -353,11 +376,13 @@ export class DemoViewer extends React.Component {
 
     this.setState({
       actors: newActors,
+      map: newMap,
       camera: camera,
       controls: controls,
       maxTicks: maxTicks,
     })
 
+    // Reset playback
     await this.goToTick(1)
     await this.play()
   }
