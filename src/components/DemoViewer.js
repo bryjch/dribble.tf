@@ -8,10 +8,13 @@ import * as THREE from 'three'
 import Stats from 'stats.js'
 import SpriteText from 'three-spritetext'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
-import { CSS2DRenderer, CSS2DObject } from 'three/examples/jsm/renderers/CSS2DRenderer'
+import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer'
 
+import { Actor, ActorDimensions } from './Actor'
 import { DemoControls } from './DemoControls'
 import { Nameplate } from './Nameplate'
+
+import { degreesToRadians } from '../utils/geometry'
 
 //
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────────
@@ -19,7 +22,6 @@ import { Nameplate } from './Nameplate'
 
 const ENABLE_ANTIALIAS = true
 const ENABLE_FOG = true
-const ACTOR_SIZE = { x: 49, y: 49, z: 83 }
 
 const PLAY_SPEED_OPTIONS = [
   {
@@ -74,7 +76,7 @@ export class DemoViewer extends React.Component {
     camera: null,
     controls: null,
     players: [],
-    actors: [],
+    actors: null,
     tick: 1,
     maxTicks: 100,
     playing: false,
@@ -321,52 +323,18 @@ export class DemoViewer extends React.Component {
     const { scene, camera, controls, actors, map } = this.state
 
     const playersThisTick = parser.getPlayersAtTick(1)
+    const maxTicks = parser.ticks - 1
 
-    // Remove old actors
-    actors.forEach(actor => scene.remove(actor))
+    // Update actors
+    const newActors = new THREE.Group()
 
-    // Add new actors
-    const newActors = []
-
-    // TODO: Extract actor to separate file / class
     playersThisTick.forEach((player, index) => {
-      // Root
-      const actor = new THREE.Object3D()
-
-      // Character model
-      const modelGeo = new THREE.BoxGeometry(ACTOR_SIZE.x, ACTOR_SIZE.y, ACTOR_SIZE.z)
-      const modelMat = new THREE.MeshLambertMaterial({ color: player.user.team })
-      const model = new THREE.Mesh(modelGeo, modelMat)
-
-      // Aim line
-      const aimLineGeo = new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0, 0, 0),
-        new THREE.Vector3(200, 0, 0),
-      ])
-      const aimLineMat = new THREE.LineBasicMaterial({ color: player.user.team })
-      const aimLine = new THREE.Line(aimLineGeo, aimLineMat)
-
-      // Nameplate
-      const nameplate = new CSS2DObject(this.nameplates[index])
-      nameplate.position.add(new THREE.Vector3(0, 0, ACTOR_SIZE.z * 1.5))
-
-      // Actor methods
-      actor.updateVisibility = visible => {
-        model.visible = visible
-        aimLine.visible = visible
-        nameplate.visible = visible
-      }
-
-      actor.add(model)
-      actor.add(aimLine)
-      actor.add(nameplate)
-
-      scene.add(actor)
-      newActors.push(actor)
+      const actor = new Actor(player.user.team, this.nameplates[index])
+      newActors.add(actor)
     })
 
-    // Remove old map
-    if (map) scene.remove(map)
+    if (actors) scene.remove(actors)
+    scene.add(newActors)
 
     // Add new world
     const xTotal = parser.world.boundaryMax.x - parser.world.boundaryMin.x
@@ -384,10 +352,10 @@ export class DemoViewer extends React.Component {
     this.intervalPerTick = parser.intervalPerTick
 
     this.setState({
+      actors: newActors,
       camera: camera,
       controls: controls,
-      actors: newActors,
-      maxTicks: parser.ticks - 1,
+      maxTicks: maxTicks,
     })
 
     await this.goToTick(1)
@@ -686,12 +654,4 @@ export const addDebugAxes = (position, scene) => {
   } catch (error) {
     console.error(error)
   }
-}
-
-export const objectToVector3 = ({ x, y, z }) => {
-  return new THREE.Vector3(x, y, z)
-}
-
-export const degreesToRadians = degrees => {
-  return degrees * (Math.PI / 180)
 }
