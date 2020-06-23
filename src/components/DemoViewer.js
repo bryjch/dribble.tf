@@ -328,26 +328,38 @@ export class DemoViewer extends React.Component {
     // Add new actors
     const newActors = []
 
+    // TODO: Extract actor to separate file / class
     playersThisTick.forEach((player, index) => {
-      // TODO: Extract actor to separate file / class
-      const geometry = new THREE.BoxGeometry(ACTOR_SIZE.x, ACTOR_SIZE.y, ACTOR_SIZE.z)
-      const material = new THREE.MeshLambertMaterial({
-        color: player.user.team,
-      })
-      const actor = new THREE.Mesh(geometry, material)
+      // Root
+      const actor = new THREE.Object3D()
 
-      const nameDiv = document.createElement('div')
-      nameDiv.className = 'label player-name'
-      nameDiv.textContent = player.user.name
+      // Character model
+      const modelGeo = new THREE.BoxGeometry(ACTOR_SIZE.x, ACTOR_SIZE.y, ACTOR_SIZE.z)
+      const modelMat = new THREE.MeshLambertMaterial({ color: player.user.team })
+      const model = new THREE.Mesh(modelGeo, modelMat)
 
-      const nameLabel = new CSS2DObject(this.nameplates[index])
-      nameLabel.position.add(new THREE.Vector3(0, 0, ACTOR_SIZE.z * 1.5))
-      actor.add(nameLabel)
+      // Aim line
+      const aimLineGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, 0, 0),
+        new THREE.Vector3(200, 0, 0),
+      ])
+      const aimLineMat = new THREE.LineBasicMaterial({ color: player.user.team })
+      const aimLine = new THREE.Line(aimLineGeo, aimLineMat)
 
+      // Nameplate
+      const nameplate = new CSS2DObject(this.nameplates[index])
+      nameplate.position.add(new THREE.Vector3(0, 0, ACTOR_SIZE.z * 1.5))
+
+      // Actor methods
       actor.updateVisibility = visible => {
-        actor.visible = visible
-        nameLabel.visible = visible
+        model.visible = visible
+        aimLine.visible = visible
+        nameplate.visible = visible
       }
+
+      actor.add(model)
+      actor.add(aimLine)
+      actor.add(nameplate)
 
       scene.add(actor)
       newActors.push(actor)
