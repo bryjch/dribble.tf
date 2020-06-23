@@ -252,7 +252,12 @@ export class DemoViewer extends React.Component {
     if (playersThisTick) {
       actors.forEach((actor, index) => {
         const player = playersThisTick[index]
-        actor.rotation.set(0, 0, player.viewAngle)
+        // Temporary hack to deal with a bug where viewAngle randomly returns zero
+        // on certain ticks - causing the player's angle to jerk constantly. Since the
+        // player is likely to always be "looking around", this shouldn't be a problem
+        // if we miss their angle for certain ticks.
+        // if (player.viewAngle !== 0)  actor.rotation.set(0, 0, player.viewAngle)
+        if (player.viewAngle !== 0) actor.rotation.set(0, 0, degreesToRadians(player.viewAngle))
         actor.position.set(player.position.x, player.position.y, player.position.z)
         actor.updateVisibility(player.health > 0)
       })
@@ -673,4 +678,8 @@ export const addDebugAxes = (position, scene) => {
 
 export const objectToVector3 = ({ x, y, z }) => {
   return new THREE.Vector3(x, y, z)
+}
+
+export const degreesToRadians = degrees => {
+  return degrees * (Math.PI / 180)
 }
