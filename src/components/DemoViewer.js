@@ -93,6 +93,11 @@ export class DemoViewer extends React.Component {
   webglRenderer = null
   css2dRenderer = null
 
+  // User interaction
+  raycaster = null
+  mouse = null
+  hoveredActor = null
+
   // Keep track of references to nameplates so can be accessed by both
   // React DOM and three.js CSS2D
   nameplates = []
@@ -103,11 +108,15 @@ export class DemoViewer extends React.Component {
 
   componentDidMount() {
     this.init()
-    this.demoViewer.addEventListener('keydown', this.handleKeyDown)
+    this.demoViewer.addEventListener('keydown', this.handleKeyDown, false)
+    this.demoViewer.addEventListener('mousemove', this.handleMouseMove, false)
+    this.demoViewer.addEventListener('mousedown', this.handleMouseDown, false)
   }
 
   componentWillUnmount() {
     this.demoViewer.removeEventListener('keydown', this.handleKeyDown)
+    this.demoViewer.removeEventListener('mousemove', this.handleMouseMove)
+    this.demoViewer.removeEventListener('mousedown', this.handleMouseDown)
   }
 
   componentDidUpdate(prevProps) {
@@ -142,6 +151,17 @@ export class DemoViewer extends React.Component {
     if (preventDefaultEvent) {
       event.preventDefault()
       event.stopPropagation()
+    }
+  }
+
+  handleMouseMove = event => {
+    this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+    this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+  }
+
+  handleMouseDown = event => {
+    if (this.hoveredActor) {
+      console.log(this.hoveredActor)
     }
   }
 
@@ -183,6 +203,10 @@ export class DemoViewer extends React.Component {
     css2dRenderer.domElement.classList.add('css2d-renderer')
     this.css2dRendererContainer.appendChild(css2dRenderer.domElement)
     this.css2dRenderer = css2dRenderer
+
+    // Interaction
+    this.raycaster = new THREE.Raycaster()
+    this.mouse = new THREE.Vector2()
 
     // Lighting
     const ambientLight = new THREE.AmbientLight('#ffffff', 0.3)
@@ -251,18 +275,41 @@ export class DemoViewer extends React.Component {
     // Update the positions of each actor
     let playersThisTick = parser ? parser.getPlayersAtTick(tick) : null
 
-    if (playersThisTick) {
-      actors.forEach((actor, index) => {
-        const player = playersThisTick[index]
-        // Temporary hack to deal with a bug where viewAngle randomly returns zero
-        // on certain ticks - causing the player's angle to jerk constantly. Since the
-        // player is likely to always be "looking around", this shouldn't be a problem
-        // if we miss their angle for certain ticks.
-        // if (player.viewAngle !== 0)  actor.rotation.set(0, 0, player.viewAngle)
-        if (player.viewAngle !== 0) actor.rotation.set(0, 0, degreesToRadians(player.viewAngle))
-        actor.position.set(player.position.x, player.position.y, player.position.z)
-        actor.updateVisibility(player.health > 0)
-      })
+    try {
+      if (playersThisTick && actors) {
+        actors.children.forEach((actor, index) => {
+          const player = playersThisTick[index]
+          // Temporary hack to deal with a bug where viewAngle randomly returns zero
+          // on certain ticks - causing the player's angle to jerk constantly. Since the
+          // player is likely to always be "looking around", this shouldn't be a problem
+          // if we miss their angle for certain ticks.
+          if (player.viewAngle !== 0) actor.rotation.set(0, 0, degreesToRadians(player.viewAngle))
+          actor.position.set(player.position.x, player.position.y, player.position.z)
+          actor.updateVisibility(player.health > 0)
+        })
+
+        // Find intersections between raycaster and the Actors in the scene
+        this.raycaster.setFromCamera(this.mouse, camera)
+        const intersects = this.raycaster.intersectObjects(actors.children, true)
+
+        // Mouse is intersecting with actor(s)
+        if (intersects.length > 0) {
+          const intersected = intersects[0].object
+
+          if (intersected.type === 'Mesh' && intersected.parent.name === 'ACTOR') {
+            if (this.hoveredActor) this.hoveredActor.onHoverLeave()
+            this.hoveredActor = intersected.parent
+            this.hoveredActor.onHoverEnter()
+          }
+        }
+        // Mouse is not intersecting anything
+        else {
+          if (this.hoveredActor) this.hoveredActor.onHoverLeave()
+          this.hoveredActor = null
+        }
+      }
+    } catch (error) {
+      console.log(error)
     }
 
     // Render the THREE.js scene
