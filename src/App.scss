@@ -4,7 +4,6 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
   background-color: var(--background-primary);
   color: var(--text-primary);
 }
@@ -12,6 +11,18 @@
 :root {
   --background-primary: #eeeeee;
   --text-primary: #282c34;
+}
+
+/* Disable number input arrows - Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Disable number input arrows - Firefox */
+input[type='number'] {
+  -moz-appearance: textfield;
 }
 
 .ui-layer {

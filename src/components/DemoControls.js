@@ -52,13 +52,13 @@ var DemoControls = function (object, domElement) {
 
   // Set to false to disable rotating
   this.enableRotate = true
-  this.rotateSpeed = 0.33
+  this.rotateSpeed = 1.0
 
   // Set to false to disable panning
   this.enablePan = true
-  this.panSpeed = 0.5
+  this.panSpeed = 1.0
   this.screenSpacePanning = false // if true, pan in screen-space
-  this.keyPanSpeed = 1.0 // pixels moved per arrow key push
+  this.keyPanSpeed = this.panSpeed * 10.0 // pixels moved per arrow key push
 
   // Set to true to automatically rotate around the target
   // If auto-rotate is enabled, you must call controls.update() in your animation loop
@@ -195,8 +195,11 @@ var DemoControls = function (object, domElement) {
 
       if (isMoving.forward || isMoving.back || isMoving.left || isMoving.right) {
         const x = isMoving.left ? 1 : isMoving.right ? -1 : 0
-        const y = isMoving.forward ? 1 : isMoving.back ? -1 : 0
-        pan(x * scope.keyPanSpeed, y * scope.keyPanSpeed)
+        const y = isMoving.back ? -1 : isMoving.forward ? 1 : 0
+
+        // keyboard panning has different "panning speed" compared to
+        // mouse so doesn't need to be scaled
+        pan(x * scope.panSpeed * 2, y * scope.panSpeed * 2)
       }
 
       // update condition is:
@@ -295,8 +298,20 @@ var DemoControls = function (object, domElement) {
     return ((2 * Math.PI) / 60 / 60) * scope.autoRotateSpeed
   }
 
+  function scalePanSpeed(speed) {
+    return speed * 0.2 // To support 1 - 10 slider range
+  }
+
+  function scaleZoomSpeed(speed) {
+    return speed * 0.2 // To support 1 - 10 slider range
+  }
+
+  function scaleRotateSpeed(speed) {
+    return speed * 0.2 // To support 1 - 10 slider range
+  }
+
   function getZoomScale() {
-    return Math.pow(0.95, scope.zoomSpeed)
+    return Math.pow(0.95, scaleZoomSpeed(scope.zoomSpeed))
   }
 
   function rotateLeft(angle) {
@@ -431,7 +446,9 @@ var DemoControls = function (object, domElement) {
   function handleMouseMoveRotate(event) {
     rotateEnd.set(event.clientX, event.clientY)
 
-    rotateDelta.subVectors(rotateEnd, rotateStart).multiplyScalar(scope.rotateSpeed)
+    rotateDelta
+      .subVectors(rotateEnd, rotateStart)
+      .multiplyScalar(scaleRotateSpeed(scope.rotateSpeed))
 
     var element = scope.domElement
 
@@ -463,7 +480,7 @@ var DemoControls = function (object, domElement) {
   function handleMouseMovePan(event) {
     panEnd.set(event.clientX, event.clientY)
 
-    panDelta.subVectors(panEnd, panStart).multiplyScalar(scope.panSpeed)
+    panDelta.subVectors(panEnd, panStart).multiplyScalar(scalePanSpeed(scope.panSpeed))
 
     pan(panDelta.x, panDelta.y)
 
@@ -628,7 +645,7 @@ var DemoControls = function (object, domElement) {
       panEnd.set(x, y)
     }
 
-    panDelta.subVectors(panEnd, panStart).multiplyScalar(scope.panSpeed)
+    panDelta.subVectors(panEnd, panStart).multiplyScalar(scalePanSpeed(scope.panSpeed))
 
     pan(panDelta.x, panDelta.y)
 
@@ -643,7 +660,7 @@ var DemoControls = function (object, domElement) {
 
     dollyEnd.set(0, distance)
 
-    dollyDelta.set(0, Math.pow(dollyEnd.y / dollyStart.y, scope.zoomSpeed))
+    dollyDelta.set(0, Math.pow(dollyEnd.y / dollyStart.y, scaleZoomSpeed(scope.zoomSpeed)))
 
     dollyOut(dollyDelta.y)
 

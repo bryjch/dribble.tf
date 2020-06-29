@@ -1,6 +1,7 @@
 import React from 'react'
 import moment from 'moment'
 import { clamp } from 'lodash'
+import { connect } from 'react-redux'
 import humanizeDuration from 'humanize-duration'
 
 // THREE related imports
@@ -13,6 +14,9 @@ import { CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer'
 import { Actor, ActorDimensions } from './Actor'
 import { DemoControls } from './DemoControls'
 import { Nameplate } from './Nameplate'
+
+// UI Panels
+import { SettingsPanel } from './UI/SettingsPanel'
 
 import { degreesToRadians } from '../utils/geometry'
 
@@ -68,7 +72,7 @@ const MAP_DEFAULT_MATERIAL = (opts = {}) =>
 // ─── COMPONENT ──────────────────────────────────────────────────────────────────
 //
 
-export class DemoViewer extends React.Component {
+class DemoViewer extends React.Component {
   state = {
     scene: null,
     world: null,
@@ -252,7 +256,7 @@ export class DemoViewer extends React.Component {
   /////////////////////////
 
   animate = async timestamp => {
-    const { parser } = this.props
+    const { parser, settings } = this.props
     const { scene, camera, actors, controls, playSpeed } = this.state
     const { tick, maxTicks } = this.state
 
@@ -310,6 +314,13 @@ export class DemoViewer extends React.Component {
       }
     } catch (error) {
       console.log(error)
+    }
+
+    // Update control settings from Redux
+    // TODO: Can probably be implemented better (shouldn't be called
+    // on every animation frame!)
+    for (const key in settings.controls) {
+      controls[key] = settings.controls[key]
     }
 
     // Render the THREE.js scene
@@ -530,14 +541,6 @@ export class DemoViewer extends React.Component {
             ))}
         </div>
 
-        <div className="ui-layer settings">
-          <div className="panel">
-            <button onClick={this.updateSettings.bind(this, 'toggleWireframe')}>
-              Toggle Wireframe
-            </button>
-          </div>
-        </div>
-
         {/* PLAYBACK CONTROLS */}
 
         <div className="ui-layer controls">
@@ -613,6 +616,15 @@ export class DemoViewer extends React.Component {
           </div>
         )}
 
+        {/* DEBUG */}
+
+        <div className="ui-layer settings">
+          <button onClick={this.updateSettings.bind(this, 'toggleWireframe')}>
+            Toggle Wireframe
+          </button>
+          <SettingsPanel />
+        </div>
+
         <style>{`
           .label.player-name {
             color: #ffffff;
@@ -653,15 +665,10 @@ export class DemoViewer extends React.Component {
           }
 
           .ui-layer {
-            &.settings {
-              justify-content: center;
-              align-items: flex-start;
-              margin: 1rem;
-            }
-
             &.controls {
               justify-content: center;
               align-items: flex-end;
+              text-align: center;
               margin-bottom: 1rem;
 
               .timeline input[type='range'] {
@@ -691,12 +698,27 @@ export class DemoViewer extends React.Component {
                 margin: 1rem;
               }
             }
+
+            &.settings {
+              justify-content: flex-start;
+              align-items: flex-start;
+              margin: 1rem;
+              margin-left: 95px;
+            }
           }
         `}</style>
       </div>
     )
   }
 }
+
+const mapState = state => ({
+  settings: state.settings,
+})
+
+DemoViewer = connect(mapState)(DemoViewer)
+
+export { DemoViewer }
 
 // Helpers
 // TODO: Move to separate file(s)

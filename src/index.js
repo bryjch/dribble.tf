@@ -1,11 +1,14 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
+import { Provider as ReduxProvider } from 'react-redux'
 
 import App from './App'
 import * as serviceWorker from './serviceWorker'
 
 import './index.scss'
 import 'bootstrap/dist/css/bootstrap.min.css'
+
+import store from './redux/store'
 
 // Use BrowserFS so user can upload their demos to browser for direct parsing
 const BrowserFS = require('browserfs')
@@ -26,7 +29,9 @@ BrowserFS.configure(
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <ReduxProvider store={store}>
+      <App />
+    </ReduxProvider>
   </React.StrictMode>,
   document.getElementById('root')
 )
