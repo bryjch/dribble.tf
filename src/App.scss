@@ -37,6 +37,7 @@ input[type='number'] {
   right: 0;
   bottom: 0;
   left: 0;
+  z-index: 2000000000; /* Ensure these are above three.js rendered html elements */
   pointer-events: none;
 
   & > * {

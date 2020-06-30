@@ -18,6 +18,7 @@ import { Actor } from '@components/Scene/Actor'
 import { SettingsPanel } from '@components/UI/SettingsPanel'
 import { PlaybackPanel } from '@components/UI/PlaybackPanel'
 import { DemoInfoPanel } from '@components/UI/DemoInfoPanel'
+import { Killfeed } from '@components/UI/Killfeed'
 
 // Actions & utils
 import { loadSceneFromParserAction, togglePlaybackAction, goToTickAction } from '@redux/actions'
@@ -179,19 +180,28 @@ class DemoViewer extends React.Component {
           {/* Demo specific elements */}
           {parser?.header?.map && <World map={parser.header.map} mode={settings.scene.mode} />}
           {parser && playback && <Actors parser={parser} playback={playback} />}
-          <Actor
-            position={new THREE.Vector3(0, 0, 0)}
-            viewAngle={0}
-            classId={1}
-            health={100}
-            team=""
-            user={{ name: 'Player' }}
-          />
 
           {/* Misc elements */}
           <Repositioner position={scene.bounds.center} />
-          <gridHelper args={[1000, 100]} position={[0, 0, -40]} rotation={[Math.PI / 2, 0, 0]} />
           <Stats />
+
+          {!parser && (
+            <group>
+              <gridHelper
+                args={[1000, 100]}
+                position={[0, 0, -40]}
+                rotation={[Math.PI / 2, 0, 0]}
+              />
+              <Actor
+                position={new THREE.Vector3(0, 0, 0)}
+                viewAngle={0}
+                classId={1}
+                health={100}
+                team=""
+                user={{ name: 'Player' }}
+              />
+            </group>
+          )}
         </Canvas>
 
         <div className="ui-layers">
@@ -206,6 +216,12 @@ class DemoViewer extends React.Component {
           {parser && (
             <div className="ui-layer demo-info">
               <DemoInfoPanel parser={parser} />
+            </div>
+          )}
+
+          {parser && (
+            <div className="ui-layer killfeed">
+              <Killfeed parser={parser} tick={playback.tick} />
             </div>
           )}
         </div>
@@ -235,6 +251,13 @@ class DemoViewer extends React.Component {
               justify-content: flex-end;
               align-items: flex-start;
               margin: 1rem;
+            }
+
+            &.killfeed {
+              justify-content: flex-end;
+              align-items: flex-start;
+              margin: 1rem;
+              margin-top: 100px;
             }
           }
         `}</style>

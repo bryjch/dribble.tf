@@ -32,6 +32,7 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
         healthBar: '#ac2641',
         healthBuffed: '#6ed6ff',
         healthLow: '#ff6262',
+        killfeedText: '#ff4a4a',
       }
 
     case 'blue':
@@ -40,6 +41,7 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
         healthBar: '#88aeb8',
         healthBuffed: '#6ed6ff',
         healthLow: '#ff6262',
+        killfeedText: '#77a9ec',
       }
 
     default:
@@ -48,6 +50,7 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
         healthBar: '#f800d7',
         healthBuffed: '#f800d7',
         healthLow: '#f800d7',
+        killfeedText: '#ffffff',
       }
   }
 }
