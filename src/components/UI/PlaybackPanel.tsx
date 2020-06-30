@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
 
-import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '../../redux/actions'
+import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@redux/actions'
 
 export const PLAYBACK_SPEED_OPTIONS = [
   { label: 'x0.1', value: 0.1 },

@@ -8,7 +8,7 @@ import * as serviceWorker from './serviceWorker'
 import './index.scss'
 import 'bootstrap/dist/css/bootstrap.min.css'
 
-import store from './redux/store'
+import store from '@redux/store'
 
 // Use BrowserFS so user can upload their demos to browser for direct parsing
 const BrowserFS = require('browserfs')

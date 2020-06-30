@@ -1,8 +1,9 @@
 import React from 'react'
 import { get } from 'lodash'
 
-import { CLASS_MAP, HEALTH_MAP } from '../../constants'
-const classIcons = require('../../assets/class-icons-64.png')
+import { CLASS_MAP, HEALTH_MAP } from '@constants/mappings'
+
+const classIcons = require('@assets/class-icons-64.png')
 
 const CLASS_ICON_SIZE = '1.5rem'
 const HEALTH_BUFFED_COLOR = '#6ed6ff'

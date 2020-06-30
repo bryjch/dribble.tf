@@ -1,7 +1,7 @@
 import { merge } from 'lodash'
 import localForage from 'localforage'
 
-import { ActorDimensions } from '../components/Scene/Actor'
+import { ActorDimensions } from '@components/Scene/Actor'
 
 //
 // ─── SCENE ──────────────────────────────────────────────────────────────────────

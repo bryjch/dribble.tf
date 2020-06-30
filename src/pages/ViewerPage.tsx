@@ -1,8 +1,8 @@
 import React from 'react'
 
-import { AsyncParser } from '../components/Analyse/Data/AsyncParser'
-import { DemoDropzone } from '../components/DemoDropzone'
-import { DemoViewer } from '../components/DemoViewer'
+import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import { DemoDropzone } from '@components/DemoDropzone'
+import { DemoViewer } from '@components/DemoViewer'
 
 export interface ViewerPageState {
   parser: AsyncParser | null

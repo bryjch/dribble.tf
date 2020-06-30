@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { connect } from 'react-redux'
 import { clamp } from 'lodash'
 
-import { updateSettingsOptionAction } from '../../redux/actions'
+import { updateSettingsOptionAction } from '@redux/actions'
 
 const Option = ({ label, children }) => (
   <div className="row align-items-center">

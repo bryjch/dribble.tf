@@ -1,9 +1,10 @@
 import React from 'react'
 import 'react-three-fiber'
 
-import { AsyncParser } from '../Analyse/Data/AsyncParser'
-import { Actor } from './Actor'
-import { arrayToVector3 } from 'src/utils/geometry'
+import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import { Actor } from '@components/Scene/Actor'
+
+import { arrayToVector3 } from '@utils/geometry'
 
 export interface ActorsProps {
   parser: AsyncParser

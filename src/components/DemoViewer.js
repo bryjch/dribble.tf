@@ -7,19 +7,19 @@ import { Canvas, useFrame, useThree, extend } from 'react-three-fiber'
 import { PerspectiveCamera, OrthographicCamera, Stats } from 'drei'
 
 // Scene items
-import { DemoControls } from './DemoControls'
-import { Lights } from './Scene/Lights'
-import { Actors } from './Scene/Actors'
-import { World } from './Scene/World'
+import { DemoControls } from '@components/DemoControls'
+import { Lights } from '@components/Scene/Lights'
+import { Actors } from '@components/Scene/Actors'
+import { World } from '@components/Scene/World'
 
 // UI Panels
-import { SettingsPanel } from './UI/SettingsPanel'
-import { PlaybackPanel } from './UI/PlaybackPanel'
-import { DemoInfoPanel } from './UI/DemoInfoPanel'
+import { SettingsPanel } from '@components/UI/SettingsPanel'
+import { PlaybackPanel } from '@components/UI/PlaybackPanel'
+import { DemoInfoPanel } from '@components/UI/DemoInfoPanel'
 
 // Actions & utils
-import { loadSceneFromParserAction, togglePlaybackAction, goToTickAction } from '../redux/actions'
-import { objCoordsToVector3 } from '../utils/geometry'
+import { loadSceneFromParserAction, togglePlaybackAction, goToTickAction } from '@redux/actions'
+import { objCoordsToVector3 } from '@utils/geometry'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────

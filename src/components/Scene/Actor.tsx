@@ -3,8 +3,9 @@ import * as THREE from 'three'
 import 'react-three-fiber'
 import { HTML } from 'drei'
 
-import { Nameplate } from './Nameplate'
-import { degreesToRadians } from '../../utils/geometry'
+import { Nameplate } from '@components/Scene/Nameplate'
+
+import { degreesToRadians } from '@utils/geometry'
 
 // Default TF2 player dimensions as specified in:
 // https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper%27s_Reference

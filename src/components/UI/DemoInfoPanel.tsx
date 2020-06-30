@@ -2,7 +2,7 @@ import React from 'react'
 import moment from 'moment'
 import humanizeDuration from 'humanize-duration'
 
-import { AsyncParser } from '../Analyse/Data/AsyncParser'
+import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 
 export interface DemoInfoPanelProps {
   parser: AsyncParser
