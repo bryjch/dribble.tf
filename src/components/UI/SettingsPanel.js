@@ -121,11 +121,11 @@ let SettingsPanel = ({ settings, updateSettingsOption }) => {
             onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
           />
 
-          <ToggleOption
+          {/* <ToggleOption
             label="Orthographic"
             checked={settings.camera.orthographic} // TODO: make this a button group instead
             onChange={checked => updateSettingsOption('camera.orthographic', checked)}
-          />
+          /> */}
 
           <ToggleOption
             label="Wireframe"
