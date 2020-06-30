@@ -5,6 +5,7 @@ import { HTML } from 'drei'
 
 import { Nameplate } from '@components/Scene/Nameplate'
 
+import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { degreesToRadians } from '@utils/geometry'
 
 // Default TF2 player dimensions as specified in:
@@ -34,7 +35,7 @@ export const Actor = (props: ActorProps) => {
   let { viewAngle } = props
 
   const alive = health > 0
-  const color = team || '#cccccc'
+  const color = ACTOR_TEAM_COLORS(team).actorModel
 
   // Hack to deal with the parser's tick data randomly returning
   // zero value for {viewAngle} on certain frames
@@ -59,7 +60,11 @@ export const Actor = (props: ActorProps) => {
         <meshBasicMaterial attach="material" color={color} />
       </mesh>
 
-      <HTML className="no-select" position={[0, 0, ActorDimensions.z * 1.5]} center>
+      <HTML
+        className="no-select"
+        style={{ bottom: 0, transform: 'translateX(-50%)' }}
+        position={[0, 0, ActorDimensions.z * 0.75]}
+      >
         {alive && <Nameplate name={user.name} team={team} health={health} classId={classId} />}
       </HTML>
     </group>

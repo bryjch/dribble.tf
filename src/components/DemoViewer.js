@@ -12,6 +12,8 @@ import { Lights } from '@components/Scene/Lights'
 import { Actors } from '@components/Scene/Actors'
 import { World } from '@components/Scene/World'
 
+import { Actor } from '@components/Scene/Actor'
+
 // UI Panels
 import { SettingsPanel } from '@components/UI/SettingsPanel'
 import { PlaybackPanel } from '@components/UI/PlaybackPanel'
@@ -177,6 +179,14 @@ class DemoViewer extends React.Component {
           {/* Demo specific elements */}
           {parser?.header?.map && <World map={parser.header.map} mode={settings.scene.mode} />}
           {parser && playback && <Actors parser={parser} playback={playback} />}
+          <Actor
+            position={new THREE.Vector3(0, 0, 0)}
+            viewAngle={0}
+            classId={1}
+            health={100}
+            team=""
+            user={{ name: 'Player' }}
+          />
 
           {/* Misc elements */}
           <Repositioner position={scene.bounds.center} />

@@ -1,16 +1,10 @@
 import React from 'react'
-import { get } from 'lodash'
 
-import { CLASS_MAP, HEALTH_MAP } from '@constants/mappings'
+import { CLASS_MAP, HEALTH_MAP, ACTOR_TEAM_COLORS } from '@constants/mappings'
 
 const classIcons = require('@assets/class-icons-64.png')
 
 const CLASS_ICON_SIZE = '1.5rem'
-const HEALTH_BUFFED_COLOR = '#6ed6ff'
-const HEALTH_LOW_COLOR = '#ff6262'
-const HEALTH_BLUE_COLOR = '#88aeb8'
-const HEALTH_RED_COLOR = '#ac2641'
-
 export interface NameplateProps {
   health: number
   classId: number
@@ -21,10 +15,10 @@ export interface NameplateProps {
 export const Nameplate = (props: NameplateProps) => {
   const { health, classId, name, team } = props
 
-  const character = get(CLASS_MAP, classId, 'empty')
-  const healthMax = get(HEALTH_MAP, classId, 100)
+  const character = CLASS_MAP[classId] || 'empty'
+  const healthMax = HEALTH_MAP[classId] || 100
   const healthPercent = (health / healthMax) * 100
-  const healthColor = team === 'blue' ? HEALTH_BLUE_COLOR : HEALTH_RED_COLOR
+  const healthColor = ACTOR_TEAM_COLORS(team).healthBar
   const healthCls = []
   if (healthPercent > 100) healthCls.push('buffed')
   if (healthPercent < 40) healthCls.push('low')
@@ -53,6 +47,7 @@ export const Nameplate = (props: NameplateProps) => {
           text-align: center;
           pointer-events: none;
           user-select: none;
+          bottom: 0;
 
           .name {
             font-size: 0.9rem;
@@ -141,11 +136,11 @@ export const Nameplate = (props: NameplateProps) => {
             font-weight: bold;
 
             &.buffed {
-              color: ${HEALTH_BUFFED_COLOR};
+              color: ${ACTOR_TEAM_COLORS(team).healthBuffed};
             }
 
             &.low {
-              color: ${HEALTH_LOW_COLOR};
+              color: ${ACTOR_TEAM_COLORS(team).healthLow};
             }
           }
         }
