@@ -18,7 +18,7 @@ import { PlaybackPanel } from './UI/PlaybackPanel'
 import { DemoInfoPanel } from './UI/DemoInfoPanel'
 
 // Actions & utils
-import { loadSceneFromParserAction, goToTickAction } from '../redux/actions'
+import { loadSceneFromParserAction, togglePlaybackAction, goToTickAction } from '../redux/actions'
 import { objCoordsToVector3 } from '../utils/geometry'
 
 //
@@ -93,50 +93,16 @@ class DemoViewer extends React.Component {
 
   componentDidMount() {
     this.animate(0)
-    this.demoViewer.addEventListener('keydown', this.handleKeyDown, false)
-  }
-
-  componentWillUnmount() {
-    this.demoViewer.removeEventListener('keydown', this.handleKeyDown)
   }
 
   async componentDidUpdate(prevProps) {
     if (this.props.parser !== prevProps.parser) {
-      console.log('Parser loaded:')
-      console.log(this.props.parser)
       await this.props.loadSceneFromParser(this.props.parser)
     }
   }
 
-  handleKeyDown = event => {
-    let preventDefaultEvent = true
-
-    switch (event.code) {
-      case 'Space':
-        // TODO: redux action
-        break
-
-      case 'Comma':
-        // TODO: redux action
-        break
-
-      case 'Period':
-        // TODO: redux action
-        break
-
-      default:
-        preventDefaultEvent = false
-        break
-    }
-
-    if (preventDefaultEvent) {
-      event.preventDefault()
-      event.stopPropagation()
-    }
-  }
-
   //
-  // ─── ANIMATION ──────────────────────────────────────────────────────────────────
+  // ─── ANIMATION LOOP ─────────────────────────────────────────────────────────────
   //
 
   animate = async timestamp => {
@@ -162,6 +128,35 @@ class DemoViewer extends React.Component {
   }
 
   //
+  // ─── KEYDOWN HANDLERS ───────────────────────────────────────────────────────────
+  //
+
+  handleKeyDown = async ({ keyCode }) => {
+    const keys = { SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 }
+
+    try {
+      switch (keyCode) {
+        case keys.SPACE:
+          this.props.togglePlayback()
+          break
+
+        case keys.LEFT:
+          this.props.goToTick(this.props.playback.tick - 50)
+          break
+
+        case keys.RIGHT:
+          this.props.goToTick(this.props.playback.tick + 50)
+          break
+
+        default:
+          break
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  //
   // ─── RENDER ─────────────────────────────────────────────────────────────────────
   //
 
@@ -172,7 +167,7 @@ class DemoViewer extends React.Component {
 
     return (
       <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
-        <Canvas>
+        <Canvas onKeyDown={this.handleKeyDown}>
           {/* Base scene elements */}
           <fog attach="fog" args={['#eeeeee', 10, 15000]} />
           <Camera name="camera" attach="camera" makeDefault {...settings.camera} />
@@ -246,6 +241,7 @@ const mapState = state => ({
 
 const mapDispatch = dispatch => ({
   loadSceneFromParser: parser => dispatch(loadSceneFromParserAction(parser)),
+  togglePlayback: () => dispatch(togglePlaybackAction()),
   goToTick: tick => dispatch(goToTickAction(tick)),
 })
 

@@ -68,8 +68,8 @@ var DemoControls = function (object, domElement) {
   // Set to false to disable use of the keys
   this.enableKeys = true
 
-  // The four arrow keys
-  this.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40, W: 87, A: 65, S: 83, D: 68 }
+  // Movement keys
+  this.keys = { W: 87, A: 65, S: 83, D: 68 }
 
   // Mouse buttons
   this.mouseButtons = { LEFT: MOUSE.PAN, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.ROTATE }
@@ -507,22 +507,18 @@ var DemoControls = function (object, domElement) {
     let preventDefaultEvent = true
 
     switch (event.keyCode) {
-      case scope.keys.UP:
       case scope.keys.W:
         isMoving.forward = true
         break
 
-      case scope.keys.BOTTOM:
       case scope.keys.S:
         isMoving.back = true
         break
 
-      case scope.keys.LEFT:
       case scope.keys.A:
         isMoving.left = true
         break
 
-      case scope.keys.RIGHT:
       case scope.keys.D:
         isMoving.right = true
         break
@@ -541,22 +537,18 @@ var DemoControls = function (object, domElement) {
     let preventDefaultEvent = true
 
     switch (event.keyCode) {
-      case scope.keys.UP:
       case scope.keys.W:
         isMoving.forward = false
         break
 
-      case scope.keys.BOTTOM:
       case scope.keys.S:
         isMoving.back = false
         break
 
-      case scope.keys.LEFT:
       case scope.keys.A:
         isMoving.left = false
         break
 
-      case scope.keys.RIGHT:
       case scope.keys.D:
         isMoving.right = false
         break

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useRef } from 'react'
 import * as THREE from 'three'
 import 'react-three-fiber'
 import { HTML } from 'drei'

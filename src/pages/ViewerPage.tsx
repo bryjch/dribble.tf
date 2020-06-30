@@ -48,6 +48,10 @@ export default class ViewerPage extends React.Component {
 
       await parser.cache()
 
+      console.log('%c-------- Parser loaded --------', 'color: blue; font-size: 16px;')
+      console.log(parser)
+      console.log('%c-------------------------------', 'color: blue; font-size: 16px;')
+
       this.setState({
         header: parser.header,
         parser: parser,
