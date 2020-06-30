@@ -3,7 +3,7 @@ import { DataCache } from './DataCache'
 export interface Point {
   x: number
   y: number
-  z?: number
+  z: number
 }
 
 export interface MapBoundary {

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { connect } from 'react-redux'
+import { clamp } from 'lodash'
 
 import { updateSettingsOptionAction } from '../../redux/actions'
 
@@ -11,19 +12,36 @@ const Option = ({ label, children }) => (
 )
 
 const SliderOption = ({ label, value, onChange, min = 1, max = 10, step = 0.1 }) => {
-  const inputFields = {
-    min: min,
-    max: max,
-    step: step,
-    value: value,
-    onChange: onChange,
-    tabIndex: -1,
+  // Track value internally so that input[type=number] will only trigger
+  // callback when appropriate (i.e. enter / up / down / blurred)
+  const [val, setVal] = useState(value)
+  const inputFields = { min: min, max: max, step: step }
+
+  const callback = newValue => {
+    setVal(clamp(newValue, min, max))
+    onChange(clamp(newValue, min, max))
   }
 
   return (
     <Option label={label}>
-      <input type="range" {...inputFields} />
-      <input type="number" {...inputFields} />
+      <input
+        type="range"
+        value={val}
+        onChange={({ target }) => callback(target.value)}
+        {...inputFields}
+      />
+      <input
+        type="number"
+        value={val}
+        onChange={({ target }) => setVal(target.value)}
+        onBlur={() => callback(val)}
+        onKeyDown={({ key }) => {
+          if (key === 'Enter') callback(val)
+          if (key === 'ArrowUp') callback(val)
+          if (key === 'ArrowDown') callback(val)
+        }}
+        {...inputFields}
+      />
 
       <style jsx>{`
         input[type='range'] {
@@ -41,15 +59,13 @@ const SliderOption = ({ label, value, onChange, min = 1, max = 10, step = 0.1 })
 }
 
 const ToggleOption = ({ label, checked, onChange }) => {
-  const inputFields = {
-    checked: checked,
-    onChange: onChange,
-    tabIndex: -1,
+  const callback = () => {
+    onChange(!checked)
   }
 
   return (
     <Option label={label}>
-      <input type="checkbox" {...inputFields} />
+      <input type="checkbox" checked={checked} onChange={callback} />
 
       <style jsx>{`
         input[type='checkbox'] {
@@ -73,35 +89,50 @@ let SettingsPanel = ({ settings, updateSettingsOption }) => {
       {!collapsed && (
         <div className="panel">
           <SliderOption
+            label="FOV"
+            min={50}
+            max={120}
+            step={1}
+            value={settings.camera.fov}
+            onChange={value => updateSettingsOption('camera.fov', value)}
+          />
+
+          <SliderOption
             label="Pan speed"
             value={settings.controls.panSpeed}
-            onChange={({ target }) => {
-              updateSettingsOption('controls.panSpeed', Number(target.value))
-            }}
+            onChange={value => updateSettingsOption('controls.panSpeed', value)}
           />
 
           <SliderOption
             label="Rotate speed"
             value={settings.controls.rotateSpeed}
-            onChange={({ target }) => {
-              updateSettingsOption('controls.rotateSpeed', Number(target.value))
-            }}
+            onChange={value => updateSettingsOption('controls.rotateSpeed', value)}
           />
 
           <SliderOption
             label="Zoom speed"
             value={settings.controls.zoomSpeed}
-            onChange={({ target }) => {
-              updateSettingsOption('controls.zoomSpeed', Number(target.value))
-            }}
+            onChange={value => updateSettingsOption('controls.zoomSpeed', value)}
           />
 
           <ToggleOption
             label="Inertia enabled"
             checked={settings.controls.enableDamping}
-            onChange={({ target }) => {
-              updateSettingsOption('controls.enableDamping', target.checked)
-            }}
+            onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
+          />
+
+          <ToggleOption
+            label="Orthographic"
+            checked={settings.camera.orthographic} // TODO: make this a button group instead
+            onChange={checked => updateSettingsOption('camera.orthographic', checked)}
+          />
+
+          <ToggleOption
+            label="Wireframe"
+            checked={settings.scene.mode === 'wireframe'} // TODO: make this a button group instead
+            onChange={checked =>
+              updateSettingsOption('scene.mode', checked ? 'wireframe' : 'normal')
+            }
           />
         </div>
       )}
@@ -115,7 +146,6 @@ let SettingsPanel = ({ settings, updateSettingsOption }) => {
           font-size: 1rem;
           font-family: monospace;
           padding: 1rem;
-          border-radius: 3px;
         }
       `}</style>
     </div>

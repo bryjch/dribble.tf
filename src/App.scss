@@ -13,6 +13,11 @@
   --text-primary: #282c34;
 }
 
+.no-select {
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Disable number input arrows - Chrome, Safari, Edge, Opera */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
