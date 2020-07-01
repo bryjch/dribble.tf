@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
-import { connect } from 'react-redux'
+import React, { useState, useCallback } from 'react'
+import { connect, useSelector, useDispatch } from 'react-redux'
 import { clamp } from 'lodash'
 
-import { updateSettingsOptionAction } from '@redux/actions'
+import { toggleUIPanelAction, updateSettingsOptionAction } from '@redux/actions'
 
 const Option = ({ label, children }) => (
   <div className="row align-items-center">
@@ -77,16 +77,31 @@ const ToggleOption = ({ label, checked, onChange }) => {
   )
 }
 
-let SettingsPanel = ({ settings, updateSettingsOption }) => {
-  const [collapsed, toggleCollapse] = useState(true)
+export const SettingsPanel = () => {
+  const isOpen = useSelector(state => state.ui.activePanels.includes('SettingsPanel'))
+  const settings = useSelector(state => state.settings)
+
+  const dispatch = useDispatch()
+  const toggleUIPanel = useCallback(
+    name => {
+      dispatch(toggleUIPanelAction(name))
+    },
+    [dispatch]
+  )
+  const updateSettingsOption = useCallback(
+    (option, value) => {
+      dispatch(updateSettingsOptionAction(option, value))
+    },
+    [dispatch]
+  )
 
   return (
     <div className="d-flex flex-column align-items-start ml-2">
-      <button className="mb-2" onClick={() => toggleCollapse(!collapsed)}>
+      <button className="mb-2" onClick={() => toggleUIPanel('SettingsPanel')}>
         Settings
       </button>
 
-      {!collapsed && (
+      {isOpen && (
         <div className="panel">
           <SliderOption
             label="FOV"
@@ -151,15 +166,3 @@ let SettingsPanel = ({ settings, updateSettingsOption }) => {
     </div>
   )
 }
-
-const mapState = state => ({
-  settings: state.settings,
-})
-
-const mapDispatch = dispatch => ({
-  updateSettingsOption: (option, value) => dispatch(updateSettingsOptionAction(option, value)),
-})
-
-SettingsPanel = connect(mapState, mapDispatch)(SettingsPanel)
-
-export { SettingsPanel }

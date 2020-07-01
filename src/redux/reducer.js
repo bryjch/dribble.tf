@@ -1,5 +1,5 @@
 import localForage from 'localforage'
-import { set, clone, clamp } from 'lodash'
+import { set, clone, clamp, uniq, without } from 'lodash'
 
 const reducers = (state = {}, action) => {
   switch (action.type) {
@@ -49,6 +49,28 @@ const reducers = (state = {}, action) => {
       return {
         ...state,
         settings: updatedSettings,
+      }
+
+    //
+    // ─── UI ──────────────────────────────────────────────────────────
+    //
+
+    case 'SET_UI_PANEL_ACTIVE':
+      return {
+        ...state,
+        ui: { activePanels: uniq([...state.ui.activePanels, action.payload.name]) },
+      }
+
+    case 'SET_UI_PANEL_INACTIVE':
+      return {
+        ...state,
+        ui: { activePanels: without(state.ui.activePanels, action.payload.name) },
+      }
+
+    case 'POP_UI_PANEL':
+      return {
+        ...state,
+        ui: { activePanels: state.ui.activePanels.slice(0, state.ui.activePanels.length - 1) },
       }
 
     default:

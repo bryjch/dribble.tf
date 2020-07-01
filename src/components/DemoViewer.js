@@ -21,7 +21,12 @@ import { DemoInfoPanel } from '@components/UI/DemoInfoPanel'
 import { Killfeed } from '@components/UI/Killfeed'
 
 // Actions & utils
-import { loadSceneFromParserAction, togglePlaybackAction, goToTickAction } from '@redux/actions'
+import {
+  loadSceneFromParserAction,
+  togglePlaybackAction,
+  goToTickAction,
+  popUIPanelAction,
+} from '@redux/actions'
 import { objCoordsToVector3 } from '@utils/geometry'
 
 //
@@ -96,6 +101,11 @@ class DemoViewer extends React.Component {
 
   componentDidMount() {
     this.animate(0)
+    this.demoViewer.addEventListener('keydown', this.globalKeyDown)
+  }
+
+  componentWillUnmount() {
+    this.demoViewer.removeEventListener('keydown', this.globalKeyDown)
   }
 
   async componentDidUpdate(prevProps) {
@@ -134,7 +144,24 @@ class DemoViewer extends React.Component {
   // ─── KEYDOWN HANDLERS ───────────────────────────────────────────────────────────
   //
 
-  handleKeyDown = async ({ keyCode }) => {
+  globalKeyDown = ({ keyCode }) => {
+    const keys = { ESC: 27 }
+
+    try {
+      switch (keyCode) {
+        case keys.ESC: // Escape
+          this.props.popUIPanel()
+          break
+
+        default:
+          break
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
+  canvasKeyDown = async ({ keyCode }) => {
     const keys = { SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 }
 
     try {
@@ -170,7 +197,7 @@ class DemoViewer extends React.Component {
 
     return (
       <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
-        <Canvas onKeyDown={this.handleKeyDown}>
+        <Canvas onKeyDown={this.canvasKeyDown}>
           {/* Base scene elements */}
           <fog attach="fog" args={['#eeeeee', 10, 15000]} />
           <Camera name="camera" attach="camera" makeDefault {...settings.camera} />
@@ -276,6 +303,7 @@ const mapDispatch = dispatch => ({
   loadSceneFromParser: parser => dispatch(loadSceneFromParserAction(parser)),
   togglePlayback: () => dispatch(togglePlaybackAction()),
   goToTick: tick => dispatch(goToTickAction(tick)),
+  popUIPanel: () => dispatch(popUIPanelAction()),
 })
 
 DemoViewer = connect(mapState, mapDispatch)(DemoViewer)

@@ -59,6 +59,7 @@ export const goToTickAction = tick => async (dispatch, getState) => {
 
 export const togglePlaybackAction = (playing = undefined) => async (dispatch, getState) => {
   try {
+    // Use {playing} value if provided - otherwise use the inverse of current value
     const isPlaying = playing !== undefined ? playing : !getState().playback.playing
     const isAtEnd = getState().playback.maxTicks === getState().playback.tick
 
@@ -99,6 +100,33 @@ export const loadSettingsAction = () => async (dispatch, getState) => {
 export const updateSettingsOptionAction = (option, value) => async dispatch => {
   try {
     await dispatch({ type: 'UPDATE_SETTINGS_OPTION', option, value })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+//
+// ─── UI ─────────────────────────────────────────────────────────────────────────
+//
+
+export const toggleUIPanelAction = (name, active = undefined) => async (dispatch, getState) => {
+  try {
+    // Use {active} value if provided - otherwise use the inverse of current value
+    const isActive = active !== undefined ? active : !getState().ui.activePanels.includes(name)
+
+    if (isActive) {
+      await dispatch({ type: 'SET_UI_PANEL_ACTIVE', payload: { name: name } })
+    } else {
+      await dispatch({ type: 'SET_UI_PANEL_INACTIVE', payload: { name: name } })
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const popUIPanelAction = name => async dispatch => {
+  try {
+    await dispatch({ type: 'POP_UI_PANEL', payload: { name: name } })
   } catch (error) {
     console.error(error)
   }

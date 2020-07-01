@@ -5,7 +5,6 @@ import thunk from 'redux-thunk'
 import rootReducer from './reducer'
 
 const initialState = {
-  parser: null,
   scene: {
     map: null,
     bounds: {
@@ -37,6 +36,9 @@ const initialState = {
       zoomSpeed: 5,
       enableDamping: true,
     },
+  },
+  ui: {
+    activePanels: [],
   },
 }
 
