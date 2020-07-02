@@ -5,6 +5,7 @@
       "@assets/*": ["src/assets/*"],
       "@components/*": ["src/components/*"],
       "@constants/*": ["src/constants/*"],
+      "@libs/*": ["src/libs/*"],
       "@pages/*": ["src/pages/*"],
       "@redux/*": ["src/redux/*"],
       "@utils/*": ["src/utils/*"]
