@@ -1,4 +1,5 @@
 import React, { useRef } from 'react'
+
 import * as THREE from 'three'
 import 'react-three-fiber'
 import { HTML } from 'drei'
@@ -12,14 +13,11 @@ import { degreesToRadians } from '@utils/geometry'
 // https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper%27s_Reference
 export const ActorDimensions = new THREE.Vector3(49, 49, 83)
 
-export const AimLinePoints: THREE.Vector3[] = [
-  new THREE.Vector3(0, 0, 0),
-  new THREE.Vector3(400, 0, 0),
-]
+export const AimLineSize = 300
 
 export interface ActorProps {
-  position: THREE.Vector3 | [number, number, number]
-  viewAngle: number
+  position: THREE.Vector3
+  viewAngles: THREE.Vector3
   classId: number
   health: number
   team: string
@@ -30,23 +28,37 @@ export interface ActorProps {
 
 export const Actor = (props: ActorProps) => {
   const ref = useRef<THREE.Group>()
-  const lastViewAngle = useRef<number>(0)
+  const lastViewAngleX = useRef<number>(0)
+  const lastViewAngleY = useRef<number>(0)
+
   const { position, classId, health, team, user } = props
-  let { viewAngle } = props
+  let { viewAngles } = props
 
   const alive = health > 0
   const color = ACTOR_TEAM_COLORS(team).actorModel
 
-  // Hack to deal with the parser's tick data randomly returning
-  // zero value for {viewAngle} on certain frames
-  if (viewAngle === 0) {
-    viewAngle = lastViewAngle.current
+  // Hack for parser's tick data randomly returning 0 / huge value on certain frames
+  if (viewAngles.x === 0) {
+    viewAngles.x = lastViewAngleX.current
   } else {
-    lastViewAngle.current = viewAngle
+    lastViewAngleX.current = viewAngles.x
+  }
+
+  // Hack for parser's tick data randomly returning 0 / huge value on certain frames
+  if (viewAngles.y === 0 || viewAngles.y > 90) {
+    viewAngles.y = lastViewAngleY.current
+  } else {
+    lastViewAngleY.current = viewAngles.y
   }
 
   return (
-    <group ref={ref} position={position} rotation={[0, 0, degreesToRadians(viewAngle)]}>
+    <group
+      name="actor"
+      ref={ref}
+      position={position}
+      rotation={[0, 0, degreesToRadians(viewAngles.x)]}
+    >
+      {/* Box mesh */}
       <mesh visible={alive}>
         <boxGeometry
           attach="geometry"
@@ -55,11 +67,15 @@ export const Actor = (props: ActorProps) => {
         <meshLambertMaterial attach="material" color={color} />
       </mesh>
 
-      <mesh visible={alive} position={[100, 0, 0]}>
-        <boxGeometry attach="geometry" args={[200, 1, 1]} />
-        <meshBasicMaterial attach="material" color={color} />
-      </mesh>
+      {/* Aim line */}
+      <group name="aimLineContainer" rotation={[0, degreesToRadians(viewAngles.y), 0]}>
+        <mesh visible={alive} position={[AimLineSize * 0.5, 0, 0]}>
+          <boxGeometry attach="geometry" args={[AimLineSize, 2, 2]} />
+          <meshBasicMaterial attach="material" color={color} />
+        </mesh>
+      </group>
 
+      {/* Nameplate */}
       <HTML
         className="no-select"
         style={{ bottom: 0, transform: 'translateX(-50%)' }}

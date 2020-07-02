@@ -1,25 +1,20 @@
+import { Vector } from '@libs/demo.js/build'
 import { DataCache } from './DataCache'
 
-export interface Point {
-  x: number
-  y: number
-  z: number
-}
-
 export interface MapBoundary {
-  boundaryMin: Point
-  boundaryMax: Point
+  boundaryMin: Vector
+  boundaryMax: Vector
 }
 
 export class PositionCache extends DataCache {
-  offset: Point
+  offset: Vector
 
-  constructor(tickCount: number, offset: Point) {
+  constructor(tickCount: number, offset: Vector) {
     super(tickCount, 3, 32)
     this.offset = offset
   }
 
-  getPosition(playerId: number, tick: number): Point {
+  getPosition(playerId: number, tick: number): Vector {
     return {
       x: this.get(playerId, tick, 0),
       y: this.get(playerId, tick, 1),
@@ -27,10 +22,10 @@ export class PositionCache extends DataCache {
     }
   }
 
-  setPosition(playerId: number, tick: number, position: Point) {
+  setPosition(playerId: number, tick: number, position: Vector) {
     this.set(playerId, tick, position.x - this.offset.x, 0)
     this.set(playerId, tick, position.y - this.offset.y, 1)
-    this.set(playerId, tick, (position.z || 0) - (this.offset.z || 0), 2)
+    this.set(playerId, tick, position.z - this.offset.z, 2)
   }
 
   static rehydrate(data: PositionCache) {

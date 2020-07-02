@@ -1,10 +1,11 @@
-import { Header, Packet, Player, UserInfo, Match } from '@demostf/demo.js'
-import { Demo } from '@demostf/demo.js/build/Demo'
+import { Header, Player, Match } from '@libs/demo.js/build'
+import { Demo } from '@libs/demo.js/build/Demo'
+import { Building } from '@libs/demo.js/build/Data/Building'
+import { PlayerResource } from '@libs/demo.js/build/Data/PlayerResource'
+
 import { getMapBoundaries } from '../MapBoundries'
 import { PlayerCache, CachedPlayer } from './PlayerCache'
 import { BuildingCache, CachedBuilding } from './BuildingCache'
-import { Building } from '@demostf/demo.js/build/Data/Building'
-import { PlayerResource } from '@demostf/demo.js/build/Data/PlayerResource'
 
 export { CachedPlayer } from './PlayerCache'
 

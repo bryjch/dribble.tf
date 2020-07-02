@@ -1,11 +1,12 @@
-import { Point } from './PositionCache'
+import { Vector } from '@libs/demo.js/build'
+import { Building } from '@libs/demo.js/build/Data/Building'
+
 import { SparseDataCache } from './SparseDataCache'
-import { Building } from '@demostf/demo.js/build/Data/Building'
 
 export interface CachedBuilding {
   type: number
   health: number
-  position: Point
+  position: Vector
   level: number
   team: number
   angle: number
@@ -17,10 +18,10 @@ export class BuildingCache {
   levelCache: SparseDataCache
   engineers: number = 0
   playerIndexMap: { [playerId: string]: number } = {}
-  positionOffset: Point
+  positionOffset: Vector
   angleCache: SparseDataCache
 
-  constructor(tickCount: number, positionOffset: Point) {
+  constructor(tickCount: number, positionOffset: Vector) {
     this.positionCache = new SparseDataCache(tickCount, 2, 16, 6)
     this.healthCache = new SparseDataCache(tickCount, 1, 16, 2)
     this.levelCache = new SparseDataCache(tickCount, 1, 8, 6)

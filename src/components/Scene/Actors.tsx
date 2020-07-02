@@ -4,7 +4,7 @@ import 'react-three-fiber'
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { Actor } from '@components/Scene/Actor'
 
-import { arrayToVector3 } from '@utils/geometry'
+import { objCoordsToVector3 } from '@utils/geometry'
 
 export interface ActorsProps {
   parser: AsyncParser
@@ -19,11 +19,12 @@ export const Actors = (props: ActorsProps) => {
   return (
     <group name="actors">
       {playersThisTick.map((player, index) => {
-        // This position conversion is necessary due to parser
-        //using Point type instead of Vector3
-        // TODO: update the parser data structures to be three.js comptable
-        const position = arrayToVector3([player.position.x, player.position.y, player.position.z])
-        return <Actor key={`actor-${index}`} {...player} position={position} />
+        // TODO: update the parser data structures to be three.js compatible
+        const position = objCoordsToVector3(player.position)
+        const viewAngles = objCoordsToVector3(player.viewAngles)
+        return (
+          <Actor key={`actor-${index}`} {...player} position={position} viewAngles={viewAngles} />
+        )
       })}
     </group>
   )

@@ -221,7 +221,7 @@ class DemoViewer extends React.Component {
               />
               <Actor
                 position={new THREE.Vector3(0, 0, 0)}
-                viewAngle={0}
+                viewAngles={new THREE.Vector3(45, -30, 0)}
                 classId={1}
                 health={100}
                 team=""
