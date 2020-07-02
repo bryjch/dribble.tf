@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react'
-import { connect, useSelector, useDispatch } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { clamp } from 'lodash'
 
 import { toggleUIPanelAction, updateSettingsOptionAction } from '@redux/actions'
