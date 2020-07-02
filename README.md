@@ -1,3 +1,5 @@
+[![Netlify Status](https://api.netlify.com/api/v1/badges/4629efb3-8110-4bdd-8349-ef4af34e87a0/deploy-status)](https://app.netlify.com/sites/tf2dmvwr/deploys)
+
 ##### [Trello Board](https://trello.com/b/u7ru88YG/tf2-demo-viewer) · [Live Site](https://tf2dmvwr.netlify.app)
 
 ## TF2 Demo Viewer (CRA)
