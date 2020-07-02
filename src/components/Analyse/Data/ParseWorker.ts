@@ -38,6 +38,6 @@ onmessage = (event: MessageEvent) => {
   transfers = transfers.concat(parser.playerCache.positionCache.data.map(cache => cache.buffer))
   transfers = transfers.concat(parser.playerCache.healthCache.data.map(cache => cache.buffer))
   transfers = transfers.concat(parser.playerCache.metaCache.data.map(cache => cache.buffer))
-  transfers = transfers.concat(parser.playerCache.viewAngleCache.data.map(cache => cache.buffer))
+  transfers = transfers.concat(parser.playerCache.viewAnglesCache.data.map(cache => cache.buffer))
   postMessage(cachedDemo, transfers)
 }

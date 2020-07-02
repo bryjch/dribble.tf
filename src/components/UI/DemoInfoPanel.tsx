@@ -6,10 +6,15 @@ import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 
 export interface DemoInfoPanelProps {
   parser: AsyncParser
+  tick: number
 }
 
 export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
-  const { parser } = props
+  const { parser, tick } = props
+
+  const playersThisTick = parser.getPlayersAtTick(tick)
+
+  console.log(playersThisTick)
 
   return (
     <div className="d-flex flex-column align-items-start ml-2">
