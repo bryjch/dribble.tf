@@ -1,5 +1,4 @@
 import { Player, UserInfo, Vector } from '@libs/demo.js/build'
-import { LifeState } from '@libs/demo.js/build/Data/Player'
 import { PlayerResource } from '@libs/demo.js/build/Data/PlayerResource'
 
 import { PositionCache } from './PositionCache'
@@ -7,6 +6,7 @@ import { ViewAnglesCache } from './ViewAnglesCache'
 import { PlayerMetaCache } from './PlayerMetaCache'
 import { HealthCache } from './HealthCache'
 import { SparseDataCache } from './SparseDataCache'
+import { LifeState } from './Enums'
 
 export class CachedPlayer {
   position: Vector
