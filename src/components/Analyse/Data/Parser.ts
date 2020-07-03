@@ -1,5 +1,4 @@
-import { Header, Player, Match } from '@libs/demo.js/build'
-import { Demo } from '@libs/demo.js/build/Demo'
+import { Demo, Header, Player, Match } from '@libs/demo.js/build'
 import { Building } from '@libs/demo.js/build/Data/Building'
 import { PlayerResource } from '@libs/demo.js/build/Data/PlayerResource'
 
