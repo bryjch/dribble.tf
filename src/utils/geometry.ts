@@ -39,3 +39,15 @@ export const arrayToObjCoords = ([x, y, z]: [number, number, number]): Object =>
 export const degreesToRadians = (degrees: number): number => {
   return degrees * (Math.PI / 180)
 }
+
+/**
+ * Apply degreesToRadians for x, y, z values of a given Vector3
+ */
+
+export const radianizeVector = (vector: THREE.Vector3): THREE.Vector3 => {
+  return vector.set(
+    degreesToRadians(vector.x),
+    degreesToRadians(vector.y),
+    degreesToRadians(vector.z)
+  )
+}

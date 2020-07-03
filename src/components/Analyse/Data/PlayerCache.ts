@@ -1,5 +1,6 @@
 import { Player, UserInfo, Vector } from '@bryjch/demo.js/build'
 import { PlayerResource } from '@bryjch/demo.js/build/Data/PlayerResource'
+import { CWeaponMedigun } from '@bryjch/demo.js/build/Data/Weapon'
 
 import { PositionCache } from './PositionCache'
 import { ViewAnglesCache } from './ViewAnglesCache'
@@ -17,6 +18,7 @@ export class CachedPlayer {
   classId: number
   team: string
   chargeLevel: number | null
+  healTarget: number | null
 }
 
 export class PlayerCache {
@@ -26,6 +28,7 @@ export class PlayerCache {
   metaCache: PlayerMetaCache
   viewAnglesCache: ViewAnglesCache
   uberCache: SparseDataCache
+  healTargetCache: SparseDataCache
 
   constructor(tickCount: number, positionOffset: Vector) {
     this.tickCount = tickCount
@@ -34,6 +37,7 @@ export class PlayerCache {
     this.metaCache = new PlayerMetaCache(tickCount)
     this.viewAnglesCache = new ViewAnglesCache(tickCount)
     this.uberCache = new SparseDataCache(tickCount, 1, 8, 4)
+    this.healTargetCache = new SparseDataCache(tickCount, 1, 8, 4)
   }
 
   setPlayer(tick: number, playerId: number, player: Player, playerResource: PlayerResource) {
@@ -43,6 +47,16 @@ export class PlayerCache {
     this.metaCache.setMeta(playerId, tick, { classId: player.classId, teamId: player.team })
     if (playerResource.chargeLevel > 0) {
       this.uberCache.set(playerId, tick, playerResource.chargeLevel)
+
+      let healTarget
+      try {
+        healTarget = (player.weapons.find(
+          ({ className }) => className === 'CWeaponMedigun'
+        ) as CWeaponMedigun).healTarget
+      } catch (error) {
+        healTarget = 0
+      }
+      this.healTargetCache.set(playerId, tick, healTarget)
     }
   }
 
@@ -58,6 +72,7 @@ export class PlayerCache {
       classId: meta.classId,
       team: team,
       chargeLevel: this.uberCache.getOrNull(playerId, tick),
+      healTarget: this.healTargetCache.getOrNull(playerId, tick),
     }
   }
 
@@ -67,6 +82,7 @@ export class PlayerCache {
     HealthCache.rehydrate(data.healthCache)
     PlayerMetaCache.rehydrate(data.metaCache)
     SparseDataCache.rehydrate(data.uberCache)
+    SparseDataCache.rehydrate(data.healTargetCache)
 
     Object.setPrototypeOf(data, PlayerCache.prototype)
   }
