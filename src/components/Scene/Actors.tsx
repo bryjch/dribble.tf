@@ -12,7 +12,9 @@ export interface ActorsProps {
 export const Actors = (props: ActorsProps) => {
   const { parser, playback } = props
 
-  const playersThisTick = parser ? parser.getPlayersAtTick(playback.tick) : []
+  const playersThisTick = parser
+    ? parser.getPlayersAtTick(playback.tick).filter(({ connected }) => connected)
+    : []
 
   return (
     <group name="actors">

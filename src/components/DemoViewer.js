@@ -19,6 +19,7 @@ import { SettingsPanel } from '@components/UI/SettingsPanel'
 import { PlaybackPanel } from '@components/UI/PlaybackPanel'
 import { DemoInfoPanel } from '@components/UI/DemoInfoPanel'
 import { Killfeed } from '@components/UI/Killfeed'
+import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 
 // Actions & utils
 import {
@@ -251,6 +252,12 @@ class DemoViewer extends React.Component {
               <Killfeed parser={parser} tick={playback.tick} />
             </div>
           )}
+
+          {parser && (
+            <div className="ui-layer player-statuses">
+              <PlayerStatuses parser={parser} tick={playback.tick} />
+            </div>
+          )}
         </div>
 
         <style jsx>{`
@@ -285,6 +292,11 @@ class DemoViewer extends React.Component {
               align-items: flex-start;
               margin: 1rem;
               margin-top: 100px;
+            }
+
+            &.player-statuses {
+              justify-content: stretch;
+              align-items: center;
             }
           }
         `}</style>

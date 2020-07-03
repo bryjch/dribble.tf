@@ -1,10 +1,10 @@
 import React from 'react'
 
-import { CLASS_MAP, HEALTH_MAP, ACTOR_TEAM_COLORS } from '@constants/mappings'
+import { ClassIcon } from '@components/UI/ClassIcon'
 
-const classIcons = require('@assets/class-icons-64.png')
+import { ACTOR_TEAM_COLORS } from '@constants/mappings'
+import { parseClassHealth } from '@utils/players'
 
-const CLASS_ICON_SIZE = '1.5rem'
 export interface NameplateProps {
   health: number
   classId: number
@@ -15,13 +15,8 @@ export interface NameplateProps {
 export const Nameplate = (props: NameplateProps) => {
   const { health, classId, name, team } = props
 
-  const character = CLASS_MAP[classId] || 'empty'
-  const healthMax = HEALTH_MAP[classId] || 100
-  const healthPercent = (health / healthMax) * 100
   const healthColor = ACTOR_TEAM_COLORS(team).healthBar
-  const healthCls = []
-  if (healthPercent > 100) healthCls.push('buffed')
-  if (healthPercent < 40) healthCls.push('low')
+  const { percentage } = parseClassHealth(classId, health)
 
   return (
     <>
@@ -30,11 +25,11 @@ export const Nameplate = (props: NameplateProps) => {
 
         <div className="healthbar">
           <div className="fill" />
-          <div className="overbuff" />
+          <div className="overheal" />
         </div>
 
         <div className="class">
-          <div className={`icon ${character}`} />
+          <ClassIcon classId={classId} />
         </div>
       </div>
 
@@ -72,16 +67,16 @@ export const Nameplate = (props: NameplateProps) => {
               top: 0;
               left: 0;
               bottom: 0;
-              width: ${healthPercent + '%'};
+              width: ${percentage + '%'};
               background-color: ${healthColor};
             }
 
-            .overbuff {
+            .overheal {
               position: absolute;
               top: 0;
               left: 0;
               bottom: 0;
-              width: ${healthPercent - 100 + '%'};
+              width: ${percentage - 100 + '%'};
               background-color: #eeeeee;
             }
           }
@@ -90,62 +85,6 @@ export const Nameplate = (props: NameplateProps) => {
             border-radius: 50%;
             background-color: ${healthColor};
             border: 3px solid rgba(0, 0, 0, 0.2);
-
-            .icon {
-              width: ${CLASS_ICON_SIZE};
-              height: ${CLASS_ICON_SIZE};
-              background: url(${classIcons});
-              background-size: ${CLASS_ICON_SIZE};
-              background-position-y: 0;
-
-              &.scout {
-                background-position-y: ${`calc(${CLASS_ICON_SIZE} * -1)`};
-              }
-
-              &.soldier {
-                background-position-y: ${`calc(${CLASS_ICON_SIZE} * -2)`};
-              }
-
-              &.pyro {
-                background-position-y: ${`calc(${CLASS_ICON_SIZE} * -3)`};
-              }
-
-              &.demoman {
-                background-position-y: ${`calc(${CLASS_ICON_SIZE} * -4)`};
-              }
-
-              &.heavy {
-                background-position-y: ${`calc(${CLASS_ICON_SIZE} * -5)`};
-              }
-
-              &.engineer {
-                background-position-y: ${`calc(${CLASS_ICON_SIZE} * -6)`};
-              }
-
-              &.medic {
-                background-position-y: ${`calc(${CLASS_ICON_SIZE} * -7)`};
-              }
-
-              &.sniper {
-                background-position-y: ${`calc(${CLASS_ICON_SIZE} * -8)`};
-              }
-
-              &.spy {
-                background-position-y: ${`calc(${CLASS_ICON_SIZE} * -9)`};
-              }
-            }
-          }
-
-          .health {
-            font-weight: bold;
-
-            &.buffed {
-              color: ${ACTOR_TEAM_COLORS(team).healthBuffed};
-            }
-
-            &.low {
-              color: ${ACTOR_TEAM_COLORS(team).healthLow};
-            }
           }
         }
       `}</style>

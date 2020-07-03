@@ -24,24 +24,44 @@ export const CLASS_MAP: any = {
   9: 'engineer',
 }
 
+export const ORDER_MAP: any = {
+  0: 0,
+  1: 1,
+  2: 8,
+  3: 2,
+  4: 4,
+  5: 7,
+  6: 5,
+  7: 3,
+  8: 9,
+  9: 6,
+}
+
+export const TEAM_MAP: any = {
+  0: 'unassigned',
+  1: 'spectator',
+  2: 'red',
+  3: 'blue',
+}
+
 export const ACTOR_TEAM_COLORS: any = (team: string) => {
   switch (team) {
-    case 'red':
-      return {
-        actorModel: '#de4a50',
-        healthBar: '#ac2641',
-        healthBuffed: '#6ed6ff',
-        healthLow: '#ff6262',
-        killfeedText: '#ff4a4a',
-      }
-
     case 'blue':
       return {
         actorModel: '#559dc1',
         healthBar: '#88aeb8',
-        healthBuffed: '#6ed6ff',
+        healthBuffed: '#4dd241',
         healthLow: '#ff6262',
         killfeedText: '#77a9ec',
+      }
+
+    case 'red':
+      return {
+        actorModel: '#de4a50',
+        healthBar: '#ac2641',
+        healthBuffed: '#4dd241',
+        healthLow: '#ff6262',
+        killfeedText: '#ff4a4a',
       }
 
     default:

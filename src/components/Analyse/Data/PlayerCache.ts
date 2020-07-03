@@ -17,6 +17,7 @@ export class CachedPlayer {
   teamId: number
   classId: number
   team: string
+  connected: number
   chargeLevel: number | null
   healTarget: number | null
 }
@@ -29,6 +30,7 @@ export class PlayerCache {
   viewAnglesCache: ViewAnglesCache
   uberCache: SparseDataCache
   healTargetCache: SparseDataCache
+  connectedCache: SparseDataCache
 
   constructor(tickCount: number, positionOffset: Vector) {
     this.tickCount = tickCount
@@ -38,6 +40,7 @@ export class PlayerCache {
     this.viewAnglesCache = new ViewAnglesCache(tickCount)
     this.uberCache = new SparseDataCache(tickCount, 1, 8, 4)
     this.healTargetCache = new SparseDataCache(tickCount, 1, 8, 4)
+    this.connectedCache = new SparseDataCache(tickCount, 1, 8, 4)
   }
 
   setPlayer(tick: number, playerId: number, player: Player, playerResource: PlayerResource) {
@@ -45,6 +48,9 @@ export class PlayerCache {
     this.viewAnglesCache.setAngles(playerId, tick, player.viewAngles)
     this.healthCache.set(playerId, tick, player.lifeState === LifeState.ALIVE ? player.health : 0)
     this.metaCache.setMeta(playerId, tick, { classId: player.classId, teamId: player.team })
+    this.connectedCache.set(playerId, tick, playerResource.connected ? 1 : 0)
+
+    // additional data for medics
     if (playerResource.chargeLevel > 0) {
       this.uberCache.set(playerId, tick, playerResource.chargeLevel)
 
@@ -71,6 +77,7 @@ export class PlayerCache {
       teamId: meta.teamId,
       classId: meta.classId,
       team: team,
+      connected: this.connectedCache.get(playerId, tick),
       chargeLevel: this.uberCache.getOrNull(playerId, tick),
       healTarget: this.healTargetCache.getOrNull(playerId, tick),
     }
@@ -83,6 +90,7 @@ export class PlayerCache {
     PlayerMetaCache.rehydrate(data.metaCache)
     SparseDataCache.rehydrate(data.uberCache)
     SparseDataCache.rehydrate(data.healTargetCache)
+    SparseDataCache.rehydrate(data.connectedCache)
 
     Object.setPrototypeOf(data, PlayerCache.prototype)
   }
