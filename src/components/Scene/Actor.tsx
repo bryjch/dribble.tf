@@ -130,7 +130,6 @@ export const HealBeam = (props: HealBeamProps) => {
 
   return (
     <group name="healBeam">
-      <axesHelper args={[150]} />
       <mesh geometry={geometry}>
         <MeshWobbleMaterial
           attach="material"
