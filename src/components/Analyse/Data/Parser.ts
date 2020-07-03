@@ -1,6 +1,6 @@
-import { Demo, Header, Player, Match } from '@libs/demo.js/build'
-import { Building } from '@libs/demo.js/build/Data/Building'
-import { PlayerResource } from '@libs/demo.js/build/Data/PlayerResource'
+import { Demo, Header, Player, Match } from '@bryjch/demo.js/build'
+import { Building } from '@bryjch/demo.js/build/Data/Building'
+import { PlayerResource } from '@bryjch/demo.js/build/Data/PlayerResource'
 
 import { getMapBoundaries } from '../MapBoundries'
 import { PlayerCache, CachedPlayer } from './PlayerCache'

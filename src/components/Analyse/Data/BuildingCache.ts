@@ -1,5 +1,5 @@
-import { Vector } from '@libs/demo.js/build'
-import { Building } from '@libs/demo.js/build/Data/Building'
+import { Vector } from '@bryjch/demo.js/build'
+import { Building } from '@bryjch/demo.js/build/Data/Building'
 
 import { SparseDataCache } from './SparseDataCache'
 

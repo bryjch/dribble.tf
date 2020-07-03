@@ -1,4 +1,4 @@
-import { Demo, Header, Player, Match, World } from '@libs/demo.js/build'
+import { Demo, Header, Player, Match, World } from '@bryjch/demo.js/build'
 
 import { PlayerCache, CachedPlayer } from './PlayerCache'
 import { BuildingCache, CachedBuilding } from './BuildingCache'

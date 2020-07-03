@@ -1,4 +1,4 @@
-import { Vector } from '@libs/demo.js/build'
+import { Vector } from '@bryjch/demo.js/build'
 import { DataCache } from './DataCache'
 
 export class ViewAnglesCache extends DataCache {

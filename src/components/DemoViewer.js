@@ -242,7 +242,7 @@ class DemoViewer extends React.Component {
 
           {parser && (
             <div className="ui-layer demo-info">
-              <DemoInfoPanel parser={parser} />
+              <DemoInfoPanel parser={parser} tick={playback.tick} />
             </div>
           )}
 

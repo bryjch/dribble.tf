@@ -10,11 +10,7 @@ export interface DemoInfoPanelProps {
 }
 
 export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
-  const { parser, tick } = props
-
-  const playersThisTick = parser.getPlayersAtTick(tick)
-
-  console.log(playersThisTick)
+  const { parser } = props
 
   return (
     <div className="d-flex flex-column align-items-start ml-2">

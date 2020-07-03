@@ -1,5 +1,5 @@
-import { Player, UserInfo, Vector } from '@libs/demo.js/build'
-import { PlayerResource } from '@libs/demo.js/build/Data/PlayerResource'
+import { Player, UserInfo, Vector } from '@bryjch/demo.js/build'
+import { PlayerResource } from '@bryjch/demo.js/build/Data/PlayerResource'
 
 import { PositionCache } from './PositionCache'
 import { ViewAnglesCache } from './ViewAnglesCache'
