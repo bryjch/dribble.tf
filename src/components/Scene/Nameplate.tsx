@@ -24,8 +24,12 @@ export const Nameplate = (props: NameplateProps) => {
         <div className="name">{name}</div>
 
         <div className="healthbar">
-          <div className="fill" />
-          <div className="overheal" />
+          {/* Note: fill & overheal widths are manipulated inline for better performance,
+            because changing the value in css class directly will continously trigger
+            styled-jsx recalculation / DOM reflow (very costly over time)
+            https://github.com/vercel/styled-jsx#via-inline-style */}
+          <div className="fill" style={{ width: `${percentage}%` }} />
+          <div className="overheal" style={{ width: `${percentage - 100}%` }} />
         </div>
 
         <div className="class">
@@ -67,7 +71,6 @@ export const Nameplate = (props: NameplateProps) => {
               top: 0;
               left: 0;
               bottom: 0;
-              width: ${percentage + '%'};
               background-color: ${healthColor};
             }
 
@@ -76,7 +79,6 @@ export const Nameplate = (props: NameplateProps) => {
               top: 0;
               left: 0;
               bottom: 0;
-              width: ${percentage - 100 + '%'};
               background-color: #eeeeee;
             }
           }

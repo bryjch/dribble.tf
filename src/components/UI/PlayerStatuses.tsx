@@ -105,8 +105,12 @@ export const PlayerStatusItem = (props: PlayerStatusItemProps) => {
           <ClassIcon classId={classId} />
         </div>
         <div className="details-container">
-          <div className="fill"></div>
-          <div className="overheal"></div>
+          {/* Note: fill & overheal widths are manipulated inline for better performance,
+            because changing the value in css class directly will continously trigger
+            styled-jsx recalculation / DOM reflow (very costly over time)
+            https://github.com/vercel/styled-jsx#via-inline-style */}
+          <div className="fill" style={{ width: `${percentage}%` }}></div>
+          <div className="overheal" style={{ width: `${percentage - 100}%` }}></div>
           <div className="name">{user.name}</div>
           <div className="spacer"></div>
           <div className={`health ${healthCls}`}>{health}</div>
@@ -146,14 +150,12 @@ export const PlayerStatusItem = (props: PlayerStatusItemProps) => {
 
             .fill {
               position: absolute;
-              width: ${percentage + '%'};
               height: 100%;
               background: ${ACTOR_TEAM_COLORS(team).healthBar};
             }
 
             .overheal {
               position: absolute;
-              width: ${percentage - 100 + '%'};
               height: 100%;
               background: rgba(255, 255, 255, 0.4);
             }
