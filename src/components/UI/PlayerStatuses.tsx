@@ -32,12 +32,28 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
     if (player.team === 'red') redPlayers.push(player)
   }
 
+  const blueMedics = bluePlayers.filter(({ classId }) => classId === 5)
+  const redMedics = redPlayers.filter(({ classId }) => classId === 5)
+
   return (
     <>
       <div className="panel blue">
         {bluePlayers.sort(sortPlayersByClassId).map((player, index) => (
-          <PlayerStatusItem
+          <StatusItem
             key={`blue-player-status-item-${index}`}
+            type="player"
+            player={player}
+            team="blue"
+            alignment="left"
+          />
+        ))}
+
+        {blueMedics.length > 0 ? <div className="separator" /> : null}
+
+        {blueMedics.map((player, index) => (
+          <StatusItem
+            key={`blue-uber-status-item-${index}`}
+            type="uber"
             player={player}
             team="blue"
             alignment="left"
@@ -47,8 +63,21 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
 
       <div className="panel red">
         {redPlayers.sort(sortPlayersByClassId).map((player, index) => (
-          <PlayerStatusItem
-            key={`blue-player-status-item-${index}`}
+          <StatusItem
+            key={`red-player-status-item-${index}`}
+            type="player"
+            player={player}
+            team="red"
+            alignment="right"
+          />
+        ))}
+
+        {redMedics.length > 0 ? <div className="separator" /> : null}
+
+        {redMedics.map((player, index) => (
+          <StatusItem
+            key={`red-uber-status-item-${index}`}
+            type="uber"
             player={player}
             team="red"
             alignment="right"
@@ -73,6 +102,10 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
             right: 0;
             align-items: flex-end;
           }
+
+          .separator {
+            height: 0.5rem;
+          }
         }
       `}</style>
     </>
@@ -80,31 +113,44 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
 }
 
 //
-// ─── PLAYER STATUS ITEM ─────────────────────────────────────────────────────────
+// ─── STATUS ITEM ────────────────────────────────────────────────────────────────
 //
 
-const ITEM_WIDTH = '12rem'
-const ITEM_HEIGHT = '2rem'
+const STATUS_ITEM_WIDTH = '12rem'
+const STATUS_ITEM_HEIGHT = '2rem'
 
-export interface PlayerStatusItemProps {
+export interface StatusItemProps {
   player: CachedPlayer
+  type: 'player' | 'uber'
   team: 'blue' | 'red'
   alignment: 'left' | 'right'
 }
 
-export const PlayerStatusItem = (props: PlayerStatusItemProps) => {
-  const { player, team, alignment } = props
-  const { user, health, classId } = player
+export const StatusItem = (props: StatusItemProps) => {
+  const { player, type, team, alignment } = props
+  let name, health, percentage, healthCls, icon
 
-  const { percentage } = parseClassHealth(classId, health)
-  const healthCls = percentage > 100 ? 'buffed' : percentage < 40 ? 'low' : ''
+  switch (type) {
+    case 'player':
+      name = player.user.name
+      health = player.health
+      percentage = parseClassHealth(player.classId, health).percentage
+      healthCls = percentage > 100 ? 'buffed' : percentage < 40 ? 'low' : ''
+      icon = <ClassIcon classId={player.classId} />
+      break
+
+    case 'uber':
+      name = 'Charge' // TODO: display medi gun type (requires additional parsing)
+      health = player.chargeLevel || 0
+      percentage = player.chargeLevel || 0
+      break
+  }
 
   return (
     <>
       <div className={`player-status-item align-${alignment}`}>
-        <div className="class-icon-container">
-          <ClassIcon classId={classId} />
-        </div>
+        {icon && <div className="class-icon-container">{icon}</div>}
+
         <div className="details-container">
           {/* Note: fill & overheal widths are manipulated inline for better performance,
             because changing the value in css class directly will continously trigger
@@ -112,7 +158,7 @@ export const PlayerStatusItem = (props: PlayerStatusItemProps) => {
             https://github.com/vercel/styled-jsx#via-inline-style */}
           <div className="fill" style={{ width: `${percentage}%` }}></div>
           <div className="overheal" style={{ width: `${clamp(percentage - 100, 0, 100)}%` }}></div>
-          <div className="name">{user.name}</div>
+          <div className="name">{name}</div>
           <div className="spacer"></div>
           <div className={`health ${healthCls}`}>{health}</div>
           <div className="respawn-timer"></div>
@@ -128,16 +174,16 @@ export const PlayerStatusItem = (props: PlayerStatusItemProps) => {
           color: #ffffff;
           font-size: 1rem;
           font-weight: bold;
-          width: ${ITEM_WIDTH};
-          height: ${ITEM_HEIGHT};
+          width: ${STATUS_ITEM_WIDTH};
+          height: ${STATUS_ITEM_HEIGHT};
 
           .class-icon-container {
             display: flex;
             justify-content: center;
             align-items: center;
             flex-shrink: 0;
-            width: ${ITEM_HEIGHT};
-            height: ${ITEM_HEIGHT};
+            width: ${STATUS_ITEM_HEIGHT};
+            height: ${STATUS_ITEM_HEIGHT};
             background: rgba(0, 0, 0, 0.2);
           }
 
