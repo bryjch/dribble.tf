@@ -135,7 +135,7 @@ export const StatusItem = (props: StatusItemProps) => {
       name = player.user.name
       health = player.health
       percentage = parseClassHealth(player.classId, health).percentage
-      healthCls = percentage > 100 ? 'buffed' : percentage < 40 ? 'low' : ''
+      healthCls = percentage > 100 ? 'overhealed' : percentage < 40 ? 'low' : ''
       icon = <ClassIcon classId={player.classId} />
       break
 
@@ -225,8 +225,8 @@ export const StatusItem = (props: StatusItemProps) => {
               font-weight: bold;
               padding: 0 0.3rem;
 
-              &.buffed {
-                color: ${ACTOR_TEAM_COLORS(team).healthBuffed};
+              &.overhealed {
+                color: ${ACTOR_TEAM_COLORS(team).healthOverhealed};
               }
 
               &.low {

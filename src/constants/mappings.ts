@@ -50,7 +50,7 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
       return {
         actorModel: '#559dc1',
         healthBar: '#88aeb8',
-        healthBuffed: '#4dd241',
+        healthOverhealed: '#4dd241',
         healthLow: '#ff6262',
         killfeedText: '#77a9ec',
       }
@@ -59,7 +59,7 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
       return {
         actorModel: '#de4a50',
         healthBar: '#ac2641',
-        healthBuffed: '#4dd241',
+        healthOverhealed: '#4dd241',
         healthLow: '#ff6262',
         killfeedText: '#ff4a4a',
       }
@@ -68,7 +68,7 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
       return {
         actorModel: '#f800d7',
         healthBar: '#f800d7',
-        healthBuffed: '#f800d7',
+        healthOverhealed: '#f800d7',
         healthLow: '#f800d7',
         killfeedText: '#ffffff',
       }
