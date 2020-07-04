@@ -1,4 +1,5 @@
 import React from 'react'
+import { clamp } from 'lodash'
 
 import { ClassIcon } from '@components/UI/ClassIcon'
 
@@ -29,7 +30,7 @@ export const Nameplate = (props: NameplateProps) => {
             styled-jsx recalculation / DOM reflow (very costly over time)
             https://github.com/vercel/styled-jsx#via-inline-style */}
           <div className="fill" style={{ width: `${percentage}%` }} />
-          <div className="overheal" style={{ width: `${percentage - 100}%` }} />
+          <div className="overheal" style={{ width: `${clamp(percentage - 100, 0, 100)}%` }} />
         </div>
 
         <div className="class">

@@ -1,4 +1,5 @@
 import React from 'react'
+import { clamp } from 'lodash'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
@@ -110,7 +111,7 @@ export const PlayerStatusItem = (props: PlayerStatusItemProps) => {
             styled-jsx recalculation / DOM reflow (very costly over time)
             https://github.com/vercel/styled-jsx#via-inline-style */}
           <div className="fill" style={{ width: `${percentage}%` }}></div>
-          <div className="overheal" style={{ width: `${percentage - 100}%` }}></div>
+          <div className="overheal" style={{ width: `${clamp(percentage - 100, 0, 100)}%` }}></div>
           <div className="name">{user.name}</div>
           <div className="spacer"></div>
           <div className={`health ${healthCls}`}>{health}</div>
