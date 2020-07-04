@@ -23,7 +23,7 @@ export const Actor = (props: CachedPlayer) => {
   const lastViewAngleY = useRef<number>(0)
   const { scene } = useThree()
 
-  const { classId, health, team, user, chargeLevel, healTarget } = props
+  const { classId, health, team, user, healTarget } = props
   let { position, viewAngles } = props
 
   const alive = health > 0
@@ -99,7 +99,6 @@ export const Actor = (props: CachedPlayer) => {
         position={[0, 0, ActorDimensions.z * 0.75]}
       >
         {alive && <Nameplate name={user.name} team={team} health={health} classId={classId} />}
-        {alive && chargeLevel && <b>{chargeLevel}%</b>}
       </HTML>
     </group>
   )

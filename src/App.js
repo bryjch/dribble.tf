@@ -16,7 +16,7 @@ class App extends React.Component {
   // ─── LIFECYCLE ──────────────────────────────────────────────────────────────────
   //
 
-  async componentWillMount() {
+  async componentDidMount() {
     await this.props.loadSettings()
     this.setState({ isReady: true })
   }

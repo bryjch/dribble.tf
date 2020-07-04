@@ -10,6 +10,7 @@ declare function postMessage(message: any, transfer?: any[]): void
 onmessage = (event: MessageEvent) => {
   const buffer = event.data.buffer
   const parser = new Parser(buffer)
+
   try {
     parser.cacheData(progress => {
       postMessage({ progress })
@@ -34,10 +35,13 @@ onmessage = (event: MessageEvent) => {
     nextMappedPlayer: parser.nextMappedPlayer,
     now: performance.now(),
   }
+
   let transfers: (ArrayBuffer | SharedArrayBuffer)[] = []
   transfers = transfers.concat(parser.playerCache.positionCache.data.map(cache => cache.buffer))
+  transfers = transfers.concat(parser.playerCache.viewAnglesCache.data.map(cache => cache.buffer))
   transfers = transfers.concat(parser.playerCache.healthCache.data.map(cache => cache.buffer))
   transfers = transfers.concat(parser.playerCache.metaCache.data.map(cache => cache.buffer))
-  transfers = transfers.concat(parser.playerCache.viewAnglesCache.data.map(cache => cache.buffer))
+  transfers = transfers.concat(parser.playerCache.connectedCache.data.map(cache => cache.buffer))
+
   postMessage(cachedDemo, transfers)
 }
