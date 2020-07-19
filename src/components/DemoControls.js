@@ -680,8 +680,6 @@ var DemoControls = function (object, domElement) {
   //
 
   function onMouseDown(event) {
-    if (scope.enabled === false) return
-
     // Prevent the browser from scrolling.
     event.preventDefault()
 
@@ -766,8 +764,6 @@ var DemoControls = function (object, domElement) {
   }
 
   function onMouseMove(event) {
-    if (scope.enabled === false) return
-
     event.preventDefault()
 
     switch (state) {
@@ -798,8 +794,6 @@ var DemoControls = function (object, domElement) {
   }
 
   function onMouseUp(event) {
-    if (scope.enabled === false) return
-
     handleMouseUp(event)
 
     document.removeEventListener('mousemove', onMouseMove, false)
@@ -841,8 +835,6 @@ var DemoControls = function (object, domElement) {
   }
 
   function onTouchStart(event) {
-    if (scope.enabled === false) return
-
     event.preventDefault() // prevent scrolling
 
     switch (event.touches.length) {
@@ -908,8 +900,6 @@ var DemoControls = function (object, domElement) {
   }
 
   function onTouchMove(event) {
-    if (scope.enabled === false) return
-
     event.preventDefault() // prevent scrolling
     event.stopPropagation()
 
@@ -956,8 +946,6 @@ var DemoControls = function (object, domElement) {
   }
 
   function onTouchEnd(event) {
-    if (scope.enabled === false) return
-
     handleTouchEnd(event)
 
     scope.dispatchEvent(endEvent)
@@ -966,8 +954,6 @@ var DemoControls = function (object, domElement) {
   }
 
   function onContextMenu(event) {
-    if (scope.enabled === false) return
-
     event.preventDefault()
   }
 

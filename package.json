@@ -16,6 +16,7 @@
     "browserfs": "^1.4.3",
     "drei": "0.0.60",
     "humanize-duration": "^3.23.1",
+    "keycode": "^2.2.0",
     "localforage": "^1.7.4",
     "lodash": "^4.17.15",
     "moment": "^2.27.0",

@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react'
-import { connect } from 'react-redux'
+import { connect, useSelector, ReactReduxContext, Provider } from 'react-redux'
 
 // THREE related imports
 import * as THREE from 'three'
@@ -8,6 +8,7 @@ import { PerspectiveCamera, OrthographicCamera, Stats } from 'drei'
 
 // Scene items
 import { DemoControls } from '@components/DemoControls'
+import { CanvasKeyHandler } from '@components/Scene/CanvasKeyHandler'
 import { Lights } from '@components/Scene/Lights'
 import { Actors } from '@components/Scene/Actors'
 import { World } from '@components/Scene/World'
@@ -22,13 +23,7 @@ import { Killfeed } from '@components/UI/Killfeed'
 import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 
 // Actions & utils
-import {
-  loadSceneFromParserAction,
-  togglePlaybackAction,
-  goToTickAction,
-  popUIPanelAction,
-} from '@redux/actions'
-import { objCoordsToVector3 } from '@utils/geometry'
+import { loadSceneFromParserAction, goToTickAction, popUIPanelAction } from '@redux/actions'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -39,52 +34,59 @@ THREE.Object3D.DefaultUp.set(0, 0, 1)
 
 // Basic controls for our scene
 extend({ DemoControls })
-const Controls = (settings = {}) => {
-  const ref = useRef()
-  const { camera, gl } = useThree()
+
+const FreeControls = props => {
+  const cameraRef = useRef()
+  const controlsRef = useRef()
+  const { gl } = useThree()
+
+  const settings = useSelector(state => state.settings)
+  const boundsCenter = useSelector(state => state.scene.bounds.center)
+  const lastFocusedObject = useSelector(state => state.scene.controls.focusedObject)
+  const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
+
+  useEffect(() => {
+    if (controlsRef.current) {
+      // Depending on whether there was a previous focused object, we either:
+      // - reposition our FreeControls where that object was
+      // - reposition our FreeControls to the center of the scene
+      const newPos = lastFocusedObject ? lastFocusedObject.position : boundsCenter
+      let cameraOffset, controlsOffset
+
+      if (lastFocusedObject) {
+        cameraOffset = new THREE.Vector3(500, 0, 500)
+        controlsOffset = new THREE.Vector3(0, 0, 100)
+      } else {
+        cameraOffset = new THREE.Vector3(1000, -1000, 1000)
+        controlsOffset = new THREE.Vector3(0, 0, 100)
+      }
+
+      cameraRef.current.position.copy(newPos).add(cameraOffset)
+      controlsRef.current.target.copy(newPos).add(controlsOffset)
+      controlsRef.current.saveState()
+    }
+  }, [cameraRef.current, controlsRef.current, boundsCenter, lastFocusedObject]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useFrame(() => {
     // Update these controls
-    ref.current.update()
-
-    // Update camera settings if necessary
-    if (camera.fov !== settings.camera.fov) {
-      camera.fov = settings.camera.fov
-      camera.updateProjectionMatrix()
-    }
+    controlsRef.current.update()
   })
 
   return (
-    <demoControls ref={ref} name="controls" args={[camera, gl.domElement]} {...settings.controls} />
+    <>
+      <Camera ref={cameraRef} name="freeCamera" attach="camera" makeDefault {...settings.camera} />
+      {cameraRef.current && (
+        <demoControls
+          ref={controlsRef}
+          name="controls"
+          attach="controls"
+          args={[cameraRef.current, gl.domElement]}
+          {...settings.controls}
+          {...props}
+        />
+      )}
+    </>
   )
-}
-
-// This is just a dummy scene element that is used to detect parser changes
-// (i.e. loaded a new demo file) and reposition any relevant scene items to
-// the appropriate demo coordinates
-const Repositioner = ({ position }) => {
-  const ref = useRef()
-  const { scene } = useThree()
-  const world = scene.children.find(({ name }) => name === 'world')
-  const camera = scene.children.find(({ name }) => name === 'camera')
-  const controls = scene.__objects.find(({ name }) => name === 'controls')
-
-  useEffect(() => {
-    try {
-      // Any time the Repositioner receives a new {position}, we need to center
-      // the World, Camera & Controls at that {position} - because the players'
-      // tick coordinate information at based on this {position}
-      const newPos = objCoordsToVector3(position)
-      if (world) world.position.copy(newPos)
-      if (camera) camera.position.copy(newPos).add(new THREE.Vector3(3000, -3000, 3000))
-      if (controls) controls.target.copy(newPos).add(new THREE.Vector3(0, 0, 500))
-    } catch (error) {
-      console.error(`Error occurred when repositioning scene elements:`)
-      console.error(error)
-    }
-  }, [position]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  return <group ref={ref} name="repositioner" />
 }
 
 //
@@ -119,6 +121,9 @@ class DemoViewer extends React.Component {
   // ─── ANIMATION LOOP ─────────────────────────────────────────────────────────────
   //
 
+  // TODO: it may be better to try using THREE.js Clock for playback instead
+  // of this requestAnimationFrame() implementation
+  // https://threejs.org/docs/#api/en/core/Clock
   animate = async timestamp => {
     const { playback, goToTick } = this.props
 
@@ -150,33 +155,8 @@ class DemoViewer extends React.Component {
 
     try {
       switch (keyCode) {
-        case keys.ESC: // Escape
+        case keys.ESC:
           this.props.popUIPanel()
-          break
-
-        default:
-          break
-      }
-    } catch (error) {
-      console.error(error)
-    }
-  }
-
-  canvasKeyDown = async ({ keyCode }) => {
-    const keys = { SPACE: 32, LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 }
-
-    try {
-      switch (keyCode) {
-        case keys.SPACE:
-          this.props.togglePlayback()
-          break
-
-        case keys.LEFT:
-          this.props.goToTick(this.props.playback.tick - 50)
-          break
-
-        case keys.RIGHT:
-          this.props.goToTick(this.props.playback.tick + 50)
           break
 
         default:
@@ -194,43 +174,71 @@ class DemoViewer extends React.Component {
   render() {
     const { parser, scene, playback, settings } = this.props
 
-    const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
-
     return (
       <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
-        <Canvas onKeyDown={this.canvasKeyDown}>
-          {/* Base scene elements */}
-          <fog attach="fog" args={['#eeeeee', 10, 15000]} />
-          <Camera name="camera" attach="camera" makeDefault {...settings.camera} />
-          <Controls {...settings} />
-          <Lights />
+        {/* Note: unfortunately we have to explicitly provide the Redux store inside
+        Canvas because of React context reconciler limitations:
+        https://github.com/react-spring/react-three-fiber/issues/43
+        https://github.com/react-spring/react-three-fiber/issues/262 */}
+        <ReactReduxContext.Consumer>
+          {({ store }) => (
+            <Canvas onContextMenu={e => e.preventDefault()}>
+              <Provider store={store}>
+                {/* Base scene elements */}
+                <fog attach="fog" args={['#eeeeee', 10, 15000]} />
+                <Lights />
 
-          {/* Demo specific elements */}
-          {parser?.header?.map && <World map={parser.header.map} mode={settings.scene.mode} />}
-          {parser && playback && <Actors parser={parser} playback={playback} />}
+                {scene.controls.mode === 'free' && <FreeControls />}
 
-          {/* Misc elements */}
-          <Repositioner position={scene.bounds.center} />
-          <Stats />
+                {/* Demo specific elements */}
+                {parser?.header?.map && (
+                  <World map={parser.header.map} mode={settings.scene.mode} />
+                )}
+                {parser && playback && (
+                  <Actors parser={parser} playback={playback} settings={settings} />
+                )}
 
-          {!parser && (
-            <group>
-              <gridHelper
-                args={[1000, 100]}
-                position={[0, 0, -40]}
-                rotation={[Math.PI / 2, 0, 0]}
-              />
-              <Actor
-                position={new THREE.Vector3(0, 0, 0)}
-                viewAngles={new THREE.Vector3(45, -30, 0)}
-                classId={1}
-                health={100}
-                team=""
-                user={{ name: 'Player' }}
-              />
-            </group>
+                {/* Misc elements */}
+                <CanvasKeyHandler />
+                <Stats />
+
+                {!parser && (
+                  <group name="debugObjects">
+                    <gridHelper
+                      args={[1000, 100]}
+                      position={[0, 0, -40]}
+                      rotation={[Math.PI / 2, 0, 0]}
+                    />
+                    <Actor
+                      position={
+                        new THREE.Vector3(
+                          50 * Math.sin(window.performance.now() / 400),
+                          30 * Math.sin(window.performance.now() / 300),
+                          0,
+                          0
+                        )
+                      }
+                      viewAngles={
+                        new THREE.Vector3(
+                          (window.performance.now() / 30) % 360,
+                          15 * Math.sin(window.performance.now() / 300),
+                          0
+                        )
+                      }
+                      classId={1}
+                      health={100}
+                      team=""
+                      user={{ name: 'Player', entityId: 1 }}
+                      settings={settings}
+                    />
+                  </group>
+                )}
+              </Provider>
+            </Canvas>
           )}
-        </Canvas>
+        </ReactReduxContext.Consumer>
+
+        {/* Normal React (non-THREE.js) UI elements */}
 
         <div className="ui-layers">
           <div className="ui-layer settings">
@@ -313,7 +321,6 @@ const mapState = state => ({
 
 const mapDispatch = dispatch => ({
   loadSceneFromParser: parser => dispatch(loadSceneFromParserAction(parser)),
-  togglePlayback: () => dispatch(togglePlaybackAction()),
   goToTick: tick => dispatch(goToTickAction(tick)),
   popUIPanel: () => dispatch(popUIPanelAction()),
 })

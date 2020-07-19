@@ -1,23 +1,29 @@
 import { createStore, applyMiddleware } from 'redux'
 import { composeWithDevTools } from 'redux-devtools-extension'
 import thunk from 'redux-thunk'
+import * as THREE from 'three'
 
 import rootReducer from './reducer'
 
 const initialState = {
   scene: {
+    players: new Map(),
     map: null,
     bounds: {
-      min: { x: 0, y: 0, z: 0 },
-      max: { x: 0, y: 0, z: 0 },
-      center: { x: 0, y: 0, z: 0 },
+      min: new THREE.Vector3(0, 0, 0),
+      max: new THREE.Vector3(0, 0, 0),
+      center: new THREE.Vector3(0, 0, 0),
+    },
+    controls: {
+      mode: 'free', // 'pov', 'follow'
+      focusedObject: null,
     },
   },
   playback: {
     playing: false,
     speed: 1,
     tick: 1,
-    maxTicks: 100,
+    maxTicks: 3000,
   },
   settings: {
     scene: {

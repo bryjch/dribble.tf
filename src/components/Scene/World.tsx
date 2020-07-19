@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react'
+import { useSelector } from 'react-redux'
 import humanizeDuration from 'humanize-duration'
 
 import * as THREE from 'three'
@@ -22,10 +23,13 @@ export interface WorldProps {
 }
 
 export const World = (props: WorldProps) => {
-  const ref = useRef()
+  const ref = useRef<THREE.Group>()
   const [mapModel, setMapModel] = useState<THREE.Group>()
   const { map, mode } = props
 
+  const boundsCenter: any = useSelector((state: any) => state.scene.bounds.center)
+
+  // Load map model
   useEffect(() => {
     try {
       const loadStartTime = window.performance.now()
@@ -82,6 +86,7 @@ export const World = (props: WorldProps) => {
     }
   }, [map])
 
+  // Update map material
   useEffect(() => {
     if (mapModel) {
       mapModel.traverse((child: THREE.Object3D) => {
@@ -93,6 +98,11 @@ export const World = (props: WorldProps) => {
       })
     }
   }, [mapModel, mode])
+
+  // Reposition the world to the center of the scene bounds
+  useEffect(() => {
+    ref.current?.position.copy(boundsCenter)
+  }, [boundsCenter])
 
   return (
     <group ref={ref} name="world">

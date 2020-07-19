@@ -10,9 +10,14 @@ const reducers = (state = {}, action) => {
     case 'LOAD_SCENE_FROM_PARSER':
       return {
         ...state,
-        // parser: action.payload.parser,
         scene: action.payload.scene,
         playback: action.payload.playback,
+      }
+
+    case 'CHANGE_CONTROLS_MODE':
+      return {
+        ...state,
+        scene: { ...state.scene, controls: { ...state.scene.controls, ...action.payload } },
       }
 
     //

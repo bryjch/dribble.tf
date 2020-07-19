@@ -1,4 +1,5 @@
-import React, { useRef } from 'react'
+import React, { useRef, useEffect } from 'react'
+import { useSelector } from 'react-redux'
 
 import * as THREE from 'three'
 import { useThree } from 'react-three-fiber'
@@ -9,7 +10,6 @@ import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { objCoordsToVector3, radianizeVector } from '@utils/geometry'
-import { Vector3 } from 'three'
 
 // Default TF2 player dimensions as specified in:
 // https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper%27s_Reference
@@ -70,11 +70,17 @@ export const Actor = (props: CachedPlayer) => {
       </mesh>
 
       {/* Aim line */}
-      <group name="aimLineContainer" rotation={[0, viewAnglesVec3.y, 0]}>
+      <group
+        name="aimLineContainer"
+        position={[ActorDimensions.x * 0.4, 0, ActorDimensions.z * 0.25]}
+        rotation={[0, viewAnglesVec3.y, 0]}
+      >
         <mesh visible={alive} position={[AimLineSize * 0.5, 0, 0]}>
           <boxGeometry attach="geometry" args={[AimLineSize, 2, 2]} />
           <meshBasicMaterial attach="material" color={color} />
         </mesh>
+
+        <POVCamera />
       </group>
 
       {/* Medic heal beam */}
@@ -83,7 +89,7 @@ export const Actor = (props: CachedPlayer) => {
           <HealBeam
             origin={positionVec3}
             target={healTargetVec3}
-            control={new Vector3(100, 0, 0).applyAxisAngle(
+            control={new THREE.Vector3(100, 0, 0).applyAxisAngle(
               new THREE.Vector3(0, 1, 0),
               viewAnglesVec3.x
             )}
@@ -94,6 +100,7 @@ export const Actor = (props: CachedPlayer) => {
 
       {/* Nameplate */}
       <HTML
+        name="html"
         className="no-select"
         style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
         position={[0, 0, ActorDimensions.z * 0.75]}
@@ -141,5 +148,39 @@ export const HealBeam = (props: HealBeamProps) => {
         />
       </mesh>
     </group>
+  )
+}
+
+export interface POVCameraProps {}
+
+export const POVCamera = (props: POVCameraProps) => {
+  const ref = useRef<THREE.PerspectiveCamera>()
+
+  const settings = useSelector((state: any) => state.settings)
+
+  // // Un-comment this to render camera helpers for debugging
+  // const { scene } = useThree()
+
+  // const cameraHelper = useRef<THREE.CameraHelper>()
+
+  // if (ref.current && !cameraHelper.current) {
+  //   cameraHelper.current = new THREE.CameraHelper(ref.current)
+  //   scene.add(cameraHelper.current)
+  // }
+
+  useEffect(() => {
+    ref.current?.updateProjectionMatrix()
+    // cameraHelper.current?.update()
+  }, [settings])
+
+  return (
+    <perspectiveCamera
+      name="povCamera"
+      attach="camera"
+      ref={ref}
+      {...settings?.camera}
+      position={[0, 0, 0]}
+      rotation={[Math.PI * 0.5, Math.PI * -0.5, 0]}
+    />
   )
 }

@@ -1,7 +1,9 @@
 import { merge } from 'lodash'
 import localForage from 'localforage'
+import * as THREE from 'three'
 
 import { ActorDimensions } from '@components/Scene/Actor'
+import { objCoordsToVector3 } from '@utils/geometry'
 
 //
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
@@ -13,15 +15,20 @@ export const loadSceneFromParserAction = parser => async dispatch => {
       type: 'LOAD_SCENE_FROM_PARSER',
       payload: {
         scene: {
+          players: parser.entityPlayerMap,
           map: parser.header.map,
           bounds: {
-            min: parser.world.boundaryMin,
-            max: parser.world.boundaryMax,
-            center: {
-              x: 0.5 * (parser.world.boundaryMax.x - parser.world.boundaryMin.x),
-              y: 0.5 * (parser.world.boundaryMax.y - parser.world.boundaryMin.y),
-              z: -parser.world.boundaryMin.z - 0.5 * ActorDimensions.z,
-            },
+            min: objCoordsToVector3(parser.world.boundaryMin),
+            max: objCoordsToVector3(parser.world.boundaryMax),
+            center: new THREE.Vector3(
+              0.5 * (parser.world.boundaryMax.x - parser.world.boundaryMin.x),
+              0.5 * (parser.world.boundaryMax.y - parser.world.boundaryMin.y),
+              -parser.world.boundaryMin.z - 0.5 * ActorDimensions.z
+            ),
+          },
+          controls: {
+            mode: 'free',
+            focusedObject: null,
           },
         },
         playback: {
@@ -33,6 +40,21 @@ export const loadSceneFromParserAction = parser => async dispatch => {
         },
       },
     })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const changeControlsModeAction = (mode, options = {}) => async dispatch => {
+  try {
+    if (!['free', 'follow', 'pov'].includes(mode)) return null
+
+    const { focusedObject } = options
+
+    const payload = { mode: mode }
+    if (focusedObject !== undefined) payload.focusedObject = focusedObject
+
+    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: payload })
   } catch (error) {
     console.error(error)
   }
@@ -51,6 +73,28 @@ export const goToTickAction = tick => async (dispatch, getState) => {
     // Automatically pause playback once it has reached the last tick
     if (tick >= maxTicks) {
       await dispatch({ type: 'TOGGLE_PLAYBACK', payload: false })
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const playbackJumpAction = direction => async (dispatch, getState) => {
+  try {
+    const PLAYBACK_JUMP_TICK_INCREMENT = 50
+    const tick = getState().playback.tick
+
+    switch (direction) {
+      case 'forward':
+        dispatch(goToTickAction(tick + PLAYBACK_JUMP_TICK_INCREMENT))
+        break
+
+      case 'backward':
+        dispatch(goToTickAction(tick - PLAYBACK_JUMP_TICK_INCREMENT))
+        break
+
+      default:
+        break
     }
   } catch (error) {
     console.error(error)
