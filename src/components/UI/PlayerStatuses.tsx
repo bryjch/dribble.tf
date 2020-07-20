@@ -90,7 +90,6 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
           position: absolute;
           display: flex;
           flex-flow: column nowrap;
-          font-family: monospace;
           font-size: 1rem;
 
           &.blue {
@@ -116,8 +115,8 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
 // ─── STATUS ITEM ────────────────────────────────────────────────────────────────
 //
 
-const STATUS_ITEM_WIDTH = '12rem'
-const STATUS_ITEM_HEIGHT = '2rem'
+const STATUS_ITEM_WIDTH = '12.5rem'
+const STATUS_ITEM_HEIGHT = '2.15rem'
 
 export interface StatusItemProps {
   player: CachedPlayer
@@ -172,8 +171,8 @@ export const StatusItem = (props: StatusItemProps) => {
           background: rgba(0, 0, 0, 0.7);
           margin-bottom: 1px;
           color: #ffffff;
-          font-size: 1rem;
-          font-weight: bold;
+          font-size: 0.9rem;
+          font-weight: 600;
           width: ${STATUS_ITEM_WIDTH};
           height: ${STATUS_ITEM_HEIGHT};
 
@@ -222,7 +221,8 @@ export const StatusItem = (props: StatusItemProps) => {
             .health {
               position: relative;
               color: #ffffff;
-              font-weight: bold;
+              font-size: 1.1rem;
+              font-weight: 700;
               padding: 0 0.3rem;
 
               &.overhealed {

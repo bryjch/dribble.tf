@@ -43,7 +43,6 @@ export const Nameplate = (props: NameplateProps) => {
           display: flex;
           flex-flow: column nowrap;
           align-items: center;
-          font-family: monospace;
           text-align: center;
           pointer-events: none;
           user-select: none;
@@ -52,7 +51,7 @@ export const Nameplate = (props: NameplateProps) => {
           .name {
             font-size: 0.9rem;
             line-height: 0.9rem;
-            font-weight: bold;
+            font-weight: 600;
             white-space: nowrap;
             max-width: 10rem;
             text-overflow: ellipsis;

@@ -53,6 +53,7 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
         healthOverhealed: '#4dd241',
         healthLow: '#ff6262',
         killfeedText: '#77a9ec',
+        focusedBackground: '#88aeb8',
       }
 
     case 'red':
@@ -62,6 +63,7 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
         healthOverhealed: '#4dd241',
         healthLow: '#ff6262',
         killfeedText: '#ff4a4a',
+        focusedBackground: '#ac2641',
       }
 
     default:
@@ -71,6 +73,7 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
         healthOverhealed: '#f800d7',
         healthLow: '#f800d7',
         killfeedText: '#ffffff',
+        focusedBackground: '#f800d7',
       }
   }
 }

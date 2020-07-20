@@ -27,7 +27,6 @@ export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
 
       <style jsx>{`
         .panel {
-          font-family: monospace;
           font-size: 1rem;
           text-align: right;
         }

@@ -21,6 +21,7 @@ import { PlaybackPanel } from '@components/UI/PlaybackPanel'
 import { DemoInfoPanel } from '@components/UI/DemoInfoPanel'
 import { Killfeed } from '@components/UI/Killfeed'
 import { PlayerStatuses } from '@components/UI/PlayerStatuses'
+import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 
 // Actions & utils
 import { loadSceneFromParserAction, goToTickAction, popUIPanelAction } from '@redux/actions'
@@ -174,6 +175,10 @@ class DemoViewer extends React.Component {
   render() {
     const { parser, scene, playback, settings } = this.props
 
+    const playersThisTick = parser
+      ? parser.getPlayersAtTick(playback.tick).filter(({ connected }) => connected)
+      : []
+
     return (
       <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
         {/* Note: unfortunately we have to explicitly provide the Redux store inside
@@ -266,6 +271,12 @@ class DemoViewer extends React.Component {
               <PlayerStatuses parser={parser} tick={playback.tick} />
             </div>
           )}
+
+          {parser && (
+            <div className="ui-layer focused-player">
+              <FocusedPlayer players={playersThisTick} />
+            </div>
+          )}
         </div>
 
         <style jsx>{`
@@ -305,6 +316,12 @@ class DemoViewer extends React.Component {
             &.player-statuses {
               justify-content: stretch;
               align-items: center;
+            }
+
+            &.focused-player {
+              justify-content: center;
+              align-items: flex-end;
+              bottom: 20vh;
             }
           }
         `}</style>

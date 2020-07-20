@@ -159,7 +159,6 @@ export const SettingsPanel = () => {
           background-color: rgba(0, 0, 0, 0.7);
           color: #ffffff;
           font-size: 1rem;
-          font-family: monospace;
           padding: 1rem;
         }
       `}</style>

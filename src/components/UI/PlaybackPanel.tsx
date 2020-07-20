@@ -60,8 +60,7 @@ export const PlaybackPanel = () => {
         .panel {
           max-width: 100%;
           font-size: 1rem;
-          font-family: monospace;
-          padding: 1rem;
+          margin: 1rem;
 
           .playback {
             button.play {

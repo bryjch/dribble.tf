@@ -39,7 +39,6 @@ export const Killfeed = (props: KillfeedProps) => {
           display: flex;
           flex-flow: column nowrap;
           align-items: flex-end;
-          font-family: monospace;
           font-size: 1rem;
           text-align: right;
         }
@@ -69,7 +68,6 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
           flex-direction: row nowrap;
           background-color: rgba(0, 0, 0, 0.8);
           color: #ffffff;
-          font-weight: bold;
           padding: 0.25rem 0.5rem;
           margin-bottom: 0.5rem;
 
