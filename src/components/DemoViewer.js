@@ -176,7 +176,11 @@ class DemoViewer extends React.Component {
     const { parser, scene, playback, settings } = this.props
 
     const playersThisTick = parser
-      ? parser.getPlayersAtTick(playback.tick).filter(({ connected }) => connected)
+      ? parser
+          .getPlayersAtTick(playback.tick)
+          // Only handle players that are still connected (to server)
+          // and are in relevant teams (BLU, RED)
+          .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId))
       : []
 
     return (
@@ -256,7 +260,7 @@ class DemoViewer extends React.Component {
 
           {parser && (
             <div className="ui-layer demo-info">
-              <DemoInfoPanel parser={parser} tick={playback.tick} />
+              <DemoInfoPanel parser={parser} />
             </div>
           )}
 
@@ -266,13 +270,13 @@ class DemoViewer extends React.Component {
             </div>
           )}
 
-          {parser && (
+          {playersThisTick.length > 0 && (
             <div className="ui-layer player-statuses">
-              <PlayerStatuses parser={parser} tick={playback.tick} />
+              <PlayerStatuses players={playersThisTick} />
             </div>
           )}
 
-          {parser && (
+          {playersThisTick.length > 0 && (
             <div className="ui-layer focused-player">
               <FocusedPlayer players={playersThisTick} />
             </div>

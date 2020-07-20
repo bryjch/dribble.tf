@@ -19,6 +19,12 @@ class App extends React.Component {
   async componentDidMount() {
     await this.props.loadSettings()
     this.setState({ isReady: true })
+
+    // Completely disable right clicks cause it's kinda annoying
+    // when interacting with UI elements
+    window.addEventListener('contextmenu', event => {
+      event.preventDefault()
+    })
   }
 
   //

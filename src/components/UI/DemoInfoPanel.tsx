@@ -6,7 +6,6 @@ import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 
 export interface DemoInfoPanelProps {
   parser: AsyncParser
-  tick: number
 }
 
 export const DemoInfoPanel = (props: DemoInfoPanelProps) => {

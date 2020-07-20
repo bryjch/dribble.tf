@@ -1,7 +1,6 @@
 import React from 'react'
 import { clamp } from 'lodash'
 
-import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 import { ClassIcon } from '@components/UI/ClassIcon'
 
@@ -13,21 +12,16 @@ import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
 //
 
 export interface PlayerStatusesProps {
-  parser: AsyncParser
-  tick: number
+  players: CachedPlayer[]
 }
 
 export const PlayerStatuses = (props: PlayerStatusesProps) => {
-  const { parser, tick } = props
-
-  const playersThisTick = parser
-    ? parser.getPlayersAtTick(tick).filter(({ connected }) => connected)
-    : []
-
   const bluePlayers = []
   const redPlayers = []
 
-  for (const player of playersThisTick) {
+  const { players } = props
+
+  for (const player of players) {
     if (player.team === 'blue') bluePlayers.push(player)
     if (player.team === 'red') redPlayers.push(player)
   }
@@ -127,13 +121,14 @@ export interface StatusItemProps {
 
 export const StatusItem = (props: StatusItemProps) => {
   const { player, type, team, alignment } = props
-  let name, health, percentage, healthCls, icon
+  let name, health, percentage, itemCls, healthCls, icon
 
   switch (type) {
     case 'player':
       name = player.user.name
       health = player.health
       percentage = parseClassHealth(player.classId, health).percentage
+      itemCls = `align-${alignment} ${health === 0 ? 'dead' : ''}`
       healthCls = percentage > 100 ? 'overhealed' : percentage < 40 ? 'low' : ''
       icon = <ClassIcon classId={player.classId} />
       break
@@ -142,12 +137,13 @@ export const StatusItem = (props: StatusItemProps) => {
       name = 'Charge' // TODO: display medi gun type (requires additional parsing)
       health = player.chargeLevel || 0
       percentage = player.chargeLevel || 0
+      itemCls = `align-${alignment}`
       break
   }
 
   return (
     <>
-      <div className={`player-status-item align-${alignment}`}>
+      <div className={`player-status-item ${itemCls}`}>
         {icon && <div className="class-icon-container">{icon}</div>}
 
         <div className="details-container">
@@ -169,7 +165,7 @@ export const StatusItem = (props: StatusItemProps) => {
           display: flex;
           align-items: center;
           background: rgba(0, 0, 0, 0.7);
-          margin-bottom: 1px;
+          margin: 1px 0;
           color: #ffffff;
           font-size: 0.9rem;
           font-weight: 600;
@@ -257,6 +253,10 @@ export const StatusItem = (props: StatusItemProps) => {
             .fill {
               right: 0;
             }
+          }
+
+          &.dead {
+            opacity: 0.4;
           }
         }
       `}</style>

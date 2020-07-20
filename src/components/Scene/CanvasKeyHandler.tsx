@@ -33,7 +33,6 @@ export const CanvasKeyHandler = () => {
     (event: KeyboardEvent) => {
       let povCamera = scene.getObjectByName('povCamera') as Camera
       let freeCamera = scene.getObjectByName('freeCamera') as Camera
-      // let controls = (scene as any).controls
 
       try {
         switch (keycode(event)) {
@@ -49,7 +48,7 @@ export const CanvasKeyHandler = () => {
             playbackJump('forward')
             break
 
-          case 'up':
+          case '1':
             if (keysHeld.current.has('up')) return null // Prevent rapid camera cycling
 
             // If the previous control mode wasn't POV, then we should switch to the
@@ -78,7 +77,7 @@ export const CanvasKeyHandler = () => {
             keysHeld.current.set('up', true)
             break
 
-          case 'down':
+          case '3':
             if (keysHeld.current.has('down')) return null // Prevent rapid camera cycling
 
             changeControlsMode('free')
@@ -97,11 +96,11 @@ export const CanvasKeyHandler = () => {
 
   const canvasKeyUp = useCallback((event: KeyboardEvent) => {
     switch (keycode(event)) {
-      case 'up':
+      case '1':
         keysHeld.current.delete('up')
         break
 
-      case 'down':
+      case '3':
         keysHeld.current.delete('down')
         break
     }

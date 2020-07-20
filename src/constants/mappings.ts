@@ -46,16 +46,6 @@ export const TEAM_MAP: any = {
 
 export const ACTOR_TEAM_COLORS: any = (team: string) => {
   switch (team) {
-    case 'blue':
-      return {
-        actorModel: '#559dc1',
-        healthBar: '#88aeb8',
-        healthOverhealed: '#4dd241',
-        healthLow: '#ff6262',
-        killfeedText: '#77a9ec',
-        focusedBackground: '#88aeb8',
-      }
-
     case 'red':
       return {
         actorModel: '#de4a50',
@@ -64,6 +54,16 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
         healthLow: '#ff6262',
         killfeedText: '#ff4a4a',
         focusedBackground: '#ac2641',
+      }
+
+    case 'blue':
+      return {
+        actorModel: '#559dc1',
+        healthBar: '#88aeb8',
+        healthOverhealed: '#4dd241',
+        healthLow: '#ff6262',
+        killfeedText: '#77a9ec',
+        focusedBackground: '#88aeb8',
       }
 
     default:
