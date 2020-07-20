@@ -13,7 +13,7 @@ export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
   const { parser } = props
 
   return (
-    <div className="d-flex flex-column align-items-start ml-2">
+    <div className="d-flex flex-column align-items-start">
       <div className="panel">
         <div>{parser.header.server}</div>
         <div>{parser.header.map}</div>
@@ -28,7 +28,6 @@ export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
       <style jsx>{`
         .panel {
           font-size: 1rem;
-          text-align: right;
         }
       `}</style>
     </div>

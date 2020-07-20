@@ -66,7 +66,7 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
         .killfeed-item {
           display: flex;
           flex-direction: row nowrap;
-          background-color: rgba(0, 0, 0, 0.8);
+          background-color: rgba(0, 0, 0, 0.7);
           color: #ffffff;
           padding: 0.25rem 0.5rem;
           margin-bottom: 0.5rem;

@@ -51,11 +51,14 @@ export const Nameplate = (props: NameplateProps) => {
           .name {
             font-size: 0.9rem;
             line-height: 0.9rem;
-            font-weight: 600;
+            font-weight: 700;
             white-space: nowrap;
             max-width: 10rem;
+            padding: 0 0.1rem;
             text-overflow: ellipsis;
             overflow: hidden;
+            color: #ffffff;
+            text-shadow: 0 0 2px #000000, 0 0 2px #000000, 0 0 2px #000000, 0 0 2px #000000;
           }
 
           .healthbar {

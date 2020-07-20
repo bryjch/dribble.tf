@@ -301,16 +301,16 @@ class DemoViewer extends React.Component {
             }
 
             &.demo-info {
-              justify-content: flex-end;
-              align-items: flex-start;
+              justify-content: flex-start;
+              align-items: flex-end;
               margin: 1rem;
+              margin-bottom: 80px;
             }
 
             &.killfeed {
               justify-content: flex-end;
               align-items: flex-start;
               margin: 1rem;
-              margin-top: 100px;
             }
 
             &.player-statuses {
