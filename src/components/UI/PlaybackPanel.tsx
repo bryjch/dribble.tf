@@ -27,11 +27,11 @@ export const PlaybackPanel = () => {
       <div className="playback">
         <span className="px-4"></span>
         <button onClick={goToTick.bind(null, 1)}>{'<<'}</button>
-        <button onClick={goToTick.bind(null, tick - 1)}>{'<'}</button>
+        <button onClick={goToTick.bind(null, tick - 50)}>{'<'}</button>
         <button className="play" onClick={togglePlayback}>
           {playing ? 'Pause' : 'Play'}
         </button>
-        <button onClick={goToTick.bind(null, tick + 1)}>{'>'}</button>
+        <button onClick={goToTick.bind(null, tick + 50)}>{'>'}</button>
         <button onClick={goToTick.bind(null, maxTicks)}>{'>>'}</button>
         <select
           value={speed}

@@ -16,7 +16,7 @@ import { useEventListener } from '@utils/hooks'
 export const CanvasKeyHandler = () => {
   const defaultCamera = useRef<THREE.Camera>() // Keep track of the original camera so we can switch back to it
   const keysHeld = useRef(new Map())
-  const { scene, camera, setDefaultCamera } = useThree()
+  const { scene, camera, gl, setDefaultCamera } = useThree()
 
   const controls: any = useSelector((state: any) => state.scene.controls)
   const dispatch = useDispatch()
@@ -115,8 +115,8 @@ export const CanvasKeyHandler = () => {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEventListener('keydown', canvasKeyDown)
-  useEventListener('keyup', canvasKeyUp)
+  useEventListener('keydown', canvasKeyDown, gl.domElement)
+  useEventListener('keyup', canvasKeyUp, gl.domElement)
 
   return null
 }

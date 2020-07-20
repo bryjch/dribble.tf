@@ -9,7 +9,7 @@ import { useRef, useEffect } from 'react'
 export function useEventListener(
   eventName: string,
   handler: (...args: any[]) => any,
-  element = window
+  element: HTMLElement | (Window & typeof globalThis) = window
 ) {
   // Create a ref that stores handler
   const savedHandler = useRef<any>()
