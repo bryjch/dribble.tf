@@ -10,23 +10,6 @@ import 'bootstrap/dist/css/bootstrap.min.css'
 
 import store from '@redux/store'
 
-// Use BrowserFS so user can upload their demos to browser for direct parsing
-const BrowserFS = require('browserfs')
-BrowserFS.install(window)
-BrowserFS.configure(
-  {
-    fs: 'LocalStorage',
-  },
-  error => {
-    if (error) {
-      console.error(error)
-      throw error
-    }
-    window.fs = window.require('fs')
-    console.log('BrowserFS loaded.')
-  }
-)
-
 ReactDOM.render(
   <React.StrictMode>
     <ReduxProvider store={store}>

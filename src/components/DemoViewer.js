@@ -95,6 +95,8 @@ const FreeControls = props => {
 //
 
 class DemoViewer extends React.Component {
+  uiLayers = React.createRef()
+
   // Timing variables for animation loop
   elapsedTime = 0
   lastTimestamp = 0
@@ -209,7 +211,7 @@ class DemoViewer extends React.Component {
 
                 {/* Misc elements */}
                 <CanvasKeyHandler />
-                <Stats />
+                <Stats parent={this.uiLayers} />
 
                 {!parser && (
                   <group name="debugObjects">
@@ -249,7 +251,7 @@ class DemoViewer extends React.Component {
 
         {/* Normal React (non-THREE.js) UI elements */}
 
-        <div className="ui-layers">
+        <div className="ui-layers" ref={this.uiLayers}>
           <div className="ui-layer settings">
             <SettingsPanel />
           </div>
