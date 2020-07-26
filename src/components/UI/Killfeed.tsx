@@ -3,6 +3,7 @@ import { inRange } from 'lodash'
 
 import { AsyncParser, CachedDeath } from '@components/Analyse/Data/AsyncParser'
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
+import { KILL_ICON_ALIASES } from '@constants/killIconAliases'
 
 const RELEVANT_DEATH_LINGER_TICKS = 200 // Keep death in feed for this many ticks
 
@@ -50,6 +51,15 @@ export const Killfeed = (props: KillfeedProps) => {
 export const KillfeedItem = (props: KillfeedItemProps) => {
   const { killer, assister, victim, weapon } = props.death
 
+  let iconName = KILL_ICON_ALIASES[weapon] || weapon
+  let weaponIcon
+  try {
+    weaponIcon = require(`@assets/kill_icons/${iconName}.png`) as string
+  } catch (e) {
+    console.log(`Missing kill icon: ${iconName}`)
+    weaponIcon = require(`@assets/kill_icons/skull.png`) as string
+  }
+
   return (
     <>
       <div className="killfeed-item">
@@ -58,7 +68,9 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
         )}
         {assister && <div className={`plus ${assister.user.team}`}>+</div>}
         {assister && <div className={`assister ${assister.user.team}`}>{assister.user.name}</div>}
-        <div className="weapon">{weapon}</div>
+        <div className="weapon">
+          <img src={weaponIcon} className="weapon-icon" alt={`${weapon} Icon`} />
+        </div>
         <div className={`victim ${victim.user.team}`}>{victim.user.name}</div>
       </div>
 
@@ -66,9 +78,10 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
         .killfeed-item {
           display: flex;
           flex-direction: row nowrap;
-          background-color: rgba(0, 0, 0, 0.7);
+          background-color: rgba(30, 30, 30, 0.75);
           color: #ffffff;
-          padding: 0.25rem 0.5rem;
+          font-weight: bold;
+          padding: 0.25rem 1rem;
           margin-bottom: 0.5rem;
 
           .killer {
@@ -82,7 +95,14 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
           }
 
           .weapon {
+            display: inline-flex;
+            align-items: center;
             padding: 0 1rem;
+
+            .weapon-icon {
+              height: 1.2rem;
+              filter: brightness(600%);
+            }
           }
 
           .victim {

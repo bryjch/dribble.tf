@@ -1,4 +1,4 @@
-export const HEALTH_MAP: any = {
+export const HEALTH_MAP: { [key: number]: number } = {
   0: 100, //fallback
   1: 125, //scout
   2: 150, //sniper
@@ -11,7 +11,7 @@ export const HEALTH_MAP: any = {
   9: 125, //engineer
 }
 
-export const CLASS_MAP: any = {
+export const CLASS_MAP: { [key: number]: string } = {
   0: 'empty',
   1: 'scout',
   2: 'sniper',
@@ -24,7 +24,7 @@ export const CLASS_MAP: any = {
   9: 'engineer',
 }
 
-export const ORDER_MAP: any = {
+export const ORDER_MAP: { [key: number]: number } = {
   0: 0,
   1: 1,
   2: 8,
@@ -37,7 +37,7 @@ export const ORDER_MAP: any = {
   9: 6,
 }
 
-export const TEAM_MAP: any = {
+export const TEAM_MAP: { [key: number]: string } = {
   0: 'unassigned',
   1: 'spectator',
   2: 'red',

@@ -6,6 +6,7 @@ import { ClassIcon } from '@components/UI/ClassIcon'
 
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
+import { hexToRgba } from '@utils/styling'
 
 //
 // ─── PLAYER STATUSES ────────────────────────────────────────────────────────────
@@ -164,7 +165,7 @@ export const StatusItem = (props: StatusItemProps) => {
         .player-status-item {
           display: flex;
           align-items: center;
-          background: rgba(0, 0, 0, 0.7);
+          background: rgba(0, 0, 0, 0.4);
           margin: 1px 0;
           color: #ffffff;
           font-size: 0.9rem;
@@ -189,6 +190,7 @@ export const StatusItem = (props: StatusItemProps) => {
             width: 100%;
             height: 100%;
             overflow: hidden;
+            background: ${hexToRgba(ACTOR_TEAM_COLORS(team).healthBar, 0.5)};
 
             .fill {
               position: absolute;
@@ -256,7 +258,12 @@ export const StatusItem = (props: StatusItemProps) => {
           }
 
           &.dead {
+            background: rgba(0, 0, 0, 0.8);
             opacity: 0.4;
+
+            .details-container {
+              background: none;
+            }
           }
         }
       `}</style>
