@@ -34,7 +34,7 @@ export const Nameplate = (props: NameplateProps) => {
         </div>
 
         <div className="class">
-          <ClassIcon classId={classId} />
+          <ClassIcon classId={classId} size={16} />
         </div>
       </div>
 

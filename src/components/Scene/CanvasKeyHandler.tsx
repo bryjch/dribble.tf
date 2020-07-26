@@ -5,7 +5,12 @@ import keycode from 'keycode'
 import * as THREE from 'three'
 import { useThree, Camera } from 'react-three-fiber'
 
-import { togglePlaybackAction, playbackJumpAction, changeControlsModeAction } from '@redux/actions'
+import {
+  togglePlaybackAction,
+  playbackJumpAction,
+  changeControlsModeAction,
+  changePlaySpeedAction,
+} from '@redux/actions'
 import { getSceneActors } from '@utils/scene'
 import { useEventListener } from '@utils/hooks'
 
@@ -18,14 +23,14 @@ export const CanvasKeyHandler = () => {
   const keysHeld = useRef(new Map())
   const { scene, camera, gl, setDefaultCamera } = useThree()
 
+  // Redux states / actions
   const controls: any = useSelector((state: any) => state.scene.controls)
   const dispatch = useDispatch()
   const togglePlayback = useCallback(() => dispatch(togglePlaybackAction()), [dispatch])
   const playbackJump = useCallback(direction => dispatch(playbackJumpAction(direction)), [dispatch])
+  const changePlaySpeed = useCallback(speed => dispatch(changePlaySpeedAction(speed)), [dispatch])
   const changeControlsMode = useCallback(
-    (mode, options = undefined) => {
-      dispatch(changeControlsModeAction(mode, options))
-    },
+    (mode, opts = undefined) => dispatch(changeControlsModeAction(mode, opts)),
     [dispatch]
   )
 
@@ -46,6 +51,14 @@ export const CanvasKeyHandler = () => {
 
           case 'right':
             playbackJump('forward')
+            break
+
+          case 'up':
+            changePlaySpeed('faster')
+            break
+
+          case 'down':
+            changePlaySpeed('slower')
             break
 
           case '1':

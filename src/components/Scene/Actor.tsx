@@ -23,6 +23,8 @@ export const Actor = (props: CachedPlayer) => {
   const lastViewAngleY = useRef<number>(0)
   const { scene } = useThree()
 
+  const nameplatesActive = useSelector((state: any) => state.settings.ui.nameplates.active)
+
   const { classId, health, team, user, healTarget } = props
   let { position, viewAngles } = props
 
@@ -72,7 +74,7 @@ export const Actor = (props: CachedPlayer) => {
       {/* Aim line */}
       <group
         name="aimLineContainer"
-        position={[ActorDimensions.x * 0.4, 0, ActorDimensions.z * 0.25]}
+        position={[ActorDimensions.x * 0.4, 0, ActorDimensions.z * 0.4]}
         rotation={[0, viewAnglesVec3.y, 0]}
       >
         <mesh visible={alive} position={[AimLineSize * 0.5, 0, 0]}>
@@ -99,14 +101,16 @@ export const Actor = (props: CachedPlayer) => {
       )}
 
       {/* Nameplate */}
-      <HTML
-        name="html"
-        className="no-select"
-        style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
-        position={[0, 0, ActorDimensions.z * 0.75]}
-      >
-        {alive && <Nameplate name={user.name} team={team} health={health} classId={classId} />}
-      </HTML>
+      {nameplatesActive && (
+        <HTML
+          name="html"
+          className="no-select"
+          style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
+          position={[0, 0, ActorDimensions.z * 0.75]}
+        >
+          {alive && <Nameplate name={user.name} team={team} health={health} classId={classId} />}
+        </HTML>
+      )}
     </group>
   )
 }

@@ -1,8 +1,10 @@
-import { merge } from 'lodash'
+import { merge, clamp } from 'lodash'
 import localForage from 'localforage'
 import * as THREE from 'three'
 
 import { ActorDimensions } from '@components/Scene/Actor'
+import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
+
 import { objCoordsToVector3 } from '@utils/geometry'
 
 //
@@ -118,9 +120,28 @@ export const togglePlaybackAction = (playing = undefined) => async (dispatch, ge
   }
 }
 
-export const changePlaySpeedAction = speed => async dispatch => {
+export const changePlaySpeedAction = speed => async (dispatch, getState) => {
   try {
-    await dispatch({ type: 'CHANGE_PLAY_SPEED', payload: speed })
+    // Provide the option to pass strings "faster" or "slower" as the {speed} param instead
+    // which will simply cycle the options as defined in PlaybackPanel
+    const currentSpeed = getState().playback.speed
+    const currentIndex = PLAYBACK_SPEED_OPTIONS.findIndex(({ value }) => value === currentSpeed)
+    const nextIndex = clamp(currentIndex + 1, 0, PLAYBACK_SPEED_OPTIONS.length - 1)
+    const prevIndex = clamp(currentIndex - 1, 0, PLAYBACK_SPEED_OPTIONS.length - 1)
+
+    switch (speed) {
+      case 'faster':
+        dispatch({ type: 'CHANGE_PLAY_SPEED', payload: PLAYBACK_SPEED_OPTIONS[nextIndex].value })
+        break
+
+      case 'slower':
+        dispatch({ type: 'CHANGE_PLAY_SPEED', payload: PLAYBACK_SPEED_OPTIONS[prevIndex].value })
+        break
+
+      default:
+        dispatch({ type: 'CHANGE_PLAY_SPEED', payload: speed })
+        break
+    }
   } catch (error) {
     console.error(error)
   }

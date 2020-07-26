@@ -42,6 +42,11 @@ const initialState = {
       zoomSpeed: 5,
       enableDamping: true,
     },
+    ui: {
+      nameplates: {
+        active: true,
+      },
+    },
   },
   ui: {
     activePanels: [],

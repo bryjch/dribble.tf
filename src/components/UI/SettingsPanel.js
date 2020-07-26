@@ -149,6 +149,12 @@ export const SettingsPanel = () => {
               updateSettingsOption('scene.mode', checked ? 'wireframe' : 'normal')
             }
           />
+
+          <ToggleOption
+            label="Show nameplates"
+            checked={settings.ui.nameplates.active}
+            onChange={checked => updateSettingsOption('ui.nameplates.active', checked)}
+          />
         </div>
       )}
 
