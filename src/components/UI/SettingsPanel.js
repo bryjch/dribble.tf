@@ -151,9 +151,9 @@ export const SettingsPanel = () => {
           />
 
           <ToggleOption
-            label="Show nameplates"
-            checked={settings.ui.nameplates.active}
-            onChange={checked => updateSettingsOption('ui.nameplates.active', checked)}
+            label="Show names"
+            checked={settings.ui.showNames}
+            onChange={checked => updateSettingsOption('ui.showNames', checked)}
           />
         </div>
       )}

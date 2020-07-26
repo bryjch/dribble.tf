@@ -23,7 +23,7 @@ export const Actor = (props: CachedPlayer) => {
   const lastViewAngleY = useRef<number>(0)
   const { scene } = useThree()
 
-  const nameplatesActive = useSelector((state: any) => state.settings.ui.nameplates.active)
+  const showNames = useSelector((state: any) => state.settings.ui.showNames)
 
   const { classId, health, team, user, healTarget } = props
   let { position, viewAngles } = props
@@ -101,16 +101,21 @@ export const Actor = (props: CachedPlayer) => {
       )}
 
       {/* Nameplate */}
-      {nameplatesActive && (
-        <HTML
-          name="html"
-          className="no-select"
-          style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
-          position={[0, 0, ActorDimensions.z * 0.75]}
-        >
-          {alive && <Nameplate name={user.name} team={team} health={health} classId={classId} />}
-        </HTML>
-      )}
+      <HTML
+        name="html"
+        className="no-select"
+        style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
+        position={[0, 0, ActorDimensions.z * 0.75]}
+      >
+        {alive && (
+          <Nameplate
+            name={showNames ? user.name : ''}
+            team={team}
+            health={health}
+            classId={classId}
+          />
+        )}
+      </HTML>
     </group>
   )
 }

@@ -1,4 +1,4 @@
-import { merge, clamp } from 'lodash'
+import { get, merge, clamp } from 'lodash'
 import localForage from 'localforage'
 import * as THREE from 'three'
 
@@ -165,6 +165,20 @@ export const loadSettingsAction = () => async (dispatch, getState) => {
 export const updateSettingsOptionAction = (option, value) => async dispatch => {
   try {
     await dispatch({ type: 'UPDATE_SETTINGS_OPTION', option, value })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+// Provide an action to easily toggle boolean setting options
+export const toggleSettingsOptionAction = option => async (dispatch, getState) => {
+  try {
+    const settings = getState().settings
+    const previousValue = get(settings, option)
+
+    if (previousValue === undefined) return null
+
+    await dispatch({ type: 'UPDATE_SETTINGS_OPTION', option, value: !previousValue })
   } catch (error) {
     console.error(error)
   }

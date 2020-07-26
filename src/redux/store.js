@@ -43,9 +43,7 @@ const initialState = {
       enableDamping: true,
     },
     ui: {
-      nameplates: {
-        active: true,
-      },
+      showNames: false,
     },
   },
   ui: {

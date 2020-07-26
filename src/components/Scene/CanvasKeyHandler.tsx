@@ -10,6 +10,7 @@ import {
   playbackJumpAction,
   changeControlsModeAction,
   changePlaySpeedAction,
+  toggleSettingsOptionAction,
 } from '@redux/actions'
 import { getSceneActors } from '@utils/scene'
 import { useEventListener } from '@utils/hooks'
@@ -33,6 +34,9 @@ export const CanvasKeyHandler = () => {
     (mode, opts = undefined) => dispatch(changeControlsModeAction(mode, opts)),
     [dispatch]
   )
+  const toggleSettingsOption = useCallback(option => dispatch(toggleSettingsOptionAction(option)), [
+    dispatch,
+  ])
 
   const canvasKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -59,6 +63,10 @@ export const CanvasKeyHandler = () => {
 
           case 'down':
             changePlaySpeed('slower')
+            break
+
+          case 'n':
+            toggleSettingsOption('ui.showNames')
             break
 
           case '1':

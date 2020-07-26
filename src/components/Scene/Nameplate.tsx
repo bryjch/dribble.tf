@@ -22,7 +22,7 @@ export const Nameplate = (props: NameplateProps) => {
   return (
     <>
       <div className="nameplate">
-        <div className="name">{name}</div>
+        {name && <div className="name">{name}</div>}
 
         <div className="healthbar">
           {/* Note: fill & overheal widths are manipulated inline for better performance,
