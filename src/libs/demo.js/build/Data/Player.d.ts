@@ -12,12 +12,12 @@ export declare class Player {
     match: Match;
     user: UserInfo;
     position: Vector;
+    viewAngles: Vector;
     health: number;
     maxHealth: number;
     classId: number;
     team: number;
     viewAngle: number;
-    viewAngles: Vector;
     weaponIds: number[];
     ammo: number[];
     lifeState: LifeState;

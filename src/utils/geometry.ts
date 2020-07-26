@@ -51,3 +51,27 @@ export const radianizeVector = (vector: THREE.Vector3): THREE.Vector3 => {
     degreesToRadians(vector.z)
   )
 }
+
+export function eulerizeVector(
+  vector: { x: number; y: number; z: number },
+  type: 'degrees' | 'radians' = 'degrees'
+): THREE.Euler {
+  if (type === 'degrees') {
+    return new THREE.Euler(
+      degreesToRadians(vector.x),
+      degreesToRadians(vector.y),
+      degreesToRadians(vector.z)
+    )
+  }
+
+  if (type === 'radians') {
+    return new THREE.Euler(vector.x, vector.y, vector.z, 'XYZ')
+    // return new THREE.Euler(vector.x, vector.y, vector.z, 'YZX')
+    // return new THREE.Euler(vector.x, vector.y, vector.z, 'ZXY') // hmm
+    // return new THREE.Euler(vector.x, vector.y, vector.z, 'XZY') // HMMM
+    // return new THREE.Euler(vector.x, vector.y, vector.z, 'YXZ')
+    // return new THREE.Euler(vector.x, vector.y, vector.z, 'ZYX')
+  }
+
+  return new THREE.Euler()
+}

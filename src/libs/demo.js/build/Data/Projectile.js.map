@@ -1,0 +1,1 @@
+{"version":3,"file":"Projectile.js","sourceRoot":"","sources":["../../src/Data/Projectile.ts"],"names":[],"mappings":";;AASa,QAAA,wBAAwB,GAA8B;IACjE,oBAAoB,EAAE,CAAC;IACvB,4BAA4B,EAAE,CAAC;IAC/B,yBAAyB,EAAE,CAAC;CAC7B,CAAC;AAEW,QAAA,iBAAiB,GAA8B;IAC1D,CAAC,EAAE,QAAQ;IACX,CAAC,EAAE,UAAU;IACb,CAAC,EAAE,YAAY;IACf,CAAC,EAAE,aAAa;CACjB,CAAC"}

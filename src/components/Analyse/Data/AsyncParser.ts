@@ -2,6 +2,7 @@ import { Demo, Header, Player, Match, World } from '@bryjch/demo.js/build'
 
 import { PlayerCache, CachedPlayer } from './PlayerCache'
 import { BuildingCache, CachedBuilding } from './BuildingCache'
+import { ProjectileCache, CachedProjectile } from './ProjectileCache'
 
 export interface CachedDeath {
   tick: number
@@ -20,6 +21,7 @@ export interface CachedDemo {
   ticks: number
   deaths: { [tick: string]: CachedDeath[] }
   buildingCache: BuildingCache
+  projectileCache: ProjectileCache
   intervalPerTick: number
   world: World
   nextMappedPlayer: number
@@ -38,6 +40,7 @@ export class AsyncParser {
   match: Match
   deaths: { [tick: string]: CachedDeath[] } = {}
   buildingCache: BuildingCache
+  projectileCache: ProjectileCache
   intervalPerTick: number
   world: World
   progressCallback: (progress: number) => void
@@ -53,6 +56,7 @@ export class AsyncParser {
       this.header = cachedData.header
       this.playerCache = cachedData.playerCache
       this.buildingCache = cachedData.buildingCache
+      this.projectileCache = cachedData.projectileCache
       this.deaths = cachedData.deaths
       this.intervalPerTick = cachedData.intervalPerTick
       this.world = cachedData.world
@@ -82,8 +86,9 @@ export class AsyncParser {
           return
         }
         const cachedData: CachedDemo = event.data
-        BuildingCache.rehydrate(cachedData.buildingCache)
         PlayerCache.rehydrate(cachedData.playerCache)
+        BuildingCache.rehydrate(cachedData.buildingCache)
+        ProjectileCache.rehydrate(cachedData.projectileCache)
         resolve(event.data)
       }
     })
@@ -110,5 +115,9 @@ export class AsyncParser {
 
   getBuildingAtTick(tick: number): CachedBuilding[] {
     return this.buildingCache.getBuildings(tick)
+  }
+
+  getProjectilesAtTick(tick: number): CachedProjectile[] {
+    return this.projectileCache.getProjectiles(tick)
   }
 }

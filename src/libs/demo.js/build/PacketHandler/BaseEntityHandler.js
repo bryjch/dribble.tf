@@ -7,8 +7,11 @@ function handleBaseEntity(entity, match, message) {
                 match.outerMap.set(prop.value, entity.entityIndex);
             }
         }
-    }
-    for (const prop of entity.props) {
+        if (prop.definition.ownerTableName === 'DT_AttributeManager' && prop.definition.name === 'm_hOuter') {
+            if (!match.outerMap.has(prop.value)) {
+                match.outerMap.set(prop.value, entity.entityIndex);
+            }
+        }
         if (prop.definition.ownerTableName === 'DT_BaseCombatWeapon' && prop.definition.name === 'm_hOwner') {
             if (!match.weaponMap.has(entity.entityIndex)) {
                 match.weaponMap.set(entity.entityIndex, {

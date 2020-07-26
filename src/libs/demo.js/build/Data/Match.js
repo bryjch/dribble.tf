@@ -14,13 +14,14 @@ class Match {
         this.intervalPerTick = 0;
         this.world = {
             boundaryMin: { x: 0, y: 0, z: 0 },
-            boundaryMax: { x: 0, y: 0, z: 0 }
+            boundaryMax: { x: 0, y: 0, z: 0 },
         };
         this.playerEntityMap = new Map();
         this.weaponMap = new Map();
         this.outerMap = new Map();
         this.teams = new Map();
         this.teamEntityMap = new Map();
+        this.projectileEntityMap = new Map();
         this.buildings = new Map();
         this.playerResources = [];
         this.parserState = parserState;
@@ -35,7 +36,7 @@ class Match {
                 classes: user.classes,
                 name: user.name,
                 steamId: user.steamId,
-                userId: user.userId
+                userId: user.userId,
             };
             if (user.team) {
                 users[key].team = user.team;
@@ -47,31 +48,31 @@ class Match {
             deaths: this.deaths,
             rounds: this.rounds,
             startTick: this.startTick,
-            intervalPerTick: this.intervalPerTick
+            intervalPerTick: this.intervalPerTick,
         };
     }
     handlePacket(packet, message) {
         switch (packet.packetType) {
-            case 'packetEntities':
+            case "packetEntities":
                 PacketEntities_1.handlePacketEntities(packet, this, message);
                 break;
-            case 'netTick':
+            case "netTick":
                 if (this.startTick === 0) {
                     this.startTick = packet.tick;
                 }
                 this.tick = packet.tick;
                 break;
-            case 'serverInfo':
+            case "serverInfo":
                 this.intervalPerTick = packet.intervalPerTick;
                 break;
-            case 'userMessage':
+            case "userMessage":
                 switch (packet.userMessageType) {
-                    case 'sayText2':
+                    case "sayText2":
                         SayText2_1.handleSayText2(packet, this);
                         break;
                 }
                 break;
-            case 'gameEvent':
+            case "gameEvent":
                 GameEvent_1.handleGameEvent(packet, this);
                 break;
         }
@@ -88,7 +89,7 @@ class Match {
         }
         if (!user) {
             const entityInfo = this.parserState.getUserEntityInfo(userId);
-            const newUser = Object.assign({ classes: {}, team: '' }, entityInfo);
+            const newUser = Object.assign({ classes: {}, team: "" }, entityInfo);
             this.users.set(userId, newUser);
             return newUser;
         }

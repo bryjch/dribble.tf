@@ -24,15 +24,16 @@ onmessage = (event: MessageEvent) => {
   }
 
   const cachedDemo: CachedDemo = {
-    buildingCache: parser.buildingCache,
-    deaths: parser.deaths,
     ticks: parser.ticks,
     header: parser.header,
     playerCache: parser.playerCache,
+    buildingCache: parser.buildingCache,
+    projectileCache: parser.projectileCache,
+    deaths: parser.deaths,
     intervalPerTick: parser.match.intervalPerTick * 2,
     world: parser.match.world,
-    entityPlayerMap: parser.entityPlayerMap,
     nextMappedPlayer: parser.nextMappedPlayer,
+    entityPlayerMap: parser.entityPlayerMap,
     now: performance.now(),
   }
 

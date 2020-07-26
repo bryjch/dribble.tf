@@ -1,10 +1,12 @@
 import { Demo, Header, Player, Match } from '@bryjch/demo.js/build'
 import { Building } from '@bryjch/demo.js/build/Data/Building'
 import { PlayerResource } from '@bryjch/demo.js/build/Data/PlayerResource'
+import { Projectile } from '@bryjch/demo.js/build/Data/Projectile'
 
 import { getMapBoundaries } from '../MapBoundries'
 import { PlayerCache, CachedPlayer } from './PlayerCache'
 import { BuildingCache, CachedBuilding } from './BuildingCache'
+import { ProjectileCache } from './ProjectileCache'
 
 export { CachedPlayer } from './PlayerCache'
 
@@ -32,6 +34,7 @@ export class Parser {
   startTick = 0
   deaths: { [tick: string]: CachedDeath[] } = {}
   buildingCache: BuildingCache
+  projectileCache: ProjectileCache
 
   constructor(buffer: ArrayBuffer) {
     this.buffer = buffer
@@ -46,7 +49,8 @@ export class Parser {
     tick: number,
     players: Player[],
     buildings: Map<number, Building>,
-    playerResources: PlayerResource[]
+    playerResources: PlayerResource[],
+    projectiles: Map<number, Projectile>
   ) {
     for (const player of players) {
       if (player.user.steamId !== 'BOT') {
@@ -59,6 +63,10 @@ export class Parser {
         this.buildingCache.setBuilding(tick, building, building.builder, building.team)
       }
     }
+
+    for (const [entityId, projectile] of projectiles.entries()) {
+      this.projectileCache.setProjectile(tick, projectile, entityId)
+    }
   }
 
   cacheData(progressCallback: (progress: number) => void) {
@@ -67,9 +75,13 @@ export class Parser {
     const packets = analyser.getPackets()
     this.header = parser.getHeader()
     this.match = analyser.match
+
+    // skip invalid packets
     while (this.match.world.boundaryMin.x === 0) {
       packets.next()
     }
+
+    // over write map boundaries
     const boundaryOverWrite = getMapBoundaries(this.header.map)
     if (boundaryOverWrite) {
       this.match.world.boundaryMax.x = boundaryOverWrite.boundaryMax.x
@@ -91,10 +103,12 @@ export class Parser {
     this.ticks = Math.ceil(this.header.ticks / 2) // scale down to 30fps
     this.playerCache = new PlayerCache(this.ticks, this.match.world.boundaryMin)
     this.buildingCache = new BuildingCache(this.ticks, this.match.world.boundaryMin)
+    this.projectileCache = new ProjectileCache(this.ticks, this.match.world.boundaryMin)
 
     let lastTick = 0
-
     let lastProgress = 0
+
+    // process packets
     for (const packet of packets) {
       const tick = Math.floor((this.match.tick - this.startTick) / 2)
       const progress = Math.round((tick / this.ticks) * 100)
@@ -107,7 +121,8 @@ export class Parser {
           tick,
           Array.from(this.match.playerEntityMap.values()),
           this.match.buildings,
-          this.match.playerResources
+          this.match.playerResources,
+          this.match.projectileEntityMap
         )
         if (tick > lastTick + 1) {
           // demo skipped ticks, copy/interpolote
@@ -116,13 +131,16 @@ export class Parser {
               i,
               Array.from(this.match.playerEntityMap.values()),
               this.match.buildings,
-              this.match.playerResources
+              this.match.playerResources,
+              this.match.projectileEntityMap
             )
           }
         }
         lastTick = tick
       }
     }
+
+    // process deaths
     for (const death of this.match.deaths) {
       const deathTick = this.scaleTick(death.tick)
       if (!this.deaths[deathTick]) {

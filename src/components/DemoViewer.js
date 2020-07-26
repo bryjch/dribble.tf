@@ -11,6 +11,7 @@ import { DemoControls } from '@components/DemoControls'
 import { CanvasKeyHandler } from '@components/Scene/CanvasKeyHandler'
 import { Lights } from '@components/Scene/Lights'
 import { Actors } from '@components/Scene/Actors'
+import { Projectiles } from '@components/Scene/Projectiles'
 import { World } from '@components/Scene/World'
 
 import { Actor } from '@components/Scene/Actor'
@@ -205,9 +206,12 @@ class DemoViewer extends React.Component {
                 {parser?.header?.map && (
                   <World map={parser.header.map} mode={settings.scene.mode} />
                 )}
+
                 {parser && playback && (
                   <Actors parser={parser} playback={playback} settings={settings} />
                 )}
+
+                <Projectiles parser={parser} playback={playback} />
 
                 {/* Misc elements */}
                 <CanvasKeyHandler />
