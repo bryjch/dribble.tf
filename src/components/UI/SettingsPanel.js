@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { Divider } from 'semantic-ui-react'
+import { Button, Divider } from 'semantic-ui-react'
 import { clamp } from 'lodash'
 
 import { toggleUIPanelAction, updateSettingsOptionAction } from '@redux/actions'
@@ -9,17 +9,24 @@ import { toggleUIPanelAction, updateSettingsOptionAction } from '@redux/actions'
 // ─── BASE OPTION WRAPPER ────────────────────────────────────────────────────────
 //
 
-const Option = ({ label, children }) => (
+const Option = ({ label, keyCode, children }) => (
   <div className="row align-items-center mb-2">
-    <div className="col-sm-4 d-flex align-items-center">
+    <div className="col-sm-5 d-flex align-items-center">
       <div className="label">{label}</div>
+      {!!keyCode && <kbd className="key-code">{keyCode}</kbd>}
     </div>
-    <div className="col-sm-8 d-flex align-items-center">{children}</div>
+
+    <div className="col-sm-7 d-flex align-items-center">{children}</div>
 
     <style jsx>{`
       .label {
         font-size: 1rem;
         font-weight: 600;
+      }
+
+      .key-code {
+        font-size: 66%;
+        margin-left: 0.5rem;
       }
     `}</style>
   </div>
@@ -31,7 +38,7 @@ const Option = ({ label, children }) => (
 
 const SLIDER_THUMB_SIZE = '10px'
 
-const SliderOption = ({ label, value, onChange, min = 1, max = 10, step = 0.1 }) => {
+const SliderOption = ({ label, keyCode, value, onChange, min = 1, max = 10, step = 0.1 }) => {
   // Track value internally so that input[type=number] will only trigger
   // callback when appropriate (i.e. enter / up / down / blurred)
   const [val, setVal] = useState(value)
@@ -43,7 +50,7 @@ const SliderOption = ({ label, value, onChange, min = 1, max = 10, step = 0.1 })
   }
 
   return (
-    <Option label={label}>
+    <Option label={label} keyCode={keyCode}>
       <input
         className="slider"
         type="range"
@@ -117,13 +124,13 @@ const SliderOption = ({ label, value, onChange, min = 1, max = 10, step = 0.1 })
 // ─── TOGGLE OPTION ──────────────────────────────────────────────────────────────
 //
 
-const ToggleOption = ({ label, checked, onChange }) => {
+const ToggleOption = ({ label, keyCode, checked, onChange }) => {
   const callback = () => {
     onChange(!checked)
   }
 
   return (
-    <Option label={label}>
+    <Option label={label} keyCode={keyCode}>
       <input type="checkbox" checked={checked} onChange={callback} />
 
       <style jsx>{`
@@ -160,9 +167,12 @@ export const SettingsPanel = () => {
 
   return (
     <div className="d-flex flex-column align-items-start ml-2">
-      <button className="mb-2" onClick={() => toggleUIPanel('SettingsPanel')}>
-        Settings
-      </button>
+      <Button
+        circular
+        icon="setting"
+        className="mb-2"
+        onClick={() => toggleUIPanel('SettingsPanel')}
+      ></Button>
 
       {isOpen && (
         <div className="panel">
@@ -227,6 +237,7 @@ export const SettingsPanel = () => {
 
           <ToggleOption
             label="Show names"
+            keyCode="N"
             checked={settings.ui.showNames}
             onChange={checked => updateSettingsOption('ui.showNames', checked)}
           />
@@ -235,7 +246,7 @@ export const SettingsPanel = () => {
 
       <style jsx>{`
         .panel {
-          width: 450px;
+          width: 400px;
           max-width: 100%;
           border-radius: 6px;
           background-color: rgba(0, 0, 0, 0.7);

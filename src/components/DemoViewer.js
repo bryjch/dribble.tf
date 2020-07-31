@@ -256,10 +256,6 @@ class DemoViewer extends React.Component {
         {/* Normal React (non-THREE.js) UI elements */}
 
         <div className="ui-layers" ref={this.uiLayers}>
-          <div className="ui-layer settings">
-            <SettingsPanel />
-          </div>
-
           <div className="ui-layer playback">
             <PlaybackPanel />
           </div>
@@ -287,6 +283,10 @@ class DemoViewer extends React.Component {
               <FocusedPlayer players={playersThisTick} />
             </div>
           )}
+
+          <div className="ui-layer settings">
+            <SettingsPanel />
+          </div>
         </div>
 
         <style jsx>{`
