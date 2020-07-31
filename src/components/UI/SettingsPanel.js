@@ -1,15 +1,35 @@
 import React, { useState, useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
+import { Divider } from 'semantic-ui-react'
 import { clamp } from 'lodash'
 
 import { toggleUIPanelAction, updateSettingsOptionAction } from '@redux/actions'
 
+//
+// ─── BASE OPTION WRAPPER ────────────────────────────────────────────────────────
+//
+
 const Option = ({ label, children }) => (
-  <div className="row align-items-center">
-    <div className="col-sm-4 d-flex">{label}</div>
-    <div className="col-sm-8 d-flex">{children}</div>
+  <div className="row align-items-center mb-2">
+    <div className="col-sm-4 d-flex align-items-center">
+      <div className="label">{label}</div>
+    </div>
+    <div className="col-sm-8 d-flex align-items-center">{children}</div>
+
+    <style jsx>{`
+      .label {
+        font-size: 1rem;
+        font-weight: 600;
+      }
+    `}</style>
   </div>
 )
+
+//
+// ─── SLIDER OPTION ──────────────────────────────────────────────────────────────
+//
+
+const SLIDER_THUMB_SIZE = '10px'
 
 const SliderOption = ({ label, value, onChange, min = 1, max = 10, step = 0.1 }) => {
   // Track value internally so that input[type=number] will only trigger
@@ -25,6 +45,7 @@ const SliderOption = ({ label, value, onChange, min = 1, max = 10, step = 0.1 })
   return (
     <Option label={label}>
       <input
+        className="slider"
         type="range"
         value={val}
         onChange={({ target }) => callback(target.value)}
@@ -46,17 +67,55 @@ const SliderOption = ({ label, value, onChange, min = 1, max = 10, step = 0.1 })
       <style jsx>{`
         input[type='range'] {
           flex: 1;
+          height: 2px;
+          border-radius: 5px;
+          background: rgba(255, 255, 255, 0.3);
+          outline-offset: 4px;
+          cursor: pointer;
+          -webkit-appearance: none;
+
+          &::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: ${SLIDER_THUMB_SIZE};
+            height: ${SLIDER_THUMB_SIZE};
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+          }
+
+          &::-moz-range-thumb {
+            width: ${SLIDER_THUMB_SIZE};
+            height: ${SLIDER_THUMB_SIZE};
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+          }
         }
 
         input[type='number'] {
           width: 2.5rem;
           text-align: right;
+          font-size: 0.8rem;
           margin-left: 1rem;
+          background: none;
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          border-radius: 4px;
+          padding: 0 0.25rem;
+          color: #ffffff;
+
+          &::selection {
+            background: #ffffff;
+          }
         }
       `}</style>
     </Option>
   )
 }
+
+//
+// ─── TOGGLE OPTION ──────────────────────────────────────────────────────────────
+//
 
 const ToggleOption = ({ label, checked, onChange }) => {
   const callback = () => {
@@ -76,6 +135,10 @@ const ToggleOption = ({ label, checked, onChange }) => {
     </Option>
   )
 }
+
+//
+// ─── SETTINGS PANEL ─────────────────────────────────────────────────────────────
+//
 
 export const SettingsPanel = () => {
   const isOpen = useSelector(state => state.ui.activePanels.includes('SettingsPanel'))
@@ -103,6 +166,10 @@ export const SettingsPanel = () => {
 
       {isOpen && (
         <div className="panel">
+          <Divider horizontal style={{ color: '#ffffff' }}>
+            Camera
+          </Divider>
+
           <SliderOption
             label="FOV"
             min={50}
@@ -142,6 +209,10 @@ export const SettingsPanel = () => {
             onChange={checked => updateSettingsOption('camera.orthographic', checked)}
           /> */}
 
+          <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
+            Geometry
+          </Divider>
+
           <ToggleOption
             label="Wireframe"
             checked={settings.scene.mode === 'wireframe'} // TODO: make this a button group instead
@@ -149,6 +220,10 @@ export const SettingsPanel = () => {
               updateSettingsOption('scene.mode', checked ? 'wireframe' : 'normal')
             }
           />
+
+          <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
+            Players
+          </Divider>
 
           <ToggleOption
             label="Show names"
@@ -162,6 +237,7 @@ export const SettingsPanel = () => {
         .panel {
           width: 450px;
           max-width: 100%;
+          border-radius: 6px;
           background-color: rgba(0, 0, 0, 0.7);
           color: #ffffff;
           font-size: 1rem;

@@ -5,6 +5,7 @@ import ViewerPage from '@pages/ViewerPage.tsx'
 
 import { loadSettingsAction } from '@redux/actions'
 
+import 'semantic-ui-css/semantic.min.css'
 import './App.scss'
 
 class App extends React.Component {

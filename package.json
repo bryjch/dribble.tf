@@ -29,6 +29,8 @@
     "redux": "^4.0.5",
     "redux-devtools-extension": "^2.13.8",
     "redux-thunk": "^2.3.0",
+    "semantic-ui-css": "^2.4.1",
+    "semantic-ui-react": "^1.1.0",
     "styled-jsx": "^3.3.0",
     "three": "^0.118.3",
     "typescript": "^3.9.5",
