@@ -8,8 +8,8 @@ export class ViewAnglesCache extends DataCache {
 
   getAngles(playerId: number, tick: number): Vector {
     return {
-      x: this.get(playerId, tick, 0),
-      y: this.get(playerId, tick, 1),
+      x: this.get(playerId, tick, 0) << 32, // bitshift to handle negative values
+      y: this.get(playerId, tick, 1) << 32, // bitshift to handle negative values
       z: this.get(playerId, tick, 2),
     }
   }

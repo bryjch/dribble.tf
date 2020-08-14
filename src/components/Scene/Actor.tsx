@@ -31,15 +31,15 @@ export const Actor = (props: CachedPlayer) => {
   const alive = health > 0
   const color = ACTOR_TEAM_COLORS(team).actorModel
 
-  // Hack for parser's tick data randomly returning 0 / huge value on certain frames
+  // Hack for parser's tick data randomly returning 0 on certain frames
   if (viewAngles.x === 0) {
     viewAngles.x = lastViewAngleX.current
   } else {
     lastViewAngleX.current = viewAngles.x
   }
 
-  // Hack for parser's tick data randomly returning 0 / huge value on certain frames
-  if (viewAngles.y === 0 || viewAngles.y > 90) {
+  // Hack for parser's tick data randomly returning 0 on certain frames
+  if (viewAngles.y === 0) {
     viewAngles.y = lastViewAngleY.current
   } else {
     lastViewAngleY.current = viewAngles.y
