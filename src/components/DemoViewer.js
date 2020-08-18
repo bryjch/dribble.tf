@@ -5,6 +5,8 @@ import { connect, useSelector, ReactReduxContext, Provider } from 'react-redux'
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree, extend } from 'react-three-fiber'
 import { PerspectiveCamera, OrthographicCamera, Stats } from 'drei'
+import { EffectComposer, Outline } from 'react-postprocessing'
+import { BlendFunction } from 'postprocessing'
 
 // Scene items
 import { DemoControls } from '@components/DemoControls'
@@ -26,6 +28,8 @@ import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 
 // Actions & utils
 import { loadSceneFromParserAction, goToTickAction, popUIPanelAction } from '@redux/actions'
+import { getSceneProjectiles } from '@utils/scene'
+import { getMeshes } from '@utils/geometry'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -87,6 +91,55 @@ const FreeControls = props => {
           {...props}
         />
       )}
+    </>
+  )
+}
+
+//
+// ─── THREE POST PROCESSING ──────────────────────────────────────────────────────
+//
+
+const PostProcessingEffects = () => {
+  const redStickiesOutlines = useRef()
+  const blueStickiesOutlines = useRef()
+  const { scene } = useThree()
+
+  const stickyOutlineOptions = {
+    xRay: true,
+    edgeStrength: 3,
+    blendFunction: BlendFunction.ALPHA,
+  }
+
+  useFrame(() => {
+    // Stickybomb Outlines
+    // Find all stickybombs in the scene, get their meshes, add them to Outline selections
+    const stickies = getSceneProjectiles(scene, 'stickybomb')
+    const redStickies = getMeshes(stickies.filter(({ userData }) => userData.team === 'red'))
+    const blueStickies = getMeshes(stickies.filter(({ userData }) => userData.team === 'blue'))
+
+    redStickies.forEach(mesh => redStickiesOutlines.current.selection.add(mesh))
+    blueStickies.forEach(mesh => blueStickiesOutlines.current.selection.add(mesh))
+  })
+
+  return (
+    <>
+      <EffectComposer>
+        <Outline
+          ref={redStickiesOutlines}
+          visibleEdgeColor="#ff0000"
+          hiddenEdgeColor="#ff0000"
+          {...stickyOutlineOptions}
+        />
+      </EffectComposer>
+
+      <EffectComposer>
+        <Outline
+          ref={blueStickiesOutlines}
+          visibleEdgeColor="#0000ff"
+          hiddenEdgeColor="#0000ff"
+          {...stickyOutlineOptions}
+        />
+      </EffectComposer>
     </>
   )
 }
@@ -186,6 +239,8 @@ class DemoViewer extends React.Component {
           .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId))
       : []
 
+    const projectilesThisTick = parser ? parser.getProjectilesAtTick(playback.tick) : []
+
     return (
       <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
         {/* Note: unfortunately we have to explicitly provide the Redux store inside
@@ -215,6 +270,7 @@ class DemoViewer extends React.Component {
 
                 {/* Misc elements */}
                 <CanvasKeyHandler />
+                <PostProcessingEffects />
                 <Stats parent={this.uiLayers} />
 
                 {!parser && (
@@ -281,6 +337,30 @@ class DemoViewer extends React.Component {
           {playersThisTick.length > 0 && (
             <div className="ui-layer focused-player">
               <FocusedPlayer players={playersThisTick} />
+            </div>
+          )}
+
+          {projectilesThisTick.length > 0 && (
+            <div
+              className="ui-layer"
+              style={{ justifyContent: 'flex-end', alignItems: 'flex-end', margin: '1rem' }}
+            >
+              <table className="table table-sm table-dark mb-0" style={{ width: 'auto' }}>
+                <tbody>
+                  {projectilesThisTick.map(p => (
+                    <tr>
+                      <td>{p.entityId}</td>
+                      <td style={{ color: p.teamNumber === 2 ? 'red' : 'blue' }}>
+                        {p.teamNumber === 2 ? 'RED' : 'BLU'}
+                      </td>
+                      <td>{p.type}</td>
+                      <td>
+                        {p.position.x},{p.position.y},{p.position.z}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
