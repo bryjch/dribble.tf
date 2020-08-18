@@ -8,8 +8,8 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { CachedProjectile } from '@components/Analyse/Data/ProjectileCache'
 
-import { objCoordsToVector3, eulerizeVector } from '@utils/geometry'
-import { TEAM_MAP } from '@constants/mappings'
+import { objCoordsToVector3, eulerizeVector, getMeshes } from '@utils/geometry'
+import { TEAM_MAP, ACTOR_TEAM_COLORS } from '@constants/mappings'
 
 const PROJECTILE_RESOURCES = [
   {
@@ -23,6 +23,18 @@ const PROJECTILE_RESOURCES = [
     texture: '',
   },
 ]
+
+const PROJECTILE_OUTLINE_SCALE = 1.5
+
+const STICKYBOMB_OUTLINE_MATERIAL_RED = new THREE.MeshBasicMaterial({
+  color: ACTOR_TEAM_COLORS('red').projectileOutlineColor,
+  side: THREE.BackSide,
+})
+
+const STICKYBOMB_OUTLINE_MATERIAL_BLUE = new THREE.MeshBasicMaterial({
+  color: ACTOR_TEAM_COLORS('blue').projectileOutlineColor,
+  side: THREE.BackSide,
+})
 
 //
 // ─── PROJECTILES ────────────────────────────────────────────────────────────────
@@ -39,6 +51,8 @@ export const Projectiles = (props: ProjectilesProps) => {
   const { parser, playback } = props
   const projectilesThisTick = parser ? parser.getProjectilesAtTick(playback.tick) : []
 
+  // Load relevant .obj model resources into component so
+  // we can reference them later on
   useEffect(() => {
     try {
       const objLoader = new OBJLoader()
@@ -46,13 +60,36 @@ export const Projectiles = (props: ProjectilesProps) => {
       const onLoad = (loadedObj: THREE.Group, name: string, texture: any) => {
         loadedObj.name = `${name}Projectile`
 
+        let outlines: THREE.Mesh[] = []
+
         loadedObj.traverse((child: THREE.Object3D) => {
           if (child.type === 'Mesh') {
+            // Set default mesh materials
             const m = child as THREE.Mesh
             m.material = new THREE.MeshLambertMaterial({ color: '#424242' })
             m.geometry.computeVertexNormals()
+
+            // Create a scaled-up duplicate of the mesh to use as outline
+            switch (name) {
+              case 'stickybomb':
+                const outline = m.clone() as THREE.Mesh
+                outline.name = 'stickybombOutline'
+                outline.scale.set(
+                  PROJECTILE_OUTLINE_SCALE,
+                  PROJECTILE_OUTLINE_SCALE,
+                  PROJECTILE_OUTLINE_SCALE
+                )
+                outlines.push(outline)
+                break
+
+              default:
+                break
+            }
           }
         })
+
+        // Append the duplicated outline meshes back to the original mesh
+        outlines.forEach(outline => loadedObj.add(outline))
 
         objs.current.set(name, loadedObj)
       }
@@ -86,7 +123,7 @@ export const Projectiles = (props: ProjectilesProps) => {
         return (
           <Projectile
             key={`projectile-${projectile.entityId}`}
-            obj={objs.current.get(projectile.type)?.clone()}
+            obj={objs.current.get(projectile.type)?.clone()} // TODO: try not to use clone (it's currently used otherwise projectiles disappear)
             {...projectile}
           />
         )
@@ -156,12 +193,35 @@ export const PipebombProjectile = (props: BaseProjectileProps) => {
 //
 
 export const StickybombProjectile = (props: BaseProjectileProps) => {
+  useEffect(() => {
+    try {
+      if (props.obj) {
+        const outlines = getMeshes([props.obj], 'stickybombOutline')
+        outlines.forEach(mesh => {
+          switch (TEAM_MAP[props.teamNumber]) {
+            case 'red':
+              mesh.material = STICKYBOMB_OUTLINE_MATERIAL_RED
+              break
+
+            case 'blue':
+              mesh.material = STICKYBOMB_OUTLINE_MATERIAL_BLUE
+              break
+
+            default:
+              break
+          }
+        })
+      }
+    } catch (error) {
+      console.error(error)
+    }
+  })
+
   return (
     <group
       name="stickybomb"
       position={objCoordsToVector3(props.position)}
       rotation={eulerizeVector(props.rotation)}
-      userData={{ team: TEAM_MAP[props.teamNumber] }}
     >
       {props.obj ? (
         <primitive object={props.obj} />

@@ -76,13 +76,22 @@ export function eulerizeVector(
   return new THREE.Euler()
 }
 
-export const getMeshes = (sceneObjects: THREE.Object3D[]): THREE.Object3D[] => {
-  const meshes: THREE.Object3D[] = []
+/**
+ * Find all meshes in an Object3D array (can specify specific mesh name)
+ */
+export const getMeshes = (sceneObjects: THREE.Object3D[], meshName: string = ''): THREE.Mesh[] => {
+  const meshes: THREE.Mesh[] = []
 
   sceneObjects.forEach(object => {
     object.traverse(child => {
       if (child.type === 'Mesh') {
-        meshes.push(child)
+        if (meshName) {
+          if (child.name === meshName) {
+            meshes.push(child as THREE.Mesh)
+          }
+        } else {
+          meshes.push(child as THREE.Mesh)
+        }
       }
     })
   })
