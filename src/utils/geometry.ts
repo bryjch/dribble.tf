@@ -75,3 +75,17 @@ export function eulerizeVector(
 
   return new THREE.Euler()
 }
+
+export const getMeshes = (sceneObjects: THREE.Object3D[]): THREE.Object3D[] => {
+  const meshes: THREE.Object3D[] = []
+
+  sceneObjects.forEach(object => {
+    object.traverse(child => {
+      if (child.type === 'Mesh') {
+        meshes.push(child)
+      }
+    })
+  })
+
+  return meshes
+}

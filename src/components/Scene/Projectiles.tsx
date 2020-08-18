@@ -1,20 +1,26 @@
 import React, { useRef, useEffect } from 'react'
 
 import * as THREE from 'three'
-import 'react-three-fiber'
+import { useFrame } from 'react-three-fiber'
 import { Sphere } from 'drei'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { CachedProjectile } from '@components/Analyse/Data/ProjectileCache'
 
-import { objCoordsToVector3 } from '@utils/geometry'
+import { objCoordsToVector3, eulerizeVector } from '@utils/geometry'
+import { TEAM_MAP } from '@constants/mappings'
 
 const PROJECTILE_RESOURCES = [
   {
     name: 'rocket',
     model: require('../../assets/projectiles/rocket.obj'),
     texture: require('../../assets/projectiles/rocket_texture.png'),
+  },
+  {
+    name: 'stickybomb',
+    model: require('../../assets/projectiles/stickybomb.obj'),
+    texture: '',
   },
 ]
 
@@ -77,7 +83,13 @@ export const Projectiles = (props: ProjectilesProps) => {
         if (projectile.type === 'healingBolt') Projectile = HealingBoltProjectile
         if (!Projectile) return null
 
-        return <Projectile key={`projectile-${projectile.entityId}`} {...projectile} />
+        return (
+          <Projectile
+            key={`projectile-${projectile.entityId}`}
+            obj={objs.current.get(projectile.type)?.clone()}
+            {...projectile}
+          />
+        )
       })}
     </group>
   )
@@ -92,11 +104,31 @@ export interface BaseProjectileProps extends CachedProjectile {
 }
 
 export const RocketProjectile = (props: BaseProjectileProps) => {
+  const ref = useRef<THREE.Group>()
+  const prevPosition = useRef<THREE.Vector3>(objCoordsToVector3(props.position))
+  const position = objCoordsToVector3(props.position)
+
+  useEffect(() => {
+    if (!prevPosition.current?.equals(position)) {
+      ref.current?.lookAt(prevPosition.current)
+
+      prevPosition.current = position
+    }
+  }, [position])
+
+  useFrame(() => {
+    // TODO: smoke trails
+  })
+
   return (
-    <group name="rocket" position={objCoordsToVector3(props.position)}>
-      <Sphere args={[10]}>
-        <meshLambertMaterial attach="material" color="red" />
-      </Sphere>
+    <group name="rocket" ref={ref} position={position}>
+      {props.obj ? (
+        <primitive object={props.obj} />
+      ) : (
+        <Sphere args={[10]}>
+          <meshLambertMaterial attach="material" color="red" />
+        </Sphere>
+      )}
     </group>
   )
 }
@@ -107,7 +139,11 @@ export const RocketProjectile = (props: BaseProjectileProps) => {
 
 export const PipebombProjectile = (props: BaseProjectileProps) => {
   return (
-    <group name="pipebomb" position={objCoordsToVector3(props.position)}>
+    <group
+      name="pipebomb"
+      position={objCoordsToVector3(props.position)}
+      rotation={eulerizeVector(props.rotation)}
+    >
       <Sphere args={[5]}>
         <meshLambertMaterial attach="material" color="green" />
       </Sphere>
@@ -121,10 +157,19 @@ export const PipebombProjectile = (props: BaseProjectileProps) => {
 
 export const StickybombProjectile = (props: BaseProjectileProps) => {
   return (
-    <group name="stickybomb" position={objCoordsToVector3(props.position)}>
-      <Sphere args={[5]}>
-        <meshLambertMaterial attach="material" color="blue" />
-      </Sphere>
+    <group
+      name="stickybomb"
+      position={objCoordsToVector3(props.position)}
+      rotation={eulerizeVector(props.rotation)}
+      userData={{ team: TEAM_MAP[props.teamNumber] }}
+    >
+      {props.obj ? (
+        <primitive object={props.obj} />
+      ) : (
+        <Sphere args={[5]}>
+          <meshLambertMaterial attach="material" color="blue" />
+        </Sphere>
+      )}
     </group>
   )
 }
