@@ -124,14 +124,14 @@ const SliderOption = ({ label, keyCode, value, onChange, min = 1, max = 10, step
 // ─── TOGGLE OPTION ──────────────────────────────────────────────────────────────
 //
 
-const ToggleOption = ({ label, keyCode, checked, onChange }) => {
+const ToggleOption = ({ label, keyCode, checked, disabled, onChange }) => {
   const callback = () => {
     onChange(!checked)
   }
 
   return (
     <Option label={label} keyCode={keyCode}>
-      <input type="checkbox" checked={checked} onChange={callback} />
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={callback} />
 
       <style jsx>{`
         input[type='checkbox'] {
@@ -176,6 +176,8 @@ export const SettingsPanel = () => {
 
       {isOpen && (
         <div className="panel">
+          {/* ************************************************************* */}
+
           <Divider horizontal style={{ color: '#ffffff' }}>
             Camera
           </Divider>
@@ -213,40 +215,77 @@ export const SettingsPanel = () => {
             onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
           />
 
-          {/* <ToggleOption
-            label="Orthographic"
-            checked={settings.camera.orthographic} // TODO: make this a button group instead
-            onChange={checked => updateSettingsOption('camera.orthographic', checked)}
-          /> */}
+          {/* ************************************************************* */}
 
           <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
             Geometry
           </Divider>
 
-          <ToggleOption
-            label="Wireframe"
-            checked={settings.scene.mode === 'wireframe'} // TODO: make this a button group instead
-            onChange={checked =>
-              updateSettingsOption('scene.mode', checked ? 'wireframe' : 'normal')
-            }
-          />
+          <Option label="Material">
+            <Button.Group size="tiny">
+              <Button
+                compact
+                color={settings.scene.mode === 'wireframe' ? 'blue' : ''}
+                onClick={() => updateSettingsOption('scene.mode', 'wireframe')}
+              >
+                Wireframe
+              </Button>
+
+              <Button
+                compact
+                color={settings.scene.mode === 'untextured' ? 'blue' : ''}
+                onClick={() => updateSettingsOption('scene.mode', 'untextured')}
+              >
+                Plain
+              </Button>
+            </Button.Group>
+          </Option>
+
+          {/* ************************************************************* */}
 
           <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
             Players
           </Divider>
 
           <ToggleOption
-            label="Show names"
+            label="Show through walls"
+            keyCode="X"
+            checked={settings.ui.xrayPlayers}
+            onChange={checked => updateSettingsOption('ui.xrayPlayers', checked)}
+          />
+
+          <ToggleOption
+            label="Show nameplates"
             keyCode="N"
-            checked={settings.ui.showNames}
-            onChange={checked => updateSettingsOption('ui.showNames', checked)}
+            checked={settings.ui.nameplate.enabled}
+            onChange={checked => updateSettingsOption('ui.nameplate.enabled', checked)}
+          />
+          <ToggleOption
+            label="--- Name"
+            checked={settings.ui.nameplate.showName}
+            disabled={!settings.ui.nameplate.enabled}
+            onChange={checked => updateSettingsOption('ui.nameplate.showName', checked)}
+          />
+
+          <ToggleOption
+            label="--- Health"
+            checked={settings.ui.nameplate.showHealth}
+            disabled={!settings.ui.nameplate.enabled}
+            onChange={checked => updateSettingsOption('ui.nameplate.showHealth', checked)}
+          />
+
+          <ToggleOption
+            label="--- Class"
+            checked={settings.ui.nameplate.showClass}
+            disabled={!settings.ui.nameplate.enabled}
+            onChange={checked => updateSettingsOption('ui.nameplate.showClass', checked)}
           />
         </div>
       )}
 
       <style jsx>{`
         .panel {
-          width: 400px;
+          width: 500px;
           max-width: 100%;
           border-radius: 6px;
           background-color: rgba(0, 0, 0, 0.7);

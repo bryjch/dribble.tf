@@ -72,7 +72,7 @@ var DemoControls = function (object, domElement) {
   this.keys = { W: 87, A: 65, S: 83, D: 68 }
 
   // Mouse buttons
-  this.mouseButtons = { LEFT: MOUSE.PAN, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.ROTATE }
+  this.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.PAN, RIGHT: MOUSE.PAN }
 
   // Touch fingers
   this.touches = { ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN }

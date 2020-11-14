@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux'
 
 import * as THREE from 'three'
 import { useThree } from 'react-three-fiber'
-import { HTML, MeshWobbleMaterial } from 'drei'
+import { HTML, MeshWobbleMaterial } from '@react-three/drei'
 
 import { Nameplate } from '@components/Scene/Nameplate'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
@@ -15,7 +15,7 @@ import { objCoordsToVector3, radianizeVector } from '@utils/geometry'
 // https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper%27s_Reference
 export const ActorDimensions = new THREE.Vector3(49, 49, 83)
 
-export const AimLineSize = 300
+export const AimLineSize = 150
 
 export const Actor = (props: CachedPlayer) => {
   const ref = useRef<THREE.Group>()
@@ -23,7 +23,7 @@ export const Actor = (props: CachedPlayer) => {
   const lastViewAngleY = useRef<number>(0)
   const { scene } = useThree()
 
-  const showNames = useSelector((state: any) => state.settings.ui.showNames)
+  const uiSettings = useSelector((state: any) => state.settings.ui)
 
   const { classId, health, team, user, healTarget } = props
   let { position, viewAngles } = props
@@ -62,13 +62,30 @@ export const Actor = (props: CachedPlayer) => {
       rotation={[0, 0, viewAnglesVec3.x]}
       userData={user}
     >
-      {/* Box mesh */}
+      {/* Base box mesh */}
       <mesh visible={alive}>
         <boxGeometry
           attach="geometry"
           args={[ActorDimensions.x, ActorDimensions.y, ActorDimensions.z]}
         />
-        <meshLambertMaterial attach="material" color={color} />
+        <meshStandardMaterial attach="material" color={color} metalness={0.5} />
+      </mesh>
+
+      {/* Seethrough box mesh */}
+      {/* This is used to make players visible through map geometry &
+      uses a reverse depth function to determine when to display */}
+      <mesh visible={alive && uiSettings.xrayPlayers}>
+        <boxGeometry
+          attach="geometry"
+          args={[ActorDimensions.x, ActorDimensions.y, ActorDimensions.z]}
+        />
+        <meshStandardMaterial
+          attach="material"
+          color={color}
+          opacity={0.7}
+          transparent={true}
+          depthFunc={THREE.GreaterDepth}
+        />
       </mesh>
 
       {/* Aim line */}
@@ -78,8 +95,8 @@ export const Actor = (props: CachedPlayer) => {
         rotation={[0, viewAnglesVec3.y, 0]}
       >
         <mesh visible={alive} position={[AimLineSize * 0.5, 0, 0]}>
-          <boxGeometry attach="geometry" args={[AimLineSize, 2, 2]} />
-          <meshBasicMaterial attach="material" color={color} />
+          <boxGeometry attach="geometry" args={[AimLineSize, 5, 5]} />
+          <meshBasicMaterial attach="material" color={color} opacity={0.5} transparent />
         </mesh>
 
         <POVCamera />
@@ -109,10 +126,11 @@ export const Actor = (props: CachedPlayer) => {
       >
         {alive && (
           <Nameplate
-            name={showNames ? user.name : ''}
+            name={user.name}
             team={team}
             health={health}
             classId={classId}
+            settings={uiSettings.nameplate}
           />
         )}
       </HTML>

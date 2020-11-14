@@ -27,7 +27,7 @@ const initialState = {
   },
   settings: {
     scene: {
-      mode: 'default',
+      mode: 'untextured',
     },
     camera: {
       orthographic: false,
@@ -43,7 +43,13 @@ const initialState = {
       enableDamping: true,
     },
     ui: {
-      showNames: true,
+      nameplate: {
+        enabled: true,
+        showName: true,
+        showHealth: true,
+        showClass: true,
+      },
+      xrayPlayers: true,
     },
   },
   ui: {

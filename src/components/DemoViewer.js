@@ -4,7 +4,7 @@ import { connect, useSelector, ReactReduxContext, Provider } from 'react-redux'
 // THREE related imports
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree, extend } from 'react-three-fiber'
-import { PerspectiveCamera, OrthographicCamera, Stats } from 'drei'
+import { PerspectiveCamera, OrthographicCamera, Stats } from '@react-three/drei'
 
 // Scene items
 import { DemoControls } from '@components/DemoControls'
@@ -46,6 +46,9 @@ const FreeControls = props => {
   const boundsCenter = useSelector(state => state.scene.bounds.center)
   const lastFocusedObject = useSelector(state => state.scene.controls.focusedObject)
   const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
+
+  gl.physicallyCorrectLights = true
+  gl.outputEncoding = THREE.sRGBEncoding
 
   useEffect(() => {
     if (controlsRef.current) {
@@ -197,7 +200,6 @@ class DemoViewer extends React.Component {
             <Canvas onContextMenu={e => e.preventDefault()}>
               <Provider store={store}>
                 {/* Base scene elements */}
-                <fog attach="fog" args={['#eeeeee', 10, 15000]} />
                 <Lights />
 
                 {scene.controls.mode === 'free' && <FreeControls />}
@@ -215,6 +217,7 @@ class DemoViewer extends React.Component {
 
                 {/* Misc elements */}
                 <CanvasKeyHandler />
+
                 <Stats parent={this.uiLayers} />
 
                 {!parser && (
@@ -223,28 +226,6 @@ class DemoViewer extends React.Component {
                       args={[1000, 100]}
                       position={[0, 0, -40]}
                       rotation={[Math.PI / 2, 0, 0]}
-                    />
-                    <Actor
-                      position={
-                        new THREE.Vector3(
-                          50 * Math.sin(window.performance.now() / 400),
-                          30 * Math.sin(window.performance.now() / 300),
-                          0,
-                          0
-                        )
-                      }
-                      viewAngles={
-                        new THREE.Vector3(
-                          (window.performance.now() / 30) % 360,
-                          15 * Math.sin(window.performance.now() / 300),
-                          0
-                        )
-                      }
-                      classId={1}
-                      health={100}
-                      team=""
-                      user={{ name: 'Player', entityId: 1 }}
-                      settings={settings}
                     />
                   </group>
                 )}
@@ -355,3 +336,76 @@ const mapDispatch = dispatch => ({
 DemoViewer = connect(mapState, mapDispatch)(DemoViewer)
 
 export { DemoViewer }
+
+//
+// ─── DATA FOR DEBUGGING ─────────────────────────────────────────────────────────
+//
+
+export const TEST_PROJECTILES = [
+  {
+    entityId: 4,
+    position: new THREE.Vector3(-100, 50, 0),
+    rotation: new THREE.Vector3(0, 0, 0),
+    teamNumber: 2,
+    type: 'stickybomb',
+  },
+  {
+    entityId: 5,
+    position: new THREE.Vector3(-100, -50, 0),
+    rotation: new THREE.Vector3(0, 0, 0),
+    teamNumber: 3,
+    type: 'stickybomb',
+  },
+  {
+    entityId: 6,
+    position: new THREE.Vector3(-100, 0, 0),
+    rotation: new THREE.Vector3(0, 0, 0),
+    teamNumber: 3,
+    type: 'rocket',
+  },
+  {
+    entityId: 7,
+    position: new THREE.Vector3(-100, 100, 0),
+    rotation: new THREE.Vector3(0, 0, 0),
+    teamNumber: 2,
+    type: 'pipebomb',
+  },
+  {
+    entityId: 8,
+    position: new THREE.Vector3(-100, -100, 0),
+    rotation: new THREE.Vector3(0, 0, 0),
+    teamNumber: 3,
+    type: 'pipebomb',
+  },
+]
+
+export const TEST_ACTORS = (
+  <>
+    <Actor
+      position={new THREE.Vector3(0, 0, 0)}
+      viewAngles={new THREE.Vector3(0, 0, 0)}
+      classId={1}
+      health={125}
+      team=""
+      user={{ name: 'None', entityId: 1 }}
+    />
+
+    <Actor
+      position={new THREE.Vector3(0, 200, 0)}
+      viewAngles={new THREE.Vector3(0, 0, 0)}
+      classId={1}
+      health={125}
+      team="red"
+      user={{ name: 'Red', entityId: 2 }}
+    />
+
+    <Actor
+      position={new THREE.Vector3(0, -200, 0)}
+      viewAngles={new THREE.Vector3(0, 0, 0)}
+      classId={1}
+      health={125}
+      team="blue"
+      user={{ name: 'Blue', entityId: 3 }}
+    />
+  </>
+)

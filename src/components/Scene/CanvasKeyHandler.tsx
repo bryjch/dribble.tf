@@ -66,7 +66,11 @@ export const CanvasKeyHandler = () => {
             break
 
           case 'n':
-            toggleSettingsOption('ui.showNames')
+            toggleSettingsOption('ui.nameplate.enabled')
+            break
+
+          case 'x':
+            toggleSettingsOption('ui.xrayPlayers')
             break
 
           case '1':

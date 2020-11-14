@@ -2,14 +2,14 @@ import React, { useRef, useEffect } from 'react'
 
 import * as THREE from 'three'
 import { useFrame } from 'react-three-fiber'
-import { Sphere } from 'drei'
+import { Sphere } from '@react-three/drei'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { CachedProjectile } from '@components/Analyse/Data/ProjectileCache'
 
 import { objCoordsToVector3, eulerizeVector, getMeshes } from '@utils/geometry'
-import { TEAM_MAP, ACTOR_TEAM_COLORS } from '@constants/mappings'
+import { TEAM_MAP } from '@constants/mappings'
 
 const PROJECTILE_RESOURCES = [
   {
@@ -24,17 +24,7 @@ const PROJECTILE_RESOURCES = [
   },
 ]
 
-const PROJECTILE_OUTLINE_SCALE = 1.5
-
-const STICKYBOMB_OUTLINE_MATERIAL_RED = new THREE.MeshBasicMaterial({
-  color: ACTOR_TEAM_COLORS('red').projectileOutlineColor,
-  side: THREE.BackSide,
-})
-
-const STICKYBOMB_OUTLINE_MATERIAL_BLUE = new THREE.MeshBasicMaterial({
-  color: ACTOR_TEAM_COLORS('blue').projectileOutlineColor,
-  side: THREE.BackSide,
-})
+const BASE_PROJECTILE_MATERIAL = new THREE.MeshStandardMaterial({ color: '#111111', metalness: 1 })
 
 //
 // ─── PROJECTILES ────────────────────────────────────────────────────────────────
@@ -65,20 +55,15 @@ export const Projectiles = (props: ProjectilesProps) => {
         loadedObj.traverse((child: THREE.Object3D) => {
           if (child.type === 'Mesh') {
             // Set default mesh materials
-            const m = child as THREE.Mesh
-            m.material = new THREE.MeshLambertMaterial({ color: '#424242' })
-            m.geometry.computeVertexNormals()
+            const base = child as THREE.Mesh
+            base.material = BASE_PROJECTILE_MATERIAL
+            base.geometry.computeVertexNormals()
 
             // Create a scaled-up duplicate of the mesh to use as outline
             switch (name) {
               case 'stickybomb':
-                const outline = m.clone() as THREE.Mesh
+                const outline = base.clone() as THREE.Mesh
                 outline.name = 'stickybombOutline'
-                outline.scale.set(
-                  PROJECTILE_OUTLINE_SCALE,
-                  PROJECTILE_OUTLINE_SCALE,
-                  PROJECTILE_OUTLINE_SCALE
-                )
                 outlines.push(outline)
                 break
 
@@ -88,7 +73,7 @@ export const Projectiles = (props: ProjectilesProps) => {
           }
         })
 
-        // Append the duplicated outline meshes back to the original mesh
+        // Append the duplicated outline meshes back to the base mesh
         outlines.forEach(outline => loadedObj.add(outline))
 
         objs.current.set(name, loadedObj)
@@ -174,7 +159,22 @@ export const RocketProjectile = (props: BaseProjectileProps) => {
 // ─── PIPEBOMB PROJECTILE ────────────────────────────────────────────────────────
 //
 
+const getPipebombMaterial = (team: string) => {
+  switch (team) {
+    case 'red':
+      return { color: '#ff2525', transparent: true, opacity: 1 }
+
+    case 'blue':
+      return { color: '#142bff', transparent: true, opacity: 1 }
+  }
+
+  return { color: 'white' }
+}
+
 export const PipebombProjectile = (props: BaseProjectileProps) => {
+  const team = TEAM_MAP[props.teamNumber]
+  const material = getPipebombMaterial(team)
+
   return (
     <group
       name="pipebomb"
@@ -182,7 +182,7 @@ export const PipebombProjectile = (props: BaseProjectileProps) => {
       rotation={eulerizeVector(props.rotation)}
     >
       <Sphere args={[5]}>
-        <meshLambertMaterial attach="material" color="green" />
+        <meshStandardMaterial attach="material" {...material} />
       </Sphere>
     </group>
   )
@@ -192,24 +192,45 @@ export const PipebombProjectile = (props: BaseProjectileProps) => {
 // ─── STICKYBOMB PROJECTILE ──────────────────────────────────────────────────────
 //
 
+const STICKYBOMB_FALLBACK_MATERIAL = new THREE.MeshLambertMaterial({ color: '#424242' })
+const STICKYBOMB_BASE_MATERIAL_RED = new THREE.MeshLambertMaterial({ color: 'red' })
+const STICKYBOMB_BASE_MATERIAL_BLUE = new THREE.MeshLambertMaterial({ color: 'blue' })
+
+const STICKYBOMB_OUTLINE_MATERIAL_RED = new THREE.MeshLambertMaterial({
+  color: 'red',
+  transparent: true,
+  depthFunc: THREE.GreaterEqualDepth,
+})
+
+const STICKYBOMB_OUTLINE_MATERIAL_BLUE = new THREE.MeshLambertMaterial({
+  color: 'blue',
+  transparent: true,
+  depthFunc: THREE.GreaterEqualDepth,
+})
+
+const getStickybombMaterial = (team: string, isOutline: Boolean) => {
+  switch (team) {
+    case 'red':
+      return isOutline ? STICKYBOMB_OUTLINE_MATERIAL_RED : STICKYBOMB_BASE_MATERIAL_RED
+
+    case 'blue':
+      return isOutline ? STICKYBOMB_OUTLINE_MATERIAL_BLUE : STICKYBOMB_BASE_MATERIAL_BLUE
+  }
+
+  return STICKYBOMB_FALLBACK_MATERIAL
+}
+
 export const StickybombProjectile = (props: BaseProjectileProps) => {
+  const team = TEAM_MAP[props.teamNumber]
+
   useEffect(() => {
     try {
       if (props.obj) {
-        const outlines = getMeshes([props.obj], 'stickybombOutline')
-        outlines.forEach(mesh => {
-          switch (TEAM_MAP[props.teamNumber]) {
-            case 'red':
-              mesh.material = STICKYBOMB_OUTLINE_MATERIAL_RED
-              break
+        const meshes = getMeshes([props.obj])
 
-            case 'blue':
-              mesh.material = STICKYBOMB_OUTLINE_MATERIAL_BLUE
-              break
-
-            default:
-              break
-          }
+        meshes.forEach(mesh => {
+          const isOutline = mesh.name === 'stickybombOutline'
+          mesh.material = getStickybombMaterial(team, isOutline)
         })
       }
     } catch (error) {
@@ -227,7 +248,7 @@ export const StickybombProjectile = (props: BaseProjectileProps) => {
         <primitive object={props.obj} />
       ) : (
         <Sphere args={[5]}>
-          <meshLambertMaterial attach="material" color="blue" />
+          <meshLambertMaterial attach="material" color={team} />
         </Sphere>
       )}
     </group>

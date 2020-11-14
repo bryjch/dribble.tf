@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@bryjch/demo.js": "git+https://github.com/bryjch/demo.js.git",
+    "@react-three/drei": "^2.2.7",
     "@types/humanize-duration": "^3.18.0",
     "@types/lodash": "^4.14.156",
     "@types/node": "^14.0.13",
@@ -13,7 +14,6 @@
     "@types/styled-jsx": "^2.2.8",
     "@types/three": "^0.103.2",
     "bootstrap": "^4.5.0",
-    "drei": "^0.0.64",
     "humanize-duration": "^3.23.1",
     "keycode": "^2.2.0",
     "localforage": "^1.7.4",
@@ -32,7 +32,7 @@
     "semantic-ui-css": "^2.4.1",
     "semantic-ui-react": "^1.1.0",
     "styled-jsx": "^3.3.0",
-    "three": "^0.118.3",
+    "three": "^0.122.0",
     "typescript": "^3.9.5",
     "worker-loader": "^2.0.0"
   },

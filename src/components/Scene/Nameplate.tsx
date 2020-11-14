@@ -11,31 +11,38 @@ export interface NameplateProps {
   classId: number
   name: string
   team: string
+  settings: Object | any
 }
 
 export const Nameplate = (props: NameplateProps) => {
-  const { health, classId, name, team } = props
+  const { health, classId, name, team, settings } = props
 
   const healthColor = ACTOR_TEAM_COLORS(team).healthBar
   const { percentage } = parseClassHealth(classId, health)
 
+  if (!settings.enabled) return null
+
   return (
     <>
       <div className="nameplate">
-        {name && <div className="name">{name}</div>}
+        {settings.showName && <div className="name">{name}</div>}
 
-        <div className="healthbar">
-          {/* Note: fill & overheal widths are manipulated inline for better performance,
+        {settings.showHealth && (
+          <div className="healthbar">
+            {/* Note: fill & overheal widths are manipulated inline for better performance,
             because changing the value in css class directly will continously trigger
             styled-jsx recalculation / DOM reflow (very costly over time)
             https://github.com/vercel/styled-jsx#via-inline-style */}
-          <div className="fill" style={{ width: `${percentage}%` }} />
-          <div className="overheal" style={{ width: `${clamp(percentage - 100, 0, 100)}%` }} />
-        </div>
+            <div className="fill" style={{ width: `${percentage}%` }} />
+            <div className="overheal" style={{ width: `${clamp(percentage - 100, 0, 100)}%` }} />
+          </div>
+        )}
 
-        <div className="class">
-          <ClassIcon classId={classId} size={16} />
-        </div>
+        {settings.showClass && (
+          <div className="class">
+            <ClassIcon classId={classId} size={16} />
+          </div>
+        )}
       </div>
 
       <style jsx>{`

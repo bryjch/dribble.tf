@@ -1,69 +1,137 @@
 import React, { useRef, useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
-import humanizeDuration from 'humanize-duration'
 
 import * as THREE from 'three'
-import 'react-three-fiber'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
+import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
-const MAP_WIREFRAME_MATERIAL = new THREE.MeshBasicMaterial({
-  color: 'green',
-  opacity: 0.2,
+const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
+  color: '#333333',
+  opacity: 0.1,
   transparent: true,
   wireframe: true,
 })
 
-const MAP_DEFAULT_MATERIAL = new THREE.MeshLambertMaterial({
+const MAP_UNTEXTURED_MATERIAL = new THREE.MeshStandardMaterial({
   color: 'white',
 })
 
 export interface WorldProps {
   map: string
-  mode?: 'normal' | 'wireframe'
+  mode?: 'normal' | 'textured' | 'untextured' | 'wireframe'
 }
 
 export const World = (props: WorldProps) => {
   const ref = useRef<THREE.Group>()
-  const [mapModel, setMapModel] = useState<THREE.Group>()
+  const [mapModel, setMapModel] = useState<THREE.Group | null>()
+  const [mapOverlay, setMapOverlay] = useState<THREE.Group | null>()
   const { map, mode } = props
 
-  const boundsCenter: any = useSelector((state: any) => state.scene.bounds.center)
+  const bounds: any = useSelector((state: any) => state.scene.bounds)
 
-  // Load map model
   useEffect(() => {
     try {
-      const loadStartTime = window.performance.now()
-
-      // TODO: check prop {map} value against some mapping to
-      // determine which .obj file should be loaded
-      const objLoader = new OBJLoader()
-      const mapFile = require('../../assets/process.obj')
-      const mapMat = MAP_DEFAULT_MATERIAL
-
-      const onLoad = (mapObj: THREE.Group) => {
-        const downloadDoneTime = window.performance.now()
-        console.log(
-          `Map loaded. Took ${humanizeDuration(downloadDoneTime - loadStartTime, {
-            maxDecimalPoints: 5,
-          })}.`
-        )
-
-        mapObj.traverse((child: THREE.Object3D) => {
-          if (child.type === 'Mesh') {
-            const m = child as THREE.Mesh
-            m.material = mapMat
-            m.geometry.computeVertexNormals()
+      if (mode === 'normal' || mode === 'textured') {
+        loadGLTF(require(`../../assets/maps/${map}/textured_compressed.glb`)).then((gltf: any) => {
+          if (gltf && gltf.scene) {
+            setMapModel(gltf.scene)
           }
         })
 
-        const normalsDoneTime = window.performance.now()
-        console.log(
-          `Map normals generated. Took ${humanizeDuration(normalsDoneTime - downloadDoneTime, {
-            maxDecimalPoints: 5,
-          })}.`
-        )
+        loadGLTF(require(`../../assets/maps/${map}/overlay_compressed.glb`)).then((gltf: any) => {
+          if (gltf && gltf.scene) {
+            setMapOverlay(gltf.scene)
+          }
+        })
+      }
 
-        setMapModel(mapObj)
+      if (mode === 'untextured' || mode === 'wireframe') {
+        loadGLTF(require(`../../assets/maps/${map}/untextured_compressed.glb`)).then(
+          (gltf: any) => {
+            if (gltf && gltf.scene) {
+              setMapModel(gltf.scene)
+              setMapOverlay(null)
+            }
+          }
+        )
+      }
+    } catch (error) {
+      alert(`Unable to load map: ${map}\nThe project is probably missing the necessary files.`)
+      console.error(error)
+    }
+  }, [map, mode])
+
+  // Update map overlay materials
+  useEffect(() => {
+    if (mapOverlay) {
+      mapOverlay.traverse((child: THREE.Object3D) => {
+        traverseMaterials(child, (material: any) => {
+          if (material.map) material.map.encoding = THREE.sRGBEncoding
+          if (material.emissiveMap) material.emissiveMap.encoding = THREE.sRGBEncoding
+          material.depthWrite = true
+          material.needsUpdate = true
+
+          material.polygonOffset = true
+          material.polygonOffsetUnits = 1
+          material.polygonOffsetFactor = -10
+        })
+      })
+    }
+  }, [mapOverlay, mode])
+
+  // Update map model materials
+  useEffect(() => {
+    if (mapModel) {
+      mapModel.traverse((child: THREE.Object3D) => {
+        traverseMaterials(child, (material: any, node: any) => {
+          if (material.map) material.map.encoding = THREE.sRGBEncoding
+          if (material.emissiveMap) material.emissiveMap.encoding = THREE.sRGBEncoding
+          material.depthWrite = true
+          material.needsUpdate = true
+
+          if (mode === 'untextured') {
+            node.material = MAP_UNTEXTURED_MATERIAL
+          }
+
+          if (mode === 'wireframe') {
+            node.material = MAP_WIREFRAME_MATERIAL
+          }
+        })
+      })
+    }
+  }, [mapModel, mode])
+
+  // Reposition the world to the center of the scene bounds
+  useEffect(() => {
+    // Not entirely sure if this logic is correct
+    const x = bounds.center.x - bounds.max.x
+    const y = -bounds.center.y - bounds.min.y
+
+    ref.current?.position.copy(bounds.center).add(new THREE.Vector3(x, y, 0))
+  }, [bounds])
+
+  return (
+    // Account for valve maps using different axis system
+    <group ref={ref} name="world" rotation={[Math.PI / 2, 0, 0]}>
+      {mapModel ? <primitive object={mapModel} /> : null}
+      {mapOverlay ? <primitive object={mapOverlay} /> : null}
+    </group>
+  )
+}
+
+//
+// ─── HELPERS ────────────────────────────────────────────────────────────────────
+//
+
+// Useful resource: https://github.com/donmccurdy/three-gltf-viewer/blob/master/src/viewer.js
+
+function loadGLTF(file: string) {
+  return new Promise((resolve, reject) => {
+    try {
+      const gltfLoader = new GLTFLoader().setCrossOrigin('anonymous')
+
+      const onLoad = (gltf: GLTF) => {
+        console.log(gltf)
+        resolve(gltf)
       }
 
       const onProgress = (xhr: ProgressEvent) => {
@@ -80,33 +148,24 @@ export const World = (props: WorldProps) => {
         throw error
       }
 
-      objLoader.load(mapFile, onLoad, onProgress, onError)
+      gltfLoader.load(file, onLoad, onProgress, onError)
     } catch (error) {
       console.error(error)
+      reject(error)
     }
-  }, [map])
+  })
+}
 
-  // Update map material
-  useEffect(() => {
-    if (mapModel) {
-      mapModel.traverse((child: THREE.Object3D) => {
-        if (child.type === 'Mesh') {
-          const m = child as THREE.Mesh
-          m.material = mode === 'wireframe' ? MAP_WIREFRAME_MATERIAL : MAP_DEFAULT_MATERIAL
-          m.geometry.computeVertexNormals()
-        }
-      })
+function traverseMaterials(
+  object: THREE.Object3D,
+  callback: (material: THREE.Material, node: THREE.Object3D) => void
+) {
+  object.traverse((node: THREE.Object3D) => {
+    if (node.type === 'Mesh') {
+      const m = node as THREE.Mesh
+      const materials = Array.isArray(m.material) ? m.material : [m.material]
+
+      materials.forEach((material: THREE.Material) => callback(material, node))
     }
-  }, [mapModel, mode])
-
-  // Reposition the world to the center of the scene bounds
-  useEffect(() => {
-    ref.current?.position.copy(boundsCenter)
-  }, [boundsCenter])
-
-  return (
-    <group ref={ref} name="world">
-      {mapModel ? <primitive object={mapModel} /> : null}
-    </group>
-  )
+  })
 }
