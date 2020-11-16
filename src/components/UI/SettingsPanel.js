@@ -248,8 +248,8 @@ export const SettingsPanel = () => {
           </Divider>
 
           <ToggleOption
-            label="Show through walls"
-            keyCode="X"
+            label="Models through walls"
+            keyCode="M"
             checked={settings.ui.xrayPlayers}
             onChange={checked => updateSettingsOption('ui.xrayPlayers', checked)}
           />

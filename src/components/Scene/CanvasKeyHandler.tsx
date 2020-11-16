@@ -69,7 +69,7 @@ export const CanvasKeyHandler = () => {
             toggleSettingsOption('ui.nameplate.enabled')
             break
 
-          case 'x':
+          case 'm':
             toggleSettingsOption('ui.xrayPlayers')
             break
 
