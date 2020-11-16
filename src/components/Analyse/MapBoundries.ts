@@ -411,8 +411,9 @@ const overWriteMapBoundaries: any = {
   },
 }
 
-// overWriteMapBoundaries['koth_viaduct'] = overWriteMapBoundaries['koth_product_rc8']
-// overWriteMapBoundaries['cp_prolands'] = overWriteMapBoundaries['cp_badlands']
+overWriteMapBoundaries['koth_viaduct'] = overWriteMapBoundaries['koth_product_rcx']
+overWriteMapBoundaries['koth_viaduct'] = overWriteMapBoundaries['koth_product_rc8']
+overWriteMapBoundaries['cp_prolands'] = overWriteMapBoundaries['cp_badlands']
 
 const mapAliases = new Map<string, string>([['cp_prolands', 'cp_badlands']])
 
