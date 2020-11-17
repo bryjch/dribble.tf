@@ -9,14 +9,14 @@ import { toggleUIPanelAction, updateSettingsOptionAction } from '@redux/actions'
 // ─── BASE OPTION WRAPPER ────────────────────────────────────────────────────────
 //
 
-const Option = ({ label, keyCode, children }) => (
+const Option = ({ label, keyCode, children, leftClass = '', rightClass = '' }) => (
   <div className="row align-items-center mb-2">
-    <div className="col-sm-5 d-flex align-items-center">
+    <div className={`d-flex align-items-center ${leftClass}`}>
       <div className="label">{label}</div>
       {!!keyCode && <kbd className="key-code">{keyCode}</kbd>}
     </div>
 
-    <div className="col-sm-7 d-flex align-items-center">{children}</div>
+    <div className={`d-flex align-items-center ${rightClass}`}>{children}</div>
 
     <style jsx>{`
       .label {
@@ -50,7 +50,7 @@ const SliderOption = ({ label, keyCode, value, onChange, min = 1, max = 10, step
   }
 
   return (
-    <Option label={label} keyCode={keyCode}>
+    <Option label={label} keyCode={keyCode} leftClass="col-sm-5" rightClass="col-sm-7">
       <input
         className="slider"
         type="range"
@@ -130,7 +130,7 @@ const ToggleOption = ({ label, keyCode, checked, disabled, onChange }) => {
   }
 
   return (
-    <Option label={label} keyCode={keyCode}>
+    <Option label={label} keyCode={keyCode} leftClass="col" rightClass="col-auto">
       <input type="checkbox" checked={checked} disabled={disabled} onChange={callback} />
 
       <style jsx>{`
@@ -166,120 +166,152 @@ export const SettingsPanel = () => {
   )
 
   return (
-    <div className="d-flex flex-column align-items-start ml-2">
+    <div className="d-flex flex-row align-items-start">
       <Button
-        circular
+        compact
         icon="setting"
-        className="mb-2"
+        className="dribble-btn mb-2"
+        secondary
+        style={{ backgroundColor: 'rgba(30,30,30,0.75)' }}
         onClick={() => toggleUIPanel('SettingsPanel')}
-      ></Button>
+      />
 
       {isOpen && (
         <div className="panel">
-          {/* ************************************************************* */}
+          <div className="header">
+            <div>SETTINGS</div>
+            <Button
+              compact
+              secondary
+              icon="close"
+              size="mini"
+              onClick={() => toggleUIPanel('SettingsPanel')}
+            />
+          </div>
 
-          <Divider horizontal style={{ color: '#ffffff' }}>
-            Camera
-          </Divider>
+          <div className="content">
+            {/* ************************************************************* */}
 
-          <SliderOption
-            label="FOV"
-            min={50}
-            max={120}
-            step={1}
-            value={settings.camera.fov}
-            onChange={value => updateSettingsOption('camera.fov', value)}
-          />
+            <Divider horizontal style={{ color: '#ffffff' }}>
+              Camera
+            </Divider>
 
-          <SliderOption
-            label="Pan speed"
-            value={settings.controls.panSpeed}
-            onChange={value => updateSettingsOption('controls.panSpeed', value)}
-          />
+            <SliderOption
+              label="FOV"
+              min={50}
+              max={120}
+              step={1}
+              value={settings.camera.fov}
+              onChange={value => updateSettingsOption('camera.fov', value)}
+            />
 
-          <SliderOption
-            label="Rotate speed"
-            value={settings.controls.rotateSpeed}
-            onChange={value => updateSettingsOption('controls.rotateSpeed', value)}
-          />
+            <SliderOption
+              label="Pan speed"
+              value={settings.controls.panSpeed}
+              onChange={value => updateSettingsOption('controls.panSpeed', value)}
+            />
 
-          <SliderOption
-            label="Zoom speed"
-            value={settings.controls.zoomSpeed}
-            onChange={value => updateSettingsOption('controls.zoomSpeed', value)}
-          />
+            <SliderOption
+              label="Rotate speed"
+              value={settings.controls.rotateSpeed}
+              onChange={value => updateSettingsOption('controls.rotateSpeed', value)}
+            />
 
-          <ToggleOption
-            label="Inertia enabled"
-            checked={settings.controls.enableDamping}
-            onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
-          />
+            <SliderOption
+              label="Zoom speed"
+              value={settings.controls.zoomSpeed}
+              onChange={value => updateSettingsOption('controls.zoomSpeed', value)}
+            />
 
-          {/* ************************************************************* */}
+            <ToggleOption
+              label="Inertia enabled"
+              checked={settings.controls.enableDamping}
+              onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
+            />
 
-          <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
-            Geometry
-          </Divider>
+            {/* ************************************************************* */}
 
-          <Option label="Material">
-            <Button.Group size="tiny">
-              <Button
-                compact
-                color={settings.scene.mode === 'wireframe' ? 'blue' : ''}
-                onClick={() => updateSettingsOption('scene.mode', 'wireframe')}
-              >
-                Wireframe
-              </Button>
+            <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
+              Geometry
+            </Divider>
 
-              <Button
-                compact
-                color={settings.scene.mode === 'untextured' ? 'blue' : ''}
-                onClick={() => updateSettingsOption('scene.mode', 'untextured')}
-              >
-                Plain
-              </Button>
-            </Button.Group>
-          </Option>
+            <Option label="Material" leftClass="col" rightClass="col-auto">
+              <Button.Group size="tiny">
+                <Button
+                  compact
+                  color={settings.scene.mode === 'wireframe' ? 'blue' : undefined}
+                  onClick={() => updateSettingsOption('scene.mode', 'wireframe')}
+                >
+                  Wireframe
+                </Button>
 
-          {/* ************************************************************* */}
+                <Button
+                  compact
+                  color={settings.scene.mode === 'untextured' ? 'blue' : undefined}
+                  onClick={() => updateSettingsOption('scene.mode', 'untextured')}
+                >
+                  Plain
+                </Button>
+              </Button.Group>
+            </Option>
 
-          <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
-            Players
-          </Divider>
+            {/* ************************************************************* */}
 
-          <ToggleOption
-            label="Models through walls"
-            keyCode="M"
-            checked={settings.ui.xrayPlayers}
-            onChange={checked => updateSettingsOption('ui.xrayPlayers', checked)}
-          />
+            <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
+              Players
+            </Divider>
 
-          <ToggleOption
-            label="Show nameplates"
-            keyCode="N"
-            checked={settings.ui.nameplate.enabled}
-            onChange={checked => updateSettingsOption('ui.nameplate.enabled', checked)}
-          />
-          <ToggleOption
-            label="--- Name"
-            checked={settings.ui.nameplate.showName}
-            disabled={!settings.ui.nameplate.enabled}
-            onChange={checked => updateSettingsOption('ui.nameplate.showName', checked)}
-          />
+            <ToggleOption
+              label="Models through walls"
+              keyCode="M"
+              checked={settings.ui.xrayPlayers}
+              onChange={checked => updateSettingsOption('ui.xrayPlayers', checked)}
+            />
 
-          <ToggleOption
-            label="--- Health"
-            checked={settings.ui.nameplate.showHealth}
-            disabled={!settings.ui.nameplate.enabled}
-            onChange={checked => updateSettingsOption('ui.nameplate.showHealth', checked)}
-          />
+            <ToggleOption
+              label="Show nameplates"
+              keyCode="N"
+              checked={settings.ui.nameplate.enabled}
+              onChange={checked => updateSettingsOption('ui.nameplate.enabled', checked)}
+            />
 
-          <ToggleOption
-            label="--- Class"
-            checked={settings.ui.nameplate.showClass}
-            disabled={!settings.ui.nameplate.enabled}
-            onChange={checked => updateSettingsOption('ui.nameplate.showClass', checked)}
-          />
+            {settings.ui.nameplate.enabled && (
+              <>
+                <ToggleOption
+                  label="&nbsp;&nbsp;&nbsp;&nbsp;- Name"
+                  checked={settings.ui.nameplate.showName}
+                  disabled={!settings.ui.nameplate.enabled}
+                  onChange={checked => updateSettingsOption('ui.nameplate.showName', checked)}
+                />
+
+                <ToggleOption
+                  label="&nbsp;&nbsp;&nbsp;&nbsp;- Health"
+                  checked={settings.ui.nameplate.showHealth}
+                  disabled={!settings.ui.nameplate.enabled}
+                  onChange={checked => updateSettingsOption('ui.nameplate.showHealth', checked)}
+                />
+
+                <ToggleOption
+                  label="&nbsp;&nbsp;&nbsp;&nbsp;- Class"
+                  checked={settings.ui.nameplate.showClass}
+                  disabled={!settings.ui.nameplate.enabled}
+                  onChange={checked => updateSettingsOption('ui.nameplate.showClass', checked)}
+                />
+              </>
+            )}
+
+            {/* ************************************************************* */}
+
+            <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
+              Misc
+            </Divider>
+
+            <ToggleOption
+              label="Show FPS"
+              checked={settings.ui.showStats}
+              onChange={checked => updateSettingsOption('ui.showStats', checked)}
+            />
+          </div>
         </div>
       )}
 
@@ -287,11 +319,23 @@ export const SettingsPanel = () => {
         .panel {
           width: 500px;
           max-width: 100%;
-          border-radius: 6px;
           background-color: rgba(0, 0, 0, 0.7);
           color: #ffffff;
           font-size: 1rem;
-          padding: 1rem;
+
+          .header {
+            display: flex;
+            flex-flow: row nowrap;
+            justify-content: space-between;
+            align-items: center;
+            letter-spacing: 2px;
+            padding: 0.45rem 0.2rem 0.45rem 1.5rem;
+            background-color: rgba(0, 0, 0, 0.3);
+          }
+
+          .content {
+            padding: 0rem 1.5rem 1rem 1.5rem;
+          }
         }
       `}</style>
     </div>

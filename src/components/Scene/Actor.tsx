@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux'
 
 import * as THREE from 'three'
 import { useThree } from 'react-three-fiber'
-import { HTML, MeshWobbleMaterial } from '@react-three/drei'
+import { Html, MeshWobbleMaterial } from '@react-three/drei'
 
 import { Nameplate } from '@components/Scene/Nameplate'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
@@ -118,7 +118,7 @@ export const Actor = (props: CachedPlayer) => {
       )}
 
       {/* Nameplate */}
-      <HTML
+      <Html
         name="html"
         className="no-select"
         style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
@@ -133,7 +133,7 @@ export const Actor = (props: CachedPlayer) => {
             settings={uiSettings.nameplate}
           />
         )}
-      </HTML>
+      </Html>
     </group>
   )
 }

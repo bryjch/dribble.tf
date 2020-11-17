@@ -199,7 +199,7 @@ var DemoControls = function (object, domElement) {
 
         // keyboard panning has different "panning speed" compared to
         // mouse so doesn't need to be scaled
-        pan(x * scope.panSpeed * 2, y * scope.panSpeed * 2)
+        pan(x * scope.panSpeed * 0.5, y * scope.panSpeed * 0.5)
       }
 
       // update condition is:

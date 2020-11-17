@@ -45,3 +45,10 @@ input[type='number'] {
     pointer-events: auto;
   }
 }
+
+button.ui.dribble-btn {
+  background-color: rgba(30, 30, 30, 0.75);
+  border-radius: 0;
+  width: 33px;
+  height: 33px;
+}

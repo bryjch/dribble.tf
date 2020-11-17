@@ -46,7 +46,12 @@ export default class ViewerPage extends React.Component {
         this.setState({ progress: progress })
       })
 
-      await parser.cache()
+      try {
+        await parser.cache()
+      } catch (error) {
+        alert(`Unable to load demo. Please make sure it's a valid SourceTV .dem file.`)
+        throw error
+      }
 
       console.log('%c-------- Parser loaded --------', 'color: blue; font-size: 16px;')
       console.log(parser)
@@ -74,19 +79,83 @@ export default class ViewerPage extends React.Component {
       <div>
         <DemoViewer parser={this.state.parser} />
 
-        <div className="ui-layer dropzone">
-          {this.state.loading ? (
-            <p>{this.state.progress}%</p>
-          ) : (
+        {!this.state.parser && !this.state.loading && (
+          <div className="ui-layer welcome">
+            <div className="panel">
+              <div className="title">DRIBBLE.TF</div>
+
+              <div className="subtitle">
+                Demo replay in browser <span style={{ opacity: 0.3 }}>but less epic</span>
+              </div>
+
+              <div className="intro">
+                <p>Watch Team Fortress 2 STV demos in your browser... kinda.</p>
+
+                <p>
+                  Drop your STV <code>.dem</code> file anywhere to start viewing!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {this.state.loading ? (
+          <div className="ui-layer loading-demo">
+            <div className="panel">
+              <div>Parsing demo... {this.state.progress}%</div>
+            </div>
+          </div>
+        ) : (
+          <div className="ui-layer">
             <DemoDropzone onDrop={this.onDemoDropped} />
-          )}
-        </div>
+          </div>
+        )}
 
         <style jsx>{`
-          .dropzone {
-            justify-content: flex-start;
-            align-items: flex-end;
-            margin: 1rem;
+          .ui-layer {
+            &.welcome {
+              justify-content: flex-end;
+              align-items: flex-start;
+              margin: 1rem;
+              z-index: 100; // make this layer less important
+
+              .panel {
+                display: inline-flex;
+                flex-flow: column nowrap;
+                color: #ffffff;
+                background: rgba(30, 30, 30, 0.75);
+                padding: 1.5rem;
+                max-width: 320px;
+
+                .title {
+                  font-family: 'Lato';
+                  font-size: 1.7rem;
+                  font-weight: 500;
+                  line-height: 1.2;
+                }
+
+                .subtitle {
+                  font-size: 0.85rem;
+                }
+
+                .intro {
+                  margin-top: 1rem;
+                }
+              }
+            }
+
+            &.loading-demo {
+              justify-content: center;
+              align-items: flex-start;
+              top: 80px;
+
+              .panel {
+                display: inline-flex;
+                color: #ffffff;
+                background-color: rgba(30, 30, 30, 0.75);
+                padding: 0.75rem 1rem;
+              }
+            }
           }
         `}</style>
       </div>

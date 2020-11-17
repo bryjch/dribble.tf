@@ -12,7 +12,7 @@ const initialState = {
     bounds: {
       min: new THREE.Vector3(0, 0, 0),
       max: new THREE.Vector3(0, 0, 0),
-      center: new THREE.Vector3(0, 0, 0),
+      center: new THREE.Vector3(1500, 0, 0), // offset is to account for default spawned map
     },
     controls: {
       mode: 'free', // 'pov', 'follow'
@@ -38,7 +38,7 @@ const initialState = {
     },
     controls: {
       panSpeed: 5,
-      rotateSpeed: 5,
+      rotateSpeed: 3,
       zoomSpeed: 5,
       enableDamping: true,
     },
@@ -50,6 +50,7 @@ const initialState = {
         showClass: true,
       },
       xrayPlayers: true,
+      showStats: false,
     },
   },
   ui: {

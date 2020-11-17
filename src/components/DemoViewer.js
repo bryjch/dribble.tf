@@ -205,8 +205,10 @@ class DemoViewer extends React.Component {
                 {scene.controls.mode === 'free' && <FreeControls />}
 
                 {/* Demo specific elements */}
-                {parser?.header?.map && (
+                {parser?.header?.map ? (
                   <World map={parser.header.map} mode={settings.scene.mode} />
+                ) : (
+                  <World map={`koth_product_rcx`} mode={settings.scene.mode} />
                 )}
 
                 {parser && playback && (
@@ -218,17 +220,7 @@ class DemoViewer extends React.Component {
                 {/* Misc elements */}
                 <CanvasKeyHandler />
 
-                <Stats parent={this.uiLayers} />
-
-                {!parser && (
-                  <group name="debugObjects">
-                    <gridHelper
-                      args={[1000, 100]}
-                      position={[0, 0, -40]}
-                      rotation={[Math.PI / 2, 0, 0]}
-                    />
-                  </group>
-                )}
+                {settings.ui.showStats && <Stats className="stats-panel" parent={this.uiLayers} />}
               </Provider>
             </Canvas>
           )}
@@ -281,7 +273,6 @@ class DemoViewer extends React.Component {
               justify-content: flex-start;
               align-items: flex-start;
               margin: 1rem;
-              margin-left: 95px;
             }
 
             &.playback {
@@ -295,7 +286,6 @@ class DemoViewer extends React.Component {
               justify-content: flex-start;
               align-items: flex-end;
               margin: 1rem;
-              margin-bottom: 80px;
             }
 
             &.killfeed {
@@ -314,6 +304,15 @@ class DemoViewer extends React.Component {
               align-items: flex-end;
               bottom: 20vh;
             }
+          }
+        `}</style>
+
+        <style jsx global>{`
+          .stats-panel {
+            top: unset !important;
+            left: unset !important;
+            bottom: 0;
+            right: 0;
           }
         `}</style>
       </div>
