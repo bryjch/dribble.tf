@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useDropzone, FileRejection } from 'react-dropzone'
 
+import { useEventListener } from '@utils/hooks'
+
 export interface DemoDropzoneProps {
   onDrop: (accepted: File[], rejected: FileRejection[]) => any
 }
@@ -36,28 +38,21 @@ export const DemoDropzone = (props: DemoDropzoneProps) => {
   // These additional drag handlers are necessary to allow for fullscreen
   // dropzone handling, because disabling point-events also disables drop listeners
 
-  useEffect(() => {
-    let lastTarget: any = null
+  let lastTarget: any = null
 
-    const handleDragEnter = (e: DragEvent) => {
-      lastTarget = e.target
-      setDropzoneActive(true)
+  const handleDragEnter = (e: DragEvent) => {
+    lastTarget = e.target
+    setDropzoneActive(true)
+  }
+
+  const handleDragLeave = (e: DragEvent) => {
+    if (lastTarget === e.target) {
+      setDropzoneActive(false)
     }
+  }
 
-    const handleDragLeave = (e: DragEvent) => {
-      if (lastTarget === e.target) {
-        setDropzoneActive(false)
-      }
-    }
-
-    window.addEventListener('dragenter', handleDragEnter)
-    window.addEventListener('dragleave', handleDragLeave)
-
-    return () => {
-      window.removeEventListener('dragenter', handleDragEnter)
-      window.removeEventListener('dragleave', handleDragLeave)
-    }
-  }, [])
+  useEventListener('dragenter', handleDragEnter, window)
+  useEventListener('dragleave', handleDragLeave, window)
 
   //
   // ─── RENDER ─────────────────────────────────────────────────────────────────────
