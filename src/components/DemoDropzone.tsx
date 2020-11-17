@@ -90,7 +90,7 @@ export const DemoDropzone = (props: DemoDropzoneProps) => {
           bottom: 0;
           left: 0;
           color: #ffffff;
-          transition: 0.3s ease all;
+          transition: 0.1s ease all;
 
           &.active {
             background-color: rgba(0, 0, 0, 0.4);

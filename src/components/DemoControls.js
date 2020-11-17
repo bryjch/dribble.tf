@@ -834,6 +834,15 @@ var DemoControls = function (object, domElement) {
     handleKeyUp(event)
   }
 
+  function onBlur() {
+    isMoving = {
+      forward: false,
+      back: false,
+      left: false,
+      right: false,
+    }
+  }
+
   function onTouchStart(event) {
     event.preventDefault() // prevent scrolling
 
@@ -970,6 +979,8 @@ var DemoControls = function (object, domElement) {
 
   scope.domElement.addEventListener('keydown', onKeyDown, false)
   scope.domElement.addEventListener('keyup', onKeyUp, false)
+
+  scope.domElement.addEventListener('blur', onBlur, false)
 
   // make sure element can receive keys.
 

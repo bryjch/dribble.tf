@@ -6,6 +6,7 @@ import { ActorDimensions } from '@components/Scene/Actor'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { objCoordsToVector3 } from '@utils/geometry'
+import { focusMainCanvas } from '@utils/misc'
 
 //
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
@@ -76,6 +77,8 @@ export const goToTickAction = tick => async (dispatch, getState) => {
     if (tick >= maxTicks) {
       await dispatch({ type: 'TOGGLE_PLAYBACK', payload: false })
     }
+
+    focusMainCanvas()
   } catch (error) {
     console.error(error)
   }
@@ -98,6 +101,8 @@ export const playbackJumpAction = direction => async (dispatch, getState) => {
       default:
         break
     }
+
+    focusMainCanvas()
   } catch (error) {
     console.error(error)
   }
@@ -115,6 +120,8 @@ export const togglePlaybackAction = (playing = undefined) => async (dispatch, ge
     }
 
     await dispatch({ type: 'TOGGLE_PLAYBACK', payload: isPlaying })
+
+    focusMainCanvas()
   } catch (error) {
     console.error(error)
   }
@@ -126,22 +133,24 @@ export const changePlaySpeedAction = speed => async (dispatch, getState) => {
     // which will simply cycle the options as defined in PlaybackPanel
     const currentSpeed = getState().playback.speed
     const currentIndex = PLAYBACK_SPEED_OPTIONS.findIndex(({ value }) => value === currentSpeed)
-    const nextIndex = clamp(currentIndex + 1, 0, PLAYBACK_SPEED_OPTIONS.length - 1)
     const prevIndex = clamp(currentIndex - 1, 0, PLAYBACK_SPEED_OPTIONS.length - 1)
+    const nextIndex = clamp(currentIndex + 1, 0, PLAYBACK_SPEED_OPTIONS.length - 1)
 
     switch (speed) {
       case 'faster':
-        dispatch({ type: 'CHANGE_PLAY_SPEED', payload: PLAYBACK_SPEED_OPTIONS[nextIndex].value })
+        dispatch({ type: 'CHANGE_PLAY_SPEED', payload: PLAYBACK_SPEED_OPTIONS[prevIndex].value })
         break
 
       case 'slower':
-        dispatch({ type: 'CHANGE_PLAY_SPEED', payload: PLAYBACK_SPEED_OPTIONS[prevIndex].value })
+        dispatch({ type: 'CHANGE_PLAY_SPEED', payload: PLAYBACK_SPEED_OPTIONS[nextIndex].value })
         break
 
       default:
         dispatch({ type: 'CHANGE_PLAY_SPEED', payload: speed })
         break
     }
+
+    focusMainCanvas()
   } catch (error) {
     console.error(error)
   }

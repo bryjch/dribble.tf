@@ -197,7 +197,7 @@ class DemoViewer extends React.Component {
         https://github.com/react-spring/react-three-fiber/issues/262 */}
         <ReactReduxContext.Consumer>
           {({ store }) => (
-            <Canvas onContextMenu={e => e.preventDefault()}>
+            <Canvas id="main-canvas" onContextMenu={e => e.preventDefault()}>
               <Provider store={store}>
                 {/* Base scene elements */}
                 <Lights />

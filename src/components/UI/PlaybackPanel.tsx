@@ -1,15 +1,48 @@
 import React, { useCallback } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
+import { Icon, Popup, Dropdown, IconProps, PopupProps } from 'semantic-ui-react'
 
 import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@redux/actions'
 
 export const PLAYBACK_SPEED_OPTIONS = [
-  { label: 'x0.1', value: 0.1 },
-  { label: 'x0.5', value: 0.5 },
-  { label: 'x1', value: 1 },
-  { label: 'x2', value: 2 },
   { label: 'x3', value: 3 },
+  { label: 'x2', value: 2 },
+  { label: 'x1', value: 1 },
+  { label: 'x0.5', value: 0.5 },
+  { label: 'x0.1', value: 0.1 },
 ]
+
+interface PlaybackActionProps {
+  content: string | React.ReactNode
+  icon: string | any
+  iconProps?: IconProps
+  popupProps?: PopupProps
+}
+
+const PlaybackAction = (props: PlaybackActionProps) => {
+  return (
+    <Popup
+      inverted
+      on="hover"
+      position="top center"
+      content={props.content}
+      trigger={
+        <Icon
+          name={props.icon}
+          className="mx-1"
+          style={{
+            padding: 6,
+            width: 'auto',
+            height: 'auto',
+            cursor: 'pointer',
+          }}
+          {...props.iconProps}
+        />
+      }
+      {...props.popupProps}
+    />
+  )
+}
 
 export const PlaybackPanel = () => {
   const playback = useSelector((state: any) => state.playback)
@@ -22,28 +55,97 @@ export const PlaybackPanel = () => {
 
   return (
     <div className="panel">
-      <div>Tick #{tick}</div>
+      <div className="no-select">Tick #{tick}</div>
 
       <div className="playback">
-        <span className="px-4"></span>
-        <button onClick={goToTick.bind(null, 1)}>{'<<'}</button>
-        <button onClick={goToTick.bind(null, tick - 50)}>{'<'}</button>
-        <button className="play" onClick={togglePlayback}>
-          {playing ? 'Pause' : 'Play'}
-        </button>
-        <button onClick={goToTick.bind(null, tick + 50)}>{'>'}</button>
-        <button onClick={goToTick.bind(null, maxTicks)}>{'>>'}</button>
-        <select
-          value={speed}
-          onChange={({ target }) => changePlaySpeed(Number(target.value))}
-          className="ml-2"
-        >
-          {PLAYBACK_SPEED_OPTIONS.map(({ label, value }) => (
-            <option key={`play-speed-option-${label}`} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+        {/* Spacer to match play speed dropdown width */}
+
+        <span style={{ width: '40px' }} className="mr-2" />
+
+        {/* Jump to start action */}
+
+        <div onClick={goToTick.bind(null, 1)}>
+          <PlaybackAction content={<div>Jump to start</div>} icon="fast backward" />
+        </div>
+
+        {/* Seek back action */}
+
+        <div onClick={goToTick.bind(null, tick - 50)}>
+          <PlaybackAction
+            content={
+              <div>
+                Seek back <kbd className="ml-2">←</kbd>
+              </div>
+            }
+            icon="step backward"
+          />
+        </div>
+
+        {/* Toggle play / pause action */}
+
+        <div className="play" onClick={togglePlayback}>
+          <PlaybackAction
+            content={
+              <div>
+                Play / Pause <kbd className="ml-2">Space</kbd>
+              </div>
+            }
+            icon={playing ? 'pause' : 'play'}
+          />
+        </div>
+
+        {/* Seek forward action */}
+
+        <div onClick={goToTick.bind(null, tick + 50)}>
+          <PlaybackAction
+            content={
+              <div>
+                Seek forward <kbd className="ml-2">→</kbd>
+              </div>
+            }
+            icon="step forward"
+          />
+        </div>
+
+        {/* Jump to end action */}
+
+        <div onClick={goToTick.bind(null, maxTicks)}>
+          <PlaybackAction content={<div>Jump to end</div>} icon="fast forward" />
+        </div>
+
+        {/* Change play speed dropdown */}
+
+        <Popup
+          inverted
+          on="hover"
+          position="top center"
+          trigger={
+            <Dropdown tabIndex={-1} upward text={`x${speed}`} className="ml-3">
+              <Dropdown.Menu>
+                {PLAYBACK_SPEED_OPTIONS.map(({ label, value }) => (
+                  <Dropdown.Item
+                    key={`play-speed-option-${label}`}
+                    value={value}
+                    onClick={() => changePlaySpeed(Number(value))}
+                  >
+                    {label}
+                  </Dropdown.Item>
+                ))}
+              </Dropdown.Menu>
+            </Dropdown>
+          }
+          content={
+            <div>
+              <div>Playback speed</div>
+              <div>
+                Increase <kbd className="ml-2">↑</kbd>
+              </div>
+              <div>
+                Decrease <kbd className="ml-2">↓</kbd>
+              </div>
+            </div>
+          }
+        />
       </div>
 
       <div className="timeline">
@@ -53,6 +155,7 @@ export const PlaybackPanel = () => {
           max={maxTicks}
           value={tick}
           onChange={({ target }) => goToTick(Number(target.value))}
+          tabIndex={-1}
         ></input>
       </div>
 
@@ -63,8 +166,17 @@ export const PlaybackPanel = () => {
           margin: 1rem;
 
           .playback {
+            display: flex;
+            flex-flow: row nowrap;
+            justify-content: center;
+            align-items: center;
+
             button.play {
               width: 70px;
+            }
+
+            div {
+              user-select: none;
             }
           }
 
