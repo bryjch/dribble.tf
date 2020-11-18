@@ -33,6 +33,7 @@ import { loadSceneFromParserAction, goToTickAction, popUIPanelAction } from '@re
 
 // Modify default UP axis to be consistent with game coordinates
 THREE.Object3D.DefaultUp.set(0, 0, 1)
+THREE.Cache.enabled = true
 
 // Basic controls for our scene
 extend({ DemoControls })
