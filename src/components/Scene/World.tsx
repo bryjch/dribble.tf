@@ -4,6 +4,8 @@ import { useSelector } from 'react-redux'
 import * as THREE from 'three'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
+const { NODE_ENV, REACT_APP_CLOUDFRONT_URL } = process.env
+
 const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
   color: '#333333',
   opacity: 0.1,
@@ -31,13 +33,16 @@ export const World = (props: WorldProps) => {
   useEffect(() => {
     try {
       if (mode === 'normal' || mode === 'textured') {
-        loadGLTF(require(`../../assets/maps/${map}/textured_compressed.glb`)).then((gltf: any) => {
+        const texturedFile = getMapFile(`${map}/textured_compressed.glb`)
+        const overlayFile = getMapFile(`${map}/overlay_compressed.glb`)
+
+        loadGLTF(texturedFile).then((gltf: any) => {
           if (gltf && gltf.scene) {
             setMapModel(gltf.scene)
           }
         })
 
-        loadGLTF(require(`../../assets/maps/${map}/overlay_compressed.glb`)).then((gltf: any) => {
+        loadGLTF(overlayFile).then((gltf: any) => {
           if (gltf && gltf.scene) {
             setMapOverlay(gltf.scene)
           }
@@ -45,14 +50,14 @@ export const World = (props: WorldProps) => {
       }
 
       if (mode === 'untextured' || mode === 'wireframe') {
-        loadGLTF(require(`../../assets/maps/${map}/untextured_compressed.glb`)).then(
-          (gltf: any) => {
-            if (gltf && gltf.scene) {
-              setMapModel(gltf.scene)
-              setMapOverlay(null)
-            }
+        const untexturedFile = getMapFile(`${map}/untextured_compressed.glb`)
+
+        loadGLTF(untexturedFile).then((gltf: any) => {
+          if (gltf && gltf.scene) {
+            setMapModel(gltf.scene)
+            setMapOverlay(null)
           }
-        )
+        })
       }
     } catch (error) {
       alert(
@@ -123,6 +128,19 @@ export const World = (props: WorldProps) => {
 //
 // ─── HELPERS ────────────────────────────────────────────────────────────────────
 //
+
+// Conditionally fetch map file from either 1. local assets or 2. Cloudfront
+// (becausing serving large static binaries on Netlify is really slow)
+// (TODO: ther should be some check if fetching from Cloudfront fails --
+// if so, it should always fallback to loading from local assets)
+
+function getMapFile(endpoint: string) {
+  if (NODE_ENV === 'production' && !!REACT_APP_CLOUDFRONT_URL) {
+    return `${REACT_APP_CLOUDFRONT_URL}/${endpoint}`
+  } else {
+    return require(`../../assets/maps/${endpoint}`)
+  }
+}
 
 // Useful resource: https://github.com/donmccurdy/three-gltf-viewer/blob/master/src/viewer.js
 
