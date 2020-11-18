@@ -82,7 +82,7 @@ export default class ViewerPage extends React.Component {
         {!this.state.parser && !this.state.loading && (
           <div className="ui-layer welcome">
             <div className="panel">
-              <div className="title">DRIBBLE.TF</div>
+              <div className="title">dribble.tf</div>
 
               <div className="subtitle">
                 Demo replay in browser <span style={{ opacity: 0.3 }}>but less epic</span>
@@ -92,9 +92,24 @@ export default class ViewerPage extends React.Component {
                 <p>Watch Team Fortress 2 STV demos in your browser... kinda.</p>
 
                 <p>
+                  Currently only supports:
+                  <br />
+                  - cp_gullywash
+                  <br />
+                  - cp_process
+                  <br />
+                  - cp_snakewater
+                  <br />
+                  - cp_sunshine
+                  <br />- koth_product_rcx
+                </p>
+
+                <p>
                   Drop your STV <code>.dem</code> file anywhere to start viewing!
                 </p>
               </div>
+
+              <div className="notice">This project is still in early development</div>
             </div>
           </div>
         )}
@@ -116,7 +131,7 @@ export default class ViewerPage extends React.Component {
             &.welcome {
               justify-content: flex-end;
               align-items: flex-start;
-              margin: 1rem;
+              margin: 3vw;
               z-index: 100; // make this layer less important
 
               .panel {
@@ -140,6 +155,14 @@ export default class ViewerPage extends React.Component {
 
                 .intro {
                   margin-top: 1rem;
+                }
+
+                .notice {
+                  margin: 1rem -1.5rem -1.5rem -1.5rem;
+                  padding: 0.2rem 1.5rem;
+                  background-color: rgba(241, 104, 24, 0.5);
+                  font-size: 0.8rem;
+                  text-align: center;
                 }
               }
             }

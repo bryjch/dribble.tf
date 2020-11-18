@@ -55,7 +55,9 @@ export const World = (props: WorldProps) => {
         )
       }
     } catch (error) {
-      alert(`Unable to load map: ${map}\nThe project is probably missing the necessary files.`)
+      alert(
+        `Unable to load map: ${map} (${mode})\nThe project is probably missing the necessary files.`
+      )
       console.error(error)
     }
   }, [map, mode])
