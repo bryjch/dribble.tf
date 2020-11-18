@@ -4,6 +4,8 @@ import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { DemoDropzone } from '@components/DemoDropzone'
 import { DemoViewer } from '@components/DemoViewer'
 
+const { NODE_ENV, REACT_APP_CLOUDFRONT_URL } = process.env
+
 export interface ViewerPageState {
   parser: AsyncParser | null
   tick: number | 0
@@ -23,6 +25,20 @@ export default class ViewerPage extends React.Component {
   //
   // ─── METHODS ────────────────────────────────────────────────────────────────────
   //
+
+  onClickSampleDemo = async () => {
+    let url
+
+    if (NODE_ENV === 'production' && !!REACT_APP_CLOUDFRONT_URL) {
+      url = `${REACT_APP_CLOUDFRONT_URL}/sample/i52_snakewater_gc.dem`
+    } else {
+      url = '/sample/i52_snakewater_gc.dem'
+    }
+
+    const demoBuffer: ArrayBuffer = await fetch(url).then(res => res.arrayBuffer())
+
+    this.handleBuffer(demoBuffer)
+  }
 
   onDemoDropped = (files: File[]) => {
     const demoFile: File = files[0]
@@ -107,6 +123,14 @@ export default class ViewerPage extends React.Component {
                 <p>
                   Drop your STV <code>.dem</code> file anywhere to start viewing!
                 </p>
+
+                <p>
+                  Or try loading a{' '}
+                  <span className="sample-demo" onClick={this.onClickSampleDemo}>
+                    sample demo
+                  </span>
+                  .
+                </p>
               </div>
 
               <div className="notice">This project is still in early development</div>
@@ -163,6 +187,11 @@ export default class ViewerPage extends React.Component {
                   background-color: rgba(241, 104, 24, 0.5);
                   font-size: 0.8rem;
                   text-align: center;
+                }
+
+                .sample-demo {
+                  color: rgba(241, 104, 24, 1);
+                  cursor: pointer;
                 }
               }
             }
