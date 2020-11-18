@@ -136,7 +136,7 @@ export const World = (props: WorldProps) => {
 
 function getMapFile(endpoint: string) {
   if (NODE_ENV === 'production' && !!REACT_APP_CLOUDFRONT_URL) {
-    return `${REACT_APP_CLOUDFRONT_URL}/${endpoint}`
+    return `${REACT_APP_CLOUDFRONT_URL}/maps/${endpoint}`
   } else {
     return require(`../../assets/maps/${endpoint}`)
   }
