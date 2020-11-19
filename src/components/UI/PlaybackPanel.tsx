@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux'
 import { Icon, Popup, Dropdown, IconProps, PopupProps } from 'semantic-ui-react'
 
 import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@redux/actions'
+import { focusMainCanvas } from '@utils/misc'
 
 export const PLAYBACK_SPEED_OPTIONS = [
   { label: 'x3', value: 3 },
@@ -49,9 +50,26 @@ export const PlaybackPanel = () => {
   const { playing, speed, tick, maxTicks } = playback
 
   const dispatch = useDispatch()
-  const goToTick = useCallback(tick => dispatch(goToTickAction(tick)), [dispatch])
-  const togglePlayback = useCallback(() => dispatch(togglePlaybackAction()), [dispatch])
-  const changePlaySpeed = useCallback(speed => dispatch(changePlaySpeedAction(speed)), [dispatch])
+
+  const togglePlayback = useCallback(() => {
+    dispatch(togglePlaybackAction())
+    focusMainCanvas()
+  }, [dispatch])
+
+  const changePlaySpeed = useCallback(
+    speed => {
+      dispatch(changePlaySpeedAction(speed))
+      focusMainCanvas()
+    },
+    [dispatch]
+  )
+  const goToTick = useCallback(
+    (tick, refocusCanvas = false) => {
+      dispatch(goToTickAction(tick))
+      if (refocusCanvas) focusMainCanvas()
+    },
+    [dispatch]
+  )
 
   return (
     <div className="panel">
@@ -64,13 +82,13 @@ export const PlaybackPanel = () => {
 
         {/* Jump to start action */}
 
-        <div onClick={goToTick.bind(null, 1)}>
+        <div onClick={goToTick.bind(null, 1, true)}>
           <PlaybackAction content={<div>Jump to start</div>} icon="fast backward" />
         </div>
 
         {/* Seek back action */}
 
-        <div onClick={goToTick.bind(null, tick - 50)}>
+        <div onClick={goToTick.bind(null, tick - 50, true)}>
           <PlaybackAction
             content={
               <div>
@@ -96,7 +114,7 @@ export const PlaybackPanel = () => {
 
         {/* Seek forward action */}
 
-        <div onClick={goToTick.bind(null, tick + 50)}>
+        <div onClick={goToTick.bind(null, tick + 50, true)}>
           <PlaybackAction
             content={
               <div>
@@ -109,7 +127,7 @@ export const PlaybackPanel = () => {
 
         {/* Jump to end action */}
 
-        <div onClick={goToTick.bind(null, maxTicks)}>
+        <div onClick={goToTick.bind(null, maxTicks, true)}>
           <PlaybackAction content={<div>Jump to end</div>} icon="fast forward" />
         </div>
 
@@ -154,9 +172,8 @@ export const PlaybackPanel = () => {
           min="1"
           max={maxTicks}
           value={tick}
-          onChange={({ target }) => goToTick(Number(target.value))}
-          tabIndex={-1}
-        ></input>
+          onChange={({ target }) => goToTick(Number(target.value), false)}
+        />
       </div>
 
       <style jsx>{`

@@ -6,7 +6,6 @@ import { ActorDimensions } from '@components/Scene/Actor'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { objCoordsToVector3 } from '@utils/geometry'
-import { focusMainCanvas } from '@utils/misc'
 
 //
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
@@ -77,8 +76,6 @@ export const goToTickAction = tick => async (dispatch, getState) => {
     if (tick >= maxTicks) {
       await dispatch({ type: 'TOGGLE_PLAYBACK', payload: false })
     }
-
-    focusMainCanvas()
   } catch (error) {
     console.error(error)
   }
@@ -101,8 +98,6 @@ export const playbackJumpAction = direction => async (dispatch, getState) => {
       default:
         break
     }
-
-    focusMainCanvas()
   } catch (error) {
     console.error(error)
   }
@@ -120,8 +115,6 @@ export const togglePlaybackAction = (playing = undefined) => async (dispatch, ge
     }
 
     await dispatch({ type: 'TOGGLE_PLAYBACK', payload: isPlaying })
-
-    focusMainCanvas()
   } catch (error) {
     console.error(error)
   }
@@ -149,8 +142,6 @@ export const changePlaySpeedAction = speed => async (dispatch, getState) => {
         dispatch({ type: 'CHANGE_PLAY_SPEED', payload: speed })
         break
     }
-
-    focusMainCanvas()
   } catch (error) {
     console.error(error)
   }
