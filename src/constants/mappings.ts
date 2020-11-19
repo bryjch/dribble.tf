@@ -54,6 +54,8 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
         healthLow: '#ff6262',
         killfeedText: '#ff4a4a',
         focusedBackground: '#ac2641',
+        pipebombColor: '#ff2525',
+        stickybombColor: '#ff0202',
       }
 
     case 'blue':
@@ -64,6 +66,8 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
         healthLow: '#ff6262',
         killfeedText: '#77a9ec',
         focusedBackground: '#88aeb8',
+        pipebombColor: '#142bff',
+        stickybombColor: '#0037ff',
       }
 
     default:
@@ -74,6 +78,8 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
         healthLow: '#f800d7',
         killfeedText: '#ffffff',
         focusedBackground: '#f800d7',
+        pipebombColor: '#f800d7',
+        stickybombColor: '#f800d7',
       }
   }
 }
