@@ -3,6 +3,7 @@ import { Demo, Header, Player, Match, World } from '@bryjch/demo.js/build'
 import { PlayerCache, CachedPlayer } from './PlayerCache'
 import { BuildingCache, CachedBuilding } from './BuildingCache'
 import { ProjectileCache, CachedProjectile } from './ProjectileCache'
+import { Round } from './Types'
 
 export interface CachedDeath {
   tick: number
@@ -20,6 +21,7 @@ export interface CachedDemo {
   playerCache: PlayerCache
   ticks: number
   deaths: { [tick: string]: CachedDeath[] }
+  rounds: Round[]
   buildingCache: BuildingCache
   projectileCache: ProjectileCache
   intervalPerTick: number
@@ -39,6 +41,7 @@ export class AsyncParser {
   ticks: number
   match: Match
   deaths: { [tick: string]: CachedDeath[] } = {}
+  rounds: Round[]
   buildingCache: BuildingCache
   projectileCache: ProjectileCache
   intervalPerTick: number
@@ -58,6 +61,7 @@ export class AsyncParser {
       this.buildingCache = cachedData.buildingCache
       this.projectileCache = cachedData.projectileCache
       this.deaths = cachedData.deaths
+      this.rounds = cachedData.rounds
       this.intervalPerTick = cachedData.intervalPerTick
       this.world = cachedData.world
       this.nextMappedPlayer = cachedData.nextMappedPlayer

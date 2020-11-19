@@ -32,6 +32,7 @@ onmessage = (event: MessageEvent) => {
     deaths: parser.deaths,
     intervalPerTick: parser.match.intervalPerTick * 2,
     world: parser.match.world,
+    rounds: parser.match.rounds,
     nextMappedPlayer: parser.nextMappedPlayer,
     entityPlayerMap: parser.entityPlayerMap,
     now: performance.now(),

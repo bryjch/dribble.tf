@@ -150,7 +150,6 @@ function loadGLTF(file: string) {
       const gltfLoader = new GLTFLoader().setCrossOrigin('anonymous')
 
       const onLoad = (gltf: GLTF) => {
-        console.log(gltf)
         resolve(gltf)
       }
 

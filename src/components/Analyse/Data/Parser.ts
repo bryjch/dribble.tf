@@ -7,6 +7,7 @@ import { getMapBoundaries } from '../MapBoundries'
 import { PlayerCache, CachedPlayer } from './PlayerCache'
 import { BuildingCache, CachedBuilding } from './BuildingCache'
 import { ProjectileCache } from './ProjectileCache'
+import { Round } from './Types'
 
 export { CachedPlayer } from './PlayerCache'
 
@@ -33,6 +34,7 @@ export class Parser {
   match: Match
   startTick = 0
   deaths: { [tick: string]: CachedDeath[] } = {}
+  rounds: Round[]
   buildingCache: BuildingCache
   projectileCache: ProjectileCache
 
@@ -138,6 +140,11 @@ export class Parser {
         }
         lastTick = tick
       }
+    }
+
+    for (const round of this.match.rounds) {
+      const endTick = this.scaleTick(round.endTick)
+      round.endTick = endTick
     }
 
     // process deaths
