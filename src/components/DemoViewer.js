@@ -17,6 +17,7 @@ import { World } from '@components/Scene/World'
 import { Actor } from '@components/Scene/Actor'
 
 // UI Panels
+import { AboutPanel } from '@components/UI/AboutPanel'
 import { SettingsPanel } from '@components/UI/SettingsPanel'
 import { PlaybackPanel } from '@components/UI/PlaybackPanel'
 import { DemoInfoPanel } from '@components/UI/DemoInfoPanel'
@@ -264,6 +265,10 @@ class DemoViewer extends React.Component {
           <div className="ui-layer settings">
             <SettingsPanel />
           </div>
+
+          <div className="ui-layer about">
+            <AboutPanel />
+          </div>
         </div>
 
         <style jsx>{`
@@ -277,6 +282,13 @@ class DemoViewer extends React.Component {
               justify-content: flex-start;
               align-items: flex-start;
               margin: 1rem;
+            }
+
+            &.about {
+              justify-content: flex-start;
+              align-items: flex-start;
+              margin: 1rem;
+              margin-top: calc(1.75rem + 33px);
             }
 
             &.playback {

@@ -3,9 +3,44 @@ import localForage from 'localforage'
 import * as THREE from 'three'
 
 import { ActorDimensions } from '@components/Scene/Actor'
+import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { objCoordsToVector3 } from '@utils/geometry'
+
+//
+// ─── PARSER ─────────────────────────────────────────────────────────────────────
+//
+
+export const buildDemoParserAction = file => async dispatch => {
+  try {
+    await dispatch({ type: 'BUILD_DEMO_PARSER_INIT' })
+
+    const parser = new AsyncParser(file, async progress => {
+      await dispatch({ type: 'BUILD_DEMO_PARSER_PROGRESS', payload: progress })
+    })
+
+    try {
+      await parser.cache()
+    } catch (error) {
+      alert(`Unable to load demo. Please make sure it's a valid SourceTV .dem file.`)
+      throw error
+    }
+
+    console.log('%c-------- Parser loaded --------', 'color: blue; font-size: 16px;')
+    console.log(parser)
+    console.log('%c-------------------------------', 'color: blue; font-size: 16px;')
+
+    await dispatch({ type: 'BUILD_DEMO_PARSER_SUCCESS', payload: parser })
+
+    dispatch(loadSceneFromParserAction(parser))
+
+    return parser
+  } catch (error) {
+    await dispatch({ type: 'BUILD_DEMO_PARSER_ERROR', payload: error })
+    throw error
+  }
+}
 
 //
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
@@ -13,6 +48,8 @@ import { objCoordsToVector3 } from '@utils/geometry'
 
 export const loadSceneFromParserAction = parser => async dispatch => {
   try {
+    await dispatch(toggleUIPanelAction('AboutPanel', false))
+
     await dispatch({
       type: 'LOAD_SCENE_FROM_PARSER',
       payload: {

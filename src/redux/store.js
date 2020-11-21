@@ -6,6 +6,13 @@ import * as THREE from 'three'
 import rootReducer from './reducer'
 
 const initialState = {
+  parser: {
+    status: 'init',
+    progress: 0,
+    parser: null,
+    error: null,
+  },
+
   scene: {
     players: new Map(),
     map: null,
@@ -19,12 +26,14 @@ const initialState = {
       focusedObject: null,
     },
   },
+
   playback: {
     playing: false,
     speed: 1,
     tick: 1,
     maxTicks: 3000,
   },
+
   settings: {
     scene: {
       mode: 'untextured',
@@ -53,8 +62,9 @@ const initialState = {
       showStats: false,
     },
   },
+
   ui: {
-    activePanels: [],
+    activePanels: ['AboutPanel'],
   },
 }
 

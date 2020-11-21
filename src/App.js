@@ -1,7 +1,7 @@
 import React from 'react'
 import { connect } from 'react-redux'
 
-import ViewerPage from '@pages/ViewerPage.tsx'
+import { ViewerPage } from '@pages/ViewerPage.tsx'
 
 import { loadSettingsAction } from '@redux/actions'
 

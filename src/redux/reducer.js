@@ -4,6 +4,34 @@ import { set, clone, clamp, uniq, without } from 'lodash'
 const reducers = (state = {}, action) => {
   switch (action.type) {
     //
+    // ─── PARSER ──────────────────────────────────────────────────────
+    //
+
+    case 'BUILD_DEMO_PARSER_INIT':
+      return {
+        ...state,
+        parser: { ...state.parser, status: 'loading', progress: 0, error: null },
+      }
+
+    case 'BUILD_DEMO_PARSER_PROGRESS':
+      return {
+        ...state,
+        parser: { ...state.parser, progress: action.payload },
+      }
+
+    case 'BUILD_DEMO_PARSER_SUCCESS':
+      return {
+        ...state,
+        parser: { ...state.parser, status: 'done', progress: 100, parser: action.payload },
+      }
+
+    case 'BUILD_DEMO_PARSER_ERROR':
+      return {
+        ...state,
+        parser: { ...state.parser, status: 'done', error: action.payload },
+      }
+
+    //
     // ─── SCENE ───────────────────────────────────────────────────────
     //
 

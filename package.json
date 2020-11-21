@@ -14,6 +14,7 @@
     "@types/styled-jsx": "^2.2.8",
     "@types/three": "^0.103.2",
     "bootstrap": "^4.5.0",
+    "framer-motion": "^2.9.4",
     "humanize-duration": "^3.23.1",
     "keycode": "^2.2.0",
     "localforage": "^1.7.4",
