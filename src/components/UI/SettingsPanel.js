@@ -222,6 +222,10 @@ export const SettingsPanel = () => {
             onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
           />
 
+          <Option label="POV Camera (cycle)" keyCode="1" leftClass="col" />
+
+          <Option label="Free Camera" keyCode="3" leftClass="col" />
+
           {/* ************************************************************* */}
 
           <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
