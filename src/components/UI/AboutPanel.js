@@ -72,6 +72,14 @@ export const AboutPanel = () => {
             </p>
 
             <p>
+              Controls:
+              <br />
+              <b>LMB</b> ... rotate camera
+              <br /><b>RMB / WASD</b> ... pan camera
+               
+            </p>
+
+            <p>
               Drop your STV <code>.dem</code> file anywhere to start viewing!
             </p>
 
