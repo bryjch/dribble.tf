@@ -97,7 +97,7 @@ export const CanvasKeyHandler = () => {
 
             changeControlsMode('pov', { focusedObject: nextActor })
             povCamera = nextActor.getObjectByName('povCamera') as Camera
-            setDefaultCamera(povCamera)
+            if (povCamera) setDefaultCamera(povCamera)
 
             keysHeld.current.set('up', true)
             break

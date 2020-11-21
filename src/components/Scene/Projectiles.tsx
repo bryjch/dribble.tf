@@ -7,7 +7,6 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { CachedProjectile } from '@components/Analyse/Data/ProjectileCache'
-import { ActorDimensions } from '@components/Scene/Actor'
 
 import { objCoordsToVector3, eulerizeVector, getMeshes } from '@utils/geometry'
 import { TEAM_MAP, ACTOR_TEAM_COLORS } from '@constants/mappings'
@@ -26,7 +25,6 @@ const PROJECTILE_RESOURCES = [
 ]
 
 const BASE_PROJECTILE_MATERIAL = new THREE.MeshStandardMaterial({ color: '#111111', metalness: 1 })
-const PROJECTILES_WORLD_POSITION_OFFSET = new THREE.Vector3(0, 0, ActorDimensions.z * -0.5)
 
 //
 // ─── PROJECTILES ────────────────────────────────────────────────────────────────
@@ -97,7 +95,7 @@ export const Projectiles = (props: ProjectilesProps) => {
   }, [])
 
   return (
-    <group name="projectiles" position={PROJECTILES_WORLD_POSITION_OFFSET}>
+    <group name="projectiles">
       {projectilesThisTick.map(projectile => {
         let Projectile
 
@@ -148,10 +146,7 @@ export const RocketProjectile = (props: BaseProjectileProps) => {
     if (!prevPosition.current?.equals(position)) {
       ref.current?.lookAt(prevPosition.current)
 
-      prevPosition.current = objCoordsToVector3({
-        ...position,
-        z: position.z - ActorDimensions.z * 0.5,
-      })
+      prevPosition.current = objCoordsToVector3(position)
     }
   }, [position])
 
@@ -225,14 +220,14 @@ const STICKYBOMB_BASE_MATERIAL_BLUE = new THREE.MeshLambertMaterial({
 const STICKYBOMB_OUTLINE_MATERIAL_RED = new THREE.MeshLambertMaterial({
   color: ACTOR_TEAM_COLORS('red').stickybombColor,
   transparent: true,
-  opacity: 0.3,
+  opacity: 0.5,
   depthFunc: THREE.GreaterEqualDepth,
 })
 
 const STICKYBOMB_OUTLINE_MATERIAL_BLUE = new THREE.MeshLambertMaterial({
   color: ACTOR_TEAM_COLORS('blue').stickybombColor,
   transparent: true,
-  opacity: 0.5,
+  opacity: 0.8,
   depthFunc: THREE.GreaterEqualDepth,
 })
 

@@ -75,12 +75,15 @@ const FreeControls = props => {
 
   useFrame(() => {
     // Update these controls
-    controlsRef.current.update()
+    if (controlsRef.current) {
+      controlsRef.current.update()
+    }
   })
 
   return (
     <>
       <Camera ref={cameraRef} name="freeCamera" attach="camera" makeDefault {...settings.camera} />
+
       {cameraRef.current && (
         <demoControls
           ref={controlsRef}

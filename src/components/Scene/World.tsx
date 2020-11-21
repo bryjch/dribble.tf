@@ -4,6 +4,8 @@ import { useSelector } from 'react-redux'
 import * as THREE from 'three'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
+import { ActorDimensions } from '@components/Scene/Actor'
+
 const { NODE_ENV, REACT_APP_CLOUDFRONT_URL } = process.env
 
 const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
@@ -112,8 +114,9 @@ export const World = (props: WorldProps) => {
     // Not entirely sure if this logic is correct
     const x = bounds.center.x - bounds.max.x
     const y = -bounds.center.y - bounds.min.y
+    const z = ActorDimensions.z * 0.5
 
-    ref.current?.position.copy(bounds.center).add(new THREE.Vector3(x, y, 0))
+    ref.current?.position.copy(bounds.center).add(new THREE.Vector3(x, y, z))
   }, [bounds])
 
   return (
