@@ -87,12 +87,20 @@ export const playbackJumpAction = direction => async (dispatch, getState) => {
     const tick = getState().playback.tick
 
     switch (direction) {
-      case 'forward':
+      case 'seekBackward':
+        dispatch(goToTickAction(tick - PLAYBACK_JUMP_TICK_INCREMENT))
+        break
+
+      case 'seekForward':
         dispatch(goToTickAction(tick + PLAYBACK_JUMP_TICK_INCREMENT))
         break
 
-      case 'backward':
-        dispatch(goToTickAction(tick - PLAYBACK_JUMP_TICK_INCREMENT))
+      case 'previousTick':
+        dispatch(goToTickAction(tick - 1))
+        break
+
+      case 'nextTick':
+        dispatch(goToTickAction(tick + 1))
         break
 
       default:

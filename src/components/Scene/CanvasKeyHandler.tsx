@@ -50,11 +50,19 @@ export const CanvasKeyHandler = () => {
             break
 
           case 'left':
-            playbackJump('backward')
+            playbackJump('seekBackward')
             break
 
           case 'right':
-            playbackJump('forward')
+            playbackJump('seekForward')
+            break
+
+          case ',':
+            playbackJump('previousTick')
+            break
+
+          case '.':
+            playbackJump('nextTick')
             break
 
           case 'up':

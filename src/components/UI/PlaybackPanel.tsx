@@ -92,7 +92,13 @@ export const PlaybackPanel = () => {
           <PlaybackAction
             content={
               <div>
-                Seek back <kbd className="ml-2">←</kbd>
+                <div>Seek back</div>
+                <div>
+                  1 tick<kbd className="ml-2">,</kbd>
+                </div>
+                <div>
+                  50 ticks<kbd className="ml-2">←</kbd>
+                </div>
               </div>
             }
             icon="step backward"
@@ -118,7 +124,13 @@ export const PlaybackPanel = () => {
           <PlaybackAction
             content={
               <div>
-                Seek forward <kbd className="ml-2">→</kbd>
+                <div>Seek back</div>
+                <div>
+                  1 tick<kbd className="ml-2">.</kbd>
+                </div>
+                <div>
+                  50 ticks<kbd className="ml-2">→</kbd>
+                </div>
               </div>
             }
             icon="step forward"

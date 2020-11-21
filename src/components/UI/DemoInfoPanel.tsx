@@ -61,7 +61,11 @@ export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
             const winnerCls = round.winningTeam
 
             return (
-              <div className={`round ${roundCls}`} onClick={goToTick.bind(null, round.tick)}>
+              <div
+                key={`jump-to-round-${index}`}
+                className={`round ${roundCls}`}
+                onClick={goToTick.bind(null, round.tick)}
+              >
                 <span>{index + 1}</span>
                 <div className={`winner ${winnerCls}`} />
               </div>
