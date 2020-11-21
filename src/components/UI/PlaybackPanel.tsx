@@ -64,9 +64,9 @@ export const PlaybackPanel = () => {
     [dispatch]
   )
   const goToTick = useCallback(
-    (tick, refocusCanvas = false) => {
+    tick => {
       dispatch(goToTickAction(tick))
-      if (refocusCanvas) focusMainCanvas()
+      focusMainCanvas()
     },
     [dispatch]
   )
@@ -82,13 +82,13 @@ export const PlaybackPanel = () => {
 
         {/* Jump to start action */}
 
-        <div onClick={goToTick.bind(null, 1, true)}>
+        <div onClick={goToTick.bind(null, 1)}>
           <PlaybackAction content={<div>Jump to start</div>} icon="fast backward" />
         </div>
 
         {/* Seek back action */}
 
-        <div onClick={goToTick.bind(null, tick - 50, true)}>
+        <div onClick={goToTick.bind(null, tick - 50)}>
           <PlaybackAction
             content={
               <div>
@@ -120,7 +120,7 @@ export const PlaybackPanel = () => {
 
         {/* Seek forward action */}
 
-        <div onClick={goToTick.bind(null, tick + 50, true)}>
+        <div onClick={goToTick.bind(null, tick + 50)}>
           <PlaybackAction
             content={
               <div>
@@ -139,7 +139,7 @@ export const PlaybackPanel = () => {
 
         {/* Jump to end action */}
 
-        <div onClick={goToTick.bind(null, maxTicks, true)}>
+        <div onClick={goToTick.bind(null, maxTicks)}>
           <PlaybackAction content={<div>Jump to end</div>} icon="fast forward" />
         </div>
 
@@ -184,7 +184,8 @@ export const PlaybackPanel = () => {
           min="1"
           max={maxTicks}
           value={tick}
-          onChange={({ target }) => goToTick(Number(target.value), false)}
+          onChange={({ target }) => goToTick(Number(target.value))}
+          tabIndex={-1}
         />
       </div>
 
