@@ -1,21 +1,98 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, Suspense, useState } from 'react'
 import { useSelector } from 'react-redux'
 
 import * as THREE from 'three'
 import { useThree } from 'react-three-fiber'
-import { Html, MeshWobbleMaterial } from '@react-three/drei'
+import { Html, MeshWobbleMaterial, useGLTF } from '@react-three/drei'
+import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader'
+import { SkeletonUtils } from 'three/examples/jsm/utils/SkeletonUtils'
 
 import { Nameplate } from '@components/Scene/Nameplate'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 
-import { ACTOR_TEAM_COLORS } from '@constants/mappings'
+import { CLASS_MAP, ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { objCoordsToVector3, radianizeVector } from '@utils/geometry'
+import { getAsset } from '@utils/misc'
 
 // Default TF2 player dimensions as specified in:
 // https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper%27s_Reference
 export const ActorDimensions = new THREE.Vector3(49, 49, 83)
 
 export const AimLineSize = 150
+
+//
+// ─── PLAYER MODEL ───────────────────────────────────────────────────────────────
+//
+
+export interface PlayerModelProps {
+  team: string
+  classId: number
+  visible?: boolean
+  backface?: boolean
+}
+
+export const PlayerModel = (props: PlayerModelProps) => {
+  const [cachedScene, setCachedScene] = useState<any>()
+
+  const model = getAsset(`/models/players/${CLASS_MAP[props.classId]}_${props.team}.glb`)
+  const gltf: GLTF = useGLTF(model, true)
+
+  if (!cachedScene) {
+    const cloned = SkeletonUtils.clone(gltf.scene)
+
+    // TODO: Figure out how to do backface culling properly
+    // so that players can be seen through walls nicely
+
+    /*
+    if (props.backface) {
+      const a = cloned as THREE.Object3D
+      const b = getSkinnedMeshes(a.children)
+
+      b.forEach((skinnedMesh: SkinnedMesh) => {
+        let originalMat: THREE.MeshStandardMaterial = skinnedMesh.material as THREE.MeshStandardMaterial
+        let backfaceMat = originalMat.clone()
+        backfaceMat.depthFunc = THREE.GreaterDepth
+        backfaceMat.opacity = 0.5
+        backfaceMat.transparent = true
+        backfaceMat.needsUpdate = true
+        skinnedMesh.material = backfaceMat.clone()
+      })
+    }
+    */
+
+    // TODO: Figure out how to swap the image texture on the model's material
+    // instead of using a completely separate GLTF models for each class/team
+
+    /*
+    const skinnedMeshes = getSkinnedMeshes((cloned as THREE.Object3D).children)
+
+    const loader = new THREE.TextureLoader()
+    loader.load(`textures/demoman_blue.png`, function (texture: any) {
+      skinnedMeshes.forEach((skinnedMesh: SkinnedMesh) => {
+        let originalMat: THREE.MeshStandardMaterial = skinnedMesh.material as THREE.MeshStandardMaterial
+
+        if (originalMat.map instanceof THREE.CanvasTexture) {
+          originalMat.map = texture
+          originalMat.needsUpdate = true
+          texture.needsUpdate = true
+        }
+      })
+    })
+    */
+
+    setCachedScene(cloned)
+  }
+
+  return (
+    <group {...props} visible={props.visible} rotation={[Math.PI * 0.5, Math.PI * 0.5, 0]}>
+      {cachedScene && <primitive object={cachedScene} />}
+    </group>
+  )
+}
+
+//
+// ─── ACTOR ──────────────────────────────────────────────────────────────────────
+//
 
 export const Actor = (props: CachedPlayer) => {
   const ref = useRef<THREE.Group>()
@@ -63,41 +140,57 @@ export const Actor = (props: CachedPlayer) => {
       userData={user}
     >
       {/* Base box mesh */}
-      <mesh visible={alive}>
+      {/* <mesh visible={alive}>
         <boxGeometry
           attach="geometry"
           args={[ActorDimensions.x, ActorDimensions.y, ActorDimensions.z]}
         />
         <meshStandardMaterial attach="material" color={color} metalness={0.5} />
-      </mesh>
+      </mesh> */}
 
-      {/* Seethrough box mesh */}
-      {/* This is used to make players visible through map geometry &
-      uses a reverse depth function to determine when to display */}
-      <mesh visible={alive && uiSettings.xrayPlayers}>
-        <boxGeometry
-          attach="geometry"
-          args={[ActorDimensions.x, ActorDimensions.y, ActorDimensions.z]}
-        />
-        <meshStandardMaterial
-          attach="material"
-          color={color}
-          opacity={0.7}
-          transparent={true}
-          depthFunc={THREE.GreaterDepth}
-        />
-      </mesh>
+      <Suspense fallback={null}>
+        {team && classId ? (
+          <PlayerModel visible={alive} team={team} classId={classId} />
+        ) : (
+          <mesh visible={alive} position={new THREE.Vector3(0, 0, ActorDimensions.z * 0.5)}>
+            <boxGeometry
+              attach="geometry"
+              args={[ActorDimensions.x, ActorDimensions.y, ActorDimensions.z]}
+            />
+            <meshStandardMaterial attach="material" color={color} metalness={0.5} />
+          </mesh>
+        )}
+
+        {/* <PlayerModel visible={alive} backface={true} /> */}
+
+        {/* Seethrough box mesh */}
+        {/* This is used to make players visible through map geometry &
+        uses a reverse depth function to determine when to display */}
+        {/* <mesh position={[0, 0, ActorDimensions.z * 0.5]} visible={alive && uiSettings.xrayPlayers}>
+          <boxGeometry
+            attach="geometry"
+            args={[ActorDimensions.x * 0.85, ActorDimensions.y * 0.85, ActorDimensions.z * 0.85]}
+          />
+          <meshStandardMaterial
+            attach="material"
+            color={color}
+            opacity={0.7}
+            transparent={true}
+            depthFunc={THREE.GreaterDepth}
+          />
+        </mesh> */}
+      </Suspense>
 
       {/* Aim line */}
       <group
         name="aimLineContainer"
-        position={[ActorDimensions.x * 0.4, 0, ActorDimensions.z * 0.4]}
+        position={[ActorDimensions.x * 0.4, 0, ActorDimensions.z]}
         rotation={[0, viewAnglesVec3.y, 0]}
       >
-        <mesh visible={alive} position={[AimLineSize * 0.5, 0, 0]}>
+        {/* <mesh visible={alive} position={[AimLineSize * 0.5, 0, 0]}>
           <boxGeometry attach="geometry" args={[AimLineSize, 5, 5]} />
           <meshBasicMaterial attach="material" color={color} opacity={0.5} transparent />
-        </mesh>
+        </mesh> */}
 
         <POVCamera />
       </group>
@@ -122,7 +215,7 @@ export const Actor = (props: CachedPlayer) => {
         name="html"
         className="no-select"
         style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
-        position={[0, 0, ActorDimensions.z * 0.75]}
+        position={[0, 0, ActorDimensions.z * 0.85]}
       >
         {alive && (
           <Nameplate
@@ -162,7 +255,7 @@ export const HealBeam = (props: HealBeamProps) => {
   const geometry = new THREE.TubeBufferGeometry(curve, 10, 5, 5)
 
   return (
-    <group name="healBeam">
+    <group name="healBeam" position={new THREE.Vector3(0, 0, ActorDimensions.z * 0.5)}>
       <mesh geometry={geometry}>
         <MeshWobbleMaterial
           attach="material"

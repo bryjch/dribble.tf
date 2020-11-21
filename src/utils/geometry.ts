@@ -98,3 +98,29 @@ export const getMeshes = (sceneObjects: THREE.Object3D[], meshName: string = '')
 
   return meshes
 }
+
+/**
+ * Find all skinned meshes in an Object3D array (can specify specific mesh name)
+ */
+export const getSkinnedMeshes = (
+  sceneObjects: THREE.Object3D[],
+  meshName: string = ''
+): THREE.SkinnedMesh[] => {
+  const meshes: THREE.SkinnedMesh[] = []
+
+  sceneObjects.forEach(object => {
+    object.traverse(child => {
+      if (child.type === 'SkinnedMesh') {
+        if (meshName) {
+          if (child.name === meshName) {
+            meshes.push(child as THREE.SkinnedMesh)
+          }
+        } else {
+          meshes.push(child as THREE.SkinnedMesh)
+        }
+      }
+    })
+  })
+
+  return meshes
+}

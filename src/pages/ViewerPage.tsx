@@ -4,7 +4,7 @@ import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { DemoDropzone } from '@components/DemoDropzone'
 import { DemoViewer } from '@components/DemoViewer'
 
-const { NODE_ENV, REACT_APP_CLOUDFRONT_URL } = process.env
+import { getAsset } from '@utils/misc'
 
 export interface ViewerPageState {
   parser: AsyncParser | null
@@ -27,13 +27,7 @@ export default class ViewerPage extends React.Component {
   //
 
   onClickSampleDemo = async () => {
-    let url
-
-    if (NODE_ENV === 'production' && !!REACT_APP_CLOUDFRONT_URL) {
-      url = `${REACT_APP_CLOUDFRONT_URL}/sample/i52_snakewater_gc.dem`
-    } else {
-      url = '/sample/i52_snakewater_gc.dem'
-    }
+    let url = getAsset('/samples/i52_snakewater_gc.dem')
 
     const demoBuffer: ArrayBuffer = await fetch(url).then(res => res.arrayBuffer())
 

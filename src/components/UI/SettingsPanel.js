@@ -269,12 +269,12 @@ export const SettingsPanel = () => {
               Players
             </Divider>
 
-            <ToggleOption
+            {/* <ToggleOption
               label="Models through walls"
               keyCode="M"
               checked={settings.ui.xrayPlayers}
               onChange={checked => updateSettingsOption('ui.xrayPlayers', checked)}
-            />
+            /> */}
 
             <ToggleOption
               label="Show nameplates"
