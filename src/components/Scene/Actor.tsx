@@ -211,22 +211,24 @@ export const Actor = (props: CachedPlayer) => {
       )}
 
       {/* Nameplate */}
-      <Html
-        name="html"
-        className="no-select"
-        style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
-        position={[0, 0, ActorDimensions.z * 0.85]}
-      >
-        {alive && (
-          <Nameplate
-            name={user.name}
-            team={team}
-            health={health}
-            classId={classId}
-            settings={uiSettings.nameplate}
-          />
-        )}
-      </Html>
+      {uiSettings.nameplate.enabled && (
+        <Html
+          name="html"
+          className="no-select"
+          style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
+          position={[0, 0, ActorDimensions.z * 0.85]}
+        >
+          {alive && (
+            <Nameplate
+              name={user.name}
+              team={team}
+              health={health}
+              classId={classId}
+              settings={uiSettings.nameplate}
+            />
+          )}
+        </Html>
+      )}
     </group>
   )
 }
