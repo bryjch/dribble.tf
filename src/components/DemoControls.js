@@ -311,7 +311,7 @@ var DemoControls = function (object, domElement) {
   }
 
   function getZoomScale() {
-    return Math.pow(0.95, scaleZoomSpeed(scope.zoomSpeed))
+    return Math.pow(0.8, scaleZoomSpeed(scope.zoomSpeed))
   }
 
   function rotateLeft(angle) {
