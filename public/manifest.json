@@ -1,6 +1,6 @@
 {
-  "short_name": "TF2 Demo Viewer",
-  "name": "TF2 Demo Viewer",
+  "short_name": "dribble.tf",
+  "name": "TF2 Demo Replay | dribble.tf",
   "icons": [
     {
       "src": "favicon.ico",
