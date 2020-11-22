@@ -46,6 +46,7 @@ export const FocusedPlayer = (props: FocusedPlayerProps) => {
           display: flex;
           flex-flow: column nowrap;
           align-items: center;
+          width: auto;
 
           .state {
             margin-bottom: 1rem;

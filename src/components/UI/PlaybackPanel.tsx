@@ -124,7 +124,7 @@ export const PlaybackPanel = () => {
           <PlaybackAction
             content={
               <div>
-                <div>Seek back</div>
+                <div>Seek forward</div>
                 <div>
                   1 tick<kbd className="ml-2">.</kbd>
                 </div>
