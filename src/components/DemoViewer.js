@@ -61,6 +61,8 @@ const FreeControls = props => {
       let cameraOffset, controlsOffset
 
       if (lastFocusedObject) {
+        // TODO: Determine what angle the lastFocusedObject is facing, then adjust the
+        // camera offset so that it's facing the same direction as the lastFocusedObject
         cameraOffset = new THREE.Vector3(500, 0, 500)
         controlsOffset = new THREE.Vector3(0, 0, 100)
       } else {

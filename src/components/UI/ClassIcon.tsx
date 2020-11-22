@@ -2,7 +2,7 @@ import React from 'react'
 
 import { CLASS_MAP } from '@constants/mappings'
 
-const classIcons = require('@assets/class-icons-64.png')
+const classIcons = require('@assets/class_icons_64.png')
 
 export interface ClassIconProps {
   classId: number
