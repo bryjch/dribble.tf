@@ -84,27 +84,39 @@ export const CanvasKeyHandler = () => {
           case '1':
             if (keysHeld.current.has('up')) return null // Prevent rapid camera cycling
 
-            // If the previous control mode wasn't POV, then we should switch to the
-            // POV of the last focused Actor instead of cycling to the next Actor
-            if (controls.mode !== 'pov' && controls.focusedObject) {
-              changeControlsMode('pov')
-              povCamera = controls.focusedObject.getObjectByName('povCamera') as Camera
-              setDefaultCamera(povCamera)
-
-              keysHeld.current.set('up', true)
-              break
-            }
-
             // Determine which Actor's POV should be focused next
             let actors = getSceneActors(scene)
             let currentIndex = controls.focusedObject
               ? actors.findIndex(({ id }) => id === controls.focusedObject.id)
               : -1
             let nextIndex = (currentIndex + 1) % actors.length
+
+            let currentActor = actors[currentIndex]
             let nextActor = actors[nextIndex]
 
-            changeControlsMode('pov', { focusedObject: nextActor })
-            povCamera = nextActor.getObjectByName('povCamera') as Camera
+            const payload: any = {}
+
+            // Handle situation where there actors in the scene
+            if (actors.length === 0 || !nextActor) {
+              if (controls.mode !== 'free') {
+                alert('No actors found. Resetting to free camera.')
+              }
+
+              payload.focusedObject = null
+              changeControlsMode('free', payload)
+              break
+            }
+
+            // If the previous control mode wasn't POV, then we should switch to the
+            // POV of the last focused Actor instead of cycling to the next Actor
+            if (controls.mode !== 'pov') {
+              payload.focusedObject = controls.focusedObject || currentActor || nextActor
+            } else {
+              payload.focusedObject = nextActor
+            }
+
+            changeControlsMode('pov', payload)
+            povCamera = payload.focusedObject.getObjectByName('povCamera') as Camera
             if (povCamera) setDefaultCamera(povCamera)
 
             keysHeld.current.set('up', true)
