@@ -97,16 +97,30 @@ export const changeControlsModeAction = async (mode, options = {}) => {
     if (mode === 'pov') {
       const actors = getSceneActors(useInstance.getState().threeScene)
       const focusedObject = useInstance.getState().focusedObject
+      const lastFocusedPOV = useInstance.getState().lastFocusedPOV
 
-      let currentIndex = focusedObject ? actors.findIndex(({ id }) => id === focusedObject.id) : -1
-      let nextIndex = (currentIndex + 1) % actors.length
-      let nextActor = actors[nextIndex]
+      const currentIndex = focusedObject ? actors.findIndex(({ id }) => id === focusedObject.id) : 0
+      const nextIndex = (currentIndex + 1) % actors.length
+      const nextActor = actors[nextIndex]
 
+      // Player transitioned from FREE to POV
+      // So we should go back to the POV of the last person they spectated
+      if (focusedObject === null) {
+        const entityId = lastFocusedPOV?.userData?.entityId || actors[0]?.userData?.entityId
+        await dispatch(jumpToPlayerPOVCamera(entityId))
+        return
+      }
+
+      // Player transitioned from POV to POV
+      // So we should spectate to the POV of the next person
       if (nextActor) {
         await dispatch(jumpToPlayerPOVCamera(nextActor.userData.entityId))
-      } else {
-        await dispatch(jumpToFreeCamera())
+        return
       }
+
+      // No actors found in the scene
+      // Just reset back to FREE camera
+      await dispatch(jumpToFreeCamera())
     }
 
     if (mode === 'free') {
@@ -128,6 +142,7 @@ export const jumpToPlayerPOVCamera = async entityId => {
     if (!actor) return null
 
     await useInstance.getState().setFocusedObject(actor)
+    await useInstance.getState().setLastFocusedPOV(actor)
 
     await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'pov' })
   } catch (error) {

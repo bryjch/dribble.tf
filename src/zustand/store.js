@@ -14,12 +14,14 @@ import rootReducer from './reducer'
 // restrictive (hard to pass values/references around).
 
 const useInstance = create(set => ({
+  threeScene: null,
   parsedDemo: null,
   focusedObject: null,
-  threeScene: null,
+  lastFocusedPOV: null,
+  setThreeScene: threeScene => set({ threeScene }),
   setParsedDemo: parsedDemo => set({ parsedDemo }),
   setFocusedObject: focusedObject => set({ focusedObject }),
-  setThreeScene: threeScene => set({ threeScene }),
+  setLastFocusedPOV: lastFocusedPOV => set({ lastFocusedPOV }),
 }))
 
 // This "Standard Store" is pretty much just a typical Redux store. Note that we are using
