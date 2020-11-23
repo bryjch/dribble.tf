@@ -3,8 +3,8 @@ import { Button } from 'semantic-ui-react'
 
 import { TogglePanel } from '@components/UI/Shared/TogglePanel'
 
-import { useStore, dispatch } from '@redux/store'
-import { toggleUIPanelAction, parseDemoAction } from '@redux/actions'
+import { useStore, dispatch } from '@zus/store'
+import { toggleUIPanelAction, parseDemoAction } from '@zus/actions'
 
 import { getAsset } from '@utils/misc'
 

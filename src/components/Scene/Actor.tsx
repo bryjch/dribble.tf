@@ -9,7 +9,7 @@ import { SkeletonUtils } from 'three/examples/jsm/utils/SkeletonUtils'
 import { Nameplate } from '@components/Scene/Nameplate'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 
-import { useStore } from '@redux/store'
+import { useStore } from '@zus/store'
 import { CLASS_MAP, ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { objCoordsToVector3, radianizeVector } from '@utils/geometry'
 import { getAsset } from '@utils/misc'

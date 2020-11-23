@@ -3,7 +3,7 @@ import React from 'react'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 import { ClassIcon } from '@components/UI/ClassIcon'
 
-import { useStore, useInstance } from '@redux/store'
+import { useStore, useInstance } from '@zus/store'
 
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { parseClassHealth } from '@utils/players'

@@ -12,7 +12,7 @@ module.exports = override(
     ['@constants']: path.resolve(__dirname, './src/constants'),
     ['@libs']: path.resolve(__dirname, './src/libs'),
     ['@pages']: path.resolve(__dirname, './src/pages'),
-    ['@redux']: path.resolve(__dirname, './src/redux'),
+    ['@zus']: path.resolve(__dirname, './src/zustand'),
     ['@utils']: path.resolve(__dirname, './src/utils'),
   })
 )

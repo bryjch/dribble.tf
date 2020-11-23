@@ -4,8 +4,8 @@ import humanizeDuration from 'humanize-duration'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 
-import { useStore, dispatch } from '@redux/store'
-import { goToTickAction } from '@redux/actions'
+import { useStore, dispatch } from '@zus/store'
+import { goToTickAction } from '@zus/actions'
 
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 

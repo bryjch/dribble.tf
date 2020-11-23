@@ -3,14 +3,14 @@ import keycode from 'keycode'
 
 import { useThree } from 'react-three-fiber'
 
-import { useStore, dispatch } from '@redux/store'
+import { useStore, dispatch } from '@zus/store'
 import {
   togglePlaybackAction,
   playbackJumpAction,
   changeControlsModeAction,
   changePlaySpeedAction,
   toggleSettingsOptionAction,
-} from '@redux/actions'
+} from '@zus/actions'
 
 import { useEventListener } from '@utils/hooks'
 
@@ -22,7 +22,6 @@ export const CanvasKeyHandler = () => {
   const keysHeld = useRef(new Map())
   const { gl } = useThree()
 
-  // Redux states / actions
   const controls: any = useStore((state: any) => state.scene.controls)
 
   const togglePlayback = () => dispatch(togglePlaybackAction())

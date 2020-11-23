@@ -4,8 +4,8 @@ import { motion } from 'framer-motion'
 import { DemoDropzone } from '@components/DemoDropzone'
 import { DemoViewer } from '@components/DemoViewer'
 
-import { parseDemoAction } from '@redux/actions'
-import { useStore, dispatch, useInstance } from '@redux/store'
+import { parseDemoAction } from '@zus/actions'
+import { useStore, dispatch, useInstance } from '@zus/store'
 
 const ViewerPage = () => {
   const parser = useStore((state: any) => state.parser)

@@ -25,8 +25,8 @@ import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 
 // Actions & utils
-import { useStore, getState, dispatch, useInstance } from '@redux/store'
-import { goToTickAction, popUIPanelAction } from '@redux/actions'
+import { useStore, getState, dispatch, useInstance } from '@zus/store'
+import { goToTickAction, popUIPanelAction } from '@zus/actions'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────

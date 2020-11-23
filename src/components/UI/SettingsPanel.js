@@ -4,8 +4,8 @@ import { clamp } from 'lodash'
 
 import { TogglePanel } from '@components/UI/Shared/TogglePanel'
 
-import { useStore, dispatch } from '@redux/store'
-import { toggleUIPanelAction, updateSettingsOptionAction } from '@redux/actions'
+import { useStore, dispatch } from '@zus/store'
+import { toggleUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
 
 //
 // ─── BASE OPTION WRAPPER ────────────────────────────────────────────────────────

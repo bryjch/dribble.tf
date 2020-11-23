@@ -5,7 +5,7 @@ import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
 import { ActorDimensions } from '@components/Scene/Actor'
 
-import { useStore } from '@redux/store'
+import { useStore } from '@zus/store'
 import { getAsset } from '@utils/misc'
 
 const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({

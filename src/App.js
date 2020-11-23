@@ -2,8 +2,8 @@ import React from 'react'
 
 import { ViewerPage } from '@pages/ViewerPage'
 
-import { dispatch } from '@redux/store'
-import { loadSettingsAction } from '@redux/actions'
+import { dispatch } from '@zus/store'
+import { loadSettingsAction } from '@zus/actions'
 
 import 'semantic-ui-css/semantic.min.css'
 import './App.scss'

@@ -1,8 +1,8 @@
 import React from 'react'
 import { Icon, Popup, Dropdown, IconProps, PopupProps } from 'semantic-ui-react'
 
-import { useStore, dispatch } from '@redux/store'
-import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@redux/actions'
+import { useStore, dispatch } from '@zus/store'
+import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@zus/actions'
 import { focusMainCanvas } from '@utils/misc'
 
 export const PLAYBACK_SPEED_OPTIONS = [
