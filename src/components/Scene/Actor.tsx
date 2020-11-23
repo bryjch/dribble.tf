@@ -98,6 +98,7 @@ export const Actor = (props: CachedPlayer) => {
   const ref = useRef<THREE.Group>()
   const lastViewAngleX = useRef<number>(0)
   const lastViewAngleY = useRef<number>(0)
+  const [changing, setChanging] = useState<boolean>(false)
   const { scene } = useThree()
 
   const uiSettings = useSelector((state: any) => state.settings.ui)
@@ -131,6 +132,16 @@ export const Actor = (props: CachedPlayer) => {
         ?.children.find(({ userData }) => userData.entityId === healTarget)?.position
     : undefined
 
+  // Kinda hacky solution to fix player models not updating when they change class,
+  // which is due to how PlayerModel handles caching of loaded GLTF models. So this
+  // solution relies of quickly remounting the PlayerModel with the updated team/classId
+  // values. It doesn't appear to trigger any network refetches, so this should be ok
+  useEffect(() => {
+    setChanging(true)
+    const timer = setTimeout(() => setChanging(false), 10)
+    return () => clearTimeout(timer)
+  }, [team, classId])
+
   return (
     <group
       name="actor"
@@ -149,7 +160,7 @@ export const Actor = (props: CachedPlayer) => {
       </mesh> */}
 
       <Suspense fallback={null}>
-        {team && classId ? (
+        {team && classId && !changing ? (
           <PlayerModel visible={alive} team={team} classId={classId} />
         ) : (
           <mesh visible={alive} position={new THREE.Vector3(0, 0, ActorDimensions.z * 0.5)}>
