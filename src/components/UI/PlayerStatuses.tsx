@@ -1,15 +1,11 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import { clamp } from 'lodash'
-import { useThree } from 'react-three-fiber'
 
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 import { ClassIcon } from '@components/UI/ClassIcon'
 
-import { useStore } from '@redux/store'
-
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
-import { getSceneActors, getSceneActor } from '@utils/scene'
 import { hexToRgba } from '@utils/styling'
 
 //
@@ -128,9 +124,6 @@ export const StatusItem = (props: StatusItemProps) => {
   const { player, type, team, alignment } = props
   let name, health, percentage, itemCls, healthCls, icon
 
-  // const { scene, camera, gl, setDefaultCamera } = useThree()
-  const controls: any = useStore((state: any) => state.scene.controls)
-
   switch (type) {
     case 'player':
       name = player.user.name
@@ -149,34 +142,8 @@ export const StatusItem = (props: StatusItemProps) => {
       break
   }
 
-  // const onClickItem = useCallback(() => {
-  //   if (type === 'player') {
-  //     // console.log(getSceneActor(scene, player.user.entityId))
-
-  //     /*
-  //     // jump to player POV
-
-  //       // Determine which Actor's POV should be focused next
-  //       let actors = getSceneActors(scene)
-  //       let currentIndex = controls.focusedObject
-  //         ? actors.findIndex(({ id }) => id === controls.focusedObject.id)
-  //         : -1
-  //       let nextIndex = (currentIndex + 1) % actors.length
-
-  //       const payload: any = {}
-
-  //       changeControlsMode('pov', payload)
-  //       povCamera = payload.focusedObject.getObjectByName('povCamera') as Camera
-  //       if (povCamera) setDefaultCamera(povCamera)
-
-  //       keysHeld.current.set('up', true)
-  //       */
-  //   }
-  // }, [scene])
-
   return (
     <>
-      {/* <div className={`player-status-item ${itemCls}`} onClick={(onClickItem)}> */}
       <div className={`player-status-item ${itemCls}`}>
         {icon && <div className="class-icon-container">{icon}</div>}
 

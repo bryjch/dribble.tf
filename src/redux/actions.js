@@ -6,44 +6,41 @@ import { ActorDimensions } from '@components/Scene/Actor'
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
+import { getSceneActors } from '@utils/scene'
 import { objCoordsToVector3 } from '@utils/geometry'
 
-import { dispatch, getState } from './store'
+import { dispatch, getState, useInstance } from './store'
 
 //
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
 //
 
-export const buildDemoParserAction = async file => {
+export const parseDemoAction = async fileBuffer => {
   try {
-    await dispatch({ type: 'BUILD_DEMO_PARSER_INIT' })
+    await dispatch({ type: 'PARSE_DEMO_INIT' })
 
-    const parser = new AsyncParser(file, async progress => {
-      await dispatch({ type: 'BUILD_DEMO_PARSER_PROGRESS', payload: progress })
+    const parsedDemo = new AsyncParser(fileBuffer, async progress => {
+      await dispatch({ type: 'PARSE_DEMO_PROGRESS', payload: progress })
     })
 
-    console.log(file)
-
     try {
-      await parser.cache()
+      await parsedDemo.cache()
     } catch (error) {
       alert(`Unable to load demo. Please make sure it's a valid SourceTV .dem file.`)
       throw error
     }
 
-    parser.toJSON = () => ({}) // To prevent Redux devtools from crashing (due to large unserializable object)
+    console.log('%c-------- Demo parsed --------', 'color: blue; font-size: 16px;')
+    console.log(parsedDemo)
+    console.log('%c-----------------------------', 'color: blue; font-size: 16px;')
 
-    console.log('%c-------- Parser loaded --------', 'color: blue; font-size: 16px;')
-    console.log(parser)
-    console.log('%c-------------------------------', 'color: blue; font-size: 16px;')
+    await dispatch({ type: 'PARSE_DEMO_SUCCESS' })
 
-    await dispatch({ type: 'BUILD_DEMO_PARSER_SUCCESS', payload: parser })
+    await dispatch(loadSceneFromDemoAction(parsedDemo))
 
-    await dispatch(loadSceneFromParserAction(parser))
-
-    return parser
+    return parsedDemo
   } catch (error) {
-    await dispatch({ type: 'BUILD_DEMO_PARSER_ERROR', payload: error })
+    await dispatch({ type: 'PARSE_DEMO_ERROR', payload: error })
     throw error
   }
 }
@@ -52,36 +49,39 @@ export const buildDemoParserAction = async file => {
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
 //
 
-export const loadSceneFromParserAction = async parser => {
+export const loadSceneFromDemoAction = async parsedDemo => {
   try {
     await dispatch(toggleUIPanelAction('AboutPanel', false))
+
+    // Remember to update the non-redux instances!
+    await useInstance.getState().setParsedDemo(parsedDemo)
+    await useInstance.getState().setFocusedObject(null)
 
     await dispatch({
       type: 'LOAD_SCENE_FROM_PARSER',
       payload: {
         scene: {
-          players: parser.entityPlayerMap,
-          map: parser.header.map,
+          players: parsedDemo.entityPlayerMap,
+          map: parsedDemo.header.map,
           bounds: {
-            min: objCoordsToVector3(parser.world.boundaryMin),
-            max: objCoordsToVector3(parser.world.boundaryMax),
+            min: objCoordsToVector3(parsedDemo.world.boundaryMin),
+            max: objCoordsToVector3(parsedDemo.world.boundaryMax),
             center: new THREE.Vector3(
-              0.5 * (parser.world.boundaryMax.x - parser.world.boundaryMin.x),
-              0.5 * (parser.world.boundaryMax.y - parser.world.boundaryMin.y),
-              -parser.world.boundaryMin.z - 0.5 * ActorDimensions.z
+              0.5 * (parsedDemo.world.boundaryMax.x - parsedDemo.world.boundaryMin.x),
+              0.5 * (parsedDemo.world.boundaryMax.y - parsedDemo.world.boundaryMin.y),
+              -parsedDemo.world.boundaryMin.z - 0.5 * ActorDimensions.z
             ),
           },
           controls: {
             mode: 'free',
-            focusedObject: null,
           },
         },
         playback: {
           playing: true,
           speed: 1,
           tick: 1,
-          maxTicks: parser.ticks - 1,
-          intervalPerTick: parser.intervalPerTick,
+          maxTicks: parsedDemo.ticks - 1,
+          intervalPerTick: parsedDemo.intervalPerTick,
         },
       },
     })
@@ -94,12 +94,52 @@ export const changeControlsModeAction = async (mode, options = {}) => {
   try {
     if (!['free', 'follow', 'pov'].includes(mode)) return null
 
-    const { focusedObject } = options
+    if (mode === 'pov') {
+      const actors = getSceneActors(useInstance.getState().threeScene)
+      const focusedObject = useInstance.getState().focusedObject
 
-    const payload = { mode: mode }
-    if (focusedObject !== undefined) payload.focusedObject = focusedObject
+      let currentIndex = focusedObject ? actors.findIndex(({ id }) => id === focusedObject.id) : -1
+      let nextIndex = (currentIndex + 1) % actors.length
+      let nextActor = actors[nextIndex]
 
-    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: payload })
+      if (nextActor) {
+        await dispatch(jumpToPlayerPOVCamera(nextActor.userData.entityId))
+      } else {
+        await dispatch(jumpToFreeCamera())
+      }
+    }
+
+    if (mode === 'free') {
+      await dispatch(jumpToFreeCamera())
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const jumpToPlayerPOVCamera = async entityId => {
+  try {
+    const actors = getSceneActors(useInstance.getState().threeScene)
+
+    if (actors.length === 0) return null
+
+    const actor = actors.find(({ userData }) => userData.entityId === entityId)
+
+    if (!actor) return null
+
+    await useInstance.getState().setFocusedObject(actor)
+
+    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'pov' })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const jumpToFreeCamera = async (options = {}) => {
+  try {
+    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'free' })
+
+    await useInstance.getState().setFocusedObject(null)
   } catch (error) {
     console.error(error)
   }

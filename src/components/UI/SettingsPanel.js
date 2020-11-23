@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState } from 'react'
 import { Button, Divider } from 'semantic-ui-react'
 import { clamp } from 'lodash'
 
@@ -153,13 +153,13 @@ export const SettingsPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('SettingsPanel'))
   const settings = useStore(state => state.settings)
 
-  const toggleUIPanel = useCallback(() => {
+  const toggleUIPanel = () => {
     dispatch(toggleUIPanelAction('AboutPanel', false))
     dispatch(toggleUIPanelAction('SettingsPanel'))
-  }, [dispatch])
-  const updateSettingsOption = useCallback((option, value) => {
+  }
+  const updateSettingsOption = (option, value) => {
     dispatch(updateSettingsOptionAction(option, value))
-  })
+  }
 
   return (
     <div className="d-flex flex-row align-items-start">

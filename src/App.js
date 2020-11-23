@@ -1,9 +1,8 @@
 import React from 'react'
-import { connect } from 'react-redux'
 
-import { ViewerPage } from '@pages/ViewerPage.tsx'
+import { ViewerPage } from '@pages/ViewerPage'
 
-import { dispatch, getState } from '@redux/store'
+import { dispatch } from '@redux/store'
 import { loadSettingsAction } from '@redux/actions'
 
 import 'semantic-ui-css/semantic.min.css'

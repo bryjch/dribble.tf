@@ -1,16 +1,15 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import { motion } from 'framer-motion'
 
 import { DemoDropzone } from '@components/DemoDropzone'
 import { DemoViewer } from '@components/DemoViewer'
 
-import { buildDemoParserAction } from '@redux/actions'
-import { useStore, dispatch } from '@redux/store'
+import { parseDemoAction } from '@redux/actions'
+import { useStore, dispatch, useInstance } from '@redux/store'
 
 const ViewerPage = () => {
   const parser = useStore((state: any) => state.parser)
-
-  const buildDemoParser = (file: ArrayBuffer) => dispatch(buildDemoParserAction(file))
+  const parsedDemo = useInstance((state: any) => state.parsedDemo)
 
   //
   // ─── METHODS ────────────────────────────────────────────────────────────────────
@@ -24,8 +23,8 @@ const ViewerPage = () => {
     reader.readAsArrayBuffer(demoFile)
 
     reader.onload = function () {
-      const buffer = reader.result as ArrayBuffer
-      buildDemoParser(buffer)
+      const fileBuffer = reader.result as ArrayBuffer
+      dispatch(parseDemoAction(fileBuffer))
     }
   }
 
@@ -35,7 +34,7 @@ const ViewerPage = () => {
 
   return (
     <div>
-      <DemoViewer parser={parser.parser} />
+      <DemoViewer demo={parsedDemo} />
 
       <div className="ui-layer loading-demo">
         <motion.div

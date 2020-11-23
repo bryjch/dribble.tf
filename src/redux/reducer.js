@@ -7,25 +7,25 @@ const reducers = (state = {}, action) => {
     // ─── PARSER ──────────────────────────────────────────────────────
     //
 
-    case 'BUILD_DEMO_PARSER_INIT':
+    case 'PARSE_DEMO_INIT':
       return {
         ...state,
         parser: { ...state.parser, status: 'loading', progress: 0, error: null },
       }
 
-    case 'BUILD_DEMO_PARSER_PROGRESS':
+    case 'PARSE_DEMO_PROGRESS':
       return {
         ...state,
         parser: { ...state.parser, progress: action.payload },
       }
 
-    case 'BUILD_DEMO_PARSER_SUCCESS':
+    case 'PARSE_DEMO_SUCCESS':
       return {
         ...state,
-        parser: { ...state.parser, status: 'done', progress: 100, parser: action.payload },
+        parser: { ...state.parser, status: 'done', progress: 100 },
       }
 
-    case 'BUILD_DEMO_PARSER_ERROR':
+    case 'PARSE_DEMO_ERROR':
       return {
         ...state,
         parser: { ...state.parser, status: 'done', error: action.payload },
@@ -45,7 +45,10 @@ const reducers = (state = {}, action) => {
     case 'CHANGE_CONTROLS_MODE':
       return {
         ...state,
-        scene: { ...state.scene, controls: { ...state.scene.controls, ...action.payload } },
+        scene: {
+          ...state.scene,
+          controls: { ...state.scene.controls, mode: action.payload },
+        },
       }
 
     //

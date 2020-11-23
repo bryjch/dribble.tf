@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import moment from 'moment'
 import humanizeDuration from 'humanize-duration'
 
@@ -20,10 +20,8 @@ export interface DemoInfoPanelProps {
 export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
   const { parser } = props
 
-  const playback = useStore((state: any) => state.playback)
-  const { tick } = playback
-
-  const goToTick = useCallback(tick => dispatch(goToTickAction(tick)), [dispatch])
+  const tick = useStore((state: any) => state.playback.tick)
+  const goToTick = (tick: number) => dispatch(goToTickAction(tick))
 
   const rounds = [
     {

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import { Icon, Popup, Dropdown, IconProps, PopupProps } from 'semantic-ui-react'
 
 import { useStore, dispatch } from '@redux/store'
@@ -49,25 +49,20 @@ export const PlaybackPanel = () => {
   const playback = useStore((state: any) => state.playback)
   const { playing, speed, tick, maxTicks } = playback
 
-  const togglePlayback = useCallback(() => {
+  const togglePlayback = () => {
     dispatch(togglePlaybackAction())
     focusMainCanvas()
-  }, [dispatch])
+  }
 
-  const changePlaySpeed = useCallback(
-    speed => {
-      dispatch(changePlaySpeedAction(speed))
-      focusMainCanvas()
-    },
-    [dispatch]
-  )
-  const goToTick = useCallback(
-    tick => {
-      dispatch(goToTickAction(tick))
-      focusMainCanvas()
-    },
-    [dispatch]
-  )
+  const changePlaySpeed = (speed: number) => {
+    dispatch(changePlaySpeedAction(speed))
+    focusMainCanvas()
+  }
+
+  const goToTick = (tick: number) => {
+    dispatch(goToTickAction(tick))
+    focusMainCanvas()
+  }
 
   return (
     <div className="panel">

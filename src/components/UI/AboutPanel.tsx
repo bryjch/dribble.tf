@@ -1,10 +1,10 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import { Button } from 'semantic-ui-react'
 
 import { TogglePanel } from '@components/UI/Shared/TogglePanel'
 
 import { useStore, dispatch } from '@redux/store'
-import { toggleUIPanelAction, buildDemoParserAction } from '@redux/actions'
+import { toggleUIPanelAction, parseDemoAction } from '@redux/actions'
 
 import { getAsset } from '@utils/misc'
 
@@ -21,14 +21,11 @@ export const AboutPanel = () => {
     dispatch(toggleUIPanelAction('SettingsPanel', false))
     dispatch(toggleUIPanelAction('AboutPanel'))
   }
-  const buildDemoParser = (file: ArrayBuffer) => dispatch(buildDemoParserAction(file))
 
   const onClickSampleDemo = async () => {
     let url = getAsset('/samples/i52_snakewater_gc.dem')
-
-    const buffer = await fetch(url).then(res => res.arrayBuffer())
-
-    buildDemoParser(buffer)
+    const fileBuffer = await fetch(url).then(res => res.arrayBuffer())
+    dispatch(parseDemoAction(fileBuffer))
   }
 
   return (

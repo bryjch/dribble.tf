@@ -3,7 +3,7 @@ import React from 'react'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 import { ClassIcon } from '@components/UI/ClassIcon'
 
-import { useStore } from '@redux/store'
+import { useStore, useInstance } from '@redux/store'
 
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { parseClassHealth } from '@utils/players'
@@ -13,12 +13,13 @@ export interface FocusedPlayerProps {
 }
 
 export const FocusedPlayer = (props: FocusedPlayerProps) => {
-  const { mode, focusedObject } = useStore((state: any) => state.scene.controls)
+  const controlsMode = useStore((state: any) => state.scene.controls.mode)
+  const focusedObject: any = useInstance(state => state.focusedObject)
 
-  if (mode !== 'pov' || !focusedObject) return null
+  if (controlsMode !== 'pov' || !focusedObject) return null
 
   const { players } = props
-  const focused = players.find(player => player.user.entityId === focusedObject.userData.entityId)
+  const focused = players.find(player => player.user.entityId === focusedObject?.userData?.entityId)
 
   if (!focused) return null
 
