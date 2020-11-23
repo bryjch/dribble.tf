@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react'
-import { connect, useSelector, ReactReduxContext, Provider } from 'react-redux'
+import { ReactReduxContext, Provider } from 'react-redux'
 
 // THREE related imports
 import * as THREE from 'three'
@@ -26,6 +26,7 @@ import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 
 // Actions & utils
+import { useStore, getState, dispatch } from '@redux/store'
 import { loadSceneFromParserAction, goToTickAction, popUIPanelAction } from '@redux/actions'
 
 //
@@ -44,9 +45,9 @@ const FreeControls = props => {
   const controlsRef = useRef()
   const { gl } = useThree()
 
-  const settings = useSelector(state => state.settings)
-  const boundsCenter = useSelector(state => state.scene.bounds.center)
-  const lastFocusedObject = useSelector(state => state.scene.controls.focusedObject)
+  const settings = useStore(state => state.settings)
+  const boundsCenter = useStore(state => state.scene.bounds.center)
+  const lastFocusedObject = useStore(state => state.scene.controls.focusedObject)
   const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
 
   gl.physicallyCorrectLights = true
@@ -112,6 +113,12 @@ class DemoViewer extends React.Component {
   elapsedTime = 0
   lastTimestamp = 0
 
+  state = {
+    playback: getState().playback,
+    scene: getState().scene,
+    settings: getState().settings,
+  }
+
   //
   // ─── LIFECYCLE ──────────────────────────────────────────────────────────────────
   //
@@ -119,15 +126,33 @@ class DemoViewer extends React.Component {
   componentDidMount() {
     this.animate(0)
     this.demoViewer.addEventListener('keydown', this.globalKeyDown)
+
+    //
+    this.playbackSub = useStore.subscribe(
+      playback => this.setState({ playback }),
+      state => state.playback
+    )
+    this.sceneSub = useStore.subscribe(
+      scene => this.setState({ scene }),
+      state => state.scene
+    )
+    this.settingsSub = useStore.subscribe(
+      settings => this.setState({ settings }),
+      state => state.settings
+    )
   }
 
   componentWillUnmount() {
     this.demoViewer.removeEventListener('keydown', this.globalKeyDown)
+
+    this.playbackSub()
+    this.sceneSub()
+    this.settingsSub()
   }
 
   async componentDidUpdate(prevProps) {
     if (this.props.parser !== prevProps.parser) {
-      await this.props.loadSceneFromParser(this.props.parser)
+      await dispatch(loadSceneFromParserAction(this.props.parser))
     }
   }
 
@@ -139,7 +164,8 @@ class DemoViewer extends React.Component {
   // of this requestAnimationFrame() implementation
   // https://threejs.org/docs/#api/en/core/Clock
   animate = async timestamp => {
-    const { playback, goToTick } = this.props
+    // const { playback } = getState()
+    const { playback } = this.state
 
     const intervalPerTick = 0.03 // TODO: read value from demo file instead
     const millisPerTick = 1000 * intervalPerTick * (1 / playback.speed)
@@ -148,7 +174,7 @@ class DemoViewer extends React.Component {
 
     if (playback.playing) {
       if (this.elapsedTime > millisPerTick) {
-        goToTick(playback.tick + 1)
+        dispatch(goToTickAction(playback.tick + 1))
         this.elapsedTime = 0
       }
     } else {
@@ -170,7 +196,7 @@ class DemoViewer extends React.Component {
     try {
       switch (keyCode) {
         case keys.ESC:
-          this.props.popUIPanel()
+          dispatch(popUIPanelAction())
           break
 
         default:
@@ -186,7 +212,9 @@ class DemoViewer extends React.Component {
   //
 
   render() {
-    const { parser, scene, playback, settings } = this.props
+    // const { scene, settings } = getState()
+    const { playback, scene, settings } = this.state
+    const { parser } = this.props
 
     const playersThisTick = parser
       ? parser
@@ -198,40 +226,28 @@ class DemoViewer extends React.Component {
 
     return (
       <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
-        {/* Note: unfortunately we have to explicitly provide the Redux store inside
-        Canvas because of React context reconciler limitations:
-        https://github.com/react-spring/react-three-fiber/issues/43
-        https://github.com/react-spring/react-three-fiber/issues/262 */}
-        <ReactReduxContext.Consumer>
-          {({ store }) => (
-            <Canvas id="main-canvas" onContextMenu={e => e.preventDefault()}>
-              <Provider store={store}>
-                {/* Base scene elements */}
-                <Lights />
+        <Canvas id="main-canvas" onContextMenu={e => e.preventDefault()}>
+          {/* Base scene elements */}
+          <Lights />
 
-                {scene.controls.mode === 'free' && <FreeControls />}
+          {scene.controls.mode === 'free' && <FreeControls />}
 
-                {/* Demo specific elements */}
-                {parser?.header?.map ? (
-                  <World map={parser.header.map} mode={settings.scene.mode} />
-                ) : (
-                  <World map={`koth_product_rcx`} mode={settings.scene.mode} />
-                )}
-
-                {parser && playback && (
-                  <Actors parser={parser} playback={playback} settings={settings} />
-                )}
-
-                <Projectiles parser={parser} playback={playback} />
-
-                {/* Misc elements */}
-                <CanvasKeyHandler />
-
-                {settings.ui.showStats && <Stats className="stats-panel" parent={this.uiLayers} />}
-              </Provider>
-            </Canvas>
+          {/* Demo specific elements */}
+          {parser?.header?.map ? (
+            <World map={parser.header.map} mode={settings.scene.mode} />
+          ) : (
+            <World map={`koth_product_rcx`} mode={settings.scene.mode} />
           )}
-        </ReactReduxContext.Consumer>
+
+          {parser && playback && <Actors parser={parser} playback={playback} settings={settings} />}
+
+          <Projectiles parser={parser} playback={playback} />
+
+          {/* Misc elements */}
+          <CanvasKeyHandler />
+
+          {settings.ui.showStats && <Stats className="stats-panel" parent={this.uiLayers} />}
+        </Canvas>
 
         {/* Normal React (non-THREE.js) UI elements */}
 
@@ -337,20 +353,6 @@ class DemoViewer extends React.Component {
     )
   }
 }
-
-const mapState = state => ({
-  scene: state.scene,
-  playback: state.playback,
-  settings: state.settings,
-})
-
-const mapDispatch = dispatch => ({
-  loadSceneFromParser: parser => dispatch(loadSceneFromParserAction(parser)),
-  goToTick: tick => dispatch(goToTickAction(tick)),
-  popUIPanel: () => dispatch(popUIPanelAction()),
-})
-
-DemoViewer = connect(mapState, mapDispatch)(DemoViewer)
 
 export { DemoViewer }
 

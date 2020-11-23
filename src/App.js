@@ -3,6 +3,7 @@ import { connect } from 'react-redux'
 
 import { ViewerPage } from '@pages/ViewerPage.tsx'
 
+import { dispatch, getState } from '@redux/store'
 import { loadSettingsAction } from '@redux/actions'
 
 import 'semantic-ui-css/semantic.min.css'
@@ -18,7 +19,8 @@ class App extends React.Component {
   //
 
   async componentDidMount() {
-    await this.props.loadSettings()
+    await dispatch(loadSettingsAction())
+
     this.setState({ isReady: true })
 
     // Completely disable right clicks cause it's kinda annoying
@@ -36,15 +38,5 @@ class App extends React.Component {
     return <div id="app">{this.state.isReady ? <ViewerPage /> : null}</div>
   }
 }
-
-const mapState = state => ({
-  settings: state.settings,
-})
-
-const mapDispatch = dispatch => ({
-  loadSettings: () => dispatch(loadSettingsAction()),
-})
-
-App = connect(mapState, mapDispatch)(App)
 
 export default App

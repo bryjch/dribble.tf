@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
 import { Button, Divider } from 'semantic-ui-react'
 import { clamp } from 'lodash'
 
 import { TogglePanel } from '@components/UI/Shared/TogglePanel'
 
+import { useStore, dispatch } from '@redux/store'
 import { toggleUIPanelAction, updateSettingsOptionAction } from '@redux/actions'
 
 //
@@ -150,20 +150,16 @@ const ToggleOption = ({ label, keyCode, checked, disabled, onChange }) => {
 //
 
 export const SettingsPanel = () => {
-  const isOpen = useSelector(state => state.ui.activePanels.includes('SettingsPanel'))
-  const settings = useSelector(state => state.settings)
+  const isOpen = useStore(state => state.ui.activePanels.includes('SettingsPanel'))
+  const settings = useStore(state => state.settings)
 
-  const dispatch = useDispatch()
   const toggleUIPanel = useCallback(() => {
     dispatch(toggleUIPanelAction('AboutPanel', false))
     dispatch(toggleUIPanelAction('SettingsPanel'))
   }, [dispatch])
-  const updateSettingsOption = useCallback(
-    (option, value) => {
-      dispatch(updateSettingsOptionAction(option, value))
-    },
-    [dispatch]
-  )
+  const updateSettingsOption = useCallback((option, value) => {
+    dispatch(updateSettingsOptionAction(option, value))
+  })
 
   return (
     <div className="d-flex flex-row align-items-start">

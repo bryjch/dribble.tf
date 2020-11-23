@@ -1,20 +1,16 @@
 import React, { useCallback } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
 import { motion } from 'framer-motion'
 
 import { DemoDropzone } from '@components/DemoDropzone'
 import { DemoViewer } from '@components/DemoViewer'
 
 import { buildDemoParserAction } from '@redux/actions'
+import { useStore, dispatch } from '@redux/store'
 
 const ViewerPage = () => {
-  const parser = useSelector((state: any) => state.parser)
+  const parser = useStore((state: any) => state.parser)
 
-  const dispatch = useDispatch()
-  const buildDemoParser = useCallback(
-    (file: ArrayBuffer) => dispatch(buildDemoParserAction(file)),
-    [dispatch]
-  )
+  const buildDemoParser = (file: ArrayBuffer) => dispatch(buildDemoParserAction(file))
 
   //
   // ─── METHODS ────────────────────────────────────────────────────────────────────

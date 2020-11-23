@@ -1,11 +1,12 @@
 import React, { useCallback } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
 import { Button } from 'semantic-ui-react'
 
 import { TogglePanel } from '@components/UI/Shared/TogglePanel'
 
-import { getAsset } from '@utils/misc'
+import { useStore, dispatch } from '@redux/store'
 import { toggleUIPanelAction, buildDemoParserAction } from '@redux/actions'
+
+import { getAsset } from '@utils/misc'
 
 //
 // ─── ABOUT PANEL ────────────────────────────────────────────────────────────────
@@ -14,14 +15,13 @@ import { toggleUIPanelAction, buildDemoParserAction } from '@redux/actions'
 const GITHUB_URL = `https://www.github.com/bryjch/dribble.tf`
 
 export const AboutPanel = () => {
-  const isOpen = useSelector(state => state.ui.activePanels.includes('AboutPanel'))
+  const isOpen = useStore((state: any) => state.ui.activePanels.includes('AboutPanel'))
 
-  const dispatch = useDispatch()
-  const toggleUIPanel = useCallback(() => {
+  const toggleUIPanel = () => {
     dispatch(toggleUIPanelAction('SettingsPanel', false))
     dispatch(toggleUIPanelAction('AboutPanel'))
-  }, [dispatch])
-  const buildDemoParser = useCallback(file => dispatch(buildDemoParserAction(file)), [dispatch])
+  }
+  const buildDemoParser = (file: ArrayBuffer) => dispatch(buildDemoParserAction(file))
 
   const onClickSampleDemo = async () => {
     let url = getAsset('/samples/i52_snakewater_gc.dem')
@@ -75,8 +75,8 @@ export const AboutPanel = () => {
               Controls:
               <br />
               <b>LMB</b> ... rotate camera
-              <br /><b>RMB / WASD</b> ... pan camera
-               
+              <br />
+              <b>RMB / WASD</b> ... pan camera
             </p>
 
             <p>

@@ -1,11 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react'
-import { useSelector } from 'react-redux'
 
 import * as THREE from 'three'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
 import { ActorDimensions } from '@components/Scene/Actor'
 
+import { useStore } from '@redux/store'
 import { getAsset } from '@utils/misc'
 
 const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
@@ -30,7 +30,7 @@ export const World = (props: WorldProps) => {
   const [mapOverlay, setMapOverlay] = useState<THREE.Group | null>()
   const { map, mode } = props
 
-  const bounds: any = useSelector((state: any) => state.scene.bounds)
+  const bounds: any = useStore((state: any) => state.scene.bounds)
 
   useEffect(() => {
     try {

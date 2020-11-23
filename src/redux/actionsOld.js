@@ -8,21 +8,17 @@ import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { objCoordsToVector3 } from '@utils/geometry'
 
-import { dispatch, getState } from './store'
-
 //
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
 //
 
-export const buildDemoParserAction = async file => {
+export const buildDemoParserAction = file => async dispatch => {
   try {
     await dispatch({ type: 'BUILD_DEMO_PARSER_INIT' })
 
     const parser = new AsyncParser(file, async progress => {
       await dispatch({ type: 'BUILD_DEMO_PARSER_PROGRESS', payload: progress })
     })
-
-    console.log(file)
 
     try {
       await parser.cache()
@@ -31,15 +27,13 @@ export const buildDemoParserAction = async file => {
       throw error
     }
 
-    parser.toJSON = () => ({}) // To prevent Redux devtools from crashing (due to large unserializable object)
-
     console.log('%c-------- Parser loaded --------', 'color: blue; font-size: 16px;')
     console.log(parser)
     console.log('%c-------------------------------', 'color: blue; font-size: 16px;')
 
     await dispatch({ type: 'BUILD_DEMO_PARSER_SUCCESS', payload: parser })
 
-    await dispatch(loadSceneFromParserAction(parser))
+    dispatch(loadSceneFromParserAction(parser))
 
     return parser
   } catch (error) {
@@ -52,7 +46,7 @@ export const buildDemoParserAction = async file => {
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
 //
 
-export const loadSceneFromParserAction = async parser => {
+export const loadSceneFromParserAction = parser => async dispatch => {
   try {
     await dispatch(toggleUIPanelAction('AboutPanel', false))
 
@@ -90,7 +84,7 @@ export const loadSceneFromParserAction = async parser => {
   }
 }
 
-export const changeControlsModeAction = async (mode, options = {}) => {
+export const changeControlsModeAction = (mode, options = {}) => async dispatch => {
   try {
     if (!['free', 'follow', 'pov'].includes(mode)) return null
 
@@ -109,7 +103,7 @@ export const changeControlsModeAction = async (mode, options = {}) => {
 // ─── PLAYBACK ───────────────────────────────────────────────────────────────────
 //
 
-export const goToTickAction = async tick => {
+export const goToTickAction = tick => async (dispatch, getState) => {
   try {
     const maxTicks = getState().playback.maxTicks
 
@@ -124,7 +118,7 @@ export const goToTickAction = async tick => {
   }
 }
 
-export const playbackJumpAction = async direction => {
+export const playbackJumpAction = direction => async (dispatch, getState) => {
   try {
     const PLAYBACK_JUMP_TICK_INCREMENT = 50
     const tick = getState().playback.tick
@@ -154,7 +148,7 @@ export const playbackJumpAction = async direction => {
   }
 }
 
-export const togglePlaybackAction = async (playing = undefined) => {
+export const togglePlaybackAction = (playing = undefined) => async (dispatch, getState) => {
   try {
     // Use {playing} value if provided - otherwise use the inverse of current value
     const isPlaying = playing !== undefined ? playing : !getState().playback.playing
@@ -171,7 +165,7 @@ export const togglePlaybackAction = async (playing = undefined) => {
   }
 }
 
-export const changePlaySpeedAction = async speed => {
+export const changePlaySpeedAction = speed => async (dispatch, getState) => {
   try {
     // Provide the option to pass strings "faster" or "slower" as the {speed} param instead
     // which will simply cycle the options as defined in PlaybackPanel
@@ -182,17 +176,11 @@ export const changePlaySpeedAction = async speed => {
 
     switch (speed) {
       case 'faster':
-        dispatch({
-          type: 'CHANGE_PLAY_SPEED',
-          payload: PLAYBACK_SPEED_OPTIONS[prevIndex].value,
-        })
+        dispatch({ type: 'CHANGE_PLAY_SPEED', payload: PLAYBACK_SPEED_OPTIONS[prevIndex].value })
         break
 
       case 'slower':
-        dispatch({
-          type: 'CHANGE_PLAY_SPEED',
-          payload: PLAYBACK_SPEED_OPTIONS[nextIndex].value,
-        })
+        dispatch({ type: 'CHANGE_PLAY_SPEED', payload: PLAYBACK_SPEED_OPTIONS[nextIndex].value })
         break
 
       default:
@@ -208,7 +196,7 @@ export const changePlaySpeedAction = async speed => {
 // ─── SETTINGS ───────────────────────────────────────────────────────────────────
 //
 
-export const loadSettingsAction = async () => {
+export const loadSettingsAction = () => async (dispatch, getState) => {
   try {
     const defaultSettings = getState().settings
     const settings = await localForage.getItem('settings')
@@ -219,7 +207,7 @@ export const loadSettingsAction = async () => {
   }
 }
 
-export const updateSettingsOptionAction = async (option, value) => {
+export const updateSettingsOptionAction = (option, value) => async dispatch => {
   try {
     await dispatch({ type: 'UPDATE_SETTINGS_OPTION', option, value })
   } catch (error) {
@@ -228,7 +216,7 @@ export const updateSettingsOptionAction = async (option, value) => {
 }
 
 // Provide an action to easily toggle boolean setting options
-export const toggleSettingsOptionAction = async option => {
+export const toggleSettingsOptionAction = option => async (dispatch, getState) => {
   try {
     const settings = getState().settings
     const previousValue = get(settings, option)
@@ -245,7 +233,7 @@ export const toggleSettingsOptionAction = async option => {
 // ─── UI ─────────────────────────────────────────────────────────────────────────
 //
 
-export const toggleUIPanelAction = async (name, active = undefined) => {
+export const toggleUIPanelAction = (name, active = undefined) => async (dispatch, getState) => {
   try {
     // Use {active} value if provided - otherwise use the inverse of current value
     const isActive = active !== undefined ? active : !getState().ui.activePanels.includes(name)
@@ -260,7 +248,7 @@ export const toggleUIPanelAction = async (name, active = undefined) => {
   }
 }
 
-export const popUIPanelAction = async name => {
+export const popUIPanelAction = name => async dispatch => {
   try {
     await dispatch({ type: 'POP_UI_PANEL', payload: { name: name } })
   } catch (error) {

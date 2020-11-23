@@ -1,10 +1,10 @@
 import { useRef, useEffect, useCallback } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
 import keycode from 'keycode'
 
 import * as THREE from 'three'
 import { useThree, Camera } from 'react-three-fiber'
 
+import { useStore, dispatch } from '@redux/store'
 import {
   togglePlaybackAction,
   playbackJumpAction,
@@ -12,6 +12,7 @@ import {
   changePlaySpeedAction,
   toggleSettingsOptionAction,
 } from '@redux/actions'
+
 import { getSceneActors } from '@utils/scene'
 import { useEventListener } from '@utils/hooks'
 
@@ -25,8 +26,7 @@ export const CanvasKeyHandler = () => {
   const { scene, camera, gl, setDefaultCamera } = useThree()
 
   // Redux states / actions
-  const controls: any = useSelector((state: any) => state.scene.controls)
-  const dispatch = useDispatch()
+  const controls: any = useStore((state: any) => state.scene.controls)
   const togglePlayback = useCallback(() => dispatch(togglePlaybackAction()), [dispatch])
   const playbackJump = useCallback(direction => dispatch(playbackJumpAction(direction)), [dispatch])
   const changePlaySpeed = useCallback(speed => dispatch(changePlaySpeedAction(speed)), [dispatch])

@@ -1,8 +1,9 @@
 import React from 'react'
-import { useSelector } from 'react-redux'
 
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 import { ClassIcon } from '@components/UI/ClassIcon'
+
+import { useStore } from '@redux/store'
 
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { parseClassHealth } from '@utils/players'
@@ -12,7 +13,7 @@ export interface FocusedPlayerProps {
 }
 
 export const FocusedPlayer = (props: FocusedPlayerProps) => {
-  const { mode, focusedObject } = useSelector((state: any) => state.scene.controls)
+  const { mode, focusedObject } = useStore((state: any) => state.scene.controls)
 
   if (mode !== 'pov' || !focusedObject) return null
 

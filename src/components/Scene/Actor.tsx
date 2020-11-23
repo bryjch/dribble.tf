@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, Suspense, useState } from 'react'
-import { useSelector } from 'react-redux'
 
 import * as THREE from 'three'
 import { useThree } from 'react-three-fiber'
@@ -10,6 +9,7 @@ import { SkeletonUtils } from 'three/examples/jsm/utils/SkeletonUtils'
 import { Nameplate } from '@components/Scene/Nameplate'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 
+import { useStore } from '@redux/store'
 import { CLASS_MAP, ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { objCoordsToVector3, radianizeVector } from '@utils/geometry'
 import { getAsset } from '@utils/misc'
@@ -101,7 +101,7 @@ export const Actor = (props: CachedPlayer) => {
   const [changing, setChanging] = useState<boolean>(false)
   const { scene } = useThree()
 
-  const uiSettings = useSelector((state: any) => state.settings.ui)
+  const uiSettings = useStore((state: any) => state.settings.ui)
 
   const { classId, health, team, user, healTarget } = props
   let { position, viewAngles } = props
@@ -289,7 +289,7 @@ export interface POVCameraProps {}
 export const POVCamera = (props: POVCameraProps) => {
   const ref = useRef<THREE.PerspectiveCamera>()
 
-  const settings = useSelector((state: any) => state.settings)
+  const settings = useStore((state: any) => state.settings)
 
   // // Un-comment this to render camera helpers for debugging
   // const { scene } = useThree()

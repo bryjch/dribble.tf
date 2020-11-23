@@ -1,5 +1,6 @@
-import create from 'zustand'
-import { devtools, redux } from 'zustand/middleware'
+import { createStore, applyMiddleware } from 'redux'
+import { composeWithDevTools } from 'redux-devtools-extension'
+import thunk from 'redux-thunk'
 import * as THREE from 'three'
 
 import rootReducer from './reducer'
@@ -67,9 +68,6 @@ const initialState = {
   },
 }
 
-const [useStore, storeApi] = create(devtools(redux(rootReducer, initialState)))
+const store = createStore(rootReducer, initialState, composeWithDevTools(applyMiddleware(thunk)))
 
-const dispatch = storeApi.dispatch
-const getState = useStore.getState
-
-export { useStore, storeApi, dispatch, getState }
+export default store

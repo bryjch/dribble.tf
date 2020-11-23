@@ -1,11 +1,15 @@
-import React from 'react'
+import React, { useCallback } from 'react'
 import { clamp } from 'lodash'
+import { useThree } from 'react-three-fiber'
 
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 import { ClassIcon } from '@components/UI/ClassIcon'
 
+import { useStore } from '@redux/store'
+
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
+import { getSceneActors, getSceneActor } from '@utils/scene'
 import { hexToRgba } from '@utils/styling'
 
 //
@@ -124,12 +128,15 @@ export const StatusItem = (props: StatusItemProps) => {
   const { player, type, team, alignment } = props
   let name, health, percentage, itemCls, healthCls, icon
 
+  // const { scene, camera, gl, setDefaultCamera } = useThree()
+  const controls: any = useStore((state: any) => state.scene.controls)
+
   switch (type) {
     case 'player':
       name = player.user.name
       health = player.health
       percentage = parseClassHealth(player.classId, health).percentage
-      itemCls = `align-${alignment} ${health === 0 ? 'dead' : ''}`
+      itemCls = `player align-${alignment} ${health === 0 ? 'dead' : ''}`
       healthCls = percentage > 100 ? 'overhealed' : percentage < 40 ? 'low' : ''
       icon = <ClassIcon classId={player.classId} />
       break
@@ -138,12 +145,38 @@ export const StatusItem = (props: StatusItemProps) => {
       name = 'Charge' // TODO: display medi gun type (requires additional parsing)
       health = player.chargeLevel || 0
       percentage = player.chargeLevel || 0
-      itemCls = `align-${alignment}`
+      itemCls = `uber align-${alignment}`
       break
   }
 
+  // const onClickItem = useCallback(() => {
+  //   if (type === 'player') {
+  //     // console.log(getSceneActor(scene, player.user.entityId))
+
+  //     /*
+  //     // jump to player POV
+
+  //       // Determine which Actor's POV should be focused next
+  //       let actors = getSceneActors(scene)
+  //       let currentIndex = controls.focusedObject
+  //         ? actors.findIndex(({ id }) => id === controls.focusedObject.id)
+  //         : -1
+  //       let nextIndex = (currentIndex + 1) % actors.length
+
+  //       const payload: any = {}
+
+  //       changeControlsMode('pov', payload)
+  //       povCamera = payload.focusedObject.getObjectByName('povCamera') as Camera
+  //       if (povCamera) setDefaultCamera(povCamera)
+
+  //       keysHeld.current.set('up', true)
+  //       */
+  //   }
+  // }, [scene])
+
   return (
     <>
+      {/* <div className={`player-status-item ${itemCls}`} onClick={(onClickItem)}> */}
       <div className={`player-status-item ${itemCls}`}>
         {icon && <div className="class-icon-container">{icon}</div>}
 
@@ -172,6 +205,46 @@ export const StatusItem = (props: StatusItemProps) => {
           font-weight: 600;
           width: ${STATUS_ITEM_WIDTH};
           height: ${STATUS_ITEM_HEIGHT};
+
+          &.player {
+            cursor: pointer;
+          }
+
+          &.uber {
+          }
+
+          &.align-left {
+            flex-flow: row nowrap;
+
+            .details-container {
+              flex-flow: row nowrap;
+            }
+
+            .fill {
+              left: 0;
+            }
+          }
+
+          &.align-right {
+            flex-flow: row-reverse nowrap;
+
+            .details-container {
+              flex-flow: row-reverse nowrap;
+            }
+
+            .fill {
+              right: 0;
+            }
+          }
+
+          &.dead {
+            background: rgba(0, 0, 0, 0.8);
+            opacity: 0.4;
+
+            .details-container {
+              background: none;
+            }
+          }
 
           .class-icon-container {
             display: flex;
@@ -230,39 +303,6 @@ export const StatusItem = (props: StatusItemProps) => {
               &.low {
                 color: ${ACTOR_TEAM_COLORS(team).healthLow};
               }
-            }
-          }
-
-          &.align-left {
-            flex-flow: row nowrap;
-
-            .details-container {
-              flex-flow: row nowrap;
-            }
-
-            .fill {
-              left: 0;
-            }
-          }
-
-          &.align-right {
-            flex-flow: row-reverse nowrap;
-
-            .details-container {
-              flex-flow: row-reverse nowrap;
-            }
-
-            .fill {
-              right: 0;
-            }
-          }
-
-          &.dead {
-            background: rgba(0, 0, 0, 0.8);
-            opacity: 0.4;
-
-            .details-container {
-              background: none;
             }
           }
         }

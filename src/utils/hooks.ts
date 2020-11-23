@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useState, useEffect, useLayoutEffect } from 'react'
 
 /**
  * Hook for easily adding element event listeners which will gracefully cleanup
@@ -41,4 +41,25 @@ export function useEventListener(
     },
     [eventName, element] // Re-run if eventName or element changes
   )
+}
+
+export function useAnimationFrame(callback: (deltaTime: number) => any) {
+  // Use useRef for mutable variables that we want to persist
+  // without triggering a re-render on their change
+  const requestRef = useRef<number>(0)
+  const previousTimeRef = useRef<number>(0)
+
+  const animate = (time: number) => {
+    if (previousTimeRef.current != undefined) {
+      const deltaTime = time - previousTimeRef.current
+      callback(deltaTime)
+    }
+    previousTimeRef.current = time
+    requestRef.current = requestAnimationFrame(animate)
+  }
+
+  useEffect(() => {
+    requestRef.current = requestAnimationFrame(animate)
+    return () => cancelAnimationFrame(requestRef.current)
+  }, []) // Make sure the effect runs only once
 }
