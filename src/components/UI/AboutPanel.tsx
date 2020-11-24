@@ -74,6 +74,8 @@ export const AboutPanel = () => {
               <b>LMB</b> ... rotate camera
               <br />
               <b>RMB / WASD</b> ... pan camera
+              <br />
+              <b>F</b> ... drawing tools
             </p>
 
             <p>
