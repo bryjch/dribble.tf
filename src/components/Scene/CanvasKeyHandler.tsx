@@ -71,10 +71,14 @@ export const CanvasKeyHandler = () => {
             break
 
           case '1':
+            if (keysHeld.current.has('1')) return null // Prevent rapid camera cycling
+            keysHeld.current.set('1', true)
             changeControlsMode('pov')
             break
 
           case '3':
+            if (keysHeld.current.has('3')) return null // Prevent rapid camera cycling
+            keysHeld.current.set('3', true)
             changeControlsMode('free')
             break
         }
@@ -88,11 +92,11 @@ export const CanvasKeyHandler = () => {
   const canvasKeyUp = useCallback((event: KeyboardEvent) => {
     switch (keycode(event)) {
       case '1':
-        keysHeld.current.delete('up')
+        keysHeld.current.delete('1')
         break
 
       case '3':
-        keysHeld.current.delete('down')
+        keysHeld.current.delete('3')
         break
     }
   }, [])
