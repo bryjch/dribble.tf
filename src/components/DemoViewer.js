@@ -80,9 +80,7 @@ const Controls = props => {
       let cameraOffset, controlsOffset
 
       if (focusedObject) {
-        // TODO: Determine what angle the focusedObject is facing, then adjust the
-        // camera offset so that it's facing the same direction as the focusedObject
-        cameraOffset = new THREE.Vector3(500, 0, 500)
+        cameraOffset = new THREE.Vector3(-700, 0, 1200).applyQuaternion(focusedObject.quaternion)
         controlsOffset = new THREE.Vector3(0, 0, 100)
       } else {
         cameraOffset = new THREE.Vector3(1000, -1000, 1000)
