@@ -1,6 +1,6 @@
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 
-import { ORDER_MAP, HEALTH_MAP } from '@constants/mappings'
+import { CLASS_ORDER_MAP, HEALTH_MAP } from '@constants/mappings'
 
 /*
  * Function to sort Players based on classId descending.
@@ -8,7 +8,7 @@ import { ORDER_MAP, HEALTH_MAP } from '@constants/mappings'
  */
 
 export const sortPlayersByClassId = (a: CachedPlayer, b: CachedPlayer) => {
-  return ORDER_MAP[a.classId] < ORDER_MAP[b.classId] ? -1 : 1
+  return CLASS_ORDER_MAP[a.classId] < CLASS_ORDER_MAP[b.classId] ? -1 : 1
 }
 
 /*

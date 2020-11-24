@@ -1,4 +1,4 @@
-import { get, merge, clamp } from 'lodash'
+import { get, merge, clamp, sortBy } from 'lodash'
 import localForage from 'localforage'
 import * as THREE from 'three'
 
@@ -8,6 +8,7 @@ import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { getSceneActors } from '@utils/scene'
 import { objCoordsToVector3 } from '@utils/geometry'
+import { CLASS_ORDER_MAP } from '@constants/mappings'
 
 import { dispatch, getState, useInstance } from './store'
 
@@ -97,12 +98,27 @@ export const changeControlsModeAction = async (mode, options = {}) => {
     if (mode === 'pov') {
       const { direction = 'next' } = options
 
-      // TODO: would be better if could sort this based on class as well, but since that
-      // data changes per-tick, it's a bit awkward trying to get that information. It would
-      // probably require saving playersThisTick information in the "Instance Store" so it
-      // can be accessed a bit easier (need to consider performance implications though)
+      // In order to determine which POV we should follow next, we have to figure out the
+      // players at the current tick & what classes they currently are. This information isn't
+      // available in the THREE.js scene directly, so we need to call getPlayersAtTick() and
+      // then "append" that information to each scene Actor. This definitely seems suboptimal,
+      // but this action should not be called super frequently so we'll just let it slide.
+      const tick = getState().playback.tick
+      const demo = useInstance.getState().parsedDemo
+      let playersThisTick = demo.getPlayersAtTick(tick)
+
       let actors = getSceneActors(useInstance.getState().threeScene)
-      actors.sort((a, b) => a.userData.team.localeCompare(b.userData.team))
+
+      // Append the current selected class to the Actor
+      actors.forEach(actor => {
+        const player = playersThisTick.find(
+          player => player.user.entityId === actor.userData.entityId
+        )
+        actor.userData.classId = player?.classId || 0
+      })
+
+      // Sort by teams then class order
+      actors = sortBy(actors, [o => o.userData.team, o => CLASS_ORDER_MAP[o.userData.classId]])
 
       const focusedObject = useInstance.getState().focusedObject
       const lastFocusedPOV = useInstance.getState().lastFocusedPOV

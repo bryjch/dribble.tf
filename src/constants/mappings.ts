@@ -24,7 +24,7 @@ export const CLASS_MAP: { [key: number]: string } = {
   9: 'engineer',
 }
 
-export const ORDER_MAP: { [key: number]: number } = {
+export const CLASS_ORDER_MAP: { [key: number]: number } = {
   0: 0,
   1: 1,
   2: 8,
