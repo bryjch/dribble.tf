@@ -26,7 +26,7 @@ import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 
 // Actions & utils
 import { useStore, getState, dispatch, useInstance } from '@zus/store'
-import { goToTickAction, popUIPanelAction } from '@zus/actions'
+import { goToTickAction } from '@zus/actions'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -152,15 +152,11 @@ class DemoViewer extends React.Component {
       settings => this.setState({ settings }),
       state => state.settings
     )
-
-    this.demoViewer.addEventListener('keydown', this.globalKeyDown)
   }
 
   componentWillUnmount() {
     this.playbackSub()
     this.settingsSub()
-
-    this.demoViewer.removeEventListener('keydown', this.globalKeyDown)
   }
 
   //
@@ -190,27 +186,6 @@ class DemoViewer extends React.Component {
     this.lastTimestamp = timestamp
 
     requestAnimationFrame(this.animate)
-  }
-
-  //
-  // ─── KEYDOWN HANDLERS ───────────────────────────────────────────────────────────
-  //
-
-  globalKeyDown = ({ keyCode }) => {
-    const keys = { ESC: 27 }
-
-    try {
-      switch (keyCode) {
-        case keys.ESC:
-          dispatch(popUIPanelAction())
-          break
-
-        default:
-          break
-      }
-    } catch (error) {
-      console.error(error)
-    }
   }
 
   //

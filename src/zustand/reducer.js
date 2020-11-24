@@ -94,19 +94,34 @@ const reducers = (state = {}, action) => {
     case 'SET_UI_PANEL_ACTIVE':
       return {
         ...state,
-        ui: { activePanels: uniq([...state.ui.activePanels, action.payload.name]) },
+        ui: { ...state.ui, activePanels: uniq([...state.ui.activePanels, action.payload.name]) },
       }
 
     case 'SET_UI_PANEL_INACTIVE':
       return {
         ...state,
-        ui: { activePanels: without(state.ui.activePanels, action.payload.name) },
+        ui: { ...state.ui, activePanels: without(state.ui.activePanels, action.payload.name) },
       }
 
     case 'POP_UI_PANEL':
       return {
         ...state,
-        ui: { activePanels: state.ui.activePanels.slice(0, state.ui.activePanels.length - 1) },
+        ui: {
+          ...state.ui,
+          activePanels: state.ui.activePanels.slice(0, state.ui.activePanels.length - 1),
+        },
+      }
+
+    case 'SET_DRAWING_ACTIVE':
+      return {
+        ...state,
+        drawing: { ...state.drawing, enabled: true },
+      }
+
+    case 'SET_DRAWING_INACTIVE':
+      return {
+        ...state,
+        drawing: { ...state.drawing, enabled: false },
       }
 
     default:

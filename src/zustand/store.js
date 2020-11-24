@@ -18,10 +18,12 @@ const useInstance = create(set => ({
   parsedDemo: null,
   focusedObject: null,
   lastFocusedPOV: null,
+  drawingCanvas: null,
   setThreeScene: threeScene => set({ threeScene }),
   setParsedDemo: parsedDemo => set({ parsedDemo }),
   setFocusedObject: focusedObject => set({ focusedObject }),
   setLastFocusedPOV: lastFocusedPOV => set({ lastFocusedPOV }),
+  setDrawingCanvas: drawingCanvas => set({ drawingCanvas }),
 }))
 
 // This "Standard Store" is pretty much just a typical Redux store. Note that we are using
@@ -59,6 +61,10 @@ const initialState = {
     maxTicks: 3000,
   },
 
+  drawing: {
+    enabled: false,
+  },
+
   settings: {
     scene: {
       mode: 'untextured',
@@ -75,6 +81,10 @@ const initialState = {
       rotateSpeed: 3,
       zoomSpeed: 5,
       enableDamping: true,
+    },
+    drawing: {
+      activation: 'toggle', // 'hold',
+      autoClear: true,
     },
     ui: {
       nameplate: {

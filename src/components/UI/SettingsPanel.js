@@ -185,6 +185,10 @@ export const SettingsPanel = () => {
             Camera
           </Divider>
 
+          <Option label="POV Camera (next)" keyCode="1" leftClass="col" />
+          <Option label="POV Camera (prev)" keyCode="Shift + 1" leftClass="col" />
+          <Option label="Free Camera" keyCode="3" leftClass="col" />
+
           <SliderOption
             label="FOV"
             min={50}
@@ -217,12 +221,6 @@ export const SettingsPanel = () => {
             checked={settings.controls.enableDamping}
             onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
           />
-
-          <Option label="POV Camera (next)" keyCode="1" leftClass="col" />
-
-          <Option label="POV Camera (prev)" keyCode="Shift + 1" leftClass="col" />
-
-          <Option label="Free Camera" keyCode="3" leftClass="col" />
 
           {/* ************************************************************* */}
 
@@ -306,6 +304,42 @@ export const SettingsPanel = () => {
           {/* ************************************************************* */}
 
           <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
+            Drawing
+          </Divider>
+
+          <Option label="Activate" keyCode="F" leftClass="col" />
+          <Option label="Clear" keyCode="C" leftClass="col" />
+          <Option label="Undo" keyCode="Z" leftClass="col" />
+
+          <Option label="Activation method" leftClass="col" rightClass="col-auto">
+            <Button.Group size="tiny">
+              <Button
+                compact
+                color={settings.drawing.activation === 'hold' ? 'blue' : undefined}
+                onClick={() => updateSettingsOption('drawing.activation', 'hold')}
+              >
+                Hold
+              </Button>
+
+              <Button
+                compact
+                color={settings.drawing.activation === 'toggle' ? 'blue' : undefined}
+                onClick={() => updateSettingsOption('drawing.activation', 'toggle')}
+              >
+                Toggle
+              </Button>
+            </Button.Group>
+          </Option>
+
+          <ToggleOption
+            label="Auto clear when dismissed"
+            checked={settings.drawing.autoClear}
+            onChange={checked => updateSettingsOption('drawing.autoClear', checked)}
+          />
+
+          {/* ************************************************************* */}
+
+          <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
             Misc
           </Divider>
 
@@ -338,6 +372,8 @@ export const SettingsPanel = () => {
 
           .content {
             padding: 0rem 1.5rem 1rem 1.5rem;
+            max-height: 70vh;
+            overflow: auto;
           }
         }
       `}</style>

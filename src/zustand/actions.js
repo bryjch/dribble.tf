@@ -351,9 +351,35 @@ export const toggleUIPanelAction = async (name, active = undefined) => {
   }
 }
 
-export const popUIPanelAction = async name => {
+export const popUIPanelAction = async () => {
   try {
-    await dispatch({ type: 'POP_UI_PANEL', payload: { name: name } })
+    await dispatch({ type: 'POP_UI_PANEL' })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+//
+// ─── DRAWING ────────────────────────────────────────────────────────────────────
+//
+
+export const toggleUIDrawingAction = async (active = undefined) => {
+  try {
+    // Use {active} value if provided - otherwise use the inverse of current value
+    const isActive = active !== undefined ? active : !getState().drawing.enabled
+
+    if (isActive) {
+      await dispatch({ type: 'SET_DRAWING_ACTIVE' })
+    } else {
+      await dispatch({ type: 'SET_DRAWING_INACTIVE' })
+
+      const shouldAutoClear = getState().settings.drawing.autoClear
+      const drawingCanvas = useInstance.getState().drawingCanvas
+
+      if (shouldAutoClear) {
+        drawingCanvas.clear()
+      }
+    }
   } catch (error) {
     console.error(error)
   }

@@ -1,7 +1,9 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 
+import { GlobalKeyHandler } from '@components/GlobalKeyHandler'
 import { DemoDropzone } from '@components/DemoDropzone'
+import { DemoDrawing } from '@components/DemoDrawing'
 import { DemoViewer } from '@components/DemoViewer'
 
 import { parseDemoAction } from '@zus/actions'
@@ -34,6 +36,8 @@ const ViewerPage = () => {
 
   return (
     <div>
+      <GlobalKeyHandler />
+
       <DemoViewer demo={parsedDemo} />
 
       <div className="ui-layer loading-demo">
@@ -45,6 +49,10 @@ const ViewerPage = () => {
         >
           <div>Parsing demo... {parser.progress}%</div>
         </motion.div>
+      </div>
+
+      <div className="ui-layer canvas-draw">
+        <DemoDrawing />
       </div>
 
       {parser.status !== 'loading' && (
