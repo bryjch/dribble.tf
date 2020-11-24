@@ -8,8 +8,9 @@ import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { getSceneActors } from '@utils/scene'
 import { objCoordsToVector3 } from '@utils/geometry'
+import { sortPlayersByClassId } from '@utils/players'
 
-import { dispatch, getState, useInstance } from './store'
+import { dispatch, useStore, getState, useInstance } from './store'
 
 //
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
@@ -95,13 +96,33 @@ export const changeControlsModeAction = async (mode, options = {}) => {
     if (!['free', 'follow', 'pov'].includes(mode)) return null
 
     if (mode === 'pov') {
-      const actors = getSceneActors(useInstance.getState().threeScene)
+      const { direction = 'next' } = options
+
+      // TODO: would be better if could sort this based on class as well, but since that
+      // data changes per-tick, it's a bit awkward trying to get that information. It would
+      // probably require saving playersThisTick information in the "Instance Store" so it
+      // can be accessed a bit easier (need to consider performance implications though)
+      let actors = getSceneActors(useInstance.getState().threeScene)
+      actors.sort((a, b) => a.userData.team.localeCompare(b.userData.team))
+
       const focusedObject = useInstance.getState().focusedObject
       const lastFocusedPOV = useInstance.getState().lastFocusedPOV
 
       const currentIndex = focusedObject ? actors.findIndex(({ id }) => id === focusedObject.id) : 0
-      const nextIndex = (currentIndex + 1) % actors.length
-      const nextActor = actors[nextIndex]
+      let nextIndex, nextActor
+
+      switch (direction) {
+        case 'prev':
+          nextIndex = (currentIndex + actors.length - 1) % actors.length
+          break
+
+        case 'next':
+        default:
+          nextIndex = (currentIndex + 1) % actors.length
+          break
+      }
+
+      nextActor = actors[nextIndex]
 
       // Player transitioned from FREE to POV
       // So we should go back to the POV of the last person they spectated

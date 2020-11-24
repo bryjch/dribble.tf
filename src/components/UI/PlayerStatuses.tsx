@@ -9,7 +9,7 @@ import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
 import { focusMainCanvas } from '@utils/misc'
 import { hexToRgba } from '@utils/styling'
 
-import { dispatch } from '@zus/store'
+import { useInstance, dispatch } from '@zus/store'
 import { jumpToPlayerPOVCamera } from '@zus/actions'
 
 //
@@ -25,6 +25,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
   const redPlayers = []
 
   const { players } = props
+  const focusedEntity = useInstance((state: any) => state?.focusedObject?.userData?.entityId)
 
   for (const player of players) {
     if (player.team === 'blue') bluePlayers.push(player)
@@ -44,6 +45,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
             player={player}
             team="blue"
             alignment="left"
+            focused={focusedEntity === player.user.entityId}
           />
         ))}
 
@@ -68,6 +70,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
             player={player}
             team="red"
             alignment="right"
+            focused={focusedEntity === player.user.entityId}
           />
         ))}
 
@@ -122,10 +125,11 @@ export interface StatusItemProps {
   type: 'player' | 'uber'
   team: 'blue' | 'red'
   alignment: 'left' | 'right'
+  focused?: boolean
 }
 
 export const StatusItem = (props: StatusItemProps) => {
-  const { player, type, team, alignment } = props
+  const { player, type, team, alignment, focused } = props
   let name, health, percentage, itemCls, healthCls, icon
 
   switch (type) {
@@ -133,7 +137,9 @@ export const StatusItem = (props: StatusItemProps) => {
       name = player.user.name
       health = player.health
       percentage = parseClassHealth(player.classId, health).percentage
-      itemCls = `player align-${alignment} ${health === 0 ? 'dead' : ''}`
+      itemCls = `player align-${alignment} ${focused ? 'focused' : ''} ${
+        health === 0 ? 'dead' : ''
+      }`
       healthCls = percentage > 100 ? 'overhealed' : percentage < 40 ? 'low' : ''
       icon = <ClassIcon classId={player.classId} />
       break
@@ -188,6 +194,10 @@ export const StatusItem = (props: StatusItemProps) => {
           }
 
           &.uber {
+          }
+
+          &.focused {
+            outline: 3px solid #fbff09;
           }
 
           &.align-left {

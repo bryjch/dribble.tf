@@ -27,7 +27,8 @@ export const CanvasKeyHandler = () => {
   const togglePlayback = () => dispatch(togglePlaybackAction())
   const playbackJump = (direction: any) => dispatch(playbackJumpAction(direction))
   const changePlaySpeed = (speed: any) => dispatch(changePlaySpeedAction(speed))
-  const changeControlsMode = (mode: any) => dispatch(changeControlsModeAction(mode))
+  const changeControlsMode = (mode: any, options?: any) =>
+    dispatch(changeControlsModeAction(mode, options))
   const toggleSettingsOption = (option: any) => dispatch(toggleSettingsOptionAction(option))
 
   const canvasKeyDown = useCallback(
@@ -73,7 +74,7 @@ export const CanvasKeyHandler = () => {
           case '1':
             if (keysHeld.current.has('1')) return null // Prevent rapid camera cycling
             keysHeld.current.set('1', true)
-            changeControlsMode('pov')
+            changeControlsMode('pov', { direction: event.shiftKey ? 'prev' : 'next' })
             break
 
           case '3':
