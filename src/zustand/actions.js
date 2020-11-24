@@ -8,9 +8,8 @@ import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { getSceneActors } from '@utils/scene'
 import { objCoordsToVector3 } from '@utils/geometry'
-import { sortPlayersByClassId } from '@utils/players'
 
-import { dispatch, useStore, getState, useInstance } from './store'
+import { dispatch, getState, useInstance } from './store'
 
 //
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
