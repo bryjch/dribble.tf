@@ -129,7 +129,7 @@ export const StatusItem = (props: StatusItemProps) => {
       name = player.user.name
       health = player.health
       percentage = parseClassHealth(player.classId, health).percentage
-      itemCls = `align-${alignment} ${health === 0 ? 'dead' : ''}`
+      itemCls = `player align-${alignment} ${health === 0 ? 'dead' : ''}`
       healthCls = percentage > 100 ? 'overhealed' : percentage < 40 ? 'low' : ''
       icon = <ClassIcon classId={player.classId} />
       break
@@ -138,7 +138,7 @@ export const StatusItem = (props: StatusItemProps) => {
       name = 'Charge' // TODO: display medi gun type (requires additional parsing)
       health = player.chargeLevel || 0
       percentage = player.chargeLevel || 0
-      itemCls = `align-${alignment}`
+      itemCls = `uber align-${alignment}`
       break
   }
 
@@ -172,6 +172,46 @@ export const StatusItem = (props: StatusItemProps) => {
           font-weight: 600;
           width: ${STATUS_ITEM_WIDTH};
           height: ${STATUS_ITEM_HEIGHT};
+
+          &.player {
+            cursor: pointer;
+          }
+
+          &.uber {
+          }
+
+          &.align-left {
+            flex-flow: row nowrap;
+
+            .details-container {
+              flex-flow: row nowrap;
+            }
+
+            .fill {
+              left: 0;
+            }
+          }
+
+          &.align-right {
+            flex-flow: row-reverse nowrap;
+
+            .details-container {
+              flex-flow: row-reverse nowrap;
+            }
+
+            .fill {
+              right: 0;
+            }
+          }
+
+          &.dead {
+            background: rgba(0, 0, 0, 0.8);
+            opacity: 0.4;
+
+            .details-container {
+              background: none;
+            }
+          }
 
           .class-icon-container {
             display: flex;
@@ -230,39 +270,6 @@ export const StatusItem = (props: StatusItemProps) => {
               &.low {
                 color: ${ACTOR_TEAM_COLORS(team).healthLow};
               }
-            }
-          }
-
-          &.align-left {
-            flex-flow: row nowrap;
-
-            .details-container {
-              flex-flow: row nowrap;
-            }
-
-            .fill {
-              left: 0;
-            }
-          }
-
-          &.align-right {
-            flex-flow: row-reverse nowrap;
-
-            .details-container {
-              flex-flow: row-reverse nowrap;
-            }
-
-            .fill {
-              right: 0;
-            }
-          }
-
-          &.dead {
-            background: rgba(0, 0, 0, 0.8);
-            opacity: 0.4;
-
-            .details-container {
-              background: none;
             }
           }
         }

@@ -1,8 +1,8 @@
-import React, { useCallback } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import React from 'react'
 import { Icon, Popup, Dropdown, IconProps, PopupProps } from 'semantic-ui-react'
 
-import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@redux/actions'
+import { useStore, dispatch } from '@zus/store'
+import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@zus/actions'
 import { focusMainCanvas } from '@utils/misc'
 
 export const PLAYBACK_SPEED_OPTIONS = [
@@ -46,30 +46,23 @@ const PlaybackAction = (props: PlaybackActionProps) => {
 }
 
 export const PlaybackPanel = () => {
-  const playback = useSelector((state: any) => state.playback)
+  const playback = useStore((state: any) => state.playback)
   const { playing, speed, tick, maxTicks } = playback
 
-  const dispatch = useDispatch()
-
-  const togglePlayback = useCallback(() => {
+  const togglePlayback = () => {
     dispatch(togglePlaybackAction())
     focusMainCanvas()
-  }, [dispatch])
+  }
 
-  const changePlaySpeed = useCallback(
-    speed => {
-      dispatch(changePlaySpeedAction(speed))
-      focusMainCanvas()
-    },
-    [dispatch]
-  )
-  const goToTick = useCallback(
-    tick => {
-      dispatch(goToTickAction(tick))
-      focusMainCanvas()
-    },
-    [dispatch]
-  )
+  const changePlaySpeed = (speed: number) => {
+    dispatch(changePlaySpeedAction(speed))
+    focusMainCanvas()
+  }
+
+  const goToTick = (tick: number) => {
+    dispatch(goToTickAction(tick))
+    focusMainCanvas()
+  }
 
   return (
     <div className="panel">

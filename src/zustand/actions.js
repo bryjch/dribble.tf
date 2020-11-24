@@ -6,38 +6,41 @@ import { ActorDimensions } from '@components/Scene/Actor'
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
+import { getSceneActors } from '@utils/scene'
 import { objCoordsToVector3 } from '@utils/geometry'
+
+import { dispatch, getState, useInstance } from './store'
 
 //
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
 //
 
-export const buildDemoParserAction = file => async dispatch => {
+export const parseDemoAction = async fileBuffer => {
   try {
-    await dispatch({ type: 'BUILD_DEMO_PARSER_INIT' })
+    await dispatch({ type: 'PARSE_DEMO_INIT' })
 
-    const parser = new AsyncParser(file, async progress => {
-      await dispatch({ type: 'BUILD_DEMO_PARSER_PROGRESS', payload: progress })
+    const parsedDemo = new AsyncParser(fileBuffer, async progress => {
+      await dispatch({ type: 'PARSE_DEMO_PROGRESS', payload: progress })
     })
 
     try {
-      await parser.cache()
+      await parsedDemo.cache()
     } catch (error) {
       alert(`Unable to load demo. Please make sure it's a valid SourceTV .dem file.`)
       throw error
     }
 
-    console.log('%c-------- Parser loaded --------', 'color: blue; font-size: 16px;')
-    console.log(parser)
-    console.log('%c-------------------------------', 'color: blue; font-size: 16px;')
+    console.log('%c-------- Demo parsed --------', 'color: blue; font-size: 16px;')
+    console.log(parsedDemo)
+    console.log('%c-----------------------------', 'color: blue; font-size: 16px;')
 
-    await dispatch({ type: 'BUILD_DEMO_PARSER_SUCCESS', payload: parser })
+    await dispatch({ type: 'PARSE_DEMO_SUCCESS' })
 
-    dispatch(loadSceneFromParserAction(parser))
+    await dispatch(loadSceneFromDemoAction(parsedDemo))
 
-    return parser
+    return parsedDemo
   } catch (error) {
-    await dispatch({ type: 'BUILD_DEMO_PARSER_ERROR', payload: error })
+    await dispatch({ type: 'PARSE_DEMO_ERROR', payload: error })
     throw error
   }
 }
@@ -46,36 +49,39 @@ export const buildDemoParserAction = file => async dispatch => {
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
 //
 
-export const loadSceneFromParserAction = parser => async dispatch => {
+export const loadSceneFromDemoAction = async parsedDemo => {
   try {
     await dispatch(toggleUIPanelAction('AboutPanel', false))
+
+    // Remember to update the non-redux instances!
+    await useInstance.getState().setParsedDemo(parsedDemo)
+    await useInstance.getState().setFocusedObject(null)
 
     await dispatch({
       type: 'LOAD_SCENE_FROM_PARSER',
       payload: {
         scene: {
-          players: parser.entityPlayerMap,
-          map: parser.header.map,
+          players: parsedDemo.entityPlayerMap,
+          map: parsedDemo.header.map,
           bounds: {
-            min: objCoordsToVector3(parser.world.boundaryMin),
-            max: objCoordsToVector3(parser.world.boundaryMax),
+            min: objCoordsToVector3(parsedDemo.world.boundaryMin),
+            max: objCoordsToVector3(parsedDemo.world.boundaryMax),
             center: new THREE.Vector3(
-              0.5 * (parser.world.boundaryMax.x - parser.world.boundaryMin.x),
-              0.5 * (parser.world.boundaryMax.y - parser.world.boundaryMin.y),
-              -parser.world.boundaryMin.z - 0.5 * ActorDimensions.z
+              0.5 * (parsedDemo.world.boundaryMax.x - parsedDemo.world.boundaryMin.x),
+              0.5 * (parsedDemo.world.boundaryMax.y - parsedDemo.world.boundaryMin.y),
+              -parsedDemo.world.boundaryMin.z - 0.5 * ActorDimensions.z
             ),
           },
           controls: {
             mode: 'free',
-            focusedObject: null,
           },
         },
         playback: {
           playing: true,
           speed: 1,
           tick: 1,
-          maxTicks: parser.ticks - 1,
-          intervalPerTick: parser.intervalPerTick,
+          maxTicks: parsedDemo.ticks - 1,
+          intervalPerTick: parsedDemo.intervalPerTick,
         },
       },
     })
@@ -84,16 +90,71 @@ export const loadSceneFromParserAction = parser => async dispatch => {
   }
 }
 
-export const changeControlsModeAction = (mode, options = {}) => async dispatch => {
+export const changeControlsModeAction = async (mode, options = {}) => {
   try {
     if (!['free', 'follow', 'pov'].includes(mode)) return null
 
-    const { focusedObject } = options
+    if (mode === 'pov') {
+      const actors = getSceneActors(useInstance.getState().threeScene)
+      const focusedObject = useInstance.getState().focusedObject
+      const lastFocusedPOV = useInstance.getState().lastFocusedPOV
 
-    const payload = { mode: mode }
-    if (focusedObject !== undefined) payload.focusedObject = focusedObject
+      const currentIndex = focusedObject ? actors.findIndex(({ id }) => id === focusedObject.id) : 0
+      const nextIndex = (currentIndex + 1) % actors.length
+      const nextActor = actors[nextIndex]
 
-    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: payload })
+      // Player transitioned from FREE to POV
+      // So we should go back to the POV of the last person they spectated
+      if (focusedObject === null) {
+        const entityId = lastFocusedPOV?.userData?.entityId || actors[0]?.userData?.entityId
+        await dispatch(jumpToPlayerPOVCamera(entityId))
+        return
+      }
+
+      // Player transitioned from POV to POV
+      // So we should spectate to the POV of the next person
+      if (nextActor) {
+        await dispatch(jumpToPlayerPOVCamera(nextActor.userData.entityId))
+        return
+      }
+
+      // No actors found in the scene
+      // Just reset back to FREE camera
+      await dispatch(jumpToFreeCamera())
+    }
+
+    if (mode === 'free') {
+      await dispatch(jumpToFreeCamera())
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const jumpToPlayerPOVCamera = async entityId => {
+  try {
+    const actors = getSceneActors(useInstance.getState().threeScene)
+
+    if (actors.length === 0) return null
+
+    const actor = actors.find(({ userData }) => userData.entityId === entityId)
+
+    if (!actor) return null
+
+    await useInstance.getState().setFocusedObject(actor)
+    await useInstance.getState().setLastFocusedPOV(actor)
+
+    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'pov' })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const jumpToFreeCamera = async (options = {}) => {
+  try {
+    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'free' })
+
+    await useInstance.getState().setFocusedObject(null)
   } catch (error) {
     console.error(error)
   }
@@ -103,7 +164,7 @@ export const changeControlsModeAction = (mode, options = {}) => async dispatch =
 // ─── PLAYBACK ───────────────────────────────────────────────────────────────────
 //
 
-export const goToTickAction = tick => async (dispatch, getState) => {
+export const goToTickAction = async tick => {
   try {
     const maxTicks = getState().playback.maxTicks
 
@@ -118,7 +179,7 @@ export const goToTickAction = tick => async (dispatch, getState) => {
   }
 }
 
-export const playbackJumpAction = direction => async (dispatch, getState) => {
+export const playbackJumpAction = async direction => {
   try {
     const PLAYBACK_JUMP_TICK_INCREMENT = 50
     const tick = getState().playback.tick
@@ -148,7 +209,7 @@ export const playbackJumpAction = direction => async (dispatch, getState) => {
   }
 }
 
-export const togglePlaybackAction = (playing = undefined) => async (dispatch, getState) => {
+export const togglePlaybackAction = async (playing = undefined) => {
   try {
     // Use {playing} value if provided - otherwise use the inverse of current value
     const isPlaying = playing !== undefined ? playing : !getState().playback.playing
@@ -165,7 +226,7 @@ export const togglePlaybackAction = (playing = undefined) => async (dispatch, ge
   }
 }
 
-export const changePlaySpeedAction = speed => async (dispatch, getState) => {
+export const changePlaySpeedAction = async speed => {
   try {
     // Provide the option to pass strings "faster" or "slower" as the {speed} param instead
     // which will simply cycle the options as defined in PlaybackPanel
@@ -176,11 +237,17 @@ export const changePlaySpeedAction = speed => async (dispatch, getState) => {
 
     switch (speed) {
       case 'faster':
-        dispatch({ type: 'CHANGE_PLAY_SPEED', payload: PLAYBACK_SPEED_OPTIONS[prevIndex].value })
+        dispatch({
+          type: 'CHANGE_PLAY_SPEED',
+          payload: PLAYBACK_SPEED_OPTIONS[prevIndex].value,
+        })
         break
 
       case 'slower':
-        dispatch({ type: 'CHANGE_PLAY_SPEED', payload: PLAYBACK_SPEED_OPTIONS[nextIndex].value })
+        dispatch({
+          type: 'CHANGE_PLAY_SPEED',
+          payload: PLAYBACK_SPEED_OPTIONS[nextIndex].value,
+        })
         break
 
       default:
@@ -196,7 +263,7 @@ export const changePlaySpeedAction = speed => async (dispatch, getState) => {
 // ─── SETTINGS ───────────────────────────────────────────────────────────────────
 //
 
-export const loadSettingsAction = () => async (dispatch, getState) => {
+export const loadSettingsAction = async () => {
   try {
     const defaultSettings = getState().settings
     const settings = await localForage.getItem('settings')
@@ -207,7 +274,7 @@ export const loadSettingsAction = () => async (dispatch, getState) => {
   }
 }
 
-export const updateSettingsOptionAction = (option, value) => async dispatch => {
+export const updateSettingsOptionAction = async (option, value) => {
   try {
     await dispatch({ type: 'UPDATE_SETTINGS_OPTION', option, value })
   } catch (error) {
@@ -216,7 +283,7 @@ export const updateSettingsOptionAction = (option, value) => async dispatch => {
 }
 
 // Provide an action to easily toggle boolean setting options
-export const toggleSettingsOptionAction = option => async (dispatch, getState) => {
+export const toggleSettingsOptionAction = async option => {
   try {
     const settings = getState().settings
     const previousValue = get(settings, option)
@@ -233,7 +300,7 @@ export const toggleSettingsOptionAction = option => async (dispatch, getState) =
 // ─── UI ─────────────────────────────────────────────────────────────────────────
 //
 
-export const toggleUIPanelAction = (name, active = undefined) => async (dispatch, getState) => {
+export const toggleUIPanelAction = async (name, active = undefined) => {
   try {
     // Use {active} value if provided - otherwise use the inverse of current value
     const isActive = active !== undefined ? active : !getState().ui.activePanels.includes(name)
@@ -248,7 +315,7 @@ export const toggleUIPanelAction = (name, active = undefined) => async (dispatch
   }
 }
 
-export const popUIPanelAction = name => async dispatch => {
+export const popUIPanelAction = async name => {
   try {
     await dispatch({ type: 'POP_UI_PANEL', payload: { name: name } })
   } catch (error) {

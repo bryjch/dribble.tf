@@ -43,12 +43,12 @@ export const ProjectileModel = (props: ProjectileModelProps) => {
 
 export interface ProjectilesProps {
   parser: AsyncParser
-  playback: any
+  tick: number
 }
 
 export const Projectiles = (props: ProjectilesProps) => {
-  const { parser, playback } = props
-  const projectilesThisTick = parser ? parser.getProjectilesAtTick(playback.tick) : []
+  const { parser, tick } = props
+  const projectilesThisTick = parser ? parser.getProjectilesAtTick(tick) : []
 
   return (
     <group name="projectiles">

@@ -1,5 +1,4 @@
 import React, { useRef, useEffect } from 'react'
-import { connect, useSelector, ReactReduxContext, Provider } from 'react-redux'
 
 // THREE related imports
 import * as THREE from 'three'
@@ -26,7 +25,8 @@ import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 
 // Actions & utils
-import { loadSceneFromParserAction, goToTickAction, popUIPanelAction } from '@redux/actions'
+import { useStore, getState, dispatch, useInstance } from '@zus/store'
+import { goToTickAction, popUIPanelAction } from '@zus/actions'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -39,30 +39,49 @@ THREE.Cache.enabled = true
 // Basic controls for our scene
 extend({ DemoControls })
 
-const FreeControls = props => {
+// This component is messy af but whatever yolo
+const Controls = props => {
   const cameraRef = useRef()
   const controlsRef = useRef()
-  const { gl } = useThree()
+  const { gl, scene, setDefaultCamera } = useThree()
 
-  const settings = useSelector(state => state.settings)
-  const boundsCenter = useSelector(state => state.scene.bounds.center)
-  const lastFocusedObject = useSelector(state => state.scene.controls.focusedObject)
+  const settings = useStore(state => state.settings)
+  const controlsMode = useStore(state => state.scene.controls.mode)
+  const boundsCenter = useStore(state => state.scene.bounds.center)
+  const focusedObject = useInstance(state => state.focusedObject)
   const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
 
   gl.physicallyCorrectLights = true
   gl.outputEncoding = THREE.sRGBEncoding
 
+  // Keep a reference of our scene in the store's instances for easy access
   useEffect(() => {
-    if (controlsRef.current) {
+    useInstance.getState().setThreeScene(scene)
+  }, [scene])
+
+  // Update the default camera when necessary
+  useEffect(() => {
+    let nextCamera
+    try {
+      nextCamera = focusedObject.getObjectByName('povCamera')
+    } catch (error) {
+      nextCamera = scene.getObjectByName('freeCamera')
+    }
+    setDefaultCamera(nextCamera)
+  }, [focusedObject]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update controls & camera position when necessary
+  useEffect(() => {
+    if (controlsMode === 'free' && controlsRef.current) {
       // Depending on whether there was a previous focused object, we either:
       // - reposition our FreeControls where that object was
       // - reposition our FreeControls to the center of the scene
-      const newPos = lastFocusedObject ? lastFocusedObject.position : boundsCenter
+      const newPos = focusedObject ? focusedObject.position : boundsCenter
       let cameraOffset, controlsOffset
 
-      if (lastFocusedObject) {
-        // TODO: Determine what angle the lastFocusedObject is facing, then adjust the
-        // camera offset so that it's facing the same direction as the lastFocusedObject
+      if (focusedObject) {
+        // TODO: Determine what angle the focusedObject is facing, then adjust the
+        // camera offset so that it's facing the same direction as the focusedObject
         cameraOffset = new THREE.Vector3(500, 0, 500)
         controlsOffset = new THREE.Vector3(0, 0, 100)
       } else {
@@ -74,20 +93,17 @@ const FreeControls = props => {
       controlsRef.current.target.copy(newPos).add(controlsOffset)
       controlsRef.current.saveState()
     }
-  }, [cameraRef.current, controlsRef.current, boundsCenter, lastFocusedObject]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cameraRef.current, boundsCenter, controlsMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useFrame(() => {
-    // Update these controls
-    if (controlsRef.current) {
-      controlsRef.current.update()
-    }
+    if (controlsRef.current) controlsRef.current.update()
   })
 
   return (
     <>
-      <Camera ref={cameraRef} name="freeCamera" attach="camera" makeDefault {...settings.camera} />
+      <Camera ref={cameraRef} name="freeCamera" attach="camera" {...settings.camera} />
 
-      {cameraRef.current && (
+      {controlsMode === 'free' && cameraRef.current && (
         <demoControls
           ref={controlsRef}
           name="controls"
@@ -112,23 +128,41 @@ class DemoViewer extends React.Component {
   elapsedTime = 0
   lastTimestamp = 0
 
+  state = {
+    playback: getState().playback,
+    settings: getState().settings,
+  }
+
   //
   // ─── LIFECYCLE ──────────────────────────────────────────────────────────────────
   //
 
   componentDidMount() {
     this.animate(0)
+
+    // These zustand subscribers are necessary because useStore.getState doesn't
+    // update correctly in React class components. Unfortunately I've decided to
+    // keep this component as a class component instead of converting to a functional
+    // component -- because it seems to be SUPER PAINFUL trying to get the animate()
+    // requestAnimationFrame stuff working correctly as a functional component
+    // (it ends up annihilating the fps and some other buggy behaviour)
+    this.playbackSub = useStore.subscribe(
+      playback => this.setState({ playback }),
+      state => state.playback
+    )
+    this.settingsSub = useStore.subscribe(
+      settings => this.setState({ settings }),
+      state => state.settings
+    )
+
     this.demoViewer.addEventListener('keydown', this.globalKeyDown)
   }
 
   componentWillUnmount() {
-    this.demoViewer.removeEventListener('keydown', this.globalKeyDown)
-  }
+    this.playbackSub()
+    this.settingsSub()
 
-  async componentDidUpdate(prevProps) {
-    if (this.props.parser !== prevProps.parser) {
-      await this.props.loadSceneFromParser(this.props.parser)
-    }
+    this.demoViewer.removeEventListener('keydown', this.globalKeyDown)
   }
 
   //
@@ -139,7 +173,7 @@ class DemoViewer extends React.Component {
   // of this requestAnimationFrame() implementation
   // https://threejs.org/docs/#api/en/core/Clock
   animate = async timestamp => {
-    const { playback, goToTick } = this.props
+    const { playback } = this.state
 
     const intervalPerTick = 0.03 // TODO: read value from demo file instead
     const millisPerTick = 1000 * intervalPerTick * (1 / playback.speed)
@@ -148,7 +182,7 @@ class DemoViewer extends React.Component {
 
     if (playback.playing) {
       if (this.elapsedTime > millisPerTick) {
-        goToTick(playback.tick + 1)
+        dispatch(goToTickAction(playback.tick + 1))
         this.elapsedTime = 0
       }
     } else {
@@ -170,7 +204,7 @@ class DemoViewer extends React.Component {
     try {
       switch (keyCode) {
         case keys.ESC:
-          this.props.popUIPanel()
+          dispatch(popUIPanelAction())
           break
 
         default:
@@ -186,10 +220,11 @@ class DemoViewer extends React.Component {
   //
 
   render() {
-    const { parser, scene, playback, settings } = this.props
+    const { playback, settings } = this.state
+    const { demo } = this.props
 
-    const playersThisTick = parser
-      ? parser
+    const playersThisTick = demo
+      ? demo
           .getPlayersAtTick(playback.tick)
           // Only handle players that are still connected (to server)
           // and are in relevant teams (BLU, RED)
@@ -198,40 +233,24 @@ class DemoViewer extends React.Component {
 
     return (
       <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
-        {/* Note: unfortunately we have to explicitly provide the Redux store inside
-        Canvas because of React context reconciler limitations:
-        https://github.com/react-spring/react-three-fiber/issues/43
-        https://github.com/react-spring/react-three-fiber/issues/262 */}
-        <ReactReduxContext.Consumer>
-          {({ store }) => (
-            <Canvas id="main-canvas" onContextMenu={e => e.preventDefault()}>
-              <Provider store={store}>
-                {/* Base scene elements */}
-                <Lights />
+        <Canvas id="main-canvas" onContextMenu={e => e.preventDefault()}>
+          {/* Base scene elements */}
+          <Lights />
+          <Controls />
+          <CanvasKeyHandler />
+          {settings.ui.showStats && <Stats className="stats-panel" parent={this.uiLayers} />}
 
-                {scene.controls.mode === 'free' && <FreeControls />}
-
-                {/* Demo specific elements */}
-                {parser?.header?.map ? (
-                  <World map={parser.header.map} mode={settings.scene.mode} />
-                ) : (
-                  <World map={`koth_product_rcx`} mode={settings.scene.mode} />
-                )}
-
-                {parser && playback && (
-                  <Actors parser={parser} playback={playback} settings={settings} />
-                )}
-
-                <Projectiles parser={parser} playback={playback} />
-
-                {/* Misc elements */}
-                <CanvasKeyHandler />
-
-                {settings.ui.showStats && <Stats className="stats-panel" parent={this.uiLayers} />}
-              </Provider>
-            </Canvas>
+          {/* Demo specific elements */}
+          {demo?.header?.map ? (
+            <World map={demo.header.map} mode={settings.scene.mode} />
+          ) : (
+            <World map={`koth_product_rcx`} mode={settings.scene.mode} />
           )}
-        </ReactReduxContext.Consumer>
+
+          {demo && <Actors parser={demo} tick={playback.tick} settings={settings} />}
+
+          <Projectiles parser={demo} tick={playback.tick} />
+        </Canvas>
 
         {/* Normal React (non-THREE.js) UI elements */}
 
@@ -240,15 +259,15 @@ class DemoViewer extends React.Component {
             <PlaybackPanel />
           </div>
 
-          {parser && (
+          {demo && (
             <div className="ui-layer demo-info">
-              <DemoInfoPanel parser={parser} />
+              <DemoInfoPanel parser={demo} />
             </div>
           )}
 
-          {parser && (
+          {demo && (
             <div className="ui-layer killfeed">
-              <Killfeed parser={parser} tick={playback.tick} />
+              <Killfeed parser={demo} tick={playback.tick} />
             </div>
           )}
 
@@ -337,20 +356,6 @@ class DemoViewer extends React.Component {
     )
   }
 }
-
-const mapState = state => ({
-  scene: state.scene,
-  playback: state.playback,
-  settings: state.settings,
-})
-
-const mapDispatch = dispatch => ({
-  loadSceneFromParser: parser => dispatch(loadSceneFromParserAction(parser)),
-  goToTick: tick => dispatch(goToTickAction(tick)),
-  popUIPanel: () => dispatch(popUIPanelAction()),
-})
-
-DemoViewer = connect(mapState, mapDispatch)(DemoViewer)
 
 export { DemoViewer }
 

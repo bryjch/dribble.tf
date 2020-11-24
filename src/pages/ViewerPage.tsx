@@ -1,20 +1,15 @@
-import React, { useCallback } from 'react'
-import { useSelector, useDispatch } from 'react-redux'
+import React from 'react'
 import { motion } from 'framer-motion'
 
 import { DemoDropzone } from '@components/DemoDropzone'
 import { DemoViewer } from '@components/DemoViewer'
 
-import { buildDemoParserAction } from '@redux/actions'
+import { parseDemoAction } from '@zus/actions'
+import { useStore, dispatch, useInstance } from '@zus/store'
 
 const ViewerPage = () => {
-  const parser = useSelector((state: any) => state.parser)
-
-  const dispatch = useDispatch()
-  const buildDemoParser = useCallback(
-    (file: ArrayBuffer) => dispatch(buildDemoParserAction(file)),
-    [dispatch]
-  )
+  const parser = useStore((state: any) => state.parser)
+  const parsedDemo = useInstance((state: any) => state.parsedDemo)
 
   //
   // ─── METHODS ────────────────────────────────────────────────────────────────────
@@ -28,8 +23,8 @@ const ViewerPage = () => {
     reader.readAsArrayBuffer(demoFile)
 
     reader.onload = function () {
-      const buffer = reader.result as ArrayBuffer
-      buildDemoParser(buffer)
+      const fileBuffer = reader.result as ArrayBuffer
+      dispatch(parseDemoAction(fileBuffer))
     }
   }
 
@@ -39,7 +34,7 @@ const ViewerPage = () => {
 
   return (
     <div>
-      <DemoViewer parser={parser.parser} />
+      <DemoViewer demo={parsedDemo} />
 
       <div className="ui-layer loading-demo">
         <motion.div

@@ -6,14 +6,14 @@ import { Actor } from '@components/Scene/Actor'
 
 export interface ActorsProps {
   parser: AsyncParser
-  playback: any
+  tick: any
 }
 
 export const Actors = (props: ActorsProps) => {
-  const { parser, playback } = props
+  const { parser, tick } = props
 
   const playersThisTick = parser
-    ? parser.getPlayersAtTick(playback.tick).filter(({ connected }) => connected)
+    ? parser.getPlayersAtTick(tick).filter(({ connected }) => connected)
     : []
 
   return (

@@ -1,12 +1,13 @@
-import React, { useCallback } from 'react'
+import React from 'react'
 import moment from 'moment'
-import { useSelector, useDispatch } from 'react-redux'
 import humanizeDuration from 'humanize-duration'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 
+import { useStore, dispatch } from '@zus/store'
+import { goToTickAction } from '@zus/actions'
+
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
-import { goToTickAction } from '@redux/actions'
 
 // Since parser only returns round ends (not round starts) we need to
 // account for the humiliation period before it resets
@@ -19,11 +20,8 @@ export interface DemoInfoPanelProps {
 export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
   const { parser } = props
 
-  const playback = useSelector((state: any) => state.playback)
-  const { tick } = playback
-
-  const dispatch = useDispatch()
-  const goToTick = useCallback(tick => dispatch(goToTickAction(tick)), [dispatch])
+  const tick = useStore((state: any) => state.playback.tick)
+  const goToTick = (tick: number) => dispatch(goToTickAction(tick))
 
   const rounds = [
     {
