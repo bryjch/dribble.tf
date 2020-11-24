@@ -8,6 +8,9 @@ import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
 import { hexToRgba } from '@utils/styling'
 
+import { dispatch } from '@zus/store'
+import { jumpToPlayerPOVCamera } from '@zus/actions'
+
 //
 // ─── PLAYER STATUSES ────────────────────────────────────────────────────────────
 //
@@ -142,9 +145,14 @@ export const StatusItem = (props: StatusItemProps) => {
       break
   }
 
+  const onClickItem = async () => {
+    const entityId = player?.user?.entityId || null
+    if (entityId) await dispatch(jumpToPlayerPOVCamera(entityId))
+  }
+
   return (
     <>
-      <div className={`player-status-item ${itemCls}`}>
+      <div className={`player-status-item ${itemCls}`} onClick={onClickItem}>
         {icon && <div className="class-icon-container">{icon}</div>}
 
         <div className="details-container">
