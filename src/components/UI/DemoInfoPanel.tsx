@@ -8,6 +8,7 @@ import { useStore, dispatch } from '@zus/store'
 import { goToTickAction } from '@zus/actions'
 
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
+import { focusMainCanvas } from '@utils/misc'
 
 // Since parser only returns round ends (not round starts) we need to
 // account for the humiliation period before it resets
@@ -21,7 +22,6 @@ export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
   const { parser } = props
 
   const tick = useStore((state: any) => state.playback.tick)
-  const goToTick = (tick: number) => dispatch(goToTickAction(tick))
 
   const rounds = [
     {
@@ -38,6 +38,11 @@ export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
       duration: parser.rounds[index + 1]?.length,
     })
   })
+
+  const onClickRound = async (round: any) => {
+    await dispatch(goToTickAction(round.tick))
+    focusMainCanvas()
+  }
 
   return (
     <div className="d-flex flex-column align-items-start">
@@ -62,7 +67,7 @@ export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
               <div
                 key={`jump-to-round-${index}`}
                 className={`round ${roundCls}`}
-                onClick={goToTick.bind(null, round.tick)}
+                onClick={onClickRound.bind(null, round)}
               >
                 <span>{index + 1}</span>
                 <div className={`winner ${winnerCls}`} />

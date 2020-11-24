@@ -6,6 +6,7 @@ import { ClassIcon } from '@components/UI/ClassIcon'
 
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
+import { focusMainCanvas } from '@utils/misc'
 import { hexToRgba } from '@utils/styling'
 
 import { dispatch } from '@zus/store'
@@ -148,6 +149,7 @@ export const StatusItem = (props: StatusItemProps) => {
   const onClickItem = async () => {
     const entityId = player?.user?.entityId || null
     if (entityId) await dispatch(jumpToPlayerPOVCamera(entityId))
+    focusMainCanvas()
   }
 
   return (
