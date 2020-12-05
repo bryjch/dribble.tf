@@ -66,7 +66,7 @@ export const PlaybackPanel = () => {
 
   return (
     <div className="panel">
-      <div className="no-select">Tick #{tick}</div>
+      <div className="no-select">Tick #{tick * 2}</div>
 
       <div className="playback">
         {/* Spacer to match play speed dropdown width */}

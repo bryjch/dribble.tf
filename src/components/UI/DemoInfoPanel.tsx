@@ -53,7 +53,7 @@ export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
           {humanizeDuration(moment.duration(parser.header.duration, 'seconds').asMilliseconds(), {
             round: true,
           })}
-          {` (${parser.ticks - 1} ticks)`}
+          {` (${parser.ticks * 2 - 1} ticks)`}
         </div>
 
         <div className="round-title">Rounds</div>
