@@ -30,7 +30,7 @@
     "semantic-ui-css": "^2.4.1",
     "semantic-ui-react": "^1.1.0",
     "styled-jsx": "^3.3.0",
-    "three": "^0.122.0",
+    "three": "^0.125.0",
     "typescript": "^3.9.5",
     "worker-loader": "^2.0.0",
     "zustand": "^3.2.0"
