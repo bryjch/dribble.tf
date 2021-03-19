@@ -77,6 +77,7 @@ export const DemoDrawing = () => {
           <div className="brush-colors">
             {BRUSH_COLOR_OPTIONS.map(({ color }) => (
               <div
+                key={`drawing-brush-color-option-${color}`}
                 className={`option ${brushColor === color ? 'active' : ''}`}
                 style={{ backgroundColor: color }}
                 onClick={() => setBrushColor(color)}
@@ -113,6 +114,7 @@ export const DemoDrawing = () => {
             <div className="brush-radiuses">
               {BRUSH_RADIUS_OPTIONS.map(({ label, size }) => (
                 <div
+                  key={`drawing-brush-radius-option-${size}`}
                   className={`option ${brushRadius === size ? 'active' : ''}`}
                   onClick={() => setBrushRadius(size)}
                 >
