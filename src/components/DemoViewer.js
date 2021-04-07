@@ -196,13 +196,16 @@ class DemoViewer extends React.Component {
     const { playback, settings } = this.state
     const { demo } = this.props
 
-    const playersThisTick = demo
-      ? demo
-          .getPlayersAtTick(playback.tick)
-          // Only handle players that are still connected (to server)
-          // and are in relevant teams (BLU, RED)
-          .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId))
-      : []
+    let playersThisTick = []
+    let projectilesThisTick = []
+
+    if (!!demo) {
+      playersThisTick = demo
+        .getPlayersAtTick(playback.tick)
+        .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
+
+      projectilesThisTick = demo.getProjectilesAtTick(playback.tick)
+    }
 
     return (
       <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
@@ -220,9 +223,9 @@ class DemoViewer extends React.Component {
             <World map={`koth_product_rcx`} mode={settings.scene.mode} />
           )}
 
-          {demo && <Actors parser={demo} tick={playback.tick} settings={settings} />}
+          <Actors players={playersThisTick} />
 
-          <Projectiles parser={demo} tick={playback.tick} />
+          <Projectiles projectiles={projectilesThisTick} />
         </Canvas>
 
         {/* Normal React (non-THREE.js) UI elements */}
@@ -374,33 +377,29 @@ export const TEST_PROJECTILES = [
   },
 ]
 
-export const TEST_ACTORS = (
-  <>
-    <Actor
-      position={new THREE.Vector3(0, 0, 0)}
-      viewAngles={new THREE.Vector3(0, 0, 0)}
-      classId={1}
-      health={125}
-      team=""
-      user={{ name: 'None', entityId: 1 }}
-    />
-
-    <Actor
-      position={new THREE.Vector3(0, 200, 0)}
-      viewAngles={new THREE.Vector3(0, 0, 0)}
-      classId={1}
-      health={125}
-      team="red"
-      user={{ name: 'Red', entityId: 2 }}
-    />
-
-    <Actor
-      position={new THREE.Vector3(0, -200, 0)}
-      viewAngles={new THREE.Vector3(0, 0, 0)}
-      classId={1}
-      health={125}
-      team="blue"
-      user={{ name: 'Blue', entityId: 3 }}
-    />
-  </>
-)
+export const TEST_ACTORS = [
+  {
+    position: { x: 0, y: 0, z: 0 },
+    viewAngles: { x: 0, y: 0, z: 0 },
+    classId: 1,
+    health: 125,
+    team: '',
+    user: { name: 'None', entityId: 1 },
+  },
+  {
+    position: { x: 0, y: 200, z: 0 },
+    viewAngles: { x: 0, y: 0, z: 0 },
+    classId: 1,
+    health: 125,
+    team: 'red',
+    user: { name: 'Red', entityId: 2 },
+  },
+  {
+    position: { x: 0, y: -200, z: 0 },
+    viewAngles: { x: 0, y: 0, z: 0 },
+    classId: 1,
+    health: 125,
+    team: 'blue',
+    user: { name: 'Blue', entityId: 3 },
+  },
+]

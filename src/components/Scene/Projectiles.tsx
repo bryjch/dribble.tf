@@ -42,17 +42,15 @@ export const ProjectileModel = (props: ProjectileModelProps) => {
 //
 
 export interface ProjectilesProps {
-  parser: AsyncParser
-  tick: number
+  projectiles: CachedProjectile[]
 }
 
 export const Projectiles = (props: ProjectilesProps) => {
-  const { parser, tick } = props
-  const projectilesThisTick = parser ? parser.getProjectilesAtTick(tick) : []
+  const { projectiles = [] } = props
 
   return (
     <group name="projectiles">
-      {projectilesThisTick.map(projectile => {
+      {projectiles.map(projectile => {
         let Projectile
 
         if (projectile.type === 'rocket') Projectile = RocketProjectile

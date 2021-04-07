@@ -1,24 +1,19 @@
 import React from 'react'
 import 'react-three-fiber'
 
-import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 import { Actor } from '@components/Scene/Actor'
 
 export interface ActorsProps {
-  parser: AsyncParser
-  tick: any
+  players: CachedPlayer[]
 }
 
 export const Actors = (props: ActorsProps) => {
-  const { parser, tick } = props
-
-  const playersThisTick = parser
-    ? parser.getPlayersAtTick(tick).filter(({ connected }) => connected)
-    : []
+  const { players = [] } = props
 
   return (
     <group name="actors">
-      {playersThisTick.map((player, index) => (
+      {players.map((player, index) => (
         <Actor key={`actor-${index}`} {...player} />
       ))}
     </group>
