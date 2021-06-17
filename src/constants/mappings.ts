@@ -83,3 +83,16 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
       }
   }
 }
+
+// Used for checking a demo's map name against (key)
+// and returning the (value) if found.
+// This is helpful to allow using the same map gltf model for
+// different versions of the same map.
+// (e.g. cp_process_final and cp_process_f7 can use the same map model)
+export const MAP_NAME_SEARCH_MAP: { [key: string]: string } = {
+  cp_gullywash: 'cp_gullywash_final1',
+  cp_process: 'cp_process_final',
+  cp_snakewater: 'cp_snakewater_final1',
+  cp_sunshine: 'cp_sunshine',
+  koth_product: 'koth_product_rcx',
+}

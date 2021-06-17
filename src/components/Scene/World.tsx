@@ -6,7 +6,7 @@ import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { ActorDimensions } from '@components/Scene/Actor'
 
 import { useStore } from '@zus/store'
-import { getAsset } from '@utils/misc'
+import { getMapModelUrls } from '@utils/game'
 
 const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
   color: '#333333',
@@ -34,17 +34,21 @@ export const World = (props: WorldProps) => {
 
   useEffect(() => {
     try {
-      if (mode === 'normal' || mode === 'textured') {
-        const texturedFile = getAsset(`/models/maps/${map}/textured_compressed.glb`)
-        const overlayFile = getAsset(`/models/maps/${map}/overlay_compressed.glb`)
+      const mapModelFileUrls = getMapModelUrls(map)
 
-        loadGLTF(texturedFile).then((gltf: any) => {
+      if (!mapModelFileUrls) {
+        alert('Unable to load map model. It may not be available on dribble.tf.')
+        return
+      }
+
+      if (mode === 'normal' || mode === 'textured') {
+        loadGLTF(mapModelFileUrls.textured).then((gltf: any) => {
           if (gltf && gltf.scene) {
             setMapModel(gltf.scene)
           }
         })
 
-        loadGLTF(overlayFile).then((gltf: any) => {
+        loadGLTF(mapModelFileUrls.overlay).then((gltf: any) => {
           if (gltf && gltf.scene) {
             setMapOverlay(gltf.scene)
           }
@@ -52,9 +56,7 @@ export const World = (props: WorldProps) => {
       }
 
       if (mode === 'untextured' || mode === 'wireframe') {
-        const untexturedFile = getAsset(`/models/maps/${map}/untextured_compressed.glb`)
-
-        loadGLTF(untexturedFile).then((gltf: any) => {
+        loadGLTF(mapModelFileUrls.untextured).then((gltf: any) => {
           if (gltf && gltf.scene) {
             setMapModel(gltf.scene)
             setMapOverlay(null)
