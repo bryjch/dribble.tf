@@ -6,7 +6,6 @@ import { Sphere, useGLTF } from '@react-three/drei'
 import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader'
 import { SkeletonUtils } from 'three/examples/jsm/utils/SkeletonUtils'
 
-import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { CachedProjectile } from '@components/Analyse/Data/ProjectileCache'
 
 import { TEAM_MAP } from '@constants/mappings'

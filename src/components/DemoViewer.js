@@ -13,8 +13,6 @@ import { Actors } from '@components/Scene/Actors'
 import { Projectiles } from '@components/Scene/Projectiles'
 import { World } from '@components/Scene/World'
 
-import { Actor } from '@components/Scene/Actor'
-
 // UI Panels
 import { AboutPanel } from '@components/UI/AboutPanel'
 import { SettingsPanel } from '@components/UI/SettingsPanel'
