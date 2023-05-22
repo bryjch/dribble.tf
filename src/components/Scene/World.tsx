@@ -48,7 +48,7 @@ export const World = (props: WorldProps) => {
           }
         })
 
-        loadGLTF(mapModelFileUrls.overlay).then((gltf: any) => {
+        loadGLTF(mapModelFileUrls.textured).then((gltf: any) => {
           if (gltf && gltf.scene) {
             setMapOverlay(gltf.scene)
           }
@@ -84,6 +84,7 @@ export const World = (props: WorldProps) => {
           material.polygonOffset = true
           material.polygonOffsetUnits = 1
           material.polygonOffsetFactor = -10
+          material.vertexColors = false
         })
       })
     }
@@ -97,6 +98,7 @@ export const World = (props: WorldProps) => {
           if (material.map) material.map.encoding = THREE.sRGBEncoding
           if (material.emissiveMap) material.emissiveMap.encoding = THREE.sRGBEncoding
           material.depthWrite = true
+          material.vertexColors = false
           material.needsUpdate = true
 
           if (mode === 'untextured') {
@@ -117,7 +119,6 @@ export const World = (props: WorldProps) => {
     const x = bounds.center.x - bounds.max.x
     const y = -bounds.center.y - bounds.min.y
     const z = ActorDimensions.z * 0.5
-
     ref.current?.position.copy(bounds.center).add(new THREE.Vector3(x, y, z))
   }, [bounds])
 
