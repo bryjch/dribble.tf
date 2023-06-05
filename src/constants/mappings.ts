@@ -91,9 +91,10 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
 // (e.g. cp_process_final and cp_process_f7 can use the same map model)
 export const MAP_NAME_SEARCH_MAP: { [key: string]: string } = {
   cp_metalworks: 'cp_metalworks_f5',
-  cp_gullywash: 'cp_gullywash_final1',
-  cp_process: 'cp_process_final',
+  cp_gullywash: 'cp_gullywash_f9',
+  cp_process: 'cp_process_f12',
   cp_snakewater: 'cp_snakewater_final1',
   cp_sunshine: 'cp_sunshine',
-  koth_product: 'koth_product_rcx',
+  koth_product: 'koth_product_final',
+  koth_bagel: 'koth_bagel_rc6'
 }
