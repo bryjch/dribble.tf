@@ -47,11 +47,12 @@ const Controls = props => {
   const controlsMode = useStore(state => state.scene.controls.mode)
   const boundsCenter = useStore(state => state.scene.bounds.center)
   const focusedObject = useInstance(state => state.focusedObject)
+
+  
   const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
 
   gl.physicallyCorrectLights = true
   gl.outputEncoding = THREE.sRGBEncoding
-
   // Keep a reference of our scene in the store's instances for easy access
   useEffect(() => {
     useInstance.getState().setThreeScene(scene)
@@ -86,6 +87,8 @@ const Controls = props => {
       }
 
       cameraRef.current.position.copy(newPos).add(cameraOffset)
+      cameraRef.current.near = 10
+      cameraRef.current.far = 15000
       controlsRef.current.target.copy(newPos).add(controlsOffset)
       controlsRef.current.saveState()
     }
@@ -104,6 +107,7 @@ const Controls = props => {
           ref={controlsRef}
           name="controls"
           attach="controls"
+          
           args={[cameraRef.current, gl.domElement]}
           {...settings.controls}
           {...props}
@@ -204,7 +208,6 @@ class DemoViewer extends React.Component {
 
       projectilesThisTick = demo.getProjectilesAtTick(playback.tick)
     }
-
     return (
       <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
         <Canvas id="main-canvas" onContextMenu={e => e.preventDefault()}>
@@ -218,7 +221,7 @@ class DemoViewer extends React.Component {
           {demo?.header?.map ? (
             <World map={demo.header.map} mode={settings.scene.mode} />
           ) : (
-            <World map={`koth_product_rcx`} mode={settings.scene.mode} />
+            <World map={`cp_process_f12`} mode={settings.scene.mode} />
           )}
 
           <Actors players={playersThisTick} />
