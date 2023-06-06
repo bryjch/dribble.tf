@@ -60,12 +60,16 @@ export const AboutPanel = () => {
               <br />
               - cp_gullywash
               <br />
+              - cp_metalworks
+              <br />
               - cp_process
               <br />
               - cp_snakewater
               <br />
               - cp_sunshine
-              <br />- koth_product_rcx
+              <br />
+              - koth_bagel
+              <br />- koth_product
             </p>
 
             <p>
