@@ -246,13 +246,14 @@ export const SettingsPanel = () => {
                 Plain
               </Button>
 
-              {/* <Button
-                  compact
-                  color={settings.scene.mode === 'textured' ? 'blue' : undefined}
-                  onClick={() => updateSettingsOption('scene.mode', 'textured')}
-                >
-                  Textured
-                </Button> */}
+              <Button
+                compact
+                color={settings.scene.mode === 'textured' ? 'blue' : undefined}
+                onClick={() => updateSettingsOption('scene.mode', 'textured')}
+              >
+                Textured
+              </Button>
+              
             </Button.Group>
           </Option>
 

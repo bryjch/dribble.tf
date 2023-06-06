@@ -98,6 +98,16 @@ const overWriteMapBoundaries: any = {
       x: 3374,
       y: 4939,
     },
+  },  
+  cp_metalworks_f5: {
+    boundaryMin: {
+      x: -3034,
+      y: -6699,
+    },
+    boundaryMax: {
+      x: 3374,
+      y: 4939,
+    },
   },
   cp_steel: {
     boundaryMin: {
