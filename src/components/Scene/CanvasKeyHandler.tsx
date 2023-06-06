@@ -9,6 +9,7 @@ import {
   playbackJumpAction,
   changeControlsModeAction,
   changePlaySpeedAction,
+  changeSceneModeAction,
   toggleSettingsOptionAction,
 } from '@zus/actions'
 
@@ -27,6 +28,7 @@ export const CanvasKeyHandler = () => {
   const togglePlayback = () => dispatch(togglePlaybackAction())
   const playbackJump = (direction: any) => dispatch(playbackJumpAction(direction))
   const changePlaySpeed = (speed: any) => dispatch(changePlaySpeedAction(speed))
+  const changeSceneMode = (mode: any) => dispatch(changeSceneModeAction(mode))
   const changeControlsMode = (mode: any, options?: any) =>
     dispatch(changeControlsModeAction(mode, options))
   const toggleSettingsOption = (option: any) => dispatch(toggleSettingsOptionAction(option))
@@ -63,11 +65,15 @@ export const CanvasKeyHandler = () => {
             changePlaySpeed('slower')
             break
 
+          case 'm':
+            changeSceneMode(null)
+            break
+
           case 'n':
             toggleSettingsOption('ui.nameplate.enabled')
             break
 
-          case 'm':
+          case 'p':
             toggleSettingsOption('ui.xrayPlayers')
             break
 

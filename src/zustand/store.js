@@ -2,6 +2,7 @@ import create from 'zustand'
 import { devtools, redux } from 'zustand/middleware'
 import * as THREE from 'three'
 
+import { SceneMode } from '@constants/types'
 import rootReducer from './reducer'
 
 // This "Instance Store" is meant to be used for larger objects that are problematic
@@ -67,7 +68,7 @@ const initialState = {
 
   settings: {
     scene: {
-      mode: 'untextured',
+      mode: SceneMode.UNTEXTURED,
     },
     camera: {
       orthographic: false,
