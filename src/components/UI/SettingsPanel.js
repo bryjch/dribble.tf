@@ -228,7 +228,7 @@ export const SettingsPanel = () => {
             Geometry
           </Divider>
 
-          <Option label="Material" leftClass="col" rightClass="col-auto">
+          <Option label="Material" leftClass="col" rightClass="col-auto" keyCode="M">
             <Button.Group size="tiny">
               <Button
                 compact
@@ -263,8 +263,8 @@ export const SettingsPanel = () => {
           </Divider>
 
           {/* <ToggleOption
-              label="Models through walls"
-              keyCode="M"
+              label="Player models through walls"
+              keyCode="P"
               checked={settings.ui.xrayPlayers}
               onChange={checked => updateSettingsOption('ui.xrayPlayers', checked)}
             /> */}

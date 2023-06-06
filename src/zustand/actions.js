@@ -9,6 +9,7 @@ import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 import { getSceneActors } from '@utils/scene'
 import { objCoordsToVector3 } from '@utils/geometry'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
+import { SceneMode } from '@constants/types'
 
 import { dispatch, getState, useInstance } from './store'
 
@@ -193,6 +194,26 @@ export const jumpToFreeCamera = async (options = {}) => {
     await useInstance.getState().setFocusedObject(null)
   } catch (error) {
     console.error(error)
+  }
+}
+
+export const changeSceneModeAction = async (mode = undefined) => {
+  // If no mode provided, assume we wanna cycle the available modes
+  // TODO: improve this if typescripting/refactoring zustand
+  if (!mode) {
+    const currMode = getState().settings.scene.mode
+    const currIndex = Object.values(SceneMode).findIndex(value => value === currMode)
+    if (currIndex !== -1) {
+      const nextIndex = (currIndex + 1) % Object.values(SceneMode).length
+      const nextMode = Object.values(SceneMode)[nextIndex]
+      if (nextMode) {
+        mode = nextMode
+      }
+    }
+  }
+
+  if (mode) {
+    await dispatch(updateSettingsOptionAction('scene.mode', mode))
   }
 }
 
