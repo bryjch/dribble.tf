@@ -253,7 +253,6 @@ export const SettingsPanel = () => {
               >
                 Textured
               </Button>
-              
             </Button.Group>
           </Option>
 

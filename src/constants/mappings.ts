@@ -96,5 +96,5 @@ export const MAP_NAME_SEARCH_MAP: { [key: string]: string } = {
   cp_snakewater: 'cp_snakewater_final1',
   cp_sunshine: 'cp_sunshine',
   koth_product: 'koth_product_final',
-  koth_bagel: 'koth_bagel_rc6'
+  koth_bagel: 'koth_bagel_rc6',
 }

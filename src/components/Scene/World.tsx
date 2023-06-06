@@ -21,7 +21,7 @@ const MAP_UNTEXTURED_MATERIAL = new THREE.MeshStandardMaterial({
 
 export interface WorldProps {
   map: string
-  mode?: 'normal' | 'textured' | 'untextured' | 'wireframe'
+  mode?: 'textured' | 'untextured' | 'wireframe'
 }
 
 export const World = (props: WorldProps) => {
@@ -41,18 +41,23 @@ export const World = (props: WorldProps) => {
         return
       }
 
-      if (mode === 'normal' || mode === 'textured') {
+      if (mode === 'textured') {
         loadGLTF(mapModelFileUrls.textured).then((gltf: any) => {
           if (gltf && gltf.scene) {
             setMapModel(gltf.scene)
           }
         })
 
-        loadGLTF(mapModelFileUrls.textured).then((gltf: any) => {
-          if (gltf && gltf.scene) {
-            setMapOverlay(gltf.scene)
-          }
-        })
+        // Note: map overlays don't currently exist - they were an attempt to have certain
+        // textures/models as a separate "layer" so we could toggle them for better performance
+        // or visibility (e.g. removing roofs so we can see inside buildings). Instead, we just
+        // render everything as singular .gltf models
+
+        // loadGLTF(mapModelFileUrls.overlay).then((gltf: any) => {
+        //   if (gltf && gltf.scene) {
+        //     setMapOverlay(gltf.scene)
+        //   }
+        // })
       }
 
       if (mode === 'untextured' || mode === 'wireframe') {
@@ -119,6 +124,7 @@ export const World = (props: WorldProps) => {
     const x = bounds.center.x - bounds.max.x
     const y = -bounds.center.y - bounds.min.y
     const z = ActorDimensions.z * 0.5
+
     ref.current?.position.copy(bounds.center).add(new THREE.Vector3(x, y, z))
   }, [bounds])
 

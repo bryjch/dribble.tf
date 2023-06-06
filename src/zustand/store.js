@@ -47,7 +47,7 @@ const initialState = {
     bounds: {
       min: new THREE.Vector3(0, 0, 0),
       max: new THREE.Vector3(0, 0, 0),
-      center: new THREE.Vector3(1500, 0, 0), // offset to account for default spawned map (koth_product)
+      center: new THREE.Vector3(500, 500, 0), // offset to account for default spawned map (cp_process)
     },
     controls: {
       mode: 'free', // 'pov', 'follow'
