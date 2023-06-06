@@ -48,11 +48,11 @@ const Controls = props => {
   const boundsCenter = useStore(state => state.scene.bounds.center)
   const focusedObject = useInstance(state => state.focusedObject)
 
-  
   const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
 
   gl.physicallyCorrectLights = true
   gl.outputEncoding = THREE.sRGBEncoding
+
   // Keep a reference of our scene in the store's instances for easy access
   useEffect(() => {
     useInstance.getState().setThreeScene(scene)
@@ -107,7 +107,6 @@ const Controls = props => {
           ref={controlsRef}
           name="controls"
           attach="controls"
-          
           args={[cameraRef.current, gl.domElement]}
           {...settings.controls}
           {...props}
@@ -208,6 +207,7 @@ class DemoViewer extends React.Component {
 
       projectilesThisTick = demo.getProjectilesAtTick(playback.tick)
     }
+
     return (
       <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
         <Canvas id="main-canvas" onContextMenu={e => e.preventDefault()}>

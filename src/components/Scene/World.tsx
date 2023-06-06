@@ -119,6 +119,7 @@ export const World = (props: WorldProps) => {
     const x = bounds.center.x - bounds.max.x
     const y = -bounds.center.y - bounds.min.y
     const z = ActorDimensions.z * 0.5
+
     ref.current?.position.copy(bounds.center).add(new THREE.Vector3(x, y, z))
   }, [bounds])
 
