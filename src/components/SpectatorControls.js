@@ -30,10 +30,16 @@ const KEYMAPPING = {
   [keycode('q')]: 'DOWN',
   [keycode('shift')]: 'SPRINT',
 }
+const MOUSEMAPPING = {
+  LEFT: 0,
+  MIDDLE: 1,
+  RIGHT: 2,
+}
 
 export class SpectatorControls {
   constructor(
     camera,
+    domElement,
     {
       lookSpeed = LOOKSPEED,
       moveSpeed = MOVESPEED,
@@ -43,6 +49,7 @@ export class SpectatorControls {
     } = {}
   ) {
     this.camera = camera
+    this.domElement = domElement
     this.lookSpeed = lookSpeed
     this.moveSpeed = moveSpeed
     this.friction = friction
@@ -53,6 +60,8 @@ export class SpectatorControls {
     this._keyState = { press: 0, prevPress: 0 }
     this._moveState = { velocity: new THREE.Vector3(0, 0, 0) }
     this._processMouseMoveEvent = this._processMouseMoveEvent.bind(this)
+    this._processMouseDownEvent = this._processMouseDownEvent.bind(this)
+    this._processMouseUpEvent = this._processMouseUpEvent.bind(this)
     this._processKeyEvent = this._processKeyEvent.bind(this)
   }
   _processMouseMoveEvent(event) {
@@ -63,6 +72,18 @@ export class SpectatorControls {
   }
   _processMouseMove(x = 0, y = 0) {
     this._mouseState = { x, y }
+  }
+  _processMouseDownEvent(event) {
+    if (event.button === MOUSEMAPPING.RIGHT) {
+      this.enable()
+      this.domElement.requestPointerLock()
+    }
+  }
+  _processMouseUpEvent(event) {
+    if (event.button === MOUSEMAPPING.RIGHT) {
+      this.disable()
+      document.exitPointerLock()
+    }
   }
   _processKeyEvent(event) {
     this._processKey(event.keyCode, event.type === 'keydown')
@@ -97,6 +118,14 @@ export class SpectatorControls {
     }
     this._keyState.press = newPress
   }
+  listen() {
+    document.addEventListener('mousedown', this._processMouseDownEvent)
+    document.addEventListener('mouseup', this._processMouseUpEvent)
+  }
+  unlisten() {
+    document.removeEventListener('mousedown', this._processMouseDownEvent)
+    document.removeEventListener('mouseup', this._processMouseUpEvent)
+  }
   enable() {
     document.addEventListener('mousemove', this._processMouseMoveEvent)
     document.addEventListener('keydown', this._processKeyEvent)
@@ -118,6 +147,7 @@ export class SpectatorControls {
     return this.enabled
   }
   dispose() {
+    this.unlisten()
     this.disable()
   }
   update(delta = 1) {

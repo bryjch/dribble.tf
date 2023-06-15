@@ -74,49 +74,32 @@ const Controls = props => {
 
   // Update controls & camera position when necessary
   useEffect(() => {
-    if (controlsMode === 'free' && controlsRef.current) {
-      // Depending on whether there was a previous focused object, we either:
-      // - reposition our FreeControls where that object was
-      // - reposition our FreeControls to the center of the scene
-      const newPos = focusedObject ? focusedObject.position : boundsCenter
-      let cameraOffset, controlsOffset
+    // Depending on whether there was a previous focused object, we either:
+    // - reposition our Controls where that object was
+    // - reposition our Controls to the center of the scene
+    const newPos = focusedObject ? focusedObject.position : boundsCenter
+    let cameraOffset, controlsOffset
 
-      if (focusedObject) {
-        cameraOffset = new THREE.Vector3(-700, 0, 1200).applyQuaternion(focusedObject.quaternion)
-        controlsOffset = new THREE.Vector3(0, 0, 100)
-      } else {
-        cameraOffset = new THREE.Vector3(1000, -1000, 1000)
-        controlsOffset = new THREE.Vector3(0, 0, 100)
-      }
+    if (focusedObject) {
+      cameraOffset = new THREE.Vector3(-700, 0, 1200).applyQuaternion(focusedObject.quaternion)
+      controlsOffset = new THREE.Vector3(0, 0, 100)
+    } else {
+      cameraOffset = new THREE.Vector3(1000, -1000, 1000)
+      controlsOffset = new THREE.Vector3(0, 0, 100)
+    }
 
-      cameraRef.current.position.copy(newPos).add(cameraOffset)
-      cameraRef.current.near = 10
-      cameraRef.current.far = 15000
+    cameraRef.current.position.copy(newPos).add(cameraOffset)
+    cameraRef.current.near = 10
+    cameraRef.current.far = 15000
+
+    if (controlsMode === 'rts' && controlsRef.current) {
       controlsRef.current.target.copy(newPos).add(controlsOffset)
       controlsRef.current.saveState()
     }
 
-    if (controlsMode === 'free' && spectatorRef.current) {
-      // Depending on whether there was a previous focused object, we either:
-      // - reposition our FreeControls where that object was
-      // - reposition our FreeControls to the center of the scene
-      const newPos = focusedObject ? focusedObject.position : boundsCenter
-      let cameraOffset, controlsOffset
-
-      if (focusedObject) {
-        cameraOffset = new THREE.Vector3(-700, 0, 1200).applyQuaternion(focusedObject.quaternion)
-        controlsOffset = new THREE.Vector3(0, 0, 100)
-      } else {
-        cameraOffset = new THREE.Vector3(1000, -1000, 1000)
-        controlsOffset = new THREE.Vector3(0, 0, 100)
-      }
-
-      cameraRef.current.position.copy(newPos).add(cameraOffset)
-      cameraRef.current.near = 10
-      cameraRef.current.far = 15000
-      spectatorRef.current.enable()
-      // spectatorRef.current.target.copy(newPos).add(controlsOffset)
-      // spectatorRef.current.saveState()
+    if (controlsMode === 'spectator' && spectatorRef.current) {
+      // TODO: reposition camera to controlsOffset
+      spectatorRef.current.listen()
     }
   }, [cameraRef.current, boundsCenter, controlsMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -129,7 +112,7 @@ const Controls = props => {
     <>
       <Camera ref={cameraRef} name="freeCamera" attach="camera" {...settings.camera} />
 
-      {/* {controlsMode === 'free' && cameraRef.current && (
+      {controlsMode === 'rts' && cameraRef.current && (
         <demoControls
           ref={controlsRef}
           name="controls"
@@ -138,14 +121,14 @@ const Controls = props => {
           {...settings.controls}
           {...props}
         />
-      )} */}
+      )}
 
-      {true && cameraRef.current && (
+      {controlsMode === 'spectator' && cameraRef.current && (
         <spectatorControls
           ref={spectatorRef}
           name="controls"
           attach="controls"
-          args={[cameraRef.current]}
+          args={[cameraRef.current, gl.domElement]}
         />
       )}
     </>

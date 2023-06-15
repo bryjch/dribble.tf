@@ -187,7 +187,8 @@ export const SettingsPanel = () => {
 
           <Option label="POV Camera (next)" keyCode="1" leftClass="col" />
           <Option label="POV Camera (prev)" keyCode="Shift + 1" leftClass="col" />
-          <Option label="Free Camera" keyCode="3" leftClass="col" />
+          <Option label="Spectator Camera" keyCode="2" leftClass="col" />
+          <Option label="RTS Camera" keyCode="3" leftClass="col" />
 
           <SliderOption
             label="FOV"

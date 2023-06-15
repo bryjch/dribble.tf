@@ -75,7 +75,7 @@ export const loadSceneFromDemoAction = async parsedDemo => {
             ),
           },
           controls: {
-            mode: 'free',
+            mode: 'rts',
           },
         },
         playback: {
@@ -94,7 +94,7 @@ export const loadSceneFromDemoAction = async parsedDemo => {
 
 export const changeControlsModeAction = async (mode, options = {}) => {
   try {
-    if (!['free', 'follow', 'pov'].includes(mode)) return null
+    if (!['rts', 'spectator', 'pov'].includes(mode)) return null
 
     if (mode === 'pov') {
       const { direction = 'next' } = options
@@ -140,7 +140,7 @@ export const changeControlsModeAction = async (mode, options = {}) => {
 
       nextActor = actors[nextIndex]
 
-      // Player transitioned from FREE to POV
+      // Player transitioned from RTS to POV
       // So we should go back to the POV of the last person they spectated
       if (focusedObject === null) {
         const entityId = lastFocusedPOV?.userData?.entityId || actors[0]?.userData?.entityId
@@ -156,12 +156,16 @@ export const changeControlsModeAction = async (mode, options = {}) => {
       }
 
       // No actors found in the scene
-      // Just reset back to FREE camera
-      await dispatch(jumpToFreeCamera())
+      // Just reset back to RTS camera
+      await dispatch(jumpToRtsCamera())
     }
 
-    if (mode === 'free') {
-      await dispatch(jumpToFreeCamera())
+    if (mode === 'spectator') {
+      await dispatch(jumpToSpectatorCamera())
+    }
+
+    if (mode === 'rts') {
+      await dispatch(jumpToRtsCamera())
     }
   } catch (error) {
     console.error(error)
@@ -187,9 +191,19 @@ export const jumpToPlayerPOVCamera = async entityId => {
   }
 }
 
-export const jumpToFreeCamera = async (options = {}) => {
+export const jumpToSpectatorCamera = async (options = {}) => {
   try {
-    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'free' })
+    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'spectator' })
+
+    await useInstance.getState().setFocusedObject(null)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const jumpToRtsCamera = async (options = {}) => {
+  try {
+    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'rts' })
 
     await useInstance.getState().setFocusedObject(null)
   } catch (error) {
