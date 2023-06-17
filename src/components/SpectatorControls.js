@@ -158,13 +158,19 @@ export class SpectatorControls {
       }
       return
     }
+
     // view angles
     const actualLookSpeed = delta * this.lookSpeed
     const lon = 1 * this._mouseState.x * actualLookSpeed
     const lat = 1 * this._mouseState.y * actualLookSpeed
 
+    // keep vertical mouse angles within 180deg
     this.camera.rotation.x = clamp(this.camera.rotation.x - lat, 0, Math.PI)
-    this.camera.rotation.z = (this.camera.rotation.z - lon) % Math.PI // NOTE: this is rotation.z instead of rotation.y because our DefaultUp is Z axis!
+
+    // keep horizontal mouse angles within 360deg
+    // NOTE: this is rotation.z instead of rotation.y because our DefaultUp is Z axis!
+    this.camera.rotation.z = (this.camera.rotation.z - lon) % (Math.PI * 2)
+
     this._mouseState = { x: 0, y: 0 }
 
     // movements
