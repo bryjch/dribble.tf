@@ -78,11 +78,15 @@ const initialState = {
       fov: 90,
     },
     controls: {
+      // RTS camera settings
       panSpeed: 5,
       rotateSpeed: 3,
       zoomSpeed: 5,
-      lookSpeed: 5,
       enableDamping: true,
+
+      // Spectator camera settings
+      lookSpeed: 5,
+      moveSpeed: 5,
     },
     drawing: {
       activation: 'toggle', // 'hold',

@@ -106,7 +106,7 @@ export const AboutPanel = () => {
         div > :global(.panel) {
           width: 360px;
           max-width: 100%;
-          background-color: rgba(0, 0, 0, 0.7);
+          background-color: rgba(0, 0, 0, 0.8);
           color: #ffffff;
           font-size: 1rem;
           overflow: hidden;
