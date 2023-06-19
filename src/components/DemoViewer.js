@@ -80,12 +80,18 @@ const Controls = () => {
     const newPos = focusedObject ? focusedObject.position : bounds.center
     let cameraOffset, controlsOffset
 
-    if (focusedObject) {
-      cameraOffset = new THREE.Vector3(-700, 0, 1200).applyQuaternion(focusedObject.quaternion)
-      controlsOffset = new THREE.Vector3(0, 0, 100)
-    } else {
+    if (!focusedObject) {
       cameraOffset = new THREE.Vector3(1000, -1000, 1000)
       controlsOffset = new THREE.Vector3(0, 0, 100)
+    } else {
+      if (controlsMode === 'rts') {
+        cameraOffset = new THREE.Vector3(-500, 0, 1000).applyQuaternion(focusedObject.quaternion)
+        controlsOffset = new THREE.Vector3(0, 0, 100)
+      }
+      if (controlsMode === 'spectator') {
+        cameraOffset = new THREE.Vector3(-70, 0, 120).applyQuaternion(focusedObject.quaternion)
+        controlsOffset = new THREE.Vector3(0, 0, 100)
+      }
     }
 
     cameraRef.current.position.copy(newPos).add(cameraOffset)
@@ -98,7 +104,7 @@ const Controls = () => {
     }
 
     if (controlsMode === 'spectator' && spectatorRef.current) {
-      // TODO: reposition camera to controlsOffset
+      cameraRef.current.lookAt(new THREE.Vector3().copy(newPos).add(controlsOffset))
       spectatorRef.current.listen()
     }
   }, [cameraRef.current, bounds, controlsMode]) // eslint-disable-line react-hooks/exhaustive-deps
