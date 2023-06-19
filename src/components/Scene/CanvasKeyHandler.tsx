@@ -21,6 +21,7 @@ import { useEventListener } from '@utils/hooks'
  */
 export const CanvasKeyHandler = () => {
   const keysHeld = useRef(new Map())
+  const mouseHeld = useRef(new Map())
   const { gl } = useThree()
 
   const controls: any = useStore((state: any) => state.scene.controls)
@@ -38,6 +39,13 @@ export const CanvasKeyHandler = () => {
       try {
         switch (keycode(event)) {
           case 'space':
+            // In spectator mode, spacebar triggers upward vertical movement.
+            // That should have priority over toggling playback!
+            if (controls.mode === 'spectator') {
+              if (mouseHeld.current.has(0) || mouseHeld.current.has(2)) {
+                return null
+              }
+            }
             togglePlayback()
             break
 
@@ -118,8 +126,18 @@ export const CanvasKeyHandler = () => {
     }
   }, [])
 
+  const canvasMouseDown = useCallback((event: MouseEvent) => {
+    mouseHeld.current.set(event.button, true)
+  }, [])
+
+  const canvasMouseUp = useCallback((event: MouseEvent) => {
+    mouseHeld.current.delete(event.button)
+  }, [])
+
   useEventListener('keydown', canvasKeyDown, gl.domElement)
   useEventListener('keyup', canvasKeyUp, gl.domElement)
+  useEventListener('mousedown', canvasMouseDown, gl.domElement)
+  useEventListener('mouseup', canvasMouseUp, gl.domElement)
 
   return null
 }

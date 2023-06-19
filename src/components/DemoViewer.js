@@ -40,7 +40,7 @@ extend({ DemoControls })
 extend({ SpectatorControls })
 
 // This component is messy af but whatever yolo
-const Controls = props => {
+const Controls = () => {
   const cameraRef = useRef()
   const controlsRef = useRef()
   const spectatorRef = useRef()
@@ -48,7 +48,7 @@ const Controls = props => {
 
   const settings = useStore(state => state.settings)
   const controlsMode = useStore(state => state.scene.controls.mode)
-  const boundsCenter = useStore(state => state.scene.bounds.center)
+  const bounds = useStore(state => state.scene.bounds)
   const focusedObject = useInstance(state => state.focusedObject)
 
   const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
@@ -77,7 +77,7 @@ const Controls = props => {
     // Depending on whether there was a previous focused object, we either:
     // - reposition our Controls where that object was
     // - reposition our Controls to the center of the scene
-    const newPos = focusedObject ? focusedObject.position : boundsCenter
+    const newPos = focusedObject ? focusedObject.position : bounds.center
     let cameraOffset, controlsOffset
 
     if (focusedObject) {
@@ -101,7 +101,7 @@ const Controls = props => {
       // TODO: reposition camera to controlsOffset
       spectatorRef.current.listen()
     }
-  }, [cameraRef.current, boundsCenter, controlsMode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cameraRef.current, bounds, controlsMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useFrame(() => {
     if (controlsRef.current) controlsRef.current.update()
@@ -119,7 +119,6 @@ const Controls = props => {
           attach="controls"
           args={[cameraRef.current, gl.domElement]}
           {...settings.controls}
-          {...props}
         />
       )}
 
@@ -129,6 +128,7 @@ const Controls = props => {
           name="controls"
           attach="controls"
           args={[cameraRef.current, gl.domElement]}
+          {...settings.controls}
         />
       )}
     </>

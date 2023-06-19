@@ -17,7 +17,7 @@ const SPRINT = 1 << 6
 // defaults
 const MOVESPEED = 20
 const FRICTION = 0.8
-const LOOKSPEED = 0.005
+const LOOKSPEED = 5
 const SPRINTMULT = 3
 const KEYMAPPING = {
   [keycode('w')]: 'FORWARD',
@@ -37,24 +37,14 @@ const MOUSEMAPPING = {
 }
 
 export class SpectatorControls {
-  constructor(
-    camera,
-    domElement,
-    {
-      lookSpeed = LOOKSPEED,
-      moveSpeed = MOVESPEED,
-      friction = FRICTION,
-      keyMapping = KEYMAPPING,
-      sprintMultiplier = SPRINTMULT,
-    } = {}
-  ) {
+  constructor(camera, domElement) {
     this.camera = camera
     this.domElement = domElement
-    this.lookSpeed = lookSpeed
-    this.moveSpeed = moveSpeed
-    this.friction = friction
-    this.sprintMultiplier = sprintMultiplier
-    this.keyMapping = Object.assign({}, KEYMAPPING, keyMapping)
+    this.lookSpeed = LOOKSPEED
+    this.moveSpeed = MOVESPEED
+    this.friction = FRICTION
+    this.sprintMultiplier = SPRINTMULT
+    this.keyMapping = Object.assign({}, KEYMAPPING, KEYMAPPING)
     this.enabled = false
     this._mouseState = { x: 0, y: 0 }
     this._keyState = { press: 0, prevPress: 0 }
@@ -74,13 +64,13 @@ export class SpectatorControls {
     this._mouseState = { x, y }
   }
   _processMouseDownEvent(event) {
-    if (event.button === MOUSEMAPPING.RIGHT) {
+    if ([MOUSEMAPPING.LEFT, MOUSEMAPPING.RIGHT].includes(event.button)) {
       this.enable()
       this.domElement.requestPointerLock()
     }
   }
   _processMouseUpEvent(event) {
-    if (event.button === MOUSEMAPPING.RIGHT) {
+    if ([MOUSEMAPPING.LEFT, MOUSEMAPPING.RIGHT].includes(event.button)) {
       this.disable()
       document.exitPointerLock()
     }
@@ -119,12 +109,12 @@ export class SpectatorControls {
     this._keyState.press = newPress
   }
   listen() {
-    document.addEventListener('mousedown', this._processMouseDownEvent)
-    document.addEventListener('mouseup', this._processMouseUpEvent)
+    this.domElement.addEventListener('mousedown', this._processMouseDownEvent)
+    this.domElement.addEventListener('mouseup', this._processMouseUpEvent)
   }
   unlisten() {
-    document.removeEventListener('mousedown', this._processMouseDownEvent)
-    document.removeEventListener('mouseup', this._processMouseUpEvent)
+    this.domElement.removeEventListener('mousedown', this._processMouseDownEvent)
+    this.domElement.removeEventListener('mouseup', this._processMouseUpEvent)
   }
   enable() {
     document.addEventListener('mousemove', this._processMouseMoveEvent)
@@ -149,6 +139,7 @@ export class SpectatorControls {
   dispose() {
     this.unlisten()
     this.disable()
+    document.exitPointerLock()
   }
   update(delta = 1) {
     if (!this.enabled) {
@@ -160,7 +151,8 @@ export class SpectatorControls {
     }
 
     // view angles
-    const actualLookSpeed = delta * this.lookSpeed
+    const scaledSpeed = this.lookSpeed / 1000
+    const actualLookSpeed = delta * scaledSpeed
     const lon = 1 * this._mouseState.x * actualLookSpeed
     const lat = 1 * this._mouseState.y * actualLookSpeed
 

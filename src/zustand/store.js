@@ -81,6 +81,7 @@ const initialState = {
       panSpeed: 5,
       rotateSpeed: 3,
       zoomSpeed: 5,
+      lookSpeed: 5,
       enableDamping: true,
     },
     drawing: {

@@ -151,6 +151,7 @@ const ToggleOption = ({ label, keyCode, checked, disabled, onChange }) => {
 
 export const SettingsPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('SettingsPanel'))
+  const scene = useStore(state => state.scene)
   const settings = useStore(state => state.settings)
 
   const toggleUIPanel = () => {
@@ -188,40 +189,70 @@ export const SettingsPanel = () => {
           <Option label="POV Camera (next)" keyCode="1" leftClass="col" />
           <Option label="POV Camera (prev)" keyCode="Shift + 1" leftClass="col" />
           <Option label="Spectator Camera" keyCode="2" leftClass="col" />
+
+          {scene.controls.mode === 'spectator' && (
+            <>
+              <SliderOption
+                label="FOV"
+                min={50}
+                max={120}
+                step={1}
+                value={settings.camera.fov}
+                onChange={value => updateSettingsOption('camera.fov', value)}
+              />
+
+              <SliderOption
+                label="Look Sensitivity"
+                value={settings.controls.lookSpeed}
+                onChange={value => updateSettingsOption('controls.lookSpeed', value)}
+              />
+
+              <ToggleOption
+                label="Inertia enabled"
+                checked={settings.controls.enableDamping}
+                onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
+              />
+            </>
+          )}
+
           <Option label="RTS Camera" keyCode="3" leftClass="col" />
 
-          <SliderOption
-            label="FOV"
-            min={50}
-            max={120}
-            step={1}
-            value={settings.camera.fov}
-            onChange={value => updateSettingsOption('camera.fov', value)}
-          />
+          {scene.controls.mode === 'rts' && (
+            <>
+              <SliderOption
+                label="FOV"
+                min={50}
+                max={120}
+                step={1}
+                value={settings.camera.fov}
+                onChange={value => updateSettingsOption('camera.fov', value)}
+              />
 
-          <SliderOption
-            label="Pan speed"
-            value={settings.controls.panSpeed}
-            onChange={value => updateSettingsOption('controls.panSpeed', value)}
-          />
+              <SliderOption
+                label="Pan speed"
+                value={settings.controls.panSpeed}
+                onChange={value => updateSettingsOption('controls.panSpeed', value)}
+              />
 
-          <SliderOption
-            label="Rotate speed"
-            value={settings.controls.rotateSpeed}
-            onChange={value => updateSettingsOption('controls.rotateSpeed', value)}
-          />
+              <SliderOption
+                label="Rotate speed"
+                value={settings.controls.rotateSpeed}
+                onChange={value => updateSettingsOption('controls.rotateSpeed', value)}
+              />
 
-          <SliderOption
-            label="Zoom speed"
-            value={settings.controls.zoomSpeed}
-            onChange={value => updateSettingsOption('controls.zoomSpeed', value)}
-          />
+              <SliderOption
+                label="Zoom speed"
+                value={settings.controls.zoomSpeed}
+                onChange={value => updateSettingsOption('controls.zoomSpeed', value)}
+              />
 
-          <ToggleOption
-            label="Inertia enabled"
-            checked={settings.controls.enableDamping}
-            onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
-          />
+              <ToggleOption
+                label="Inertia enabled"
+                checked={settings.controls.enableDamping}
+                onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
+              />
+            </>
+          )}
 
           {/* ************************************************************* */}
 
