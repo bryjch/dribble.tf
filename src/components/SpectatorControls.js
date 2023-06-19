@@ -35,6 +35,7 @@ const MOUSEMAPPING = {
   MIDDLE: 1,
   RIGHT: 2,
 }
+const ESCLOCKDELAY = 1500 // millis
 
 export class SpectatorControls {
   constructor(camera, domElement) {
@@ -46,13 +47,16 @@ export class SpectatorControls {
     this.sprintMultiplier = SPRINTMULT
     this.keyMapping = Object.assign({}, KEYMAPPING, KEYMAPPING)
     this.enabled = false
+    this.lastEscFromPointerLock = 0
     this._mouseState = { x: 0, y: 0 }
     this._keyState = { press: 0, prevPress: 0 }
     this._moveState = { velocity: new THREE.Vector3(0, 0, 0) }
     this._processMouseMoveEvent = this._processMouseMoveEvent.bind(this)
     this._processMouseDownEvent = this._processMouseDownEvent.bind(this)
     this._processMouseUpEvent = this._processMouseUpEvent.bind(this)
+    this._processPointerLockChangeEvent = this._processPointerLockChangeEvent.bind(this)
     this._processKeyEvent = this._processKeyEvent.bind(this)
+    this.isEnabled = this.isEnabled.bind(this)
   }
   _processMouseMoveEvent(event) {
     this._processMouseMove(
@@ -68,16 +72,28 @@ export class SpectatorControls {
     }
   }
   _processMouseDownEvent(event) {
-    if ([MOUSEMAPPING.LEFT, MOUSEMAPPING.RIGHT].includes(event.button)) {
-      this.enable()
-      this.domElement.requestPointerLock()
+    if (event.button === MOUSEMAPPING.RIGHT) {
+      if (this.isEnabled()) {
+        this.disable()
+      } else {
+        const timeSinceLastEsc = performance.now() - this.lastEscFromPointerLock
+        if (timeSinceLastEsc <= ESCLOCKDELAY) return null
+        this.enable()
+      }
+    }
+  }
+  _processPointerLockChangeEvent() {
+    // specific handling in case disable() wasn't triggered via RMB (e.g. user pressed ESC)
+    // this is necessary because there is an explicit delay between when we can allow user
+    // to re-enter pointer lock.
+    // https://discourse.threejs.org/t/how-to-avoid-pointerlockcontrols-error/33017/2
+    if (!document.pointerLockElement && this.isEnabled()) {
+      this.disable()
+      this.lastEscFromPointerLock = performance.now()
     }
   }
   _processMouseUpEvent(event) {
-    if ([MOUSEMAPPING.LEFT, MOUSEMAPPING.RIGHT].includes(event.button)) {
-      this.disable()
-      document.exitPointerLock()
-    }
+    // Can use this function if wanna enable/disable via hold instead of toggle
   }
   _processKeyEvent(event) {
     this._processKey(event.keyCode, event.type === 'keydown')
@@ -115,19 +131,24 @@ export class SpectatorControls {
   listen() {
     this.domElement.addEventListener('mousedown', this._processMouseDownEvent)
     this.domElement.addEventListener('mouseup', this._processMouseUpEvent)
+    document.addEventListener('pointerlockchange', this._processPointerLockChangeEvent)
   }
   unlisten() {
     this.domElement.removeEventListener('mousedown', this._processMouseDownEvent)
     this.domElement.removeEventListener('mouseup', this._processMouseUpEvent)
+    document.removeEventListener('pointerlockchange', this._processPointerLockChangeEvent)
   }
   enable() {
+    if (this.isEnabled()) return null
     document.addEventListener('mousemove', this._processMouseMoveEvent)
     document.addEventListener('keydown', this._processKeyEvent)
     document.addEventListener('keyup', this._processKeyEvent)
     this.enabled = true
     this.camera.rotation.reorder('ZYX')
+    this.domElement.requestPointerLock({ unadjustedMovement: true })
   }
   disable() {
+    if (!this.isEnabled()) return null
     document.removeEventListener('mousemove', this._processMouseMoveEvent)
     document.removeEventListener('keydown', this._processKeyEvent)
     document.removeEventListener('keyup', this._processKeyEvent)
@@ -136,6 +157,7 @@ export class SpectatorControls {
     this._keyState.prevPress = 0
     this._mouseState = { x: 0, y: 0 }
     this.camera.rotation.reorder('XYZ')
+    document.exitPointerLock()
   }
   isEnabled() {
     return this.enabled

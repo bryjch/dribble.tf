@@ -404,6 +404,10 @@ export const toggleUIDrawingAction = async (active = undefined) => {
     const isActive = active !== undefined ? active : !getState().drawing.enabled
 
     if (isActive) {
+      if (document.pointerLockElement) {
+        document.exitPointerLock()
+      }
+
       await dispatch({ type: 'SET_DRAWING_ACTIVE' })
     } else {
       await dispatch({ type: 'SET_DRAWING_INACTIVE' })

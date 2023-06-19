@@ -8,10 +8,14 @@ import { DemoViewer } from '@components/DemoViewer'
 
 import { parseDemoAction } from '@zus/actions'
 import { useStore, dispatch, useInstance } from '@zus/store'
+import { usePointerLock } from '@utils/hooks'
 
 const ViewerPage = () => {
   const parser = useStore((state: any) => state.parser)
   const parsedDemo = useInstance((state: any) => state.parsedDemo)
+  const controlsMode = useStore((state: any) => state.scene.controls.mode)
+
+  const { isPointerLocked } = usePointerLock()
 
   //
   // ─── METHODS ────────────────────────────────────────────────────────────────────
@@ -51,6 +55,23 @@ const ViewerPage = () => {
         </motion.div>
       </div>
 
+      <div className="ui-layer spectator-fly-tip">
+        <motion.div
+          className="panel"
+          animate={
+            controlsMode === 'spectator' && !isPointerLocked
+              ? { opacity: 1, y: 0 }
+              : { opacity: 0, y: -20 }
+          }
+          transition={{ duration: 0.2 }}
+          initial={false}
+        >
+          <span>
+            <strong>Right click</strong> to fly around
+          </span>
+        </motion.div>
+      </div>
+
       <div className="ui-layer canvas-draw">
         <DemoDrawing />
       </div>
@@ -72,7 +93,22 @@ const ViewerPage = () => {
               display: inline-flex;
               color: #ffffff;
               background-color: rgba(30, 30, 30, 0.75);
-              padding: 0.75rem 1rem;
+              padding: 0.5rem 1rem;
+              border-radius: 0.3rem;
+            }
+          }
+
+          &.spectator-fly-tip {
+            justify-content: center;
+            align-items: flex-start;
+            top: 130px;
+
+            & > :global(.panel) {
+              display: inline-flex;
+              color: #ffffff;
+              background-color: rgba(30, 30, 30, 0.75);
+              padding: 0.5rem 1rem;
+              border-radius: 0.3rem;
             }
           }
         }

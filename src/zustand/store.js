@@ -85,7 +85,7 @@ const initialState = {
       enableDamping: true,
 
       // Spectator camera settings
-      lookSpeed: 5,
+      lookSpeed: 3,
       moveSpeed: 5,
     },
     drawing: {
