@@ -61,7 +61,11 @@ export class SpectatorControls {
     )
   }
   _processMouseMove(x = 0, y = 0) {
-    this._mouseState = { x, y }
+    // division by clientHeight makes sensitivity consistent between different window dimensions
+    this._mouseState = {
+      x: (2 * Math.PI * x) / this.domElement.clientHeight,
+      y: (2 * Math.PI * y) / this.domElement.clientHeight,
+    }
   }
   _processMouseDownEvent(event) {
     if ([MOUSEMAPPING.LEFT, MOUSEMAPPING.RIGHT].includes(event.button)) {
@@ -151,10 +155,8 @@ export class SpectatorControls {
     }
 
     // view angles
-    const scaledSpeed = this.lookSpeed / 1000
-    const actualLookSpeed = delta * scaledSpeed
-    const lon = 1 * this._mouseState.x * actualLookSpeed
-    const lat = 1 * this._mouseState.y * actualLookSpeed
+    const lon = this._mouseState.x * delta * (this.lookSpeed / 10)
+    const lat = this._mouseState.y * delta * (this.lookSpeed / 10)
 
     // keep vertical mouse angles within 180deg
     this.camera.rotation.x = clamp(this.camera.rotation.x - lat, 0, Math.PI)
