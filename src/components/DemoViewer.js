@@ -78,16 +78,15 @@ const Controls = () => {
     // - reposition our Controls where that object was
     // - reposition our Controls to the center of the scene
     const newPos = focusedObject ? focusedObject.position : bounds.center
-    let cameraOffset, controlsOffset
+    let cameraOffset = new THREE.Vector3(1000, -1000, 1000)
+    let controlsOffset = new THREE.Vector3(0, 0, 100)
 
-    if (!focusedObject) {
-      cameraOffset = new THREE.Vector3(1000, -1000, 1000)
-      controlsOffset = new THREE.Vector3(0, 0, 100)
-    } else {
+    if (focusedObject) {
       if (controlsMode === 'rts') {
         cameraOffset = new THREE.Vector3(-500, 0, 1000).applyQuaternion(focusedObject.quaternion)
         controlsOffset = new THREE.Vector3(0, 0, 100)
       }
+
       if (controlsMode === 'spectator') {
         cameraOffset = new THREE.Vector3(-70, 0, 120).applyQuaternion(focusedObject.quaternion)
         controlsOffset = new THREE.Vector3(0, 0, 100)
