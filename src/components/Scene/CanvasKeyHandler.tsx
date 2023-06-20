@@ -38,13 +38,6 @@ export const CanvasKeyHandler = () => {
       try {
         switch (keycode(event)) {
           case 'space':
-            // In spectator mode, spacebar triggers upward vertical movement.
-            // That should have priority over toggling playback!
-            if (controls.mode === 'spectator') {
-              if (document.pointerLockElement) {
-                return null
-              }
-            }
             togglePlayback()
             break
 

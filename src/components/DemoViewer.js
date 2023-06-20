@@ -105,6 +105,7 @@ const Controls = () => {
     if (controlsMode === 'spectator' && spectatorRef.current) {
       cameraRef.current.lookAt(new THREE.Vector3().copy(newPos).add(controlsOffset))
       spectatorRef.current.listen()
+      spectatorRef.current.enable()
     }
   }, [cameraRef.current, bounds, controlsMode]) // eslint-disable-line react-hooks/exhaustive-deps
 

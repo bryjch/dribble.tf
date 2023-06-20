@@ -24,10 +24,10 @@ const KEYMAPPING = {
   [keycode('a')]: 'LEFT',
   [keycode('s')]: 'BACK',
   [keycode('d')]: 'RIGHT',
-  [keycode('space')]: 'UP',
-  [keycode('ctrl')]: 'DOWN',
+  // [keycode('space')]: 'UP',
+  // [keycode('ctrl')]: 'DOWN',
   [keycode('e')]: 'UP',
-  [keycode('q')]: 'DOWN',
+  [keycode('c')]: 'DOWN',
   [keycode('shift')]: 'SPRINT',
 }
 const MOUSEMAPPING = {
@@ -72,14 +72,14 @@ export class SpectatorControls {
     }
   }
   _processMouseDownEvent(event) {
+    if (event.button === MOUSEMAPPING.LEFT) {
+      const timeSinceLastEsc = performance.now() - this.lastEscFromPointerLock
+      if (timeSinceLastEsc <= ESCLOCKDELAY) return null
+      this.enable()
+    }
+
     if (event.button === MOUSEMAPPING.RIGHT) {
-      if (this.isEnabled()) {
-        this.disable()
-      } else {
-        const timeSinceLastEsc = performance.now() - this.lastEscFromPointerLock
-        if (timeSinceLastEsc <= ESCLOCKDELAY) return null
-        this.enable()
-      }
+      this.disable()
     }
   }
   _processPointerLockChangeEvent() {
