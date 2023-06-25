@@ -7,6 +7,7 @@ import { PerspectiveCamera, OrthographicCamera, Stats } from '@react-three/drei'
 
 // Scene items
 import { DemoControls } from '@components/DemoControls'
+import { SpectatorControls } from '@components/SpectatorControls'
 import { CanvasKeyHandler } from '@components/Scene/CanvasKeyHandler'
 import { Lights } from '@components/Scene/Lights'
 import { Actors } from '@components/Scene/Actors'
@@ -36,16 +37,18 @@ THREE.Cache.enabled = true
 
 // Basic controls for our scene
 extend({ DemoControls })
+extend({ SpectatorControls })
 
 // This component is messy af but whatever yolo
-const Controls = props => {
+const Controls = () => {
   const cameraRef = useRef()
   const controlsRef = useRef()
+  const spectatorRef = useRef()
   const { gl, scene, setDefaultCamera } = useThree()
 
   const settings = useStore(state => state.settings)
   const controlsMode = useStore(state => state.scene.controls.mode)
-  const boundsCenter = useStore(state => state.scene.bounds.center)
+  const bounds = useStore(state => state.scene.bounds)
   const focusedObject = useInstance(state => state.focusedObject)
 
   const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
@@ -71,45 +74,67 @@ const Controls = props => {
 
   // Update controls & camera position when necessary
   useEffect(() => {
-    if (controlsMode === 'free' && controlsRef.current) {
-      // Depending on whether there was a previous focused object, we either:
-      // - reposition our FreeControls where that object was
-      // - reposition our FreeControls to the center of the scene
-      const newPos = focusedObject ? focusedObject.position : boundsCenter
-      let cameraOffset, controlsOffset
+    // Depending on whether there was a previous focused object, we either:
+    // - reposition our Controls where that object was
+    // - reposition our Controls to the center of the scene
+    const newPos = focusedObject ? focusedObject.position : bounds.center
+    let cameraOffset = new THREE.Vector3(1000, -1000, 1000)
+    let controlsOffset = new THREE.Vector3(0, 0, 100)
 
-      if (focusedObject) {
-        cameraOffset = new THREE.Vector3(-700, 0, 1200).applyQuaternion(focusedObject.quaternion)
-        controlsOffset = new THREE.Vector3(0, 0, 100)
-      } else {
-        cameraOffset = new THREE.Vector3(1000, -1000, 1000)
+    if (focusedObject) {
+      if (controlsMode === 'rts') {
+        cameraOffset = new THREE.Vector3(-500, 0, 1000).applyQuaternion(focusedObject.quaternion)
         controlsOffset = new THREE.Vector3(0, 0, 100)
       }
 
-      cameraRef.current.position.copy(newPos).add(cameraOffset)
-      cameraRef.current.near = 10
-      cameraRef.current.far = 15000
+      if (controlsMode === 'spectator') {
+        cameraOffset = new THREE.Vector3(-70, 0, 120).applyQuaternion(focusedObject.quaternion)
+        controlsOffset = new THREE.Vector3(0, 0, 100)
+      }
+    }
+
+    cameraRef.current.position.copy(newPos).add(cameraOffset)
+    cameraRef.current.near = 10
+    cameraRef.current.far = 15000
+
+    if (controlsMode === 'rts' && controlsRef.current) {
       controlsRef.current.target.copy(newPos).add(controlsOffset)
       controlsRef.current.saveState()
     }
-  }, [cameraRef.current, boundsCenter, controlsMode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    if (controlsMode === 'spectator' && spectatorRef.current) {
+      cameraRef.current.lookAt(new THREE.Vector3().copy(newPos).add(controlsOffset))
+      spectatorRef.current.listen()
+      spectatorRef.current.enable()
+    }
+  }, [cameraRef.current, bounds, controlsMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useFrame(() => {
     if (controlsRef.current) controlsRef.current.update()
+    if (spectatorRef.current) spectatorRef.current.update()
   })
 
   return (
     <>
       <Camera ref={cameraRef} name="freeCamera" attach="camera" {...settings.camera} />
 
-      {controlsMode === 'free' && cameraRef.current && (
+      {controlsMode === 'rts' && cameraRef.current && (
         <demoControls
           ref={controlsRef}
           name="controls"
           attach="controls"
           args={[cameraRef.current, gl.domElement]}
           {...settings.controls}
-          {...props}
+        />
+      )}
+
+      {controlsMode === 'spectator' && cameraRef.current && (
+        <spectatorControls
+          ref={spectatorRef}
+          name="controls"
+          attach="controls"
+          args={[cameraRef.current, gl.domElement]}
+          {...settings.controls}
         />
       )}
     </>

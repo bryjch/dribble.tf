@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react'
+import { useRef, useEffect, useState } from 'react'
 
 /**
  * Hook for easily adding element event listeners which will gracefully cleanup
@@ -9,7 +9,7 @@ import { useRef, useEffect } from 'react'
 export function useEventListener(
   eventName: string,
   handler: (...args: any[]) => any,
-  element: HTMLElement | (Window & typeof globalThis) = window
+  element: HTMLElement | Document | (Window & typeof globalThis) = window
 ) {
   // Create a ref that stores handler
   const savedHandler = useRef<any>()
@@ -41,4 +41,18 @@ export function useEventListener(
     },
     [eventName, element] // Re-run if eventName or element changes
   )
+}
+
+export function usePointerLock() {
+  const [isPointerLocked, setIsPointerLocked] = useState(false)
+
+  useEventListener(
+    'pointerlockchange',
+    () => setIsPointerLocked(!!document.pointerLockElement),
+    document
+  )
+
+  return {
+    isPointerLocked,
+  }
 }

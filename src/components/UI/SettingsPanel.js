@@ -151,6 +151,7 @@ const ToggleOption = ({ label, keyCode, checked, disabled, onChange }) => {
 
 export const SettingsPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('SettingsPanel'))
+  const scene = useStore(state => state.scene)
   const settings = useStore(state => state.settings)
 
   const toggleUIPanel = () => {
@@ -187,40 +188,71 @@ export const SettingsPanel = () => {
 
           <Option label="POV Camera (next)" keyCode="1" leftClass="col" />
           <Option label="POV Camera (prev)" keyCode="Shift + 1" leftClass="col" />
-          <Option label="Free Camera" keyCode="3" leftClass="col" />
+          <Option label="Spectator Camera" keyCode="2" leftClass="col" />
 
-          <SliderOption
-            label="FOV"
-            min={50}
-            max={120}
-            step={1}
-            value={settings.camera.fov}
-            onChange={value => updateSettingsOption('camera.fov', value)}
-          />
+          {scene.controls.mode === 'spectator' && (
+            <div className="ml-3">
+              <SliderOption
+                label="- FOV"
+                min={50}
+                max={120}
+                step={1}
+                value={settings.camera.fov}
+                onChange={value => updateSettingsOption('camera.fov', value)}
+              />
 
-          <SliderOption
-            label="Pan speed"
-            value={settings.controls.panSpeed}
-            onChange={value => updateSettingsOption('controls.panSpeed', value)}
-          />
+              <SliderOption
+                label="- Look Sensitivity"
+                value={settings.controls.lookSpeed}
+                onChange={value => updateSettingsOption('controls.lookSpeed', value)}
+              />
 
-          <SliderOption
-            label="Rotate speed"
-            value={settings.controls.rotateSpeed}
-            onChange={value => updateSettingsOption('controls.rotateSpeed', value)}
-          />
+              <SliderOption
+                label="- Move Speed"
+                value={settings.controls.moveSpeed}
+                onChange={value => updateSettingsOption('controls.moveSpeed', value)}
+              />
+            </div>
+          )}
 
-          <SliderOption
-            label="Zoom speed"
-            value={settings.controls.zoomSpeed}
-            onChange={value => updateSettingsOption('controls.zoomSpeed', value)}
-          />
+          <Option label="RTS Camera" keyCode="3" leftClass="col" />
 
-          <ToggleOption
-            label="Inertia enabled"
-            checked={settings.controls.enableDamping}
-            onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
-          />
+          {scene.controls.mode === 'rts' && (
+            <div className="ml-3">
+              <SliderOption
+                label="- FOV"
+                min={50}
+                max={120}
+                step={1}
+                value={settings.camera.fov}
+                onChange={value => updateSettingsOption('camera.fov', value)}
+              />
+
+              <SliderOption
+                label="- Pan speed"
+                value={settings.controls.panSpeed}
+                onChange={value => updateSettingsOption('controls.panSpeed', value)}
+              />
+
+              <SliderOption
+                label="- Rotate speed"
+                value={settings.controls.rotateSpeed}
+                onChange={value => updateSettingsOption('controls.rotateSpeed', value)}
+              />
+
+              <SliderOption
+                label="- Zoom speed"
+                value={settings.controls.zoomSpeed}
+                onChange={value => updateSettingsOption('controls.zoomSpeed', value)}
+              />
+
+              <ToggleOption
+                label="- Inertia enabled"
+                checked={settings.controls.enableDamping}
+                onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
+              />
+            </div>
+          )}
 
           {/* ************************************************************* */}
 
@@ -277,28 +309,28 @@ export const SettingsPanel = () => {
           />
 
           {settings.ui.nameplate.enabled && (
-            <>
+            <div className="ml-3">
               <ToggleOption
-                label="&nbsp;&nbsp;&nbsp;&nbsp;- Name"
+                label="- Name"
                 checked={settings.ui.nameplate.showName}
                 disabled={!settings.ui.nameplate.enabled}
                 onChange={checked => updateSettingsOption('ui.nameplate.showName', checked)}
               />
 
               <ToggleOption
-                label="&nbsp;&nbsp;&nbsp;&nbsp;- Health"
+                label="- Health"
                 checked={settings.ui.nameplate.showHealth}
                 disabled={!settings.ui.nameplate.enabled}
                 onChange={checked => updateSettingsOption('ui.nameplate.showHealth', checked)}
               />
 
               <ToggleOption
-                label="&nbsp;&nbsp;&nbsp;&nbsp;- Class"
+                label="- Class"
                 checked={settings.ui.nameplate.showClass}
                 disabled={!settings.ui.nameplate.enabled}
                 onChange={checked => updateSettingsOption('ui.nameplate.showClass', checked)}
               />
-            </>
+            </div>
           )}
 
           {/* ************************************************************* */}
@@ -355,7 +387,7 @@ export const SettingsPanel = () => {
         div > :global(.panel) {
           width: 500px;
           max-width: 100%;
-          background-color: rgba(0, 0, 0, 0.7);
+          background-color: rgba(0, 0, 0, 0.8);
           color: #ffffff;
           font-size: 1rem;
           overflow: hidden;

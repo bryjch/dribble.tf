@@ -51,7 +51,7 @@ const initialState = {
       center: new THREE.Vector3(500, 500, 0), // offset to account for default spawned map (cp_process)
     },
     controls: {
-      mode: 'free', // 'pov', 'follow'
+      mode: 'rts', // 'pov', 'spectator'
     },
   },
 
@@ -78,10 +78,15 @@ const initialState = {
       fov: 90,
     },
     controls: {
+      // RTS camera settings
       panSpeed: 5,
       rotateSpeed: 3,
       zoomSpeed: 5,
       enableDamping: true,
+
+      // Spectator camera settings
+      lookSpeed: 3,
+      moveSpeed: 5,
     },
     drawing: {
       activation: 'toggle', // 'hold',

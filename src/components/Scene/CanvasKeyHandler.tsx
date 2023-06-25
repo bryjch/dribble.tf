@@ -83,10 +83,16 @@ export const CanvasKeyHandler = () => {
             changeControlsMode('pov', { direction: event.shiftKey ? 'prev' : 'next' })
             break
 
+          case '2':
+            if (keysHeld.current.has('2')) return null // Prevent rapid camera cycling
+            keysHeld.current.set('2', true)
+            changeControlsMode('spectator')
+            break
+
           case '3':
             if (keysHeld.current.has('3')) return null // Prevent rapid camera cycling
             keysHeld.current.set('3', true)
-            changeControlsMode('free')
+            changeControlsMode('rts')
             break
         }
       } catch (error) {
@@ -100,6 +106,10 @@ export const CanvasKeyHandler = () => {
     switch (keycode(event)) {
       case '1':
         keysHeld.current.delete('1')
+        break
+
+      case '2':
+        keysHeld.current.delete('2')
         break
 
       case '3':
