@@ -13,9 +13,9 @@ import { useEventListener } from '@utils/hooks'
 export const GlobalKeyHandler = () => {
   const keysHeld = useRef(new Map())
 
-  const settings: any = useStore((state: any) => state.settings)
-  const drawingCanvas: any = useInstance((state: any) => state.drawingCanvas)
-  const activePanels: any = useStore((state: any) => state.ui.activePanels)
+  const settings = useStore(state => state.settings)
+  const drawingCanvas = useInstance(state => state.drawingCanvas)
+  const activePanels = useStore(state => state.ui.activePanels)
 
   const canvasKeyDown = useCallback(
     (event: KeyboardEvent) => {

@@ -101,7 +101,7 @@ export const Actor = (props: CachedPlayer) => {
   const [changing, setChanging] = useState<boolean>(false)
   const { scene } = useThree()
 
-  const uiSettings = useStore((state: any) => state.settings.ui)
+  const uiSettings = useStore(state => state.settings.ui)
 
   const { classId, health, team, user, healTarget } = props
   let { position, viewAngles } = props
@@ -289,7 +289,7 @@ export interface POVCameraProps {}
 export const POVCamera = (props: POVCameraProps) => {
   const ref = useRef<THREE.PerspectiveCamera>()
 
-  const settings = useStore((state: any) => state.settings)
+  const settings = useStore(state => state.settings)
 
   // // Un-comment this to render camera helpers for debugging
   // const { scene } = useThree()

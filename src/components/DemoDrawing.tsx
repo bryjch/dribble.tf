@@ -33,8 +33,8 @@ export const BRUSH_RADIUS_OPTIONS = [
 
 export const DemoDrawing = () => {
   const drawingCanvasRef = useRef<CanvasDraw | null>(null)
-  const setDrawingCanvas = useInstance((state: any) => state.setDrawingCanvas)
-  const enabled = useStore((state: any) => state.drawing.enabled)
+  const setDrawingCanvas = useInstance(state => state.setDrawingCanvas)
+  const enabled = useStore(state => state.drawing.enabled)
 
   const [brushColor, setBrushColor] = useState<string>(BRUSH_COLOR_OPTIONS[0].color)
   const [brushRadius, setBrushRadius] = useState<number>(BRUSH_RADIUS_OPTIONS[1].size)
@@ -51,8 +51,10 @@ export const DemoDrawing = () => {
   // Keep a reference to our drawing canvas in "Instance Store" because we
   // need to be able to call its methods from various places (clear, undo etc.)
   useLayoutEffect(() => {
-    setDrawingCanvas(drawingCanvasRef.current)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    if (drawingCanvasRef.current) {
+      setDrawingCanvas(drawingCanvasRef.current)
+    }
+  }, [drawingCanvasRef, setDrawingCanvas])
 
   return (
     <>
