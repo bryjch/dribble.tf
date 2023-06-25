@@ -24,7 +24,7 @@ import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 
 // Actions & utils
-import { useStore, getState, dispatch, useInstance } from '@zus/store'
+import { useStore, getState, useInstance } from '@zus/store'
 import { goToTickAction } from '@zus/actions'
 
 //
@@ -171,11 +171,11 @@ class DemoViewer extends React.Component {
     // requestAnimationFrame stuff working correctly as a functional component
     // (it ends up annihilating the fps and some other buggy behaviour)
     this.playbackSub = useStore.subscribe(
-      playback => this.setState({ playback }),
+      state => this.setState({ playback: state.playback }),
       state => state.playback
     )
     this.settingsSub = useStore.subscribe(
-      settings => this.setState({ settings }),
+      state => this.setState({ settings: state.settings }),
       state => state.settings
     )
   }
@@ -202,7 +202,7 @@ class DemoViewer extends React.Component {
 
     if (playback.playing) {
       if (this.elapsedTime > millisPerTick) {
-        dispatch(goToTickAction(playback.tick + 1))
+        goToTickAction(playback.tick + 1)
         this.elapsedTime = 0
       }
     } else {

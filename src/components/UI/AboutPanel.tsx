@@ -3,7 +3,7 @@ import { Button } from 'semantic-ui-react'
 
 import { TogglePanel } from '@components/UI/Shared/TogglePanel'
 
-import { useStore, dispatch } from '@zus/store'
+import { useStore } from '@zus/store'
 import { toggleUIPanelAction, parseDemoAction } from '@zus/actions'
 
 import { getAsset } from '@utils/misc'
@@ -15,17 +15,17 @@ import { getAsset } from '@utils/misc'
 const GITHUB_URL = `https://www.github.com/bryjch/dribble.tf`
 
 export const AboutPanel = () => {
-  const isOpen = useStore((state: any) => state.ui.activePanels.includes('AboutPanel'))
+  const isOpen = useStore(state => state.ui.activePanels.includes('About'))
 
   const toggleUIPanel = () => {
-    dispatch(toggleUIPanelAction('SettingsPanel', false))
-    dispatch(toggleUIPanelAction('AboutPanel'))
+    toggleUIPanelAction('Settings', false)
+    toggleUIPanelAction('About')
   }
 
   const onClickSampleDemo = async () => {
     let url = getAsset('/samples/i52_snakewater_gc.dem')
     const fileBuffer = await fetch(url).then(res => res.arrayBuffer())
-    dispatch(parseDemoAction(fileBuffer))
+    parseDemoAction(fileBuffer)
   }
 
   return (

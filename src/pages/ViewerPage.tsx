@@ -7,13 +7,13 @@ import { DemoDrawing } from '@components/DemoDrawing'
 import { DemoViewer } from '@components/DemoViewer'
 
 import { parseDemoAction } from '@zus/actions'
-import { useStore, dispatch, useInstance } from '@zus/store'
+import { useStore, useInstance } from '@zus/store'
 import { usePointerLock } from '@utils/hooks'
 
 const ViewerPage = () => {
-  const parser = useStore((state: any) => state.parser)
-  const parsedDemo = useInstance((state: any) => state.parsedDemo)
-  const controlsMode = useStore((state: any) => state.scene.controls.mode)
+  const parser = useStore(state => state.parser)
+  const parsedDemo = useInstance(state => state.parsedDemo)
+  const controlsMode = useStore(state => state.scene.controls.mode)
 
   const { isPointerLocked } = usePointerLock()
 
@@ -52,7 +52,7 @@ const ViewerPage = () => {
 
     reader.onload = function () {
       const fileBuffer = reader.result as ArrayBuffer
-      dispatch(parseDemoAction(fileBuffer))
+      parseDemoAction(fileBuffer)
     }
   }
 

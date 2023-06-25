@@ -4,7 +4,7 @@ import { clamp } from 'lodash'
 
 import { TogglePanel } from '@components/UI/Shared/TogglePanel'
 
-import { useStore, dispatch } from '@zus/store'
+import { useStore } from '@zus/store'
 import { toggleUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
 
 //
@@ -150,16 +150,16 @@ const ToggleOption = ({ label, keyCode, checked, disabled, onChange }) => {
 //
 
 export const SettingsPanel = () => {
-  const isOpen = useStore(state => state.ui.activePanels.includes('SettingsPanel'))
+  const isOpen = useStore(state => state.ui.activePanels.includes('Settings'))
   const scene = useStore(state => state.scene)
   const settings = useStore(state => state.settings)
 
   const toggleUIPanel = () => {
-    dispatch(toggleUIPanelAction('AboutPanel', false))
-    dispatch(toggleUIPanelAction('SettingsPanel'))
+    toggleUIPanelAction('About', false)
+    toggleUIPanelAction('Settings')
   }
   const updateSettingsOption = (option, value) => {
-    dispatch(updateSettingsOptionAction(option, value))
+    updateSettingsOptionAction(option, value)
   }
 
   return (

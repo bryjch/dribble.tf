@@ -1,7 +1,9 @@
 import localForage from 'localforage'
 import { set, clone, clamp, uniq, without } from 'lodash'
 
-const reducers = (state = {}, action) => {
+import { StoreState, StoreAction } from './store'
+
+const reducers = (state: StoreState, action: StoreAction) => {
   switch (action.type) {
     //
     // ─── PARSER ──────────────────────────────────────────────────────
@@ -75,10 +77,10 @@ const reducers = (state = {}, action) => {
     //
 
     case 'LOAD_SETTINGS':
-      return { ...state, settings: action.settings }
+      return { ...state, settings: action.payload.settings }
 
     case 'UPDATE_SETTINGS_OPTION':
-      let updatedSettings = set(clone(state.settings), action.option, action.value)
+      let updatedSettings = set(clone(state.settings), action.payload.option, action.payload.value)
 
       localForage.setItem('settings', updatedSettings)
 

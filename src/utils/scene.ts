@@ -34,7 +34,6 @@ export function getSceneActor(scene: THREE.Scene, value: any): THREE.Object3D | 
   }
 
   if (typeof value === 'number') {
-    console.log(scene)
     scene.traverse(child => {
       if (child.name === 'actor' && child.userData.entityId === value) {
         return child

@@ -1,7 +1,7 @@
 import { useRef, useCallback } from 'react'
 import keycode from 'keycode'
 
-import { useStore, dispatch, useInstance } from '@zus/store'
+import { useStore, useInstance } from '@zus/store'
 import { popUIPanelAction, toggleUIDrawingAction } from '@zus/actions'
 
 import { useEventListener } from '@utils/hooks'
@@ -17,26 +17,23 @@ export const GlobalKeyHandler = () => {
   const drawingCanvas: any = useInstance((state: any) => state.drawingCanvas)
   const activePanels: any = useStore((state: any) => state.ui.activePanels)
 
-  const popUIPanel = () => dispatch(popUIPanelAction())
-  const toggleUIDrawing = (active?: any) => dispatch(toggleUIDrawingAction(active))
-
   const canvasKeyDown = useCallback(
     (event: KeyboardEvent) => {
       try {
         switch (keycode(event)) {
           case 'esc':
-            popUIPanel()
+            popUIPanelAction()
             if (activePanels.length === 0) {
               // Also support dismissing the drawing UI by using Esc key
-              toggleUIDrawing(false)
+              toggleUIDrawingAction(false)
             }
             break
 
           case 'f':
             if (keysHeld.current.has('f')) return null
             keysHeld.current.set('f', true)
-            popUIPanel()
-            toggleUIDrawing()
+            popUIPanelAction()
+            toggleUIDrawingAction()
             break
 
           case 'c':
@@ -60,7 +57,7 @@ export const GlobalKeyHandler = () => {
         case 'f':
           keysHeld.current.delete('f')
           if (settings.drawing.activation === 'hold') {
-            toggleUIDrawing(false)
+            toggleUIDrawingAction(false)
           }
           break
       }

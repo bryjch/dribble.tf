@@ -3,7 +3,7 @@ import keycode from 'keycode'
 
 import { useThree } from 'react-three-fiber'
 
-import { useStore, dispatch } from '@zus/store'
+import { useStore } from '@zus/store'
 import {
   togglePlaybackAction,
   playbackJumpAction,
@@ -23,76 +23,68 @@ export const CanvasKeyHandler = () => {
   const keysHeld = useRef(new Map())
   const { gl } = useThree()
 
-  const controls: any = useStore((state: any) => state.scene.controls)
-
-  const togglePlayback = () => dispatch(togglePlaybackAction())
-  const playbackJump = (direction: any) => dispatch(playbackJumpAction(direction))
-  const changePlaySpeed = (speed: any) => dispatch(changePlaySpeedAction(speed))
-  const changeSceneMode = (mode: any) => dispatch(changeSceneModeAction(mode))
-  const changeControlsMode = (mode: any, options?: any) =>
-    dispatch(changeControlsModeAction(mode, options))
-  const toggleSettingsOption = (option: any) => dispatch(toggleSettingsOptionAction(option))
+  const controls = useStore(state => state.scene.controls)
 
   const canvasKeyDown = useCallback(
     (event: KeyboardEvent) => {
       try {
         switch (keycode(event)) {
           case 'space':
-            togglePlayback()
+            togglePlaybackAction()
             break
 
           case 'left':
-            playbackJump('seekBackward')
+            playbackJumpAction('seekBackward')
             break
 
           case 'right':
-            playbackJump('seekForward')
+            playbackJumpAction('seekForward')
             break
 
           case ',':
-            playbackJump('previousTick')
+            playbackJumpAction('previousTick')
             break
 
           case '.':
-            playbackJump('nextTick')
+            playbackJumpAction('nextTick')
             break
 
           case 'up':
-            changePlaySpeed('faster')
+            changePlaySpeedAction('faster')
             break
 
           case 'down':
-            changePlaySpeed('slower')
+            changePlaySpeedAction('slower')
             break
 
           case 'm':
-            changeSceneMode(null)
+            changeSceneModeAction('next')
             break
 
           case 'n':
-            toggleSettingsOption('ui.nameplate.enabled')
+            toggleSettingsOptionAction('ui.nameplate.enabled')
             break
 
           case 'p':
-            toggleSettingsOption('ui.xrayPlayers')
+            toggleSettingsOptionAction('ui.xrayPlayers')
             break
 
           case '1':
             if (keysHeld.current.has('1')) return null // Prevent rapid camera cycling
             keysHeld.current.set('1', true)
-            changeControlsMode('pov', { direction: event.shiftKey ? 'prev' : 'next' })
+            changeControlsModeAction('pov', { direction: event.shiftKey ? 'prev' : 'next' })
             break
 
           case '2':
             if (keysHeld.current.has('2')) return null // Prevent rapid camera cycling
             keysHeld.current.set('2', true)
-            changeControlsMode('spectator')
+            changeControlsModeAction('spectator')
             break
 
           case '3':
             if (keysHeld.current.has('3')) return null // Prevent rapid camera cycling
             keysHeld.current.set('3', true)
-            changeControlsMode('rts')
+            changeControlsModeAction('rts')
             break
         }
       } catch (error) {

@@ -2,7 +2,6 @@ import React from 'react'
 
 import { ViewerPage } from '@pages/ViewerPage'
 
-import { dispatch } from '@zus/store'
 import { loadSettingsAction } from '@zus/actions'
 
 import 'semantic-ui-css/semantic.min.css'
@@ -18,7 +17,7 @@ class App extends React.Component {
   //
 
   async componentDidMount() {
-    await dispatch(loadSettingsAction())
+    await loadSettingsAction()
 
     this.setState({ isReady: true })
 
