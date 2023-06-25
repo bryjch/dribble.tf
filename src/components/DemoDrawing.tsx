@@ -14,6 +14,7 @@ export const TOOLBAR_HEIGHT = '100px'
 
 export const BRUSH_COLOR_OPTIONS = [
   { color: '#111111' },
+  { color: '#ffffff' },
   { color: '#ff0202' },
   { color: '#0374ff' },
   { color: '#f800d7' },
