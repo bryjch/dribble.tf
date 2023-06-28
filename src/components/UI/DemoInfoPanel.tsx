@@ -4,7 +4,7 @@ import humanizeDuration from 'humanize-duration'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 
-import { useStore, dispatch } from '@zus/store'
+import { useStore } from '@zus/store'
 import { goToTickAction } from '@zus/actions'
 
 import { ACTOR_TEAM_COLORS } from '@constants/mappings'
@@ -21,7 +21,7 @@ export interface DemoInfoPanelProps {
 export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
   const { parser } = props
 
-  const tick = useStore((state: any) => state.playback.tick)
+  const tick = useStore(state => state.playback.tick)
 
   const rounds = [
     {
@@ -40,7 +40,7 @@ export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
   })
 
   const onClickRound = async (round: any) => {
-    await dispatch(goToTickAction(round.tick))
+    await goToTickAction(round.tick)
     focusMainCanvas()
   }
 

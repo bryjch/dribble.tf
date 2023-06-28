@@ -13,8 +13,8 @@ export interface FocusedPlayerProps {
 }
 
 export const FocusedPlayer = (props: FocusedPlayerProps) => {
-  const controlsMode = useStore((state: any) => state.scene.controls.mode)
-  const focusedObject: any = useInstance(state => state.focusedObject)
+  const controlsMode = useStore(state => state.scene.controls.mode)
+  const focusedObject = useInstance(state => state.focusedObject)
 
   if (controlsMode !== 'pov' || !focusedObject) return null
 

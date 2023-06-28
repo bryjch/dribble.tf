@@ -1,7 +1,7 @@
 import React from 'react'
 import { Icon, Popup, Dropdown, IconProps, PopupProps } from 'semantic-ui-react'
 
-import { useStore, dispatch } from '@zus/store'
+import { useStore } from '@zus/store'
 import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@zus/actions'
 import { focusMainCanvas } from '@utils/misc'
 
@@ -46,21 +46,21 @@ const PlaybackAction = (props: PlaybackActionProps) => {
 }
 
 export const PlaybackPanel = () => {
-  const playback = useStore((state: any) => state.playback)
+  const playback = useStore(state => state.playback)
   const { playing, speed, tick, maxTicks } = playback
 
   const togglePlayback = () => {
-    dispatch(togglePlaybackAction())
+    togglePlaybackAction()
     focusMainCanvas()
   }
 
   const changePlaySpeed = (speed: number) => {
-    dispatch(changePlaySpeedAction(speed))
+    changePlaySpeedAction(speed)
     focusMainCanvas()
   }
 
   const goToTick = (tick: number) => {
-    dispatch(goToTickAction(tick))
+    goToTickAction(tick)
     focusMainCanvas()
   }
 

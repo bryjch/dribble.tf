@@ -9,7 +9,7 @@ import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 import { getSceneActors } from '@utils/scene'
 import { objCoordsToVector3 } from '@utils/geometry'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
-import { SceneMode } from '@constants/types'
+import { ControlsMode, SceneMode, UIPanelType } from '@constants/types'
 
 import { dispatch, getState, useInstance } from './store'
 
@@ -19,10 +19,10 @@ import { dispatch, getState, useInstance } from './store'
 
 export const parseDemoAction = async fileBuffer => {
   try {
-    await dispatch({ type: 'PARSE_DEMO_INIT' })
+    dispatch({ type: 'PARSE_DEMO_INIT' })
 
     const parsedDemo = new AsyncParser(fileBuffer, async progress => {
-      await dispatch({ type: 'PARSE_DEMO_PROGRESS', payload: progress })
+      dispatch({ type: 'PARSE_DEMO_PROGRESS', payload: progress })
     })
 
     try {
@@ -36,13 +36,13 @@ export const parseDemoAction = async fileBuffer => {
     console.log(parsedDemo)
     console.log('%c-----------------------------', 'color: blue; font-size: 16px;')
 
-    await dispatch({ type: 'PARSE_DEMO_SUCCESS' })
+    dispatch({ type: 'PARSE_DEMO_SUCCESS' })
 
-    await dispatch(loadSceneFromDemoAction(parsedDemo))
+    loadSceneFromDemoAction(parsedDemo)
 
     return parsedDemo
   } catch (error) {
-    await dispatch({ type: 'PARSE_DEMO_ERROR', payload: error })
+    dispatch({ type: 'PARSE_DEMO_ERROR', payload: error })
     throw error
   }
 }
@@ -53,13 +53,13 @@ export const parseDemoAction = async fileBuffer => {
 
 export const loadSceneFromDemoAction = async parsedDemo => {
   try {
-    await dispatch(toggleUIPanelAction('AboutPanel', false))
+    toggleUIPanelAction('About', false)
 
     // Remember to update the non-redux instances!
-    await useInstance.getState().setParsedDemo(parsedDemo)
-    await useInstance.getState().setFocusedObject(null)
+    useInstance.getState().setParsedDemo(parsedDemo)
+    useInstance.getState().setFocusedObject(undefined)
 
-    await dispatch({
+    dispatch({
       type: 'LOAD_SCENE_FROM_PARSER',
       payload: {
         scene: {
@@ -92,13 +92,12 @@ export const loadSceneFromDemoAction = async parsedDemo => {
   }
 }
 
-export const changeControlsModeAction = async (mode, options = {}) => {
+export const changeControlsModeAction = async (
+  mode: ControlsMode,
+  options: { direction: 'next' | 'prev' } = { direction: 'next' }
+) => {
   try {
-    if (!['rts', 'spectator', 'pov'].includes(mode)) return null
-
-    if (mode === 'pov') {
-      const { direction = 'next' } = options
-
+    if (mode === ControlsMode.POV) {
       // In order to determine which POV we should follow next, we have to figure out the
       // players at the current tick & what classes they currently are. This information isn't
       // available in the THREE.js scene directly, so we need to call getPlayersAtTick() and
@@ -106,7 +105,7 @@ export const changeControlsModeAction = async (mode, options = {}) => {
       // but this action should not be called super frequently so we'll just let it slide.
       const tick = getState().playback.tick
       const demo = useInstance.getState().parsedDemo
-      let playersThisTick = demo.getPlayersAtTick(tick)
+      let playersThisTick = demo!.getPlayersAtTick(tick)
 
       let actors = getSceneActors(useInstance.getState().threeScene)
 
@@ -125,9 +124,9 @@ export const changeControlsModeAction = async (mode, options = {}) => {
       const lastFocusedPOV = useInstance.getState().lastFocusedPOV
 
       const currentIndex = focusedObject ? actors.findIndex(({ id }) => id === focusedObject.id) : 0
-      let nextIndex, nextActor
+      let nextIndex: number, nextActor: THREE.Object3D
 
-      switch (direction) {
+      switch (options.direction) {
         case 'prev':
           nextIndex = (currentIndex + actors.length - 1) % actors.length
           break
@@ -142,37 +141,37 @@ export const changeControlsModeAction = async (mode, options = {}) => {
 
       // Player transitioned from RTS to POV
       // So we should go back to the POV of the last person they spectated
-      if (focusedObject === null) {
+      if (focusedObject === undefined) {
         const entityId = lastFocusedPOV?.userData?.entityId || actors[0]?.userData?.entityId
-        await dispatch(jumpToPlayerPOVCamera(entityId))
+        jumpToPlayerPOVCamera(entityId)
         return
       }
 
       // Player transitioned from POV to POV
       // So we should spectate to the POV of the next person
       if (nextActor) {
-        await dispatch(jumpToPlayerPOVCamera(nextActor.userData.entityId))
+        jumpToPlayerPOVCamera(nextActor.userData.entityId)
         return
       }
 
       // No actors found in the scene
       // Just reset back to RTS camera
-      await dispatch(jumpToRtsCamera())
+      jumpToRtsCamera()
     }
 
-    if (mode === 'spectator') {
-      await dispatch(jumpToSpectatorCamera())
+    if (mode === ControlsMode.SPECTATOR) {
+      jumpToSpectatorCamera()
     }
 
-    if (mode === 'rts') {
-      await dispatch(jumpToRtsCamera())
+    if (mode === ControlsMode.RTS) {
+      jumpToRtsCamera()
     }
   } catch (error) {
     console.error(error)
   }
 }
 
-export const jumpToPlayerPOVCamera = async entityId => {
+export const jumpToPlayerPOVCamera = async (entityId: number) => {
   try {
     const actors = getSceneActors(useInstance.getState().threeScene)
 
@@ -182,10 +181,10 @@ export const jumpToPlayerPOVCamera = async entityId => {
 
     if (!actor) return null
 
-    await useInstance.getState().setFocusedObject(actor)
-    await useInstance.getState().setLastFocusedPOV(actor)
+    useInstance.getState().setFocusedObject(actor)
+    useInstance.getState().setLastFocusedPOV(actor)
 
-    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'pov' })
+    dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'pov' })
   } catch (error) {
     console.error(error)
   }
@@ -193,9 +192,9 @@ export const jumpToPlayerPOVCamera = async entityId => {
 
 export const jumpToSpectatorCamera = async (options = {}) => {
   try {
-    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'spectator' })
+    dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'spectator' })
 
-    await useInstance.getState().setFocusedObject(null)
+    useInstance.getState().setFocusedObject(undefined)
   } catch (error) {
     console.error(error)
   }
@@ -203,18 +202,16 @@ export const jumpToSpectatorCamera = async (options = {}) => {
 
 export const jumpToRtsCamera = async (options = {}) => {
   try {
-    await dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'rts' })
+    dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'rts' })
 
-    await useInstance.getState().setFocusedObject(null)
+    useInstance.getState().setFocusedObject(undefined)
   } catch (error) {
     console.error(error)
   }
 }
 
-export const changeSceneModeAction = async (mode = undefined) => {
-  // If no mode provided, assume we wanna cycle the available modes
-  // TODO: improve this if typescripting/refactoring zustand
-  if (!mode) {
+export const changeSceneModeAction = async (mode: SceneMode | 'next') => {
+  if (mode === 'next') {
     const currMode = getState().settings.scene.mode
     const currIndex = Object.values(SceneMode).findIndex(value => value === currMode)
     if (currIndex !== -1) {
@@ -227,7 +224,7 @@ export const changeSceneModeAction = async (mode = undefined) => {
   }
 
   if (mode) {
-    await dispatch(updateSettingsOptionAction('scene.mode', mode))
+    await updateSettingsOptionAction('scene.mode', mode)
   }
 }
 
@@ -235,15 +232,15 @@ export const changeSceneModeAction = async (mode = undefined) => {
 // ─── PLAYBACK ───────────────────────────────────────────────────────────────────
 //
 
-export const goToTickAction = async tick => {
+export const goToTickAction = async (tick: number) => {
   try {
     const maxTicks = getState().playback.maxTicks
 
-    await dispatch({ type: 'GO_TO_TICK', payload: tick })
+    dispatch({ type: 'GO_TO_TICK', payload: tick })
 
     // Automatically pause playback once it has reached the last tick
     if (tick >= maxTicks) {
-      await dispatch({ type: 'TOGGLE_PLAYBACK', payload: false })
+      dispatch({ type: 'TOGGLE_PLAYBACK', payload: false })
     }
   } catch (error) {
     console.error(error)
@@ -257,19 +254,19 @@ export const playbackJumpAction = async direction => {
 
     switch (direction) {
       case 'seekBackward':
-        dispatch(goToTickAction(tick - PLAYBACK_JUMP_TICK_INCREMENT))
+        goToTickAction(tick - PLAYBACK_JUMP_TICK_INCREMENT)
         break
 
       case 'seekForward':
-        dispatch(goToTickAction(tick + PLAYBACK_JUMP_TICK_INCREMENT))
+        goToTickAction(tick + PLAYBACK_JUMP_TICK_INCREMENT)
         break
 
       case 'previousTick':
-        dispatch(goToTickAction(tick - 1))
+        goToTickAction(tick - 1)
         break
 
       case 'nextTick':
-        dispatch(goToTickAction(tick + 1))
+        goToTickAction(tick + 1)
         break
 
       default:
@@ -288,10 +285,10 @@ export const togglePlaybackAction = async (playing = undefined) => {
 
     // Pressing play when at the end of playback should trigger restart
     if (isAtEnd) {
-      await dispatch({ type: 'GO_TO_TICK', payload: 1 })
+      dispatch({ type: 'GO_TO_TICK', payload: 1 })
     }
 
-    await dispatch({ type: 'TOGGLE_PLAYBACK', payload: isPlaying })
+    dispatch({ type: 'TOGGLE_PLAYBACK', payload: isPlaying })
   } catch (error) {
     console.error(error)
   }
@@ -339,29 +336,29 @@ export const loadSettingsAction = async () => {
     const defaultSettings = getState().settings
     const settings = await localForage.getItem('settings')
 
-    await dispatch({ type: 'LOAD_SETTINGS', settings: merge(defaultSettings, settings) })
+    dispatch({ type: 'LOAD_SETTINGS', payload: { settings: merge(defaultSettings, settings) } })
   } catch (error) {
     console.error(error)
   }
 }
 
-export const updateSettingsOptionAction = async (option, value) => {
+export const updateSettingsOptionAction = async (option: string, value: any) => {
   try {
-    await dispatch({ type: 'UPDATE_SETTINGS_OPTION', option, value })
+    dispatch({ type: 'UPDATE_SETTINGS_OPTION', payload: { option, value } })
   } catch (error) {
     console.error(error)
   }
 }
 
 // Provide an action to easily toggle boolean setting options
-export const toggleSettingsOptionAction = async option => {
+export const toggleSettingsOptionAction = async (option: string) => {
   try {
     const settings = getState().settings
     const previousValue = get(settings, option)
 
     if (previousValue === undefined) return null
 
-    await dispatch({ type: 'UPDATE_SETTINGS_OPTION', option, value: !previousValue })
+    dispatch({ type: 'UPDATE_SETTINGS_OPTION', payload: { option, value: !previousValue } })
   } catch (error) {
     console.error(error)
   }
@@ -371,15 +368,15 @@ export const toggleSettingsOptionAction = async option => {
 // ─── UI ─────────────────────────────────────────────────────────────────────────
 //
 
-export const toggleUIPanelAction = async (name, active = undefined) => {
+export const toggleUIPanelAction = async (name: UIPanelType, active?: boolean) => {
   try {
     // Use {active} value if provided - otherwise use the inverse of current value
     const isActive = active !== undefined ? active : !getState().ui.activePanels.includes(name)
 
     if (isActive) {
-      await dispatch({ type: 'SET_UI_PANEL_ACTIVE', payload: { name: name } })
+      dispatch({ type: 'SET_UI_PANEL_ACTIVE', payload: { name: name } })
     } else {
-      await dispatch({ type: 'SET_UI_PANEL_INACTIVE', payload: { name: name } })
+      dispatch({ type: 'SET_UI_PANEL_INACTIVE', payload: { name: name } })
     }
   } catch (error) {
     console.error(error)
@@ -388,7 +385,7 @@ export const toggleUIPanelAction = async (name, active = undefined) => {
 
 export const popUIPanelAction = async () => {
   try {
-    await dispatch({ type: 'POP_UI_PANEL' })
+    dispatch({ type: 'POP_UI_PANEL' })
   } catch (error) {
     console.error(error)
   }
@@ -398,7 +395,7 @@ export const popUIPanelAction = async () => {
 // ─── DRAWING ────────────────────────────────────────────────────────────────────
 //
 
-export const toggleUIDrawingAction = async (active = undefined) => {
+export const toggleUIDrawingAction = async (active?: boolean) => {
   try {
     // Use {active} value if provided - otherwise use the inverse of current value
     const isActive = active !== undefined ? active : !getState().drawing.enabled
@@ -408,15 +405,15 @@ export const toggleUIDrawingAction = async (active = undefined) => {
         document.exitPointerLock()
       }
 
-      await dispatch({ type: 'SET_DRAWING_ACTIVE' })
+      dispatch({ type: 'SET_DRAWING_ACTIVE' })
     } else {
-      await dispatch({ type: 'SET_DRAWING_INACTIVE' })
+      dispatch({ type: 'SET_DRAWING_INACTIVE' })
 
       const shouldAutoClear = getState().settings.drawing.autoClear
       const drawingCanvas = useInstance.getState().drawingCanvas
 
       if (shouldAutoClear) {
-        drawingCanvas.clear()
+        drawingCanvas?.clear()
       }
     }
   } catch (error) {

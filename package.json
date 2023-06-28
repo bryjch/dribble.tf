@@ -33,7 +33,7 @@
     "three": "^0.126.1",
     "typescript": "^3.9.5",
     "worker-loader": "^2.0.0",
-    "zustand": "^3.2.0"
+    "zustand": "^4.3.8"
   },
   "devDependencies": {
     "customize-cra": "^0.9.1",

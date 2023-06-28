@@ -9,7 +9,7 @@ import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
 import { focusMainCanvas } from '@utils/misc'
 import { hexToRgba } from '@utils/styling'
 
-import { useInstance, dispatch } from '@zus/store'
+import { useInstance } from '@zus/store'
 import { jumpToPlayerPOVCamera } from '@zus/actions'
 
 //
@@ -21,11 +21,11 @@ export interface PlayerStatusesProps {
 }
 
 export const PlayerStatuses = (props: PlayerStatusesProps) => {
-  const bluePlayers = []
-  const redPlayers = []
+  const bluePlayers: CachedPlayer[] = []
+  const redPlayers: CachedPlayer[] = []
 
   const { players } = props
-  const focusedEntity = useInstance((state: any) => state?.focusedObject?.userData?.entityId)
+  const focusedEntityId = useInstance(state => state?.focusedObject?.userData?.entityId)
 
   for (const player of players) {
     if (player.team === 'blue') bluePlayers.push(player)
@@ -45,7 +45,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
             player={player}
             team="blue"
             alignment="left"
-            focused={focusedEntity === player.user.entityId}
+            focused={focusedEntityId === player.user.entityId}
           />
         ))}
 
@@ -70,7 +70,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
             player={player}
             team="red"
             alignment="right"
-            focused={focusedEntity === player.user.entityId}
+            focused={focusedEntityId === player.user.entityId}
           />
         ))}
 
@@ -154,7 +154,7 @@ export const StatusItem = (props: StatusItemProps) => {
 
   const onClickItem = async () => {
     const entityId = player?.user?.entityId || null
-    if (entityId) await dispatch(jumpToPlayerPOVCamera(entityId))
+    if (entityId) await jumpToPlayerPOVCamera(entityId)
     focusMainCanvas()
   }
 

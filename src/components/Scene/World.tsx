@@ -30,7 +30,7 @@ export const World = (props: WorldProps) => {
   const [mapOverlay, setMapOverlay] = useState<THREE.Group | null>()
   const { map, mode } = props
 
-  const bounds: any = useStore((state: any) => state.scene.bounds)
+  const bounds = useStore(state => state.scene.bounds)
 
   useEffect(() => {
     try {
@@ -42,7 +42,7 @@ export const World = (props: WorldProps) => {
       }
 
       if (mode === 'textured') {
-        loadGLTF(mapModelFileUrls.textured).then((gltf: any) => {
+        loadGLTF(mapModelFileUrls.textured).then(gltf => {
           if (gltf && gltf.scene) {
             setMapModel(gltf.scene)
           }
@@ -61,7 +61,7 @@ export const World = (props: WorldProps) => {
       }
 
       if (mode === 'untextured' || mode === 'wireframe') {
-        loadGLTF(mapModelFileUrls.untextured).then((gltf: any) => {
+        loadGLTF(mapModelFileUrls.untextured).then(gltf => {
           if (gltf && gltf.scene) {
             setMapModel(gltf.scene)
             setMapOverlay(null)
@@ -144,7 +144,7 @@ export const World = (props: WorldProps) => {
 // Useful resource: https://github.com/donmccurdy/three-gltf-viewer/blob/master/src/viewer.js
 
 function loadGLTF(file: string) {
-  return new Promise((resolve, reject) => {
+  return new Promise<GLTF>((resolve, reject) => {
     try {
       const gltfLoader = new GLTFLoader().setCrossOrigin('anonymous')
 
