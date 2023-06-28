@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 
-import { GlobalKeyHandler } from '@components/GlobalKeyHandler'
-import { DemoDropzone } from '@components/DemoDropzone'
-import { DemoDrawing } from '@components/DemoDrawing'
+import { GlobalKeyHandler } from '@components/Misc/GlobalKeyHandler'
+import { DemoDropzone } from '@components/Misc/DemoDropzone'
+import { DemoDrawing } from '@components/Misc/DemoDrawing'
 import { DemoViewer } from '@components/DemoViewer'
 
 import { parseDemoAction } from '@zus/actions'

@@ -6,8 +6,8 @@ import { Canvas, useFrame, useThree, extend } from 'react-three-fiber'
 import { PerspectiveCamera, OrthographicCamera, Stats } from '@react-three/drei'
 
 // Scene items
-import { DemoControls } from '@components/DemoControls'
-import { SpectatorControls } from '@components/SpectatorControls'
+import { RtsControls } from '@components/Controls/RtsControls'
+import { SpectatorControls } from '@components/Controls/SpectatorControls'
 import { CanvasKeyHandler } from '@components/Scene/CanvasKeyHandler'
 import { Lights } from '@components/Scene/Lights'
 import { Actors } from '@components/Scene/Actors'
@@ -36,7 +36,7 @@ THREE.Object3D.DefaultUp.set(0, 0, 1)
 THREE.Cache.enabled = true
 
 // Basic controls for our scene
-extend({ DemoControls })
+extend({ RtsControls })
 extend({ SpectatorControls })
 
 // This component is messy af but whatever yolo
@@ -119,7 +119,7 @@ const Controls = () => {
       <Camera ref={cameraRef} name="freeCamera" attach="camera" {...settings.camera} />
 
       {controlsMode === 'rts' && cameraRef.current && (
-        <demoControls
+        <rtsControls
           ref={controlsRef}
           name="controls"
           attach="controls"

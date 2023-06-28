@@ -5,12 +5,12 @@ import { EventDispatcher, MOUSE, Quaternion, Spherical, TOUCH, Vector2, Vector3 
 // which takes some functionality from the FirstPersonControls
 // https://github.com/mrdoob/three.js/blob/master/examples/js/controls/FirstPersonControls.js
 
-var DemoControls = function (object, domElement) {
+var RtsControls = function (object, domElement) {
   if (domElement === undefined)
-    console.warn('THREE.DemoControls: The second parameter "domElement" is now mandatory.')
+    console.warn('THREE.RtsControls: The second parameter "domElement" is now mandatory.')
   if (domElement === document)
     console.error(
-      'THREE.DemoControls: "document" should not be used as the target "domElement". Please use "renderer.domElement" instead.'
+      'THREE.RtsControls: "document" should not be used as the target "domElement". Please use "renderer.domElement" instead.'
     )
 
   this.object = object
@@ -385,7 +385,7 @@ var DemoControls = function (object, domElement) {
         )
       } else {
         // camera neither orthographic nor perspective
-        console.warn('WARNING: DemoControls.js encountered an unknown camera type - pan disabled.')
+        console.warn('WARNING: RtsControls.js encountered an unknown camera type - pan disabled.')
         scope.enablePan = false
       }
     }
@@ -403,7 +403,7 @@ var DemoControls = function (object, domElement) {
       zoomChanged = true
     } else {
       console.warn(
-        'WARNING: DemoControls.js encountered an unknown camera type - dolly/zoom disabled.'
+        'WARNING: RtsControls.js encountered an unknown camera type - dolly/zoom disabled.'
       )
       scope.enableZoom = false
     }
@@ -421,7 +421,7 @@ var DemoControls = function (object, domElement) {
       zoomChanged = true
     } else {
       console.warn(
-        'WARNING: DemoControls.js encountered an unknown camera type - dolly/zoom disabled.'
+        'WARNING: RtsControls.js encountered an unknown camera type - dolly/zoom disabled.'
       )
       scope.enableZoom = false
     }
@@ -993,7 +993,7 @@ var DemoControls = function (object, domElement) {
   this.update()
 }
 
-DemoControls.prototype = Object.create(EventDispatcher.prototype)
-DemoControls.prototype.constructor = DemoControls
+RtsControls.prototype = Object.create(EventDispatcher.prototype)
+RtsControls.prototype.constructor = RtsControls
 
-export { DemoControls }
+export { RtsControls }
