@@ -1,7 +1,7 @@
-[![Live website](https://img.shields.io/badge/-View%20Live-%2300C7B7?logo=Netlify&style=flat-square&logoColor=white)](https://dribbletf.netlify.app/)
+[![Live website](https://img.shields.io/badge/-View%20Live-%2300C7B7?logo=Netlify&style=flat-square&logoColor=white)](https://dribble.tf/)
 [![Trello board](https://img.shields.io/badge/-Trello-%230079BF?logo=trello&style=flat-square)](https://trello.com/b/u7ru88YG/dribbletf)
 
-## TF2 Demo Replay in Browser / [dribble.tf](https://dribbletf.netlify.app/)
+## TF2 Demo Replay in Browser / [dribble.tf](https://dribble.tf/)
 
 View your Team Fortress 2 STV demo files directly in the browser.
 
