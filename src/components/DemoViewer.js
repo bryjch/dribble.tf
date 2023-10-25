@@ -13,6 +13,7 @@ import { Lights } from '@components/Scene/Lights'
 import { Actors } from '@components/Scene/Actors'
 import { Projectiles } from '@components/Scene/Projectiles'
 import { World } from '@components/Scene/World'
+import { Skybox2D } from '@components/Scene/Skybox'
 
 // UI Panels
 import { AboutPanel } from '@components/UI/AboutPanel'
@@ -235,7 +236,7 @@ class DemoViewer extends React.Component {
 
     return (
       <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
-        <Canvas id="main-canvas" onContextMenu={e => e.preventDefault()}>
+        <Canvas id="main-canvas" onContextMenu={e => e.preventDefault()} colorManagement={false}>
           {/* Base scene elements */}
           <Lights />
           <Controls />
@@ -247,6 +248,12 @@ class DemoViewer extends React.Component {
             <World map={demo.header.map} mode={settings.scene.mode} />
           ) : (
             <World map={`cp_process_f12`} mode={settings.scene.mode} />
+          )}
+
+          {demo?.header?.map ? (
+            <Skybox2D map={demo.header.map}/>
+          ) : (
+            <Skybox2D map={`cp_process_f12`}/>
           )}
 
           <Actors players={playersThisTick} />
