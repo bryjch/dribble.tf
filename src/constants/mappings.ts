@@ -97,14 +97,19 @@ export const MAP_NAME_SEARCH_MAP: { [key: string]: string } = {
   cp_sunshine: 'cp_sunshine',
   koth_product: 'koth_product_final',
   koth_bagel: 'koth_bagel_rc6',
+  cp_villa: 'cp_villa_b19',
+  cp_sultry: 'cp_sultry_b8',
+
 }
 
-export const MAP_SKYBOX_SEARCH: { [key: string]: string} = {
-  cp_metalworks:  'sky_night_01', //complete
+export const MAP_SKYBOX_SEARCH: { [key: string]: string } = {
+  cp_metalworks: 'sky_night_01', //complete
   cp_gullywash: 'sky_dustbowl_01', //complete
-  cp_process:  'sky_trainyard_01', //complete
+  cp_process: 'sky_trainyard_01', //complete
   cp_snakewater: 'sky_well_01', //complete
   cp_sunshine: 'sky_tf2_04', //complete
   koth_product: 'sky_morningsnow_01', //complete
-  koth_bagel: 'sky_granary_01' //placeholder //complete
+  koth_bagel: 'sky_granary_01', //placeholder //complete
+  cp_sultry: 'sky_well_01',
+  cp_villa: 'sky_morningsnow_01' //complete
 }
