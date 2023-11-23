@@ -251,9 +251,9 @@ class DemoViewer extends React.Component {
           )}
 
           {demo?.header?.map ? (
-            <Skybox2D map={demo.header.map}/>
+            <Skybox2D map={demo.header.map} />
           ) : (
-            <Skybox2D map={`cp_process_f12`}/>
+            <Skybox2D map={`cp_process_f12`} />
           )}
 
           <Actors players={playersThisTick} />
