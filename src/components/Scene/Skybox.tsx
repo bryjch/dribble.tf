@@ -38,9 +38,7 @@ export const Skybox2D = (props: WorldProps) => {
 
 
     } catch (error) {
-      alert(
-        `Unable to load skybox for map: ${map} \nThe project is probably missing the necessary files.`
-      )
+
       console.error(error)
     }
 
