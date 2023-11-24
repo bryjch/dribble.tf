@@ -250,11 +250,10 @@ class DemoViewer extends React.Component {
             <World map={`cp_process_f12`} mode={settings.scene.mode} />
           )}
 
-          {demo?.header?.map ? (
+          {settings.ui.showSkybox && demo?.header?.map ? (
             <Skybox2D map={demo.header.map} />
-          ) : (
-            <Skybox2D map={`cp_process_f12`} />
-          )}
+          ) :
+            <Skybox2D map={`cp_process_f12`} />}
 
           <Actors players={playersThisTick} />
 
