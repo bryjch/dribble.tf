@@ -439,6 +439,16 @@ const overWriteMapBoundaries: any = {
       y: 5200,
     },
   },
+  cp_reckoner: {
+    boundaryMin: {
+      x: -3232,
+      y: -4640,
+    },
+    boundaryMax: {
+      x: 3232,
+      y: 4640,
+    },
+  },
 }
 
 overWriteMapBoundaries['koth_viaduct'] = overWriteMapBoundaries['koth_product_rcx']

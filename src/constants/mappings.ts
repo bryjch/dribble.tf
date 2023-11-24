@@ -99,6 +99,7 @@ export const MAP_NAME_SEARCH_MAP: { [key: string]: string } = {
   koth_bagel: 'koth_bagel_rc6',
   cp_villa: 'cp_villa_b19',
   cp_sultry: 'cp_sultry_b8',
+  cp_reckoner: 'cp_reckoner_rc6'
 
 }
 
@@ -111,5 +112,6 @@ export const MAP_SKYBOX_SEARCH: { [key: string]: string } = {
   koth_product: 'sky_morningsnow_01', //complete
   koth_bagel: 'sky_granary_01', //placeholder //complete
   cp_sultry: 'sky_well_01',
-  cp_villa: 'sky_morningsnow_01' //complete
+  cp_villa: 'sky_morningsnow_01', //complete
+  cp_reckoner: 'sky_hydro_01' //cp_reckoner users a custom skybox - need to extract from vmf/bsp file
 }
