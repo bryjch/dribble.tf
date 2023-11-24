@@ -380,6 +380,11 @@ export const SettingsPanel = () => {
             checked={settings.ui.showStats}
             onChange={checked => updateSettingsOption('ui.showStats', checked)}
           />
+          <ToggleOption
+            label="Show Skybox"
+            checked={settings.ui.showSkybox}
+            onChange={checked => updateSettingsOption('ui.showSkybox', checked)}
+          />
         </div>
       </TogglePanel>
 
