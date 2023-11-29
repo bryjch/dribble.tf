@@ -98,7 +98,7 @@ const overWriteMapBoundaries: any = {
       x: 3374,
       y: 4939,
     },
-  },  
+  },
   cp_metalworks_f5: {
     boundaryMin: {
       x: -3034,
@@ -417,6 +417,36 @@ const overWriteMapBoundaries: any = {
     boundaryMax: {
       x: 3102,
       y: 2094,
+    },
+  },
+  cp_villa: {
+    boundaryMin: {
+      x: -5504,
+      y: -3777,
+    },
+    boundaryMax: {
+      x: 5504,
+      y: 3777,
+    },
+  },
+  cp_sultry: {
+    boundaryMin: {
+      x: -3704,
+      y: -5200,
+    },
+    boundaryMax: {
+      x: 3704,
+      y: 5200,
+    },
+  },
+  cp_reckoner: {
+    boundaryMin: {
+      x: -3232,
+      y: -4640,
+    },
+    boundaryMax: {
+      x: 3232,
+      y: 4640,
     },
   },
 }

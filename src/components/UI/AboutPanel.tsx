@@ -67,8 +67,10 @@ export const AboutPanel = () => {
               - cp_snakewater
               <br />
               - cp_sunshine
-              <br />
-              - koth_bagel
+              <br />- cp_reckoner
+              <br />- cp_sultry
+              <br />- cp_villa
+              <br />- koth_bagel
               <br />- koth_product
             </p>
 

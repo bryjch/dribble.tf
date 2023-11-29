@@ -1,5 +1,5 @@
 import { getAsset } from './misc'
-import { MAP_NAME_SEARCH_MAP } from '@constants/mappings'
+import { MAP_NAME_SEARCH_MAP, MAP_SKYBOX_SEARCH } from '@constants/mappings'
 
 // Handle demos that have different versioned maps. We need a function that
 // can parse a given {mapName}, then determine which gltf model to use
@@ -24,5 +24,32 @@ export const getMapModelUrls = (loadedMapName: string): MapModelTypes | undefine
     }
   })
 
+  return urls
+}
+
+interface MapSkyboxTypes {
+  bk: string
+  dn: string
+  ft: string
+  lf: string
+  rt: string
+  up: string
+  side: string
+}
+
+export const getMapSkyboxUrls = (loadedMapName: string): MapSkyboxTypes | undefined => {
+  let urls: MapSkyboxTypes | undefined
+  Object.entries(MAP_SKYBOX_SEARCH).forEach(([shortname, skyboxname]) => {
+    if (loadedMapName.includes(shortname)) {
+      urls = {
+        lf: getAsset(`/models/skybox/${skyboxname}/${skyboxname}lf.png`),
+        rt: getAsset(`/models/skybox/${skyboxname}/${skyboxname}rt.png`),
+        ft: getAsset(`/models/skybox/${skyboxname}/${skyboxname}ft.png`),
+        bk: getAsset(`/models/skybox/${skyboxname}/${skyboxname}bk.png`),
+        dn: getAsset(`/models/skybox/${skyboxname}/${skyboxname}dn.png`),
+        up: getAsset(`/models/skybox/${skyboxname}/${skyboxname}up.png`),
+      } as MapSkyboxTypes
+    }
+  })
   return urls
 }

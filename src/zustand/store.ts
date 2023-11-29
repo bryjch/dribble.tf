@@ -116,6 +116,7 @@ export type StoreState = {
       }
       xrayPlayers: boolean
       showStats: boolean
+      showSkybox: boolean
     }
   }
   ui: {
@@ -189,6 +190,7 @@ const initialState: StoreState = {
       },
       xrayPlayers: true,
       showStats: false,
+      showSkybox: true
     },
   },
 
