@@ -1,48 +1,44 @@
 import { useEffect } from 'react'
-
 import * as THREE from 'three'
-import { useThree } from "react-three-fiber"
+import { useThree } from 'react-three-fiber'
+
 import { getMapSkyboxUrls } from '@utils/game'
 
-export interface WorldProps {
+export interface SkyboxProps {
   map: string
 }
 
-export const Skybox2D = (props: WorldProps) => {
-  //const ref = useRef<THREE.Group>()
-  //const [mapSkybox2D, setMapSkybox2D] = useState<THREE.Group | null>()
-  const { map } = props
+export const Skybox = (props: SkyboxProps) => {
   const { scene } = useThree()
 
   useEffect(() => {
-
-
     try {
-      const mapSkyboxFileUrls = getMapSkyboxUrls(map)
+      const mapSkyboxFileUrls = getMapSkyboxUrls(props.map)
 
       if (!mapSkyboxFileUrls) {
-        alert('Unable to load map skybox.')
+        console.warn(`Failed to load skybox for map ${props.map}`)
         return
       }
+
       const skyboxURLS = [
         mapSkyboxFileUrls.lf,
         mapSkyboxFileUrls.rt,
         mapSkyboxFileUrls.bk,
         mapSkyboxFileUrls.ft,
         mapSkyboxFileUrls.up,
-        mapSkyboxFileUrls.dn
+        mapSkyboxFileUrls.dn,
       ]
       const skyboxLoader = new THREE.CubeTextureLoader()
       const skyboxTexture = skyboxLoader.load(skyboxURLS)
       scene.background = skyboxTexture
-
-
     } catch (error) {
-
       console.error(error)
     }
 
-  }, [map])
+    return () => {
+      scene.background = null
+    }
+  }, [props.map, scene])
 
-  return null;
+  return null
 }

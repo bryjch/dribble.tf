@@ -190,7 +190,7 @@ const initialState: StoreState = {
       },
       xrayPlayers: true,
       showStats: false,
-      showSkybox: true
+      showSkybox: true,
     },
   },
 
