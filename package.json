@@ -25,7 +25,7 @@
     "react-dom": "^16.13.1",
     "react-dropzone": "^11.2.4",
     "react-helmet": "^6.1.0",
-    "react-scripts": "3.4.1",
+    "react-scripts": "5.0.1",
     "react-three-fiber": "^5.3.19",
     "semantic-ui-css": "^2.4.1",
     "semantic-ui-react": "^1.1.0",
@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "customize-cra": "^0.9.1",
-    "node-sass": "^4.14.1",
+    "node-sass": "^9.0.0",
     "react-app-rewired": "^2.1.5",
     "styled-jsx-plugin-sass": "^1.0.0"
   },
