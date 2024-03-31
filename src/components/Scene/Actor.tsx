@@ -1,10 +1,8 @@
-import React, { useRef, useEffect, Suspense, useState } from 'react'
+import { useRef, useEffect, Suspense, useState } from 'react'
 
 import * as THREE from 'three'
-import { useThree } from 'react-three-fiber'
-import { Html, MeshWobbleMaterial, useGLTF } from '@react-three/drei'
-import { GLTF } from 'three/addons/loaders/GLTFLoader.js'
-import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
+import { useThree } from '@react-three/fiber'
+import { Html, MeshWobbleMaterial, useGLTF, Clone } from '@react-three/drei'
 
 import { Nameplate } from '@components/Scene/Nameplate'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
@@ -32,17 +30,12 @@ export interface PlayerModelProps {
 }
 
 export const PlayerModel = (props: PlayerModelProps) => {
-  const [cachedScene, setCachedScene] = useState<any>()
+  const modelUrl = getAsset(`/models/players/${CLASS_MAP[props.classId]}_${props.team}.glb`)
+  const gltf = useGLTF(modelUrl, true, false)
 
-  const model = getAsset(`/models/players/${CLASS_MAP[props.classId]}_${props.team}.glb`)
-  const gltf: GLTF = useGLTF(model, true)
-
-  if (!cachedScene) {
-    const cloned = SkeletonUtils.clone(gltf.scene)
-
+  if (true) {
     // TODO: Figure out how to do backface culling properly
     // so that players can be seen through walls nicely
-
     /*
     if (props.backface) {
       const a = cloned as THREE.Object3D
@@ -59,10 +52,8 @@ export const PlayerModel = (props: PlayerModelProps) => {
       })
     }
     */
-
     // TODO: Figure out how to swap the image texture on the model's material
     // instead of using a completely separate GLTF models for each class/team
-
     /*
     const skinnedMeshes = getSkinnedMeshes((cloned as THREE.Object3D).children)
 
@@ -79,13 +70,11 @@ export const PlayerModel = (props: PlayerModelProps) => {
       })
     })
     */
-
-    setCachedScene(cloned)
   }
 
   return (
     <group {...props} visible={props.visible} rotation={[Math.PI * 0.5, Math.PI * 0.5, 0]}>
-      {cachedScene && <primitive object={cachedScene} />}
+      <Clone object={gltf.scene} />
     </group>
   )
 }

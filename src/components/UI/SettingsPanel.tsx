@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Button, Divider } from 'semantic-ui-react'
 import { clamp } from 'lodash'
 

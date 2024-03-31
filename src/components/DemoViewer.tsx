@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import { Component, createRef, useRef, useEffect } from 'react'
 
 // THREE related imports
 import * as THREE from 'three'
@@ -122,7 +122,7 @@ const Controls = () => {
     <>
       <Camera ref={cameraRef} name="freeCamera" attach="camera" makeDefault {...settings.camera} />
 
-      {/* {controlsMode === 'rts' && cameraRef.current && (
+      {controlsMode === 'rts' && cameraRef.current && (
         <rtsControls
           ref={controlsRef}
           name="controls"
@@ -130,9 +130,9 @@ const Controls = () => {
           args={[cameraRef.current, gl.domElement]}
           {...settings.controls}
         />
-      )} */}
+      )}
 
-      {/* {controlsMode === 'spectator' && cameraRef.current && (
+      {controlsMode === 'spectator' && cameraRef.current && (
         <spectatorControls
           ref={spectatorRef}
           name="controls"
@@ -140,7 +140,7 @@ const Controls = () => {
           args={[cameraRef.current, gl.domElement]}
           {...settings.controls}
         />
-      )} */}
+      )}
     </>
   )
 }
@@ -149,11 +149,11 @@ const Controls = () => {
 // ─── COMPONENT ──────────────────────────────────────────────────────────────────
 //
 
-class DemoViewer extends React.Component {
+class DemoViewer extends Component {
   playbackSub = function () {}
   settingsSub = function () {}
-  canvasRef = React.createRef<HTMLCanvasElement>()
-  uiLayers = React.createRef<HTMLDivElement>()
+  canvasRef = createRef<HTMLCanvasElement>()
+  uiLayers = createRef<HTMLDivElement>()
 
   // Timing variables for animation loop
   elapsedTime = 0

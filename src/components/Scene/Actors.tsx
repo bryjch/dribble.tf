@@ -1,5 +1,4 @@
-import React from 'react'
-import 'react-three-fiber'
+import '@react-three/fiber'
 
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 import { Actor } from '@components/Scene/Actor'

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useDropzone, FileRejection } from 'react-dropzone'
 
 import { useEventListener } from '@utils/hooks'

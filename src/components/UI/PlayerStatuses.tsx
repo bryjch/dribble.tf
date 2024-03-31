@@ -1,4 +1,3 @@
-import React from 'react'
 import { clamp } from 'lodash'
 
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'

@@ -1,5 +1,3 @@
-import React from 'react'
-
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 import { ClassIcon } from '@components/UI/ClassIcon'
 

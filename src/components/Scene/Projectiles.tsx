@@ -1,9 +1,8 @@
-import React, { useRef, useState, useEffect, Suspense } from 'react'
+import { useRef, useState, useEffect, Suspense } from 'react'
 
 import * as THREE from 'three'
-import { useFrame } from 'react-three-fiber'
+import { useFrame } from '@react-three/fiber'
 import { Sphere, useGLTF } from '@react-three/drei'
-import { GLTF } from 'three/addons/loaders/GLTFLoader.js'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 
 import { CachedProjectile } from '@components/Analyse/Data/ProjectileCache'
@@ -26,7 +25,7 @@ export const ProjectileModel = (props: ProjectileModelProps) => {
   const [cachedScene, setCachedScene] = useState<any>()
 
   const model = getAsset(`/models/projectiles/${props.type}_${props.team}.glb`)
-  const gltf: GLTF = useGLTF(model, true)
+  const gltf = useGLTF(model, true)
 
   if (!cachedScene) {
     const cloned = SkeletonUtils.clone(gltf.scene)
