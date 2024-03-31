@@ -3,8 +3,8 @@ import React, { useRef, useEffect, Suspense, useState } from 'react'
 import * as THREE from 'three'
 import { useThree } from 'react-three-fiber'
 import { Html, MeshWobbleMaterial, useGLTF } from '@react-three/drei'
-import { GLTF } from 'three/examples/jsm/loaders/GLTFLoader'
-import { SkeletonUtils } from 'three/examples/jsm/utils/SkeletonUtils'
+import { GLTF } from 'three/addons/loaders/GLTFLoader.js'
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 
 import { Nameplate } from '@components/Scene/Nameplate'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
@@ -265,7 +265,7 @@ export const HealBeam = (props: HealBeamProps) => {
     targetPos
   )
 
-  const geometry = new THREE.TubeBufferGeometry(curve, 10, 5, 5)
+  const geometry = new THREE.TubeGeometry(curve, 10, 5, 5)
 
   return (
     <group name="healBeam" position={new THREE.Vector3(0, 0, ActorDimensions.z * 0.5)}>

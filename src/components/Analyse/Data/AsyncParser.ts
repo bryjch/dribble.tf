@@ -71,9 +71,7 @@ export class AsyncParser {
 
   getCachedData(): Promise<CachedDemo> {
     return new Promise((resolve, reject) => {
-      /* eslint import/no-webpack-loader-syntax: off */
-      const Worker = require('worker-loader!./ParseWorker')
-      const worker = new Worker()
+      const worker = new Worker(new URL('./ParseWorker.ts', import.meta.url), { type: 'module' })
       worker.postMessage(
         {
           buffer: this.buffer,

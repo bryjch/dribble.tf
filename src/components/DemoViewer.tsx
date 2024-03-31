@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react'
 
 // THREE related imports
 import * as THREE from 'three'
-import { Canvas, useFrame, useThree, extend } from 'react-three-fiber'
+import { Canvas, useFrame, useThree, extend } from '@react-three/fiber'
 import { PerspectiveCamera, OrthographicCamera, Stats } from '@react-three/drei'
 
 // Scene items
@@ -33,7 +33,7 @@ import { goToTickAction } from '@zus/actions'
 //
 
 // Modify default UP axis to be consistent with game coordinates
-THREE.Object3D.DefaultUp.set(0, 0, 1)
+THREE.Object3D.DEFAULT_UP.set(0, 0, 1)
 THREE.Cache.enabled = true
 
 // Basic controls for our scene
@@ -45,7 +45,7 @@ const Controls = () => {
   const cameraRef = useRef()
   const controlsRef = useRef()
   const spectatorRef = useRef()
-  const { gl, scene, setDefaultCamera } = useThree()
+  const { gl, scene, set } = useThree()
 
   const settings = useStore(state => state.settings)
   const controlsMode = useStore(state => state.scene.controls.mode)
@@ -70,7 +70,10 @@ const Controls = () => {
     } catch (error) {
       nextCamera = scene.getObjectByName('freeCamera')
     }
-    setDefaultCamera(nextCamera)
+
+    if (nextCamera) {
+      set({ camera: nextCamera })
+    }
   }, [focusedObject]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update controls & camera position when necessary
@@ -117,9 +120,9 @@ const Controls = () => {
 
   return (
     <>
-      <Camera ref={cameraRef} name="freeCamera" attach="camera" {...settings.camera} />
+      <Camera ref={cameraRef} name="freeCamera" attach="camera" makeDefault {...settings.camera} />
 
-      {controlsMode === 'rts' && cameraRef.current && (
+      {/* {controlsMode === 'rts' && cameraRef.current && (
         <rtsControls
           ref={controlsRef}
           name="controls"
@@ -127,9 +130,9 @@ const Controls = () => {
           args={[cameraRef.current, gl.domElement]}
           {...settings.controls}
         />
-      )}
+      )} */}
 
-      {controlsMode === 'spectator' && cameraRef.current && (
+      {/* {controlsMode === 'spectator' && cameraRef.current && (
         <spectatorControls
           ref={spectatorRef}
           name="controls"
@@ -137,7 +140,7 @@ const Controls = () => {
           args={[cameraRef.current, gl.domElement]}
           {...settings.controls}
         />
-      )}
+      )} */}
     </>
   )
 }
@@ -147,7 +150,10 @@ const Controls = () => {
 //
 
 class DemoViewer extends React.Component {
-  uiLayers = React.createRef()
+  playbackSub = function () {}
+  settingsSub = function () {}
+  canvasRef = React.createRef<HTMLCanvasElement>()
+  uiLayers = React.createRef<HTMLDivElement>()
 
   // Timing variables for animation loop
   elapsedTime = 0
@@ -179,6 +185,12 @@ class DemoViewer extends React.Component {
       state => this.setState({ settings: state.settings }),
       state => state.settings
     )
+
+    // Force tabIndex (r3f seems to ignore it if provided in props) as this is how
+    // we can ensure separation of Global and Canvas-only keyboard events when certain
+    // elements are in focus (e.g. when menu is open, we don't want to trigger Canvas events)
+    // https://github.com/pmndrs/react-three-fiber/issues/1238
+    this.canvasRef.current?.setAttribute('tabindex', '0')
   }
 
   componentWillUnmount() {
@@ -193,7 +205,7 @@ class DemoViewer extends React.Component {
   // TODO: it may be better to try using THREE.js Clock for playback instead
   // of this requestAnimationFrame() implementation
   // https://threejs.org/docs/#api/en/core/Clock
-  animate = async timestamp => {
+  animate = async (timestamp: number) => {
     const { playback } = this.state
 
     const intervalPerTick = 0.03 // TODO: read value from demo file instead
@@ -235,8 +247,8 @@ class DemoViewer extends React.Component {
     }
 
     return (
-      <div className="demo-viewer" ref={el => (this.demoViewer = el)}>
-        <Canvas id="main-canvas" onContextMenu={e => e.preventDefault()} colorManagement={false}>
+      <div className="demo-viewer">
+        <Canvas ref={this.canvasRef} id="main-canvas" onContextMenu={e => e.preventDefault()}>
           {/* Base scene elements */}
           <Lights />
           <Controls />

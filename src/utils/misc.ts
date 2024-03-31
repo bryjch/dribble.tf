@@ -1,7 +1,5 @@
 import { debounce } from 'lodash'
 
-const { NODE_ENV, REACT_APP_ASSET_URL } = process.env
-
 /**
  * Simple sleep helper function
  */
@@ -40,8 +38,8 @@ export const focusMainCanvas = debounce((): void => {
 export const getAsset = (endpoint: string): string => {
   let url = ''
 
-  if (NODE_ENV === 'production' && !!REACT_APP_ASSET_URL) {
-    url += `${REACT_APP_ASSET_URL}`
+  if (import.meta.env.PROD && !!import.meta.env.VITE_APP_ASSET_URL) {
+    url += `${import.meta.env.VITE_APP_ASSET_URL}`
   }
 
   url += endpoint

@@ -4,15 +4,7 @@
   "private": true,
   "dependencies": {
     "@bryjch/demo.js": "git+https://github.com/bryjch/demo.js.git",
-    "@react-three/drei": "^3.11.1",
-    "@types/humanize-duration": "^3.18.0",
-    "@types/lodash": "^4.14.156",
-    "@types/node": "^14.0.13",
-    "@types/react": "^16.9.38",
-    "@types/react-canvas-draw": "^1.1.0",
-    "@types/react-dom": "^16.9.8",
-    "@types/styled-jsx": "^2.2.8",
-    "@types/three": "^0.126.1",
+    "@react-three/fiber": "^8.16.1",
     "bootstrap": "^4.5.0",
     "framer-motion": "^2.9.4",
     "humanize-duration": "^3.23.1",
@@ -20,34 +12,40 @@
     "localforage": "^1.7.4",
     "lodash": "^4.17.15",
     "moment": "^2.27.0",
-    "react": "^16.13.1",
+    "react": "^18.2.0",
     "react-canvas-draw": "^1.1.1",
-    "react-dom": "^16.13.1",
+    "react-dom": "^18.2.0",
     "react-dropzone": "^11.2.4",
-    "react-helmet": "^6.1.0",
-    "react-scripts": "3.4.1",
-    "react-three-fiber": "^5.3.19",
+    "react-three-fiber": "^6.0.13",
     "semantic-ui-css": "^2.4.1",
     "semantic-ui-react": "^1.1.0",
     "styled-jsx": "^3.3.0",
-    "three": "^0.126.1",
-    "typescript": "^3.9.5",
+    "three": "^0.163.0",
     "worker-loader": "^2.0.0",
-    "zustand": "^4.3.8"
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
-    "customize-cra": "^0.9.1",
-    "node-sass": "^4.14.1",
-    "react-app-rewired": "^2.1.5",
-    "styled-jsx-plugin-sass": "^1.0.0"
+    "@react-three/drei": "^9.103.0",
+    "@types/humanize-duration": "^3.18.0",
+    "@types/lodash": "^4.14.156",
+    "@types/node": "^14.0.13",
+    "@types/react": "^18.2.73",
+    "@types/react-canvas-draw": "^1.1.0",
+    "@types/react-dom": "^18.2.23",
+    "@types/styled-jsx": "^2.2.8",
+    "@types/three": "^0.163.0",
+    "@vitejs/plugin-react": "^4.2.1",
+    "sass": "^1.72.0",
+    "styled-jsx-plugin-sass": "^1.0.0",
+    "typescript": "^5.4.3",
+    "vite": "^5.2.7",
+    "vite-plugin-node-polyfills": "^0.21.0",
+    "vite-tsconfig-paths": "^4.3.2"
   },
   "scripts": {
-    "start": "react-app-rewired start",
-    "build": "react-app-rewired build",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": "react-app"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "browserslist": {
     "production": [
