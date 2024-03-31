@@ -1,7 +1,7 @@
 import { useRef, useCallback } from 'react'
 import keycode from 'keycode'
 
-import { useThree } from 'react-three-fiber'
+import { useThree } from '@react-three/fiber'
 
 import { useStore } from '@zus/store'
 import {

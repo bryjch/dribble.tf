@@ -1,4 +1,3 @@
-import React from 'react'
 import { clamp } from 'lodash'
 
 import { ClassIcon } from '@components/UI/ClassIcon'

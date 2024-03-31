@@ -119,7 +119,7 @@ var RtsControls = function (object, domElement) {
 
     // so camera.up is the orbit axis
     var quat = new Quaternion().setFromUnitVectors(object.up, new Vector3(0, 1, 0))
-    var quatInverse = quat.clone().inverse()
+    var quatInverse = quat.clone().invert()
 
     var lastPosition = new Vector3()
     var lastQuaternion = new Quaternion()

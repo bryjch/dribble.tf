@@ -1,4 +1,3 @@
-import React from 'react'
 import { Icon, Popup, Dropdown, IconProps, PopupProps } from 'semantic-ui-react'
 
 import { useStore } from '@zus/store'

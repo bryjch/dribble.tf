@@ -1,4 +1,3 @@
-import React from 'react'
 import { inRange } from 'lodash'
 
 import { AsyncParser, CachedDeath } from '@components/Analyse/Data/AsyncParser'
@@ -54,10 +53,10 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
   let iconName = KILL_ICON_ALIASES[weapon] || weapon
   let weaponIcon
   try {
-    weaponIcon = require(`@assets/kill_icons/${iconName}.png`) as string
+    weaponIcon = new URL(`/src/assets/kill_icons/${iconName}.png`, import.meta.url).href
   } catch (e) {
     console.log(`Missing kill icon: ${iconName}`)
-    weaponIcon = require(`@assets/kill_icons/skull.png`) as string
+    weaponIcon = new URL(`/src/assets/kill_icons/skull.png`, import.meta.url).href
   }
 
   return (

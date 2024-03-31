@@ -1,4 +1,4 @@
-import React, { useRef, useState, useLayoutEffect, CSSProperties } from 'react'
+import { useRef, useState, useLayoutEffect, CSSProperties } from 'react'
 import CanvasDraw from 'react-canvas-draw'
 import { Icon, Popup } from 'semantic-ui-react'
 import { motion } from 'framer-motion'
