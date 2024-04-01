@@ -1,11 +1,7 @@
 import React from 'react'
 
 import { ViewerPage } from '@pages/ViewerPage'
-
 import { loadSettingsAction } from '@zus/actions'
-
-import 'semantic-ui-css/semantic.min.css'
-import './App.scss'
 
 class App extends React.Component {
   state = {
@@ -33,7 +29,7 @@ class App extends React.Component {
   //
 
   render() {
-    return <div id="app">{this.state.isReady ? <ViewerPage /> : null}</div>
+    return this.state.isReady ? <ViewerPage /> : null
   }
 }
 

@@ -1,4 +1,4 @@
-import { CLASS_MAP } from '@constants/mappings'
+import { CLASS_ORDER_MAP } from '@constants/mappings'
 
 import classIcons from '@assets/class_icons_64.png'
 
@@ -10,59 +10,21 @@ export interface ClassIconProps {
 export const ClassIcon = (props: ClassIconProps) => {
   const { classId, size } = props
 
-  const className = CLASS_MAP[classId] || 'empty'
+  const classIndex = CLASS_ORDER_MAP[classId]
   const classIconSize =
     typeof size === 'string' ? size : typeof size === 'number' ? `${size}px` : '1.5rem'
 
   return (
     <>
-      <div className={`class-icon ${className}`} />
-
-      <style jsx>{`
-        .class-icon {
-          width: ${classIconSize};
-          height: ${classIconSize};
-          background: url(${classIcons});
-          background-size: ${classIconSize};
-          background-position-y: 0;
-
-          &.scout {
-            background-position-y: ${`calc(${classIconSize} * -1)`};
-          }
-
-          &.soldier {
-            background-position-y: ${`calc(${classIconSize} * -2)`};
-          }
-
-          &.pyro {
-            background-position-y: ${`calc(${classIconSize} * -3)`};
-          }
-
-          &.demoman {
-            background-position-y: ${`calc(${classIconSize} * -4)`};
-          }
-
-          &.heavy {
-            background-position-y: ${`calc(${classIconSize} * -5)`};
-          }
-
-          &.engineer {
-            background-position-y: ${`calc(${classIconSize} * -6)`};
-          }
-
-          &.medic {
-            background-position-y: ${`calc(${classIconSize} * -7)`};
-          }
-
-          &.sniper {
-            background-position-y: ${`calc(${classIconSize} * -8)`};
-          }
-
-          &.spy {
-            background-position-y: ${`calc(${classIconSize} * -9)`};
-          }
-        }
-      `}</style>
+      <div
+        style={{
+          width: classIconSize,
+          height: classIconSize,
+          background: `url(${classIcons})`,
+          backgroundSize: classIconSize,
+          backgroundPositionY: `calc(${classIconSize} * ${classIndex * -1})`,
+        }}
+      />
     </>
   )
 }

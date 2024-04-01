@@ -61,14 +61,15 @@ const ViewerPage = () => {
   //
 
   return (
-    <div>
+    <div className="antialiased">
       <GlobalKeyHandler />
 
       <DemoViewer demo={parsedDemo} />
 
-      <div className="ui-layer loading-demo">
+      {/* Parsing demo overlay */}
+      <div className="ui-layer top-20 items-start justify-center">
         <motion.div
-          className="panel"
+          className="bg-pp-panel/80 inline-flex px-4 py-2"
           animate={parser.status === 'loading' ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
           initial={false}
@@ -77,14 +78,15 @@ const ViewerPage = () => {
         </motion.div>
       </div>
 
-      <div className="ui-layer spectator-fly-tip">
+      {/* Spectator camera fly tip overlay */}
+      <div className="ui-layer bottom-4 right-4 items-end justify-end">
         <motion.div
-          className="panel"
+          className="bg-pp-panel/80 w-56 px-4 py-2"
           animate={showSpectatorFlyTip ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
           transition={{ duration: 0.2 }}
           initial={false}
         >
-          <div className="d-flex flex-row mb-1">
+          <div className="d-flex mb-1 flex-row">
             <strong>Spectator Camera</strong>
             <div className="flex-fill" />
             <div>
@@ -124,13 +126,13 @@ const ViewerPage = () => {
 
           {isPointerLocked && (
             <motion.div>
-              <div className="d-flex flex-row mb-1">
+              <div className="d-flex mb-1 flex-row">
                 <span>Deactivate</span>
                 <div className="flex-fill" />
                 <kbd>RMB</kbd>
               </div>
 
-              <div className="d-flex flex-row mb-1">
+              <div className="d-flex mb-1 flex-row">
                 <span>Movement</span>
                 <div className="flex-fill" />
                 <kbd className="ml-1">W</kbd>
@@ -139,7 +141,7 @@ const ViewerPage = () => {
                 <kbd className="ml-1">D</kbd>
               </div>
 
-              <div className="d-flex flex-row mb-1">
+              <div className="d-flex mb-1 flex-row">
                 <span>Elevation</span>
                 <div className="flex-fill" />
 
@@ -157,46 +159,17 @@ const ViewerPage = () => {
         </motion.div>
       </div>
 
-      <div className="ui-layer canvas-draw">
+      {/* Drawing overlay */}
+      <div className="ui-layer">
         <DemoDrawing />
       </div>
 
+      {/* Dropzone overlay */}
       {parser.status !== 'loading' && (
         <div className="ui-layer">
           <DemoDropzone onDrop={onDemoDropped} />
         </div>
       )}
-
-      <style jsx>{`
-        .ui-layer {
-          &.loading-demo {
-            justify-content: center;
-            align-items: flex-start;
-            top: 80px;
-
-            & > :global(.panel) {
-              display: inline-flex;
-              color: #ffffff;
-              background-color: rgba(0, 0, 0, 0.8);
-              padding: 0.5rem 1rem;
-            }
-          }
-
-          &.spectator-fly-tip {
-            justify-content: flex-end;
-            align-items: flex-end;
-            bottom: 1rem;
-            right: 1rem;
-
-            & > :global(.panel) {
-              color: #ffffff;
-              background-color: rgba(0, 0, 0, 0.8);
-              padding: 0.5rem 1rem;
-              width: 220px;
-            }
-          }
-        }
-      `}</style>
     </div>
   )
 }

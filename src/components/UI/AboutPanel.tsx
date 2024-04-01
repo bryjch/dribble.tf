@@ -28,7 +28,7 @@ export const AboutPanel = () => {
   }
 
   return (
-    <div className="d-flex flex-row align-items-start">
+    <div className="d-flex align-items-start flex-row">
       <Button
         compact
         icon="info"
@@ -38,23 +38,44 @@ export const AboutPanel = () => {
         onClick={toggleUIPanel}
       />
 
-      <TogglePanel className="panel" isOpen={isOpen}>
-        <div className="header">
+      <TogglePanel className="bg-pp-panel/80 w-[360px] max-w-full" isOpen={isOpen}>
+        <div className="flex flex-row items-center justify-between bg-black/30 px-3 py-2 tracking-widest">
           <div>ABOUT</div>
-          <Button compact secondary icon="close" size="mini" onClick={toggleUIPanel} />
+
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-md"
+            onClick={toggleUIPanel}
+          >
+            <svg
+              className="h-6 w-6"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
 
-        <div className="content">
-          <div className="title">dribble.tf</div>
+        <div className="px-6 pb-8 pt-3">
+          <div className="text-3xl font-medium leading-tight">dribble.tf</div>
 
-          <div className="subtitle">
-            Demo replay in browser <span style={{ opacity: 0.3 }}>but less epic</span>
+          <div className="text-sm">
+            Demo replay in browser <span className="opacity-30">but less epic</span>
           </div>
 
-          <div className="intro">
+          <div className="mt-3">
             <p>Watch Team Fortress 2 STV demos in your browser... kinda.</p>
 
-            <p>
+            <p className="mt-3">
               Currently only supports:
               <br />
               - cp_gullywash
@@ -73,7 +94,7 @@ export const AboutPanel = () => {
               <br />- koth_product
             </p>
 
-            <p>
+            <p className="mt-3">
               Controls:
               <br />
               <b>LMB</b> ... rotate camera
@@ -83,82 +104,24 @@ export const AboutPanel = () => {
               <b>F</b> ... drawing tools
             </p>
 
-            <p>
+            <p className="mt-3">
               Drop your STV <code>.dem</code> file anywhere to start viewing!
             </p>
 
-            <p>
+            <p className="mt-3">
               Or try loading a{' '}
-              <span className="sample-demo" onClick={onClickSampleDemo}>
+              <span className="text-pp-accent-secondary" onClick={onClickSampleDemo}>
                 sample demo
               </span>
               .
             </p>
           </div>
-
-          <div className="links"></div>
         </div>
-        <div className="notice">
-          This project is still in early development / <a href={GITHUB_URL}>View on Github</a>
+
+        <div className="bg-pp-accent-secondary/50 px-6 py-1 text-center text-xs">
+          <a href={GITHUB_URL}>View this project on Github</a>
         </div>
       </TogglePanel>
-
-      <style jsx>{`
-        div > :global(.panel) {
-          width: 360px;
-          max-width: 100%;
-          background-color: rgba(0, 0, 0, 0.8);
-          color: #ffffff;
-          font-size: 1rem;
-          overflow: hidden;
-
-          .header {
-            display: flex;
-            flex-flow: row nowrap;
-            justify-content: space-between;
-            align-items: center;
-            letter-spacing: 2px;
-            padding: 0.45rem 0.2rem 0.45rem 1.5rem;
-            background-color: rgba(0, 0, 0, 0.3);
-          }
-
-          .content {
-            padding: 1rem 1.5rem 2rem 1.5rem;
-
-            .title {
-              font-family: 'Lato';
-              font-size: 1.7rem;
-              font-weight: 500;
-              line-height: 1.2;
-            }
-
-            .subtitle {
-              font-size: 0.85rem;
-            }
-
-            .intro {
-              margin-top: 1rem;
-            }
-
-            .sample-demo {
-              color: rgba(241, 104, 24, 1);
-              cursor: pointer;
-            }
-          }
-
-          .notice {
-            padding: 0.2rem 1.5rem;
-            background-color: rgba(241, 104, 24, 0.5);
-            font-size: 0.8rem;
-            text-align: center;
-
-            a {
-              color: #ffffff;
-              text-decoration: underline;
-            }
-          }
-        }
-      `}</style>
     </div>
   )
 }

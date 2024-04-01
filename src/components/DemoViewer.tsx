@@ -27,6 +27,9 @@ import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 // Actions & utils
 import { useStore, getState, useInstance } from '@zus/store'
 import { goToTickAction } from '@zus/actions'
+import { AsyncParser } from './Analyse/Data/AsyncParser'
+import { CachedPlayer } from './Analyse/Data/PlayerCache'
+import { CachedProjectile } from './Analyse/Data/ProjectileCache'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -53,9 +56,6 @@ const Controls = () => {
   const focusedObject = useInstance(state => state.focusedObject)
 
   const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
-
-  gl.physicallyCorrectLights = true
-  gl.outputEncoding = THREE.sRGBEncoding
 
   // Keep a reference of our scene in the store's instances for easy access
   useEffect(() => {
@@ -148,8 +148,11 @@ const Controls = () => {
 //
 // ─── COMPONENT ──────────────────────────────────────────────────────────────────
 //
+type DemoViewerProps = {
+  demo?: AsyncParser
+}
 
-class DemoViewer extends Component {
+class DemoViewer extends Component<DemoViewerProps> {
   playbackSub = function () {}
   settingsSub = function () {}
   canvasRef = createRef<HTMLCanvasElement>()
@@ -235,8 +238,8 @@ class DemoViewer extends Component {
     const { playback, settings } = this.state
     const { demo } = this.props
 
-    let playersThisTick = []
-    let projectilesThisTick = []
+    let playersThisTick: CachedPlayer[] = []
+    let projectilesThisTick: CachedProjectile[] = []
 
     if (!!demo) {
       playersThisTick = demo
@@ -247,13 +250,15 @@ class DemoViewer extends Component {
     }
 
     return (
-      <div className="demo-viewer">
+      <div className="h-screen w-screen">
         <Canvas ref={this.canvasRef} id="main-canvas" onContextMenu={e => e.preventDefault()}>
           {/* Base scene elements */}
           <Lights />
           <Controls />
           <CanvasKeyHandler />
-          {settings.ui.showStats && <Stats className="stats-panel" parent={this.uiLayers} />}
+          {settings.ui.showStats && (
+            <Stats className="!left-[unset] !top-[unset] bottom-0 right-0" parent={this.uiLayers} />
+          )}
 
           {/* Demo specific elements */}
           {demo?.header?.map ? (
@@ -277,103 +282,42 @@ class DemoViewer extends Component {
         {/* Normal React (non-THREE.js) UI elements */}
 
         <div className="ui-layers" ref={this.uiLayers}>
-          <div className="ui-layer playback">
+          <div className="ui-layer mb-4 items-end justify-center text-center">
             <PlaybackPanel />
           </div>
 
           {demo && (
-            <div className="ui-layer demo-info">
+            <div className="ui-layer m-4 items-end justify-start">
               <DemoInfoPanel parser={demo} />
             </div>
           )}
 
           {demo && (
-            <div className="ui-layer killfeed">
+            <div className="ui-layer m-4 items-start justify-end">
               <Killfeed parser={demo} tick={playback.tick} />
             </div>
           )}
 
           {playersThisTick.length > 0 && (
-            <div className="ui-layer player-statuses">
+            <div className="ui-layer items-center justify-stretch">
               <PlayerStatuses players={playersThisTick} />
             </div>
           )}
 
           {playersThisTick.length > 0 && (
-            <div className="ui-layer focused-player">
+            <div className="ui-layer bottom-[20vh] items-end justify-center">
               <FocusedPlayer players={playersThisTick} />
             </div>
           )}
 
-          <div className="ui-layer settings">
+          <div className="ui-layer m-4 items-start justify-start">
             <SettingsPanel />
           </div>
 
-          <div className="ui-layer about">
+          <div className="ui-layer justift-start mt-[calc(1.75rem + 33px)] m-4 items-start">
             <AboutPanel />
           </div>
         </div>
-
-        <style jsx>{`
-          .demo-viewer {
-            width: 100vw;
-            height: 100vh;
-          }
-
-          .ui-layer {
-            &.settings {
-              justify-content: flex-start;
-              align-items: flex-start;
-              margin: 1rem;
-            }
-
-            &.about {
-              justify-content: flex-start;
-              align-items: flex-start;
-              margin: 1rem;
-              margin-top: calc(1.75rem + 33px);
-            }
-
-            &.playback {
-              justify-content: center;
-              align-items: flex-end;
-              text-align: center;
-              margin-bottom: 1rem;
-            }
-
-            &.demo-info {
-              justify-content: flex-start;
-              align-items: flex-end;
-              margin: 1rem;
-            }
-
-            &.killfeed {
-              justify-content: flex-end;
-              align-items: flex-start;
-              margin: 1rem;
-            }
-
-            &.player-statuses {
-              justify-content: stretch;
-              align-items: center;
-            }
-
-            &.focused-player {
-              justify-content: center;
-              align-items: flex-end;
-              bottom: 20vh;
-            }
-          }
-        `}</style>
-
-        <style jsx global>{`
-          .stats-panel {
-            top: unset !important;
-            left: unset !important;
-            bottom: 0;
-            right: 0;
-          }
-        `}</style>
       </div>
     )
   }
