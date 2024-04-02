@@ -69,7 +69,7 @@ const ViewerPage = () => {
       {/* Parsing demo overlay */}
       <div className="ui-layer top-20 items-start justify-center">
         <motion.div
-          className="bg-pp-panel/80 inline-flex px-4 py-2"
+          className="inline-flex bg-pp-panel/80 px-4 py-2"
           animate={parser.status === 'loading' ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
           initial={false}
@@ -79,9 +79,9 @@ const ViewerPage = () => {
       </div>
 
       {/* Spectator camera fly tip overlay */}
-      <div className="ui-layer bottom-4 right-4 items-end justify-end">
+      <div className="ui-layer bottom-4 right-4 items-end justify-end overflow-hidden">
         <motion.div
-          className="bg-pp-panel/80 w-56 px-4 py-2"
+          className="w-56 bg-pp-panel/80 px-4 py-2"
           animate={showSpectatorFlyTip ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
           transition={{ duration: 0.2 }}
           initial={false}

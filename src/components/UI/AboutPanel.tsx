@@ -1,5 +1,3 @@
-import { Button } from 'semantic-ui-react'
-
 import { TogglePanel } from '@components/UI/Shared/TogglePanel'
 
 import { useStore } from '@zus/store'
@@ -71,9 +69,21 @@ export const AboutPanel = () => {
           </div>
 
           <div className="mt-3">
-            <p>Watch Team Fortress 2 STV demos in your browser... kinda.</p>
+            <p>Watch Team Fortress 2 STV demos in your browser.</p>
 
             <p className="mt-3">
+              Drop your STV <code>.dem</code> file anywhere to start viewing!
+            </p>
+
+            <p className="mt-3">
+              Or try loading a{' '}
+              <span className="cursor-pointer text-pp-accent-secondary" onClick={onClickSampleDemo}>
+                sample demo
+              </span>
+              .
+            </p>
+
+            <p className="mt-6">
               Currently only supports:
               <br />
               - cp_gullywash
@@ -92,7 +102,7 @@ export const AboutPanel = () => {
               <br />- koth_product
             </p>
 
-            <p className="mt-3">
+            <p className="mt-6">
               Controls:
               <br />
               <b>LMB</b> ... rotate camera
@@ -100,18 +110,6 @@ export const AboutPanel = () => {
               <b>RMB / WASD</b> ... pan camera
               <br />
               <b>F</b> ... drawing tools
-            </p>
-
-            <p className="mt-3">
-              Drop your STV <code>.dem</code> file anywhere to start viewing!
-            </p>
-
-            <p className="mt-3">
-              Or try loading a{' '}
-              <span className="text-pp-accent-secondary" onClick={onClickSampleDemo}>
-                sample demo
-              </span>
-              .
             </p>
           </div>
         </div>

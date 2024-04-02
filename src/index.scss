@@ -4,7 +4,7 @@
 
 @layer components {
   .ui-layer {
-    @apply pointer-events-none absolute inset-0 z-[2000000000] flex *:pointer-events-auto;
+    @apply pointer-events-none absolute inset-0 flex *:pointer-events-auto; // z-[2000000000]
   }
 }
 

@@ -1,9 +1,11 @@
 import { useRef, useState, useLayoutEffect, CSSProperties } from 'react'
 import CanvasDraw from 'react-canvas-draw'
-import { Icon, Popup } from 'semantic-ui-react'
 import { motion } from 'framer-motion'
+import * as Tooltip from '@radix-ui/react-tooltip'
+import { ReloadIcon, TrashIcon } from '@radix-ui/react-icons'
 
 import { useStore, useInstance } from '@zus/store'
+import { cn } from '@utils/styling'
 
 //
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────────
@@ -68,57 +70,70 @@ export const DemoDrawing = () => {
         hideGrid
       />
 
-      <div className={`toolbar-container ${enabled ? 'enabled' : ''}`}>
+      <div
+        className={cn(
+          'pointer-events-none absolute inset-0 flex items-end justify-center overflow-hidden [outline:8px_solid_rgba(0,0,0,0.6)] [transition:0.3s_ease_all]',
+          enabled && '-outline-offset-8'
+        )}
+      >
         <motion.div
-          className="toolbar"
-          animate={enabled ? { opacity: 1, y: -25 } : { opacity: 0, y: TOOLBAR_HEIGHT }}
+          className="pointer-events-auto flex w-[450px] flex-col justify-between rounded-2xl bg-[rgba(50,50,50,0.95)] px-6 pb-4 pt-6 text-white"
+          animate={enabled ? { opacity: 1, y: '-2rem' } : { opacity: 0, y: 100 }}
           transition={{ duration: 0.2 }}
           initial={false}
         >
           {/* Brush colors */}
 
-          <div className="brush-colors">
+          <div className="flex items-center justify-center">
             {BRUSH_COLOR_OPTIONS.map(({ color }) => (
               <div
                 key={`drawing-brush-color-option-${color}`}
-                className={`option ${brushColor === color ? 'active' : ''}`}
+                className={cn(
+                  'mx-2 h-10 w-10 cursor-pointer rounded-full [border:3px_solid_transparent] [transition:0.3s_ease_all]',
+                  brushColor === color && 'scale-125 [border:3px_solid_white]'
+                )}
                 style={{ backgroundColor: color }}
                 onClick={() => setBrushColor(color)}
               />
             ))}
           </div>
 
-          <div className="d-flex flex-row justify-content-between">
+          <div className="mt-3 flex items-center justify-between">
             {/* Undo action */}
 
-            <div className="action" onClick={drawingCanvasRef.current?.undo}>
-              <Popup
-                inverted
-                on="hover"
-                position="top center"
-                content={
-                  <div>
-                    Undo <kbd className="ml-2">Z</kbd>
+            <Tooltip.Provider delayDuration={0}>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <div
+                    className="inline-block cursor-pointer"
+                    onClick={drawingCanvasRef.current?.undo}
+                  >
+                    <ReloadIcon className="scale-x-[-1]" />
                   </div>
-                }
-                trigger={
-                  <Icon
-                    name="undo"
-                    className="mx-1"
-                    style={{ padding: 6, width: 'auto', height: 'auto', cursor: 'pointer' }}
-                  />
-                }
-                style={{ zIndex: 9999999999 }}
-              />
-            </div>
+                </Tooltip.Trigger>
+
+                <Tooltip.Portal>
+                  <Tooltip.Content sideOffset={5}>
+                    <div className="relative rounded-lg bg-pp-panel/90 px-4 py-3">
+                      Undo <kbd className="ml-2">Z</kbd>
+                    </div>
+                    <Tooltip.Arrow />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </Tooltip.Provider>
 
             {/* Brush radiuses */}
 
-            <div className="brush-radiuses">
+            <div className="flex items-center justify-center">
               {BRUSH_RADIUS_OPTIONS.map(({ label, size }) => (
                 <div
                   key={`drawing-brush-radius-option-${size}`}
-                  className={`option ${brushRadius === size ? 'active' : ''}`}
+                  className={cn(
+                    'cursor-pointer select-none px-2 py-1 text-lg',
+                    brushRadius === size && 'font-bold underline',
+                    `option ${brushRadius === size ? 'active' : ''}`
+                  )}
                   onClick={() => setBrushRadius(size)}
                 >
                   {label}
@@ -126,106 +141,33 @@ export const DemoDrawing = () => {
               ))}
             </div>
 
-            {/* Undo action */}
+            {/* Clear action */}
 
-            <div className="action" onClick={drawingCanvasRef.current?.clear}>
-              <Popup
-                inverted
-                on="hover"
-                position="top center"
-                content={
-                  <div>
-                    Clear <kbd className="ml-2">C</kbd>
+            <Tooltip.Provider delayDuration={0}>
+              <Tooltip.Root>
+                <Tooltip.Trigger asChild>
+                  <div
+                    className="inline-block cursor-pointer"
+                    onClick={drawingCanvasRef.current?.clear}
+                  >
+                    <TrashIcon className="h-5 w-5" />
                   </div>
-                }
-                trigger={
-                  <Icon
-                    name="trash alternate outline"
-                    style={{ padding: 6, width: 'auto', height: 'auto', cursor: 'pointer' }}
-                  />
-                }
-                style={{ zIndex: 9999999999 }}
-              />
-            </div>
+                </Tooltip.Trigger>
+
+                <Tooltip.Portal>
+                  <Tooltip.Content sideOffset={5}>
+                    <div className="relative rounded-lg bg-pp-panel/90 px-4 py-3">
+                      Clear <kbd className="ml-2">C</kbd>
+                    </div>
+
+                    <Tooltip.Arrow />
+                  </Tooltip.Content>
+                </Tooltip.Portal>
+              </Tooltip.Root>
+            </Tooltip.Provider>
           </div>
         </motion.div>
       </div>
-
-      <style jsx>{`
-        .toolbar-container {
-          position: absolute;
-          top: 0;
-          right: 0;
-          bottom: 0;
-          left: 0;
-          display: flex;
-          justify-content: center;
-          align-items: flex-end;
-          pointer-events: none;
-          overflow: hidden;
-          outline: 8px solid rgba(0, 0, 0, 0.6);
-          transition: 0.3s ease all;
-
-          &.enabled {
-            outline-offset: -8px;
-          }
-
-          & > :global(.toolbar) {
-            display: flex;
-            flex-flow: column nowrap;
-            justify-content: space-between;
-            width: ${TOOLBAR_WIDTH};
-            height: ${TOOLBAR_HEIGHT};
-            color: #ffffff;
-            background-color: rgba(50, 50, 50, 0.95);
-            padding: 1rem 1rem 0.5rem 1rem;
-            pointer-events: auto;
-            z-index: 999; // render above CanvasDraw
-
-            .brush-colors {
-              display: flex;
-              flex-flow: row nowrap;
-              justify-content: center;
-              align-items: center;
-
-              .option {
-                width: 40px;
-                height: 40px;
-                border-radius: 50%;
-                cursor: pointer;
-                margin: 0 0.5rem;
-                border: 3px solid transparent;
-                transition: 0.3s ease all;
-
-                &.active {
-                  border: 3px solid #ffffff;
-                  transform: scale(1.2);
-                }
-              }
-            }
-
-            .brush-radiuses {
-              display: flex;
-              flex-flow: row nowrap;
-              align-items: center;
-              justify-content: center;
-              align-items: center;
-
-              .option {
-                padding: 0.25rem 0.5rem;
-                font-size: 1.2rem;
-                cursor: pointer;
-                user-select: none;
-
-                &.active {
-                  font-weight: bold;
-                  text-decoration: underline;
-                }
-              }
-            }
-          }
-        }
-      `}</style>
     </>
   )
 }

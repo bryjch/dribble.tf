@@ -251,33 +251,38 @@ class DemoViewer extends Component<DemoViewerProps> {
 
     return (
       <div className="h-screen w-screen">
-        <Canvas ref={this.canvasRef} id="main-canvas" onContextMenu={e => e.preventDefault()}>
-          {/* Base scene elements */}
-          <Lights />
-          <Controls />
-          <CanvasKeyHandler />
-          {settings.ui.showStats && (
-            <Stats className="!left-[unset] !top-[unset] bottom-0 right-0" parent={this.uiLayers} />
-          )}
+        {true && (
+          <Canvas ref={this.canvasRef} id="main-canvas" onContextMenu={e => e.preventDefault()}>
+            {/* Base scene elements */}
+            <Lights />
+            <Controls />
+            <CanvasKeyHandler />
+            {settings.ui.showStats && (
+              <Stats
+                className="!left-[unset] !top-[unset] bottom-0 right-0"
+                parent={this.uiLayers}
+              />
+            )}
 
-          {/* Demo specific elements */}
-          {demo?.header?.map ? (
-            <World map={demo.header.map} mode={settings.scene.mode} />
-          ) : (
-            <World map={`cp_process_f12`} mode={settings.scene.mode} />
-          )}
-
-          {settings.ui.showSkybox &&
-            (demo?.header?.map ? (
-              <Skybox map={demo.header.map} />
+            {/* Demo specific elements */}
+            {demo?.header?.map ? (
+              <World map={demo.header.map} mode={settings.scene.mode} />
             ) : (
-              <Skybox map={`cp_process_f12`} />
-            ))}
+              <World map={`cp_process_f12`} mode={settings.scene.mode} />
+            )}
 
-          <Actors players={playersThisTick} />
+            {settings.ui.showSkybox &&
+              (demo?.header?.map ? (
+                <Skybox map={demo.header.map} />
+              ) : (
+                <Skybox map={`cp_process_f12`} />
+              ))}
 
-          <Projectiles projectiles={projectilesThisTick} />
-        </Canvas>
+            <Actors players={playersThisTick} />
+
+            <Projectiles projectiles={projectilesThisTick} />
+          </Canvas>
+        )}
 
         {/* Normal React (non-THREE.js) UI elements */}
 
