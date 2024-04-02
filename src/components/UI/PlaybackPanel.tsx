@@ -3,6 +3,7 @@ import { Icon, Popup, Dropdown, IconProps, PopupProps } from 'semantic-ui-react'
 import { useStore } from '@zus/store'
 import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@zus/actions'
 import { focusMainCanvas } from '@utils/misc'
+import { Menu } from '@headlessui/react'
 
 export const PLAYBACK_SPEED_OPTIONS = [
   { label: 'x3', value: 3 },
@@ -64,10 +65,10 @@ export const PlaybackPanel = () => {
   }
 
   return (
-    <div className="panel">
-      <div className="no-select">Tick #{tick * 2}</div>
+    <div className="m-4 max-w-full">
+      <div className="pointer-events-none select-none">Tick #{tick * 2}</div>
 
-      <div className="playback">
+      <div className="flex items-center justify-center">
         {/* Spacer to match play speed dropdown width */}
 
         <span style={{ width: '40px' }} className="mr-2" />
@@ -137,6 +138,29 @@ export const PlaybackPanel = () => {
 
         {/* Change play speed dropdown */}
 
+        <Menu as="div" className="relative inline-block text-left">
+          <div>
+            <Menu.Button className="inline-flex w-full justify-center gap-x-1.5 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+              Options
+            </Menu.Button>
+          </div>
+
+          <Menu.Items className="absolute bottom-full left-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+            <div className="py-1">
+              {PLAYBACK_SPEED_OPTIONS.map(({ label, value }) => (
+                <Menu.Item key={`play-speed-option-${label}`}>
+                  <button
+                    className="block text-black"
+                    onClick={() => changePlaySpeed(Number(value))}
+                  >
+                    {label}
+                  </button>
+                </Menu.Item>
+              ))}
+            </div>
+          </Menu.Items>
+        </Menu>
+
         <Popup
           inverted
           on="hover"
@@ -170,8 +194,9 @@ export const PlaybackPanel = () => {
         />
       </div>
 
-      <div className="timeline">
+      <div>
         <input
+          className="w-[400px] max-w-full"
           type="range"
           min="1"
           max={maxTicks}
@@ -180,34 +205,6 @@ export const PlaybackPanel = () => {
           tabIndex={-1}
         />
       </div>
-
-      <style jsx>{`
-        .panel {
-          max-width: 100%;
-          font-size: 1rem;
-          margin: 1rem;
-
-          .playback {
-            display: flex;
-            flex-flow: row nowrap;
-            justify-content: center;
-            align-items: center;
-
-            button.play {
-              width: 70px;
-            }
-
-            div {
-              user-select: none;
-            }
-          }
-
-          .timeline input[type='range'] {
-            width: 400px;
-            max-width: 100%;
-          }
-        }
-      `}</style>
     </div>
   )
 }

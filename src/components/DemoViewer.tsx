@@ -314,7 +314,7 @@ class DemoViewer extends Component<DemoViewerProps> {
             <SettingsPanel />
           </div>
 
-          <div className="ui-layer justift-start mt-[calc(1.75rem + 33px)] m-4 items-start">
+          <div className="ui-layer justift-start m-4 mt-[calc(1.75rem+33px)] items-start">
             <AboutPanel />
           </div>
         </div>

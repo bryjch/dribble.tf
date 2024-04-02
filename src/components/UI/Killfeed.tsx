@@ -1,8 +1,8 @@
 import { inRange } from 'lodash'
 
 import { AsyncParser, CachedDeath } from '@components/Analyse/Data/AsyncParser'
-import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { KILL_ICON_ALIASES } from '@constants/killIconAliases'
+import { cn } from '@utils/styling'
 
 const RELEVANT_DEATH_LINGER_TICKS = 200 // Keep death in feed for this many ticks
 
@@ -29,20 +29,10 @@ export const Killfeed = (props: KillfeedProps) => {
   }
 
   return (
-    <div className="panel">
+    <div className="flex flex-col items-end text-right">
       {relevantDeaths.map((death, index) => (
         <KillfeedItem key={`killfeed-item-${index}`} death={death} />
       ))}
-
-      <style jsx>{`
-        .panel {
-          display: flex;
-          flex-flow: column nowrap;
-          align-items: flex-end;
-          font-size: 1rem;
-          text-align: right;
-        }
-      `}</style>
     </div>
   )
 }
@@ -59,63 +49,30 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
     weaponIcon = new URL(`/src/assets/kill_icons/skull.png`, import.meta.url).href
   }
 
+  const teamTextColorMap: { [key: string]: string } = {
+    red: 'text-pp-killfeed-text-red',
+    blue: 'text-pp-killfeed-text-blue',
+  }
+  let killerTeamColor = killer ? teamTextColorMap[killer.user.team] : ''
+  let victimTeamColor = teamTextColorMap[victim?.user.team]
+
   return (
     <>
-      <div className="killfeed-item">
+      <div className="mb-2 flex bg-pp-panel/70 px-4 py-1 font-bold">
         {killer && killer !== victim && (
-          <div className={`killer ${killer.user.team}`}>{killer.user.name}</div>
+          <div className={cn(killerTeamColor)}>{killer.user.name}</div>
         )}
-        {assister && <div className={`plus ${assister.user.team}`}>+</div>}
-        {assister && <div className={`assister ${assister.user.team}`}>{assister.user.name}</div>}
-        <div className="weapon">
-          <img src={weaponIcon} className="weapon-icon" alt={`${weapon} Icon`} />
+
+        {assister && <div className={cn('mx-2', killerTeamColor)}>+</div>}
+
+        {assister && <div className={cn(killerTeamColor)}>{assister.user.name}</div>}
+
+        <div className="inline-flex items-center px-4">
+          <img src={weaponIcon} className="h-[1.2rem] brightness-[600%]" alt={`${weapon} Icon`} />
         </div>
-        <div className={`victim ${victim.user.team}`}>{victim.user.name}</div>
+
+        <div className={cn(victimTeamColor)}>{victim.user.name}</div>
       </div>
-
-      <style jsx>{`
-        .killfeed-item {
-          display: flex;
-          flex-direction: row nowrap;
-          background-color: rgba(30, 30, 30, 0.75);
-          color: #ffffff;
-          font-weight: bold;
-          padding: 0.25rem 1rem;
-          margin-bottom: 0.5rem;
-
-          .killer {
-          }
-
-          .plus {
-            margin: 0 0.5rem;
-          }
-
-          .assister {
-          }
-
-          .weapon {
-            display: inline-flex;
-            align-items: center;
-            padding: 0 1rem;
-
-            .weapon-icon {
-              height: 1.2rem;
-              filter: brightness(600%);
-            }
-          }
-
-          .victim {
-          }
-
-          .red {
-            color: ${ACTOR_TEAM_COLORS('red').killfeedText};
-          }
-
-          .blue {
-            color: ${ACTOR_TEAM_COLORS('blue').killfeedText};
-          }
-        }
-      `}</style>
     </>
   )
 }

@@ -28,17 +28,15 @@ export const AboutPanel = () => {
   }
 
   return (
-    <div className="d-flex align-items-start flex-row">
-      <Button
-        compact
-        icon="info"
-        className="dribble-btn mr-2"
-        secondary
-        style={{ backgroundColor: 'rgba(30,30,30,0.75)' }}
+    <div className="flex items-start">
+      <button
+        className="mr-2 flex h-9 w-9 items-center justify-center bg-pp-panel/75"
         onClick={toggleUIPanel}
-      />
+      >
+        ABT
+      </button>
 
-      <TogglePanel className="bg-pp-panel/80 w-[360px] max-w-full" isOpen={isOpen}>
+      <TogglePanel className="w-[360px] max-w-full bg-pp-panel/80" isOpen={isOpen}>
         <div className="flex flex-row items-center justify-between bg-black/30 px-3 py-2 tracking-widest">
           <div>ABOUT</div>
 

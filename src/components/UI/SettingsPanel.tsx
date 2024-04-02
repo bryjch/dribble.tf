@@ -163,15 +163,13 @@ export const SettingsPanel = () => {
   }
 
   return (
-    <div className="d-flex flex-row align-items-start">
-      <Button
-        compact
-        icon="setting"
-        className="dribble-btn mr-2"
-        secondary
-        style={{ backgroundColor: 'rgba(30,30,30,0.75)' }}
+    <div className="flex items-start">
+      <button
+        className="mr-2 flex h-9 w-9 items-center justify-center bg-pp-panel/75"
         onClick={toggleUIPanel}
-      />
+      >
+        SET
+      </button>
 
       <TogglePanel className="panel" isOpen={isOpen}>
         <div className="header">

@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@bryjch/demo.js": "git+https://github.com/bryjch/demo.js.git",
+    "@headlessui/react": "^1.7.18",
     "@react-three/fiber": "^8.16.1",
     "bootstrap": "^4.5.0",
     "framer-motion": "^2.9.4",

@@ -3,10 +3,9 @@ import { clamp } from 'lodash'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 import { ClassIcon } from '@components/UI/ClassIcon'
 
-import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
 import { focusMainCanvas } from '@utils/misc'
-import { hexToRgba } from '@utils/styling'
+import { cn } from '@utils/styling'
 
 import { useInstance } from '@zus/store'
 import { jumpToPlayerPOVCamera } from '@zus/actions'
@@ -116,8 +115,8 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
 // ─── STATUS ITEM ────────────────────────────────────────────────────────────────
 //
 
-const STATUS_ITEM_WIDTH = '12.5rem'
-const STATUS_ITEM_HEIGHT = '2.15rem'
+const STATUS_ITEM_WIDTH = 'w-52'
+const STATUS_ITEM_HEIGHT = 'h-9'
 
 export interface StatusItemProps {
   player: CachedPlayer
@@ -129,17 +128,13 @@ export interface StatusItemProps {
 
 export const StatusItem = (props: StatusItemProps) => {
   const { player, type, team, alignment, focused } = props
-  let name, health, percentage, itemCls, healthCls, icon
+  let name, health, percentage, icon
 
   switch (type) {
     case 'player':
       name = player.user.name
       health = player.health
       percentage = parseClassHealth(player.classId, health).percentage
-      itemCls = `player align-${alignment} ${focused ? 'focused' : ''} ${
-        health === 0 ? 'dead' : ''
-      }`
-      healthCls = percentage > 100 ? 'overhealed' : percentage < 40 ? 'low' : ''
       icon = <ClassIcon classId={player.classId} />
       break
 
@@ -147,7 +142,6 @@ export const StatusItem = (props: StatusItemProps) => {
       name = 'Charge' // TODO: display medi gun type (requires additional parsing)
       health = player.chargeLevel || 0
       percentage = player.chargeLevel || 0
-      itemCls = `uber align-${alignment}`
       break
   }
 
@@ -159,140 +153,79 @@ export const StatusItem = (props: StatusItemProps) => {
 
   return (
     <>
-      <div className={`player-status-item ${itemCls}`} onClick={onClickItem}>
-        {icon && <div className="class-icon-container">{icon}</div>}
+      <div
+        className={cn(
+          'my-px flex cursor-pointer items-center bg-pp-panel/40 text-[0.9rem] font-semibold',
+          STATUS_ITEM_WIDTH,
+          STATUS_ITEM_HEIGHT,
+          alignment === 'left' && 'flex-row',
+          alignment === 'right' && 'flex-row-reverse',
+          focused && 'outline outline-[3px] outline-[#fbff09]'
+        )}
+        onClick={onClickItem}
+      >
+        {/* Class Icon */}
+        {icon && (
+          <div
+            className={cn(
+              'flex aspect-square shrink-0 items-center justify-center bg-pp-panel/20',
+              STATUS_ITEM_HEIGHT
+            )}
+          >
+            {icon}
+          </div>
+        )}
 
-        <div className="details-container">
+        <div
+          className={cn(
+            'relative flex h-full w-full items-center overflow-hidden',
+            team === 'red' && 'bg-pp-healthbar-red/50',
+            team === 'blue' && 'bg-pp-healthbar-blue/50',
+            alignment === 'left' && 'flex-row',
+            alignment === 'right' && 'flex-row-reverse'
+          )}
+        >
           {/* Note: fill & overheal widths are manipulated inline for better performance,
             because changing the value in css class directly will continously trigger
             styled-jsx recalculation / DOM reflow (very costly over time)
             https://github.com/vercel/styled-jsx#via-inline-style */}
-          <div className="fill" style={{ width: `${percentage}%` }}></div>
-          <div className="overheal" style={{ width: `${clamp(percentage - 100, 0, 100)}%` }}></div>
-          <div className="name">{name}</div>
-          <div className="spacer"></div>
-          <div className={`health ${healthCls}`}>{health}</div>
-          <div className="respawn-timer"></div>
+
+          {/* Fill */}
+          <div
+            className={cn(
+              'absolute h-full',
+              team === 'red' && 'bg-pp-healthbar-red',
+              team === 'blue' && 'bg-pp-healthbar-blue'
+            )}
+            style={{ width: `${percentage}%` }}
+          />
+
+          {/* Overheal */}
+          <div
+            className="absolute h-full bg-white/40"
+            style={{ width: `${clamp(percentage - 100, 0, 100)}%` }}
+          ></div>
+
+          {/* Name */}
+          <div className="relative overflow-hidden text-ellipsis whitespace-nowrap px-2">
+            {name}
+          </div>
+
+          {/* Spacer */}
+          <div className="flex-1"></div>
+
+          {/* Health */}
+          <div
+            className={cn(
+              'relative px-2 text-[1.1rem] font-bold text-white',
+              percentage > 100 && 'text-pp-health-overhealed',
+              type === 'player' && percentage < 40 && 'text-pp-health-low'
+            )}
+          >
+            {health}
+          </div>
         </div>
       </div>
-
-      <style jsx>{`
-        .player-status-item {
-          display: flex;
-          align-items: center;
-          background: rgba(0, 0, 0, 0.4);
-          margin: 1px 0;
-          color: #ffffff;
-          font-size: 0.9rem;
-          font-weight: 600;
-          width: ${STATUS_ITEM_WIDTH};
-          height: ${STATUS_ITEM_HEIGHT};
-
-          &.player {
-            cursor: pointer;
-          }
-
-          &.uber {
-          }
-
-          &.focused {
-            outline: 3px solid #fbff09;
-          }
-
-          &.align-left {
-            flex-flow: row nowrap;
-
-            .details-container {
-              flex-flow: row nowrap;
-            }
-
-            .fill {
-              left: 0;
-            }
-          }
-
-          &.align-right {
-            flex-flow: row-reverse nowrap;
-
-            .details-container {
-              flex-flow: row-reverse nowrap;
-            }
-
-            .fill {
-              right: 0;
-            }
-          }
-
-          &.dead {
-            background: rgba(0, 0, 0, 0.8);
-            opacity: 0.4;
-
-            .details-container {
-              background: none;
-            }
-          }
-
-          .class-icon-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-shrink: 0;
-            width: ${STATUS_ITEM_HEIGHT};
-            height: ${STATUS_ITEM_HEIGHT};
-            background: rgba(0, 0, 0, 0.2);
-          }
-
-          .details-container {
-            position: relative;
-            display: flex;
-            align-items: center;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background: ${hexToRgba(ACTOR_TEAM_COLORS(team).healthBar, 0.5)};
-
-            .fill {
-              position: absolute;
-              height: 100%;
-              background: ${ACTOR_TEAM_COLORS(team).healthBar};
-            }
-
-            .overheal {
-              position: absolute;
-              height: 100%;
-              background: rgba(255, 255, 255, 0.4);
-            }
-
-            .name {
-              position: relative;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              padding: 0 0.3rem;
-            }
-
-            .spacer {
-              flex: 1;
-            }
-
-            .health {
-              position: relative;
-              color: #ffffff;
-              font-size: 1.1rem;
-              font-weight: 700;
-              padding: 0 0.3rem;
-
-              &.overhealed {
-                color: ${ACTOR_TEAM_COLORS(team).healthOverhealed};
-              }
-
-              &.low {
-                color: ${ACTOR_TEAM_COLORS(team).healthLow};
-              }
-            }
-          }
-        }
-      `}</style>
     </>
   )
 }
