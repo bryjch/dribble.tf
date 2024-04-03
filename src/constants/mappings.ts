@@ -1,7 +1,7 @@
 export const HEALTH_MAP: { [key: number]: number } = {
   0: 100, //fallback
   1: 125, //scout
-  2: 150, //sniper
+  2: 125, //sniper
   3: 200, //soldier,
   4: 175, //demoman,
   5: 150, //medic,

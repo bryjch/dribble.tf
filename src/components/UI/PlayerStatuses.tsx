@@ -35,7 +35,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
 
   return (
     <>
-      <div className="panel blue">
+      <div className="absolute left-0 flex flex-col items-start">
         {bluePlayers.sort(sortPlayersByClassId).map((player, index) => (
           <StatusItem
             key={`blue-player-status-item-${index}`}
@@ -60,7 +60,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
         ))}
       </div>
 
-      <div className="panel red">
+      <div className="absolute right-0 flex flex-col items-end">
         {redPlayers.sort(sortPlayersByClassId).map((player, index) => (
           <StatusItem
             key={`red-player-status-item-${index}`}
@@ -72,7 +72,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
           />
         ))}
 
-        {redMedics.length > 0 ? <div className="separator" /> : null}
+        {redMedics.length > 0 ? <div className="h-2" /> : null}
 
         {redMedics.map((player, index) => (
           <StatusItem
@@ -84,29 +84,6 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
           />
         ))}
       </div>
-
-      <style jsx>{`
-        .panel {
-          position: absolute;
-          display: flex;
-          flex-flow: column nowrap;
-          font-size: 1rem;
-
-          &.blue {
-            left: 0;
-            align-items: flex-start;
-          }
-
-          &.red {
-            right: 0;
-            align-items: flex-end;
-          }
-
-          .separator {
-            height: 0.5rem;
-          }
-        }
-      `}</style>
     </>
   )
 }
@@ -160,7 +137,8 @@ export const StatusItem = (props: StatusItemProps) => {
           STATUS_ITEM_HEIGHT,
           alignment === 'left' && 'flex-row',
           alignment === 'right' && 'flex-row-reverse',
-          focused && 'outline outline-[3px] outline-[#fbff09]'
+          focused && 'outline outline-[3px] outline-[#fbff09]',
+          health <= 0 && 'opacity-60'
         )}
         onClick={onClickItem}
       >
@@ -179,8 +157,8 @@ export const StatusItem = (props: StatusItemProps) => {
         <div
           className={cn(
             'relative flex h-full w-full items-center overflow-hidden',
-            team === 'red' && 'bg-pp-healthbar-red/50',
-            team === 'blue' && 'bg-pp-healthbar-blue/50',
+            health > 0 && team === 'red' && 'bg-pp-healthbar-red/50',
+            health > 0 && team === 'blue' && 'bg-pp-healthbar-blue/50',
             alignment === 'left' && 'flex-row',
             alignment === 'right' && 'flex-row-reverse'
           )}
