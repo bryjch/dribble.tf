@@ -1,3 +1,10 @@
+import { twMerge } from 'tailwind-merge'
+import { clsx, ClassValue } from 'clsx'
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs))
+}
+
 /**
  * Convert a hex value to rgba value with optional opacity
  *

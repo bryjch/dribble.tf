@@ -214,7 +214,7 @@ export const Actor = (props: CachedPlayer) => {
       {uiSettings.nameplate.enabled && (
         <Html
           name="html"
-          className="no-select"
+          className="pointer-events-none select-none"
           style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
           position={[0, 0, ActorDimensions.z * 0.85]}
         >

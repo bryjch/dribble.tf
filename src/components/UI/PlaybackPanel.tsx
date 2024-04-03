@@ -1,4 +1,14 @@
-import { Icon, Popup, Dropdown, IconProps, PopupProps } from 'semantic-ui-react'
+import { useState } from 'react'
+import * as Tooltip from '@radix-ui/react-tooltip'
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  DoubleArrowLeftIcon,
+  DoubleArrowRightIcon,
+  PauseIcon,
+  PlayIcon,
+} from '@radix-ui/react-icons'
 
 import { useStore } from '@zus/store'
 import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@zus/actions'
@@ -13,34 +23,83 @@ export const PLAYBACK_SPEED_OPTIONS = [
 ]
 
 interface PlaybackActionProps {
-  content: string | React.ReactNode
-  icon: string | any
-  iconProps?: IconProps
-  popupProps?: PopupProps
+  content: React.ReactNode
+  icon: React.ReactNode
+  onClick?: () => void
 }
 
 const PlaybackAction = (props: PlaybackActionProps) => {
   return (
-    <Popup
-      inverted
-      on="hover"
-      position="top center"
-      content={props.content}
-      trigger={
-        <Icon
-          name={props.icon}
-          className="mx-1"
-          style={{
-            padding: 6,
-            width: 'auto',
-            height: 'auto',
-            cursor: 'pointer',
-          }}
-          {...props.iconProps}
-        />
-      }
-      {...props.popupProps}
-    />
+    <Tooltip.Provider delayDuration={0}>
+      <Tooltip.Root>
+        <Tooltip.Trigger asChild>
+          <button onClick={props.onClick}>{props.icon}</button>
+        </Tooltip.Trigger>
+
+        <Tooltip.Portal>
+          <Tooltip.Content sideOffset={5}>
+            <div className="rounded-lg bg-pp-panel/90 px-4 py-3">{props.content}</div>
+            <Tooltip.Arrow />
+          </Tooltip.Content>
+        </Tooltip.Portal>
+      </Tooltip.Root>
+    </Tooltip.Provider>
+  )
+}
+
+interface PlaybackSpeedDropdownProps {
+  speed: number
+  onChangeSpeed: (speed: number) => void
+}
+
+const PlaybackSpeedDropdown = (props: PlaybackSpeedDropdownProps) => {
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+
+  return (
+    <Tooltip.Provider delayDuration={0}>
+      <Tooltip.Root>
+        <Tooltip.Trigger className="inline-flex" asChild>
+          <button tabIndex={-1} onFocus={e => e.target.blur()}>
+            <DropdownMenu.Root onOpenChange={setDropdownOpen}>
+              <DropdownMenu.Trigger asChild>
+                <button className="flex items-center" tabIndex={-1} onFocus={e => e.target.blur()}>
+                  <div className="text-xl font-medium">x {props.speed}</div>
+                </button>
+              </DropdownMenu.Trigger>
+
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content sideOffset={5}>
+                  {PLAYBACK_SPEED_OPTIONS.map(({ label, value }) => (
+                    <DropdownMenu.Item key={`play-speed-option-${label}`}>
+                      <button onClick={() => props.onChangeSpeed(Number(value))}>{label}</button>
+                    </DropdownMenu.Item>
+                  ))}
+
+                  <DropdownMenu.Arrow />
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </button>
+        </Tooltip.Trigger>
+
+        {!dropdownOpen && (
+          <Tooltip.Portal>
+            <Tooltip.Content sideOffset={5}>
+              <div className="rounded-lg bg-pp-panel/90 px-4 py-3">
+                <div className="grid grid-cols-[auto,auto] gap-x-4 gap-y-1">
+                  <div className="col-span-2 text-center">Playback speed</div>
+                  <div>Increase</div>
+                  <kbd>↑</kbd>
+                  <div>Decrease</div>
+                  <kbd>↓</kbd>
+                </div>
+              </div>
+              <Tooltip.Arrow />
+            </Tooltip.Content>
+          </Tooltip.Portal>
+        )}
+      </Tooltip.Root>
+    </Tooltip.Provider>
   )
 }
 
@@ -64,150 +123,94 @@ export const PlaybackPanel = () => {
   }
 
   return (
-    <div className="panel">
-      <div className="no-select">Tick #{tick * 2}</div>
+    <div className="m-4 max-w-full">
+      <div className="pointer-events-none select-none">Tick #{tick * 2}</div>
 
-      <div className="playback">
+      <div className="mt-3 flex items-center justify-center gap-4">
         {/* Spacer to match play speed dropdown width */}
 
-        <span style={{ width: '40px' }} className="mr-2" />
+        <span className="w-[32px]" />
 
         {/* Jump to start action */}
 
-        <div onClick={goToTick.bind(null, 1)}>
-          <PlaybackAction content={<div>Jump to start</div>} icon="fast backward" />
-        </div>
+        <PlaybackAction
+          icon={<DoubleArrowLeftIcon width="2rem" height="2rem" />}
+          content={<div>Jump to start</div>}
+          onClick={goToTick.bind(null, 1)}
+        />
 
         {/* Seek back action */}
 
-        <div onClick={goToTick.bind(null, tick - 50)}>
-          <PlaybackAction
-            content={
-              <div>
-                <div>Seek back</div>
-                <div>
-                  1 tick<kbd className="ml-2">,</kbd>
-                </div>
-                <div>
-                  50 ticks<kbd className="ml-2">←</kbd>
-                </div>
-              </div>
-            }
-            icon="step backward"
-          />
-        </div>
+        <PlaybackAction
+          icon={<ChevronLeftIcon width="2rem" height="2rem" />}
+          content={
+            <div className="grid grid-cols-[auto,auto] gap-x-4 gap-y-1">
+              <div className="col-span-2 text-center">Seek back</div>
+              <div>1 tick</div>
+              <kbd>,</kbd>
+              <div>50 ticks</div>
+              <kbd>←</kbd>
+            </div>
+          }
+          onClick={goToTick.bind(null, tick - 50)}
+        />
 
         {/* Toggle play / pause action */}
 
-        <div className="play" onClick={togglePlayback}>
-          <PlaybackAction
-            content={
-              <div>
-                Play / Pause <kbd className="ml-2">Space</kbd>
-              </div>
-            }
-            icon={playing ? 'pause' : 'play'}
-          />
-        </div>
-
-        {/* Seek forward action */}
-
-        <div onClick={goToTick.bind(null, tick + 50)}>
-          <PlaybackAction
-            content={
-              <div>
-                <div>Seek forward</div>
-                <div>
-                  1 tick<kbd className="ml-2">.</kbd>
-                </div>
-                <div>
-                  50 ticks<kbd className="ml-2">→</kbd>
-                </div>
-              </div>
-            }
-            icon="step forward"
-          />
-        </div>
-
-        {/* Jump to end action */}
-
-        <div onClick={goToTick.bind(null, maxTicks)}>
-          <PlaybackAction content={<div>Jump to end</div>} icon="fast forward" />
-        </div>
-
-        {/* Change play speed dropdown */}
-
-        <Popup
-          inverted
-          on="hover"
-          position="top center"
-          trigger={
-            <Dropdown tabIndex={-1} upward text={`x${speed}`} className="ml-3">
-              <Dropdown.Menu>
-                {PLAYBACK_SPEED_OPTIONS.map(({ label, value }) => (
-                  <Dropdown.Item
-                    key={`play-speed-option-${label}`}
-                    value={value}
-                    onClick={() => changePlaySpeed(Number(value))}
-                  >
-                    {label}
-                  </Dropdown.Item>
-                ))}
-              </Dropdown.Menu>
-            </Dropdown>
+        <PlaybackAction
+          icon={
+            playing ? (
+              <PauseIcon width="2rem" height="2rem" />
+            ) : (
+              <PlayIcon width="2rem" height="2rem" />
+            )
           }
           content={
             <div>
-              <div>Playback speed</div>
-              <div>
-                Increase <kbd className="ml-2">↑</kbd>
-              </div>
-              <div>
-                Decrease <kbd className="ml-2">↓</kbd>
-              </div>
+              Play / Pause <kbd className="ml-2">Space</kbd>
             </div>
           }
+          onClick={togglePlayback}
         />
+
+        {/* Seek forward action */}
+
+        <PlaybackAction
+          icon={<ChevronRightIcon width="2rem" height="2rem" />}
+          content={
+            <div className="grid grid-cols-[auto,auto] gap-x-4 gap-y-1">
+              <div className="col-span-2 text-center">Seek forward</div>
+              <div>1 tick</div>
+              <kbd>.</kbd>
+              <div>50 ticks</div>
+              <kbd>→</kbd>
+            </div>
+          }
+          onClick={goToTick.bind(null, tick + 50)}
+        />
+
+        {/* Jump to end action */}
+
+        <PlaybackAction
+          icon={<DoubleArrowRightIcon width="2rem" height="2rem" />}
+          content={<div>Jump to end</div>}
+          onClick={goToTick.bind(null, maxTicks)}
+        />
+
+        {/* Change play speed dropdown */}
+
+        <PlaybackSpeedDropdown speed={speed} onChangeSpeed={changePlaySpeed} />
       </div>
 
-      <div className="timeline">
-        <input
-          type="range"
-          min="1"
-          max={maxTicks}
-          value={tick}
-          onChange={({ target }) => goToTick(Number(target.value))}
-          tabIndex={-1}
-        />
-      </div>
-
-      <style jsx>{`
-        .panel {
-          max-width: 100%;
-          font-size: 1rem;
-          margin: 1rem;
-
-          .playback {
-            display: flex;
-            flex-flow: row nowrap;
-            justify-content: center;
-            align-items: center;
-
-            button.play {
-              width: 70px;
-            }
-
-            div {
-              user-select: none;
-            }
-          }
-
-          .timeline input[type='range'] {
-            width: 400px;
-            max-width: 100%;
-          }
-        }
-      `}</style>
+      <input
+        className="mt-4 w-[400px] max-w-full"
+        type="range"
+        min="1"
+        max={maxTicks}
+        value={tick}
+        onChange={({ target }) => goToTick(Number(target.value))}
+        tabIndex={-1}
+      />
     </div>
   )
 }

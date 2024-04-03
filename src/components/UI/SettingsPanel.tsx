@@ -1,36 +1,32 @@
 import { useState } from 'react'
-import { Button, Divider } from 'semantic-ui-react'
 import { clamp } from 'lodash'
 
 import { TogglePanel } from '@components/UI/Shared/TogglePanel'
 
 import { useStore } from '@zus/store'
 import { toggleUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
+import { cn } from '@utils/styling'
 
 //
 // ─── BASE OPTION WRAPPER ────────────────────────────────────────────────────────
 //
 
-const Option = ({ label, keyCode, children, leftClass = '', rightClass = '' }) => (
-  <div className="row align-items-center mb-2">
-    <div className={`d-flex align-items-center ${leftClass}`}>
-      <div className="label">{label}</div>
-      {!!keyCode && <kbd className="key-code">{keyCode}</kbd>}
+type OptionProps = {
+  label: string
+  keyCode?: string
+  children?: React.ReactNode
+  leftClass?: string
+  rightClass?: string
+}
+
+const Option = ({ label, keyCode, children, leftClass = '', rightClass = '' }: OptionProps) => (
+  <div className="mb-4 flex items-center justify-between">
+    <div className={cn('flex items-center', leftClass)}>
+      <div className="text-base font-semibold">{label}</div>
+      {!!keyCode && <kbd className="ml-2 text-[66%]">{keyCode}</kbd>}
     </div>
 
-    <div className={`d-flex align-items-center ${rightClass}`}>{children}</div>
-
-    <style jsx>{`
-      .label {
-        font-size: 1rem;
-        font-weight: 600;
-      }
-
-      .key-code {
-        font-size: 66%;
-        margin-left: 0.5rem;
-      }
-    `}</style>
+    <div className={cn('flex items-center', rightClass)}>{children}</div>
   </div>
 )
 
@@ -38,32 +34,49 @@ const Option = ({ label, keyCode, children, leftClass = '', rightClass = '' }) =
 // ─── SLIDER OPTION ──────────────────────────────────────────────────────────────
 //
 
-const SLIDER_THUMB_SIZE = '10px'
+type SliderOptionProps = {
+  label: string
+  keyCode?: string
+  value: number
+  onChange: (value: number) => void
+  min?: number
+  max?: number
+  step?: number
+}
 
-const SliderOption = ({ label, keyCode, value, onChange, min = 1, max = 10, step = 0.1 }) => {
+const SliderOption = ({
+  label,
+  keyCode,
+  value,
+  onChange,
+  min = 1,
+  max = 10,
+  step = 0.1,
+}: SliderOptionProps) => {
   // Track value internally so that input[type=number] will only trigger
   // callback when appropriate (i.e. enter / up / down / blurred)
   const [val, setVal] = useState(value)
   const inputFields = { min: min, max: max, step: step }
 
-  const callback = newValue => {
+  const callback = (newValue: number) => {
     setVal(clamp(newValue, min, max))
     onChange(clamp(newValue, min, max))
   }
 
   return (
-    <Option label={label} keyCode={keyCode} leftClass="col-sm-5" rightClass="col-sm-7">
+    <Option label={label} keyCode={keyCode} leftClass="w-5/12" rightClass="w-7/12">
       <input
-        className="slider"
         type="range"
+        className="slider h-[2px] flex-1 cursor-pointer rounded-md bg-white/30 outline-offset-4 [-webkit-appearance:none]"
         value={val}
-        onChange={({ target }) => callback(target.value)}
+        onChange={({ target }) => callback(Number(target.value))}
         {...inputFields}
       />
       <input
         type="number"
+        className="ml-4 w-10 rounded-md border border-white/40 bg-transparent px-1 text-right text-base"
         value={val}
-        onChange={({ target }) => setVal(target.value)}
+        onChange={({ target }) => setVal(Number(target.value))}
         onBlur={() => callback(val)}
         onKeyDown={({ key }) => {
           if (key === 'Enter') callback(val)
@@ -72,52 +85,6 @@ const SliderOption = ({ label, keyCode, value, onChange, min = 1, max = 10, step
         }}
         {...inputFields}
       />
-
-      <style jsx>{`
-        input[type='range'] {
-          flex: 1;
-          height: 2px;
-          border-radius: 5px;
-          background: rgba(255, 255, 255, 0.3);
-          outline-offset: 4px;
-          cursor: pointer;
-          -webkit-appearance: none;
-
-          &::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: ${SLIDER_THUMB_SIZE};
-            height: ${SLIDER_THUMB_SIZE};
-            border-radius: 50%;
-            background: #ffffff;
-            cursor: pointer;
-          }
-
-          &::-moz-range-thumb {
-            width: ${SLIDER_THUMB_SIZE};
-            height: ${SLIDER_THUMB_SIZE};
-            border-radius: 50%;
-            background: #ffffff;
-            cursor: pointer;
-          }
-        }
-
-        input[type='number'] {
-          width: 2.5rem;
-          text-align: right;
-          font-size: 0.8rem;
-          margin-left: 1rem;
-          background: none;
-          border: 1px solid rgba(255, 255, 255, 0.4);
-          border-radius: 4px;
-          padding: 0 0.25rem;
-          color: #ffffff;
-
-          &::selection {
-            background: #ffffff;
-          }
-        }
-      `}</style>
     </Option>
   )
 }
@@ -126,21 +93,28 @@ const SliderOption = ({ label, keyCode, value, onChange, min = 1, max = 10, step
 // ─── TOGGLE OPTION ──────────────────────────────────────────────────────────────
 //
 
-const ToggleOption = ({ label, keyCode, checked, disabled, onChange }) => {
+type ToggleOptionProps = {
+  label: string
+  keyCode?: string
+  checked: boolean
+  disabled?: boolean
+  onChange: (checked: boolean) => void
+}
+
+const ToggleOption = ({ label, keyCode, checked, disabled, onChange }: ToggleOptionProps) => {
   const callback = () => {
     onChange(!checked)
   }
 
   return (
-    <Option label={label} keyCode={keyCode} leftClass="col" rightClass="col-auto">
-      <input type="checkbox" checked={checked} disabled={disabled} onChange={callback} />
-
-      <style jsx>{`
-        input[type='checkbox'] {
-          width: 1rem;
-          height: 1rem;
-        }
-      `}</style>
+    <Option label={label} keyCode={keyCode}>
+      <input
+        type="checkbox"
+        className="h-4 w-4"
+        checked={checked}
+        disabled={disabled}
+        onChange={callback}
+      />
     </Option>
   )
 }
@@ -158,33 +132,52 @@ export const SettingsPanel = () => {
     toggleUIPanelAction('About', false)
     toggleUIPanelAction('Settings')
   }
-  const updateSettingsOption = (option, value) => {
+  const updateSettingsOption = (option: string, value: any) => {
     updateSettingsOptionAction(option, value)
   }
 
   return (
-    <div className="d-flex flex-row align-items-start">
-      <Button
-        compact
-        icon="setting"
-        className="dribble-btn mr-2"
-        secondary
-        style={{ backgroundColor: 'rgba(30,30,30,0.75)' }}
+    <div className="flex items-start">
+      <button
+        className="mr-2 flex h-9 w-9 items-center justify-center bg-pp-panel/75"
         onClick={toggleUIPanel}
-      />
+      >
+        SET
+      </button>
 
-      <TogglePanel className="panel" isOpen={isOpen}>
-        <div className="header">
+      <TogglePanel className="w-[360px] max-w-full bg-pp-panel/80" isOpen={isOpen}>
+        <div className="flex flex-row items-center justify-between bg-black/30 px-3 py-2 tracking-widest">
           <div>SETTINGS</div>
-          <Button compact secondary icon="close" size="mini" onClick={toggleUIPanel} />
+
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-md"
+            onClick={toggleUIPanel}
+          >
+            <svg
+              className="h-6 w-6"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
 
-        <div className="content">
+        <div className="max-h-[70vh] overflow-auto px-6 pb-8 pt-3">
           {/* ************************************************************* */}
 
-          <Divider horizontal style={{ color: '#ffffff' }}>
+          <div className="mb-5 text-center text-sm font-black uppercase tracking-widest">
             Camera
-          </Divider>
+          </div>
 
           <Option label="POV Camera (next)" keyCode="1" leftClass="col" />
           <Option label="POV Camera (prev)" keyCode="Shift + 1" leftClass="col" />
@@ -215,7 +208,7 @@ export const SettingsPanel = () => {
             </div>
           )}
 
-          <Option label="RTS Camera" keyCode="3" leftClass="col" />
+          <Option label="RTS Camera" keyCode="3" />
 
           {scene.controls.mode === 'rts' && (
             <div className="ml-3">
@@ -256,43 +249,35 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
-          <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
+          <div className="mb-5 mt-16 text-center text-sm font-black uppercase tracking-widest">
             Geometry
-          </Divider>
+          </div>
 
-          <Option label="Material" leftClass="col" rightClass="col-auto" keyCode="M">
-            <Button.Group size="tiny">
-              <Button
-                compact
-                color={settings.scene.mode === 'wireframe' ? 'blue' : undefined}
-                onClick={() => updateSettingsOption('scene.mode', 'wireframe')}
-              >
-                Wireframe
-              </Button>
-
-              <Button
-                compact
-                color={settings.scene.mode === 'untextured' ? 'blue' : undefined}
-                onClick={() => updateSettingsOption('scene.mode', 'untextured')}
-              >
-                Plain
-              </Button>
-
-              <Button
-                compact
-                color={settings.scene.mode === 'textured' ? 'blue' : undefined}
-                onClick={() => updateSettingsOption('scene.mode', 'textured')}
-              >
-                Textured
-              </Button>
-            </Button.Group>
+          <Option label="Material" keyCode="M">
+            <div className="flex gap-1">
+              {[
+                { label: 'Wireframe', value: 'wireframe' },
+                { label: 'Plain', value: 'untextured' },
+                { label: 'Textured', value: 'textured' },
+              ].map(button => (
+                <button
+                  className={cn(
+                    'rounded-xl border px-2 text-sm',
+                    settings.scene.mode === button.value && 'border-[#3273f6] bg-[#3273f6]'
+                  )}
+                  onClick={() => updateSettingsOption('scene.mode', button.value)}
+                >
+                  {button.label}
+                </button>
+              ))}
+            </div>
           </Option>
 
           {/* ************************************************************* */}
 
-          <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
+          <div className="mb-5 mt-16 text-center text-sm font-black uppercase tracking-widest">
             Players
-          </Divider>
+          </div>
 
           {/* <ToggleOption
               label="Player models through walls"
@@ -335,32 +320,31 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
-          <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
+          <div className="mb-5 mt-16 text-center text-sm font-black uppercase tracking-widest">
             Drawing
-          </Divider>
+          </div>
 
-          <Option label="Activate" keyCode="F" leftClass="col" />
-          <Option label="Clear" keyCode="C" leftClass="col" />
-          <Option label="Undo" keyCode="Z" leftClass="col" />
+          <Option label="Activate" keyCode="F" />
+          <Option label="Clear" keyCode="C" />
+          <Option label="Undo" keyCode="Z" />
 
-          <Option label="Activation method" leftClass="col" rightClass="col-auto">
-            <Button.Group size="tiny">
-              <Button
-                compact
-                color={settings.drawing.activation === 'hold' ? 'blue' : undefined}
-                onClick={() => updateSettingsOption('drawing.activation', 'hold')}
-              >
-                Hold
-              </Button>
-
-              <Button
-                compact
-                color={settings.drawing.activation === 'toggle' ? 'blue' : undefined}
-                onClick={() => updateSettingsOption('drawing.activation', 'toggle')}
-              >
-                Toggle
-              </Button>
-            </Button.Group>
+          <Option label="Activation method" rightClass="col-auto">
+            <div className="flex gap-1">
+              {[
+                { label: 'Hold', value: 'hold' },
+                { label: 'Toggle', value: 'toggle' },
+              ].map(button => (
+                <button
+                  className={cn(
+                    'rounded-xl border px-2 text-sm',
+                    settings.drawing.activation === button.value && 'border-[#3273f6] bg-[#3273f6]'
+                  )}
+                  onClick={() => updateSettingsOption('drawing.activation', button.value)}
+                >
+                  {button.label}
+                </button>
+              ))}
+            </div>
           </Option>
 
           <ToggleOption
@@ -371,9 +355,9 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
-          <Divider horizontal style={{ color: '#ffffff' }} className="mt-4">
+          <div className="mb-5 mt-16 text-center text-sm font-black uppercase tracking-widest">
             Misc
-          </Divider>
+          </div>
 
           <ToggleOption
             label="Show FPS"
@@ -387,33 +371,6 @@ export const SettingsPanel = () => {
           />
         </div>
       </TogglePanel>
-
-      <style jsx>{`
-        div > :global(.panel) {
-          width: 500px;
-          max-width: 100%;
-          background-color: rgba(0, 0, 0, 0.8);
-          color: #ffffff;
-          font-size: 1rem;
-          overflow: hidden;
-
-          .header {
-            display: flex;
-            flex-flow: row nowrap;
-            justify-content: space-between;
-            align-items: center;
-            letter-spacing: 2px;
-            padding: 0.45rem 0.2rem 0.45rem 1.5rem;
-            background-color: rgba(0, 0, 0, 0.3);
-          }
-
-          .content {
-            padding: 0rem 1.5rem 1rem 1.5rem;
-            max-height: 70vh;
-            overflow: auto;
-          }
-        }
-      `}</style>
     </div>
   )
 }

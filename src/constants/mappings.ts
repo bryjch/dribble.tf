@@ -1,7 +1,7 @@
 export const HEALTH_MAP: { [key: number]: number } = {
   0: 100, //fallback
   1: 125, //scout
-  2: 150, //sniper
+  2: 125, //sniper
   3: 200, //soldier,
   4: 175, //demoman,
   5: 150, //medic,
@@ -48,26 +48,26 @@ export const ACTOR_TEAM_COLORS: any = (team: string) => {
   switch (team) {
     case 'red':
       return {
-        actorModel: '#ff0202', //'#de4a50',
-        healthBar: '#ac2641',
-        healthOverhealed: '#4dd241',
-        healthLow: '#ff6262',
-        killfeedText: '#ff4a4a',
-        focusedBackground: '#ac2641',
-        pipebombColor: '#ff2525',
-        stickybombColor: '#ff0202',
+        // actorModel: '#ff0202', //'#de4a50',
+        // healthBar: '#ac2641',
+        // healthOverhealed: '#4dd241',
+        // healthLow: '#ff6262',
+        // killfeedText: '#ff4a4a',
+        // focusedBackground: '#ac2641',
+        // pipebombColor: '#ff2525',
+        // stickybombColor: '#ff0202',
       }
 
     case 'blue':
       return {
-        actorModel: '#0374ff', //'#559dc1',
-        healthBar: '#88aeb8',
-        healthOverhealed: '#4dd241',
-        healthLow: '#ff6262',
-        killfeedText: '#77a9ec',
-        focusedBackground: '#88aeb8',
-        pipebombColor: '#142bff',
-        stickybombColor: '#0037ff',
+        // actorModel: '#0374ff', //'#559dc1',
+        // healthBar: '#88aeb8',
+        // healthOverhealed: '#4dd241',
+        // healthLow: '#ff6262',
+        // killfeedText: '#77a9ec',
+        // focusedBackground: '#88aeb8',
+        // pipebombColor: '#142bff',
+        // stickybombColor: '#0037ff',
       }
 
     default:

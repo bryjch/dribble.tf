@@ -1,9 +1,43 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .ui-layer {
+    @apply pointer-events-none absolute inset-0 flex *:pointer-events-auto; // z-[2000000000]
+  }
+}
+
+:root {
+  --background-primary: #111111;
+  --text-primary: #eeeeee;
+
+  --pp-panel: 0 0 0;
+  --pp-accent-primary: 255 0 0;
+  --pp-accent-secondary: 241 104 24;
+
+  --pp-actor-model-red: 255 2 2;
+  --pp-actor-model-blue: 3 116 255;
+  --pp-pipebomb-red: 255 37 37;
+  --pp-pipebomb-blue: 20 43 255;
+  --pp-stickybomb-red: 255 2 2;
+  --pp-stickybomb-blue: 0, 55, 255;
+
+  --pp-killfeed-text-blue: 119 169 236;
+  --pp-killfeed-text-red: 255 74 74;
+  --pp-focused-background-blue: 172 38 65;
+  --pp-focused-background-red: 136 174 184;
+  --pp-healthbar-blue: 136 174 184;
+  --pp-healthbar-red: 172 38 65;
+  --pp-health-overhealed: 77 210 65;
+  --pp-health-low: 255 98 98;
+}
+
+html {
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: 'Source Sans Pro';
 }
 
 // Some stuff from Bootstrap
@@ -35,4 +69,25 @@ kbd {
   color: #fff;
   background-color: #212529;
   border-radius: 0.2rem;
+}
+
+/* Disable number input arrows - Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Disable number input arrows - Firefox */
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+@keyframes dead-pulse {
+  0% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
 }

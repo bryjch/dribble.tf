@@ -6,8 +6,8 @@ import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { useStore } from '@zus/store'
 import { goToTickAction } from '@zus/actions'
 
-import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { focusMainCanvas } from '@utils/misc'
+import { cn } from '@utils/styling'
 
 // Since parser only returns round ends (not round starts) we need to
 // account for the humiliation period before it resets
@@ -45,91 +45,38 @@ export const DemoInfoPanel = (props: DemoInfoPanelProps) => {
 
   return (
     <div className="d-flex flex-column align-items-start">
-      <div className="panel">
-        <div>{parser.header.server}</div>
-        <div>{parser.header.map}</div>
-        <div>
-          {humanizeDuration(moment.duration(parser.header.duration, 'seconds').asMilliseconds(), {
-            round: true,
-          })}
-          {` (${parser.ticks * 2 - 1} ticks)`}
-        </div>
-
-        <div className="round-title">Rounds</div>
-
-        <div className="rounds">
-          {rounds.map((round, index) => {
-            const roundCls = round.tick <= tick ? 'active' : ''
-            const winnerCls = round.winningTeam
-
-            return (
-              <div
-                key={`jump-to-round-${index}`}
-                className={`round ${roundCls}`}
-                onClick={onClickRound.bind(null, round)}
-              >
-                <span>{index + 1}</span>
-                <div className={`winner ${winnerCls}`} />
-              </div>
-            )
-          })}
-        </div>
+      <div>{parser.header.server}</div>
+      <div>{parser.header.map}</div>
+      <div>
+        {humanizeDuration(moment.duration(parser.header.duration, 'seconds').asMilliseconds(), {
+          round: true,
+        })}
+        {` (${parser.ticks * 2 - 1} ticks)`}
       </div>
 
-      <style jsx>{`
-        .panel {
-          font-size: 1rem;
+      <div className="mt-4 font-bold">Rounds</div>
 
-          .round-title {
-            font-weight: bold;
-            margin: 1rem 0 0 0;
-          }
-
-          .rounds {
-            display: flex;
-            flex-flow: row nowrap;
-
-            .round {
-              position: relative;
-              width: 1.7rem;
-              height: 1.7rem;
-              display: flex;
-              justify-content: center;
-              align-items: center;
-              font-size: 0.9rem;
-              color: #ffffff;
-              background-color: rgba(30, 30, 30, 0.75);
-              margin-right: 0.5rem;
-              cursor: pointer;
-
-              &:hover {
-                opacity: 0.8;
-              }
-
-              &.active {
-                color: #000000;
-                background-color: #ffffff;
-                box-shadow: 0 0 2px #484848;
-              }
-
-              .winner {
-                position: absolute;
-                bottom: 0;
-                right: 0;
-                border-left: 8px solid transparent;
-
-                &.red {
-                  border-bottom: 8px solid ${ACTOR_TEAM_COLORS('red').killfeedText};
-                }
-
-                &.blue {
-                  border-bottom: 8px solid ${ACTOR_TEAM_COLORS('blue').killfeedText};
-                }
-              }
-            }
-          }
-        }
-      `}</style>
+      <div className="flex">
+        {rounds.map((round, index) => (
+          <div
+            key={`jump-to-round-${index}`}
+            className={cn(
+              'bg-pp-panel/80 relative mr-2 flex h-7 w-7 cursor-pointer items-center justify-center overflow-hidden text-sm hover:opacity-80',
+              round.tick <= tick && 'bg-white text-black'
+            )}
+            onClick={onClickRound.bind(null, round)}
+          >
+            <span>{index + 1}</span>
+            <div
+              className={cn(
+                'absolute -bottom-2 -right-2 h-4 w-4 rotate-45',
+                round.winningTeam === 'red' && 'bg-pp-killfeed-text-red',
+                round.winningTeam === 'blue' && 'bg-pp-killfeed-text-blue'
+              )}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
