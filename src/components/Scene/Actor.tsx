@@ -181,12 +181,13 @@ export const Actor = (props: CachedPlayer) => {
         </mesh> */}
       </Suspense>
 
-      {/* Aim line */}
+      {/* Player aim */}
       <group
-        name="aimLineContainer"
+        name="playerAim"
         position={[ActorDimensions.x * 0.4, 0, ActorDimensions.z]}
         rotation={[0, viewAnglesVec3.y, 0]}
       >
+        {/* Aim line */}
         {/* <mesh visible={alive} position={[AimLineSize * 0.5, 0, 0]}>
           <boxGeometry attach="geometry" args={[AimLineSize, 5, 5]} />
           <meshBasicMaterial attach="material" color={color} opacity={0.5} transparent />
@@ -298,7 +299,6 @@ export const POVCamera = (props: POVCameraProps) => {
   return (
     <perspectiveCamera
       name="povCamera"
-      attach="camera"
       ref={ref}
       {...settings?.camera}
       position={[0, 0, 0]}
