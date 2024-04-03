@@ -45,15 +45,16 @@ extend({ SpectatorControls })
 
 // This component is messy af but whatever yolo
 const Controls = () => {
-  const cameraRef = useRef()
-  const controlsRef = useRef()
-  const spectatorRef = useRef()
+  const cameraRef = useRef<THREE.PerspectiveCamera | THREE.OrthographicCamera>(null)
+  const controlsRef = useRef<any>()
+  const spectatorRef = useRef<any>()
   const { gl, scene, set } = useThree()
 
   const settings = useStore(state => state.settings)
   const controlsMode = useStore(state => state.scene.controls.mode)
   const bounds = useStore(state => state.scene.bounds)
   const focusedObject = useInstance(state => state.focusedObject)
+  const lastFocusedPOV = useInstance(state => state.lastFocusedPOV)
 
   const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
 
@@ -64,35 +65,32 @@ const Controls = () => {
 
   // Update the default camera when necessary
   useEffect(() => {
-    let nextCamera
-    try {
-      nextCamera = focusedObject.getObjectByName('povCamera')
-    } catch (error) {
-      nextCamera = scene.getObjectByName('freeCamera')
-    }
+    let nextCamera = focusedObject?.getObjectByName('povCamera') ?? (scene as any)?.camera
 
     if (nextCamera) {
-      set({ camera: nextCamera })
+      set({ camera: nextCamera as THREE.PerspectiveCamera })
     }
   }, [focusedObject]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update controls & camera position when necessary
   useEffect(() => {
+    if (!cameraRef.current) return
+
     // Depending on whether there was a previous focused object, we either:
     // - reposition our Controls where that object was
     // - reposition our Controls to the center of the scene
-    const newPos = focusedObject ? focusedObject.position : bounds.center
+    const newPos = lastFocusedPOV ? lastFocusedPOV.position : bounds.center
     let cameraOffset = new THREE.Vector3(1000, -1000, 1000)
     let controlsOffset = new THREE.Vector3(0, 0, 100)
 
-    if (focusedObject) {
+    if (lastFocusedPOV) {
       if (controlsMode === 'rts') {
-        cameraOffset = new THREE.Vector3(-500, 0, 1000).applyQuaternion(focusedObject.quaternion)
+        cameraOffset = new THREE.Vector3(-500, 0, 1000).applyQuaternion(lastFocusedPOV.quaternion)
         controlsOffset = new THREE.Vector3(0, 0, 100)
       }
 
       if (controlsMode === 'spectator') {
-        cameraOffset = new THREE.Vector3(-70, 0, 120).applyQuaternion(focusedObject.quaternion)
+        cameraOffset = new THREE.Vector3(-70, 0, 120).applyQuaternion(lastFocusedPOV.quaternion)
         controlsOffset = new THREE.Vector3(0, 0, 100)
       }
     }
@@ -111,7 +109,7 @@ const Controls = () => {
       spectatorRef.current.listen()
       spectatorRef.current.enable()
     }
-  }, [cameraRef.current, bounds, controlsMode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cameraRef.current, lastFocusedPOV, bounds, controlsMode])
 
   useFrame(() => {
     if (controlsRef.current) controlsRef.current.update()
@@ -180,14 +178,8 @@ class DemoViewer extends Component<DemoViewerProps> {
     // component -- because it seems to be SUPER PAINFUL trying to get the animate()
     // requestAnimationFrame stuff working correctly as a functional component
     // (it ends up annihilating the fps and some other buggy behaviour)
-    this.playbackSub = useStore.subscribe(
-      state => this.setState({ playback: state.playback }),
-      state => state.playback
-    )
-    this.settingsSub = useStore.subscribe(
-      state => this.setState({ settings: state.settings }),
-      state => state.settings
-    )
+    this.playbackSub = useStore.subscribe(state => this.setState({ playback: state.playback }))
+    this.settingsSub = useStore.subscribe(state => this.setState({ settings: state.settings }))
 
     // Force tabIndex (r3f seems to ignore it if provided in props) as this is how
     // we can ensure separation of Global and Canvas-only keyboard events when certain
