@@ -44,46 +44,6 @@ export const TEAM_MAP: { [key: number]: string } = {
   3: 'blue',
 }
 
-export const ACTOR_TEAM_COLORS: any = (team: string) => {
-  switch (team) {
-    case 'red':
-      return {
-        // actorModel: '#ff0202', //'#de4a50',
-        // healthBar: '#ac2641',
-        // healthOverhealed: '#4dd241',
-        // healthLow: '#ff6262',
-        // killfeedText: '#ff4a4a',
-        // focusedBackground: '#ac2641',
-        // pipebombColor: '#ff2525',
-        // stickybombColor: '#ff0202',
-      }
-
-    case 'blue':
-      return {
-        // actorModel: '#0374ff', //'#559dc1',
-        // healthBar: '#88aeb8',
-        // healthOverhealed: '#4dd241',
-        // healthLow: '#ff6262',
-        // killfeedText: '#77a9ec',
-        // focusedBackground: '#88aeb8',
-        // pipebombColor: '#142bff',
-        // stickybombColor: '#0037ff',
-      }
-
-    default:
-      return {
-        actorModel: '#f800d7',
-        healthBar: '#f800d7',
-        healthOverhealed: '#f800d7',
-        healthLow: '#f800d7',
-        killfeedText: '#ffffff',
-        focusedBackground: '#f800d7',
-        pipebombColor: '#f800d7',
-        stickybombColor: '#f800d7',
-      }
-  }
-}
-
 // Used for checking a demo's map name against (key)
 // and returning the (value) if found.
 // This is helpful to allow using the same map gltf model for

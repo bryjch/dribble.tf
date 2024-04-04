@@ -17,7 +17,7 @@ import { dispatch, getState, useInstance } from './store'
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
 //
 
-export const parseDemoAction = async fileBuffer => {
+export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
   try {
     dispatch({ type: 'PARSE_DEMO_INIT' })
 
@@ -51,7 +51,7 @@ export const parseDemoAction = async fileBuffer => {
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
 //
 
-export const loadSceneFromDemoAction = async parsedDemo => {
+export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
   try {
     toggleUIPanelAction('About', false)
 
@@ -247,7 +247,7 @@ export const goToTickAction = async (tick: number) => {
   }
 }
 
-export const playbackJumpAction = async direction => {
+export const playbackJumpAction = async (direction: string) => {
   try {
     const PLAYBACK_JUMP_TICK_INCREMENT = 50
     const tick = getState().playback.tick
@@ -294,7 +294,7 @@ export const togglePlaybackAction = async (playing = undefined) => {
   }
 }
 
-export const changePlaySpeedAction = async speed => {
+export const changePlaySpeedAction = async (speed: 'faster' | 'slower' | number) => {
   try {
     // Provide the option to pass strings "faster" or "slower" as the {speed} param instead
     // which will simply cycle the options as defined in PlaybackPanel

@@ -74,7 +74,7 @@ export interface BaseProjectileProps extends CachedProjectile {}
 //
 
 export const RocketProjectile = (props: BaseProjectileProps) => {
-  const ref = useRef<THREE.Group>()
+  const ref = useRef<THREE.Group>(null)
   const prevPosition = useRef<THREE.Vector3>(objCoordsToVector3(props.position))
   const position = objCoordsToVector3(props.position)
 
