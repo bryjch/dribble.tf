@@ -25,7 +25,7 @@ export interface WorldProps {
 }
 
 export const World = (props: WorldProps) => {
-  const ref = useRef<THREE.Group>()
+  const ref = useRef<THREE.Group>(null)
   const [mapModel, setMapModel] = useState<THREE.Group | null>()
   const [mapOverlay, setMapOverlay] = useState<THREE.Group | null>()
   const { map, mode } = props
@@ -81,8 +81,8 @@ export const World = (props: WorldProps) => {
     if (mapOverlay) {
       mapOverlay.traverse((child: THREE.Object3D) => {
         traverseMaterials(child, (material: any) => {
-          if (material.map) material.map.encoding = THREE.sRGBEncoding
-          if (material.emissiveMap) material.emissiveMap.encoding = THREE.sRGBEncoding
+          // if (material.map) material.map.encoding = THREE.sRGBEncoding
+          // if (material.emissiveMap) material.emissiveMap.encoding = THREE.sRGBEncoding
           material.depthWrite = true
           material.needsUpdate = true
 
@@ -100,8 +100,8 @@ export const World = (props: WorldProps) => {
     if (mapModel) {
       mapModel.traverse((child: THREE.Object3D) => {
         traverseMaterials(child, (material: any, node: any) => {
-          if (material.map) material.map.encoding = THREE.sRGBEncoding
-          if (material.emissiveMap) material.emissiveMap.encoding = THREE.sRGBEncoding
+          // if (material.map) material.map.encoding = THREE.sRGBEncoding
+          // if (material.emissiveMap) material.emissiveMap.encoding = THREE.sRGBEncoding
           material.depthWrite = true
           material.vertexColors = false
           material.needsUpdate = true
@@ -162,7 +162,7 @@ function loadGLTF(file: string) {
         }
       }
 
-      const onError = (error: ErrorEvent) => {
+      const onError = (error: unknown) => {
         throw error
       }
 

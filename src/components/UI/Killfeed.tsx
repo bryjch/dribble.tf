@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { inRange } from 'lodash'
 
 import { AsyncParser, CachedDeath } from '@components/Analyse/Data/AsyncParser'
@@ -41,13 +42,9 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
   const { killer, assister, victim, weapon } = props.death
 
   let iconName = KILL_ICON_ALIASES[weapon] || weapon
-  let weaponIcon
-  try {
-    weaponIcon = new URL(`/src/assets/kill_icons/${iconName}.png`, import.meta.url).href
-  } catch (e) {
-    console.log(`Missing kill icon: ${iconName}`)
-    weaponIcon = new URL(`/src/assets/kill_icons/skull.png`, import.meta.url).href
-  }
+  let [weaponIcon, setWeaponIcon] = useState(
+    new URL(`/src/assets/kill_icons/${iconName}.png`, import.meta.url).href
+  )
 
   const teamTextColorMap: { [key: string]: string } = {
     red: 'text-pp-killfeed-text-red',
@@ -55,6 +52,11 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
   }
   let killerTeamColor = killer ? teamTextColorMap[killer.user.team] : ''
   let victimTeamColor = teamTextColorMap[victim?.user.team]
+
+  const onWeaponIconImgError = () => {
+    console.log(`Missing kill icon: ${iconName}`)
+    setWeaponIcon(new URL(`/src/assets/kill_icons/skull.png`, import.meta.url).href)
+  }
 
   return (
     <>
@@ -68,7 +70,12 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
         {assister && <div className={cn(killerTeamColor)}>{assister.user.name}</div>}
 
         <div className="inline-flex items-center px-4">
-          <img src={weaponIcon} className="h-[1.2rem] brightness-[600%]" alt={`${weapon} Icon`} />
+          <img
+            src={weaponIcon}
+            className="h-[1.2rem] brightness-[600%]"
+            alt={`${weapon} Icon`}
+            onError={onWeaponIconImgError}
+          />
         </div>
 
         <div className={cn(victimTeamColor)}>{victim.user.name}</div>

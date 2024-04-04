@@ -2,7 +2,6 @@ import { clamp } from 'lodash'
 
 import { ClassIcon } from '@components/UI/ClassIcon'
 
-import { ACTOR_TEAM_COLORS } from '@constants/mappings'
 import { parseClassHealth } from '@utils/players'
 import { cn } from '@utils/styling'
 
@@ -17,7 +16,6 @@ export interface NameplateProps {
 export const Nameplate = (props: NameplateProps) => {
   const { health, classId, name, team, settings } = props
 
-  const healthColor = ACTOR_TEAM_COLORS(team).healthBar
   const { percentage } = parseClassHealth(classId, health)
 
   if (!settings.enabled) return null
@@ -38,10 +36,6 @@ export const Nameplate = (props: NameplateProps) => {
 
         {settings.showHealth && (
           <div className="relative mt-1 h-[6px] w-20 overflow-hidden bg-[#8f7b89]">
-            {/* Note: fill & overheal widths are manipulated inline for better performance,
-            because changing the value in css class directly will continously trigger
-            styled-jsx recalculation / DOM reflow (very costly over time)
-            https://github.com/vercel/styled-jsx#via-inline-style */}
             <div
               className={cn(
                 'absolute inset-0 right-auto',

@@ -163,11 +163,6 @@ export const StatusItem = (props: StatusItemProps) => {
             alignment === 'right' && 'flex-row-reverse'
           )}
         >
-          {/* Note: fill & overheal widths are manipulated inline for better performance,
-            because changing the value in css class directly will continously trigger
-            styled-jsx recalculation / DOM reflow (very costly over time)
-            https://github.com/vercel/styled-jsx#via-inline-style */}
-
           {/* Fill */}
           <div
             className={cn(
