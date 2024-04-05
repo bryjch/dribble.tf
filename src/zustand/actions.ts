@@ -192,6 +192,8 @@ export const jumpToPlayerPOVCamera = async (entityId: number) => {
 
 export const jumpToSpectatorCamera = async (options = {}) => {
   try {
+    prepareControlMode('spectator')
+
     dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'spectator' })
 
     useInstance.getState().setFocusedObject(undefined)
@@ -202,6 +204,8 @@ export const jumpToSpectatorCamera = async (options = {}) => {
 
 export const jumpToRtsCamera = async (options = {}) => {
   try {
+    prepareControlMode('rts')
+
     dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'rts' })
 
     useInstance.getState().setFocusedObject(undefined)
@@ -225,6 +229,23 @@ export const changeSceneModeAction = async (mode: SceneMode | 'next') => {
 
   if (mode) {
     await updateSettingsOptionAction('scene.mode', mode)
+  }
+}
+
+/**
+ * There is a severe problem with @react-three/postprocessing Selection and Select
+ * components that cause our custom Controls to never dispose properly when switching
+ * modes. Even though they are no longer on the scene, they never seem to "unmount"
+ *
+ * To workaround this, we manually call dispose() on these controls before switching
+ * to the next one. Not sure if the issue is with our custom controls or the postprocessing
+ * implementation of Selection/Select - but those components seem straightforward, so
+ * really not sure where the issue lies.
+ */
+export const prepareControlMode = (nextControlMode: string) => {
+  const currentControls = (useInstance.getState().threeScene as any).controls
+  if (currentControls && nextControlMode !== currentControls.name) {
+    currentControls?.dispose?.()
   }
 }
 

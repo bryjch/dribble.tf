@@ -280,12 +280,12 @@ export const SettingsPanel = () => {
             Players
           </div>
 
-          {/* <ToggleOption
-              label="Player models through walls"
-              keyCode="P"
-              checked={settings.ui.xrayPlayers}
-              onChange={checked => updateSettingsOption('ui.xrayPlayers', checked)}
-            /> */}
+          <ToggleOption
+            label="Player outlines (*expensive)"
+            keyCode="O"
+            checked={settings.ui.playerOutlines}
+            onChange={checked => updateSettingsOption('ui.playerOutlines', checked)}
+          />
 
           <ToggleOption
             label="Show nameplates"

@@ -2,13 +2,14 @@ import { useRef, useEffect, Suspense, useState } from 'react'
 
 import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
+import { Select } from '@react-three/postprocessing'
 import { Html, MeshWobbleMaterial, useGLTF, Clone } from '@react-three/drei'
 
 import { Nameplate } from '@components/Scene/Nameplate'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 
 import { useStore } from '@zus/store'
-import { CLASS_MAP, ACTOR_TEAM_COLORS } from '@constants/mappings'
+import { CLASS_MAP } from '@constants/mappings'
 import { objCoordsToVector3, radianizeVector } from '@utils/geometry'
 import { getAsset } from '@utils/misc'
 
@@ -30,51 +31,19 @@ export interface PlayerModelProps {
 }
 
 export const PlayerModel = (props: PlayerModelProps) => {
+  // Note: currently RED and BLU models are separate GLTF files.
+  // It would be awesome if we could use a single GLTF and swap the material/textures.
+  // I tried doing that but dual materials wouldn't export from Blender.
+  // The models have been hugely optimized by removing bones/animations and baking the pose,
+  // so it's no longer as huge a deal. They're are also cached by the GLTF loader.
   const modelUrl = getAsset(`/models/players/${CLASS_MAP[props.classId]}_${props.team}.glb`)
   const gltf = useGLTF(modelUrl, true, false)
 
-  if (true) {
-    // TODO: Figure out how to do backface culling properly
-    // so that players can be seen through walls nicely
-    /*
-    if (props.backface) {
-      const a = cloned as THREE.Object3D
-      const b = getSkinnedMeshes(a.children)
-
-      b.forEach((skinnedMesh: SkinnedMesh) => {
-        let originalMat: THREE.MeshStandardMaterial = skinnedMesh.material as THREE.MeshStandardMaterial
-        let backfaceMat = originalMat.clone()
-        backfaceMat.depthFunc = THREE.GreaterDepth
-        backfaceMat.opacity = 0.5
-        backfaceMat.transparent = true
-        backfaceMat.needsUpdate = true
-        skinnedMesh.material = backfaceMat.clone()
-      })
-    }
-    */
-    // TODO: Figure out how to swap the image texture on the model's material
-    // instead of using a completely separate GLTF models for each class/team
-    /*
-    const skinnedMeshes = getSkinnedMeshes((cloned as THREE.Object3D).children)
-
-    const loader = new THREE.TextureLoader()
-    loader.load(`textures/demoman_blue.png`, function (texture: any) {
-      skinnedMeshes.forEach((skinnedMesh: SkinnedMesh) => {
-        let originalMat: THREE.MeshStandardMaterial = skinnedMesh.material as THREE.MeshStandardMaterial
-
-        if (originalMat.map instanceof THREE.CanvasTexture) {
-          originalMat.map = texture
-          originalMat.needsUpdate = true
-          texture.needsUpdate = true
-        }
-      })
-    })
-    */
-  }
-
   return (
     <group {...props} visible={props.visible} rotation={[Math.PI * 0.5, Math.PI * 0.5, 0]}>
-      <Clone object={gltf.scene} />
+      <Select enabled={!!gltf.scene}>
+        <Clone object={gltf.scene} />
+      </Select>
     </group>
   )
 }
@@ -84,7 +53,7 @@ export const PlayerModel = (props: PlayerModelProps) => {
 //
 
 export const Actor = (props: CachedPlayer) => {
-  const ref = useRef<THREE.Group>()
+  const ref = useRef<THREE.Group>(null)
   const lastViewAngleX = useRef<number>(0)
   const lastViewAngleY = useRef<number>(0)
   const [changing, setChanging] = useState<boolean>(false)
@@ -96,7 +65,9 @@ export const Actor = (props: CachedPlayer) => {
   let { position, viewAngles } = props
 
   const alive = health > 0
-  const color = ACTOR_TEAM_COLORS(team).actorModel
+  let color
+  if (team === 'red') color = '#ff0202'
+  if (team === 'blue') color = '#0374ff'
 
   // Hack for parser's tick data randomly returning 0 on certain frames
   if (viewAngles.x === 0) {
@@ -139,14 +110,7 @@ export const Actor = (props: CachedPlayer) => {
       rotation={[0, 0, viewAnglesVec3.x]}
       userData={user}
     >
-      {/* Base box mesh */}
-      {/* <mesh visible={alive}>
-        <boxGeometry
-          attach="geometry"
-          args={[ActorDimensions.x, ActorDimensions.y, ActorDimensions.z]}
-        />
-        <meshStandardMaterial attach="material" color={color} metalness={0.5} />
-      </mesh> */}
+      {/* Player model */}
 
       <Suspense fallback={null}>
         {team && classId && !changing ? (
@@ -160,28 +124,10 @@ export const Actor = (props: CachedPlayer) => {
             <meshStandardMaterial attach="material" color={color} metalness={0.5} />
           </mesh>
         )}
-
-        {/* <PlayerModel visible={alive} backface={true} /> */}
-
-        {/* Seethrough box mesh */}
-        {/* This is used to make players visible through map geometry &
-        uses a reverse depth function to determine when to display */}
-        {/* <mesh position={[0, 0, ActorDimensions.z * 0.5]} visible={alive && uiSettings.xrayPlayers}>
-          <boxGeometry
-            attach="geometry"
-            args={[ActorDimensions.x * 0.85, ActorDimensions.y * 0.85, ActorDimensions.z * 0.85]}
-          />
-          <meshStandardMaterial
-            attach="material"
-            color={color}
-            opacity={0.7}
-            transparent={true}
-            depthFunc={THREE.GreaterDepth}
-          />
-        </mesh> */}
       </Suspense>
 
       {/* Player aim */}
+
       <group
         name="playerAim"
         position={[ActorDimensions.x * 0.4, 0, ActorDimensions.z]}
@@ -197,6 +143,7 @@ export const Actor = (props: CachedPlayer) => {
       </group>
 
       {/* Medic heal beam */}
+
       {healTargetVec3 && (
         <group rotation={[0, 0, -viewAnglesVec3.x]}>
           <HealBeam
@@ -212,6 +159,7 @@ export const Actor = (props: CachedPlayer) => {
       )}
 
       {/* Nameplate */}
+
       {uiSettings.nameplate.enabled && (
         <Html
           name="html"
@@ -276,8 +224,8 @@ export const HealBeam = (props: HealBeamProps) => {
 
 export interface POVCameraProps {}
 
-export const POVCamera = (props: POVCameraProps) => {
-  const ref = useRef<THREE.PerspectiveCamera>()
+export const POVCamera = (_: POVCameraProps) => {
+  const ref = useRef<THREE.PerspectiveCamera>(null)
 
   const settings = useStore(state => state.settings)
 

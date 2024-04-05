@@ -114,7 +114,7 @@ export type StoreState = {
         showHealth: boolean
         showClass: boolean
       }
-      xrayPlayers: boolean
+      playerOutlines: boolean
       showStats: boolean
       showSkybox: boolean
     }
@@ -188,7 +188,7 @@ const initialState: StoreState = {
         showHealth: true,
         showClass: true,
       },
-      xrayPlayers: true,
+      playerOutlines: false,
       showStats: false,
       showSkybox: true,
     },

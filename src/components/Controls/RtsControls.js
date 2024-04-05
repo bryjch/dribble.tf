@@ -239,7 +239,7 @@ var RtsControls = function (object, domElement) {
     scope.domElement.removeEventListener('keydown', onKeyDown, false)
     scope.domElement.removeEventListener('keyup', onKeyUp, false)
 
-    //scope.dispatchEvent( { type: 'dispose' } ); // should this be added here?
+    scope.dispatchEvent(disposeEvent)
   }
 
   //
@@ -251,6 +251,7 @@ var RtsControls = function (object, domElement) {
   var changeEvent = { type: 'change' }
   var startEvent = { type: 'start' }
   var endEvent = { type: 'end' }
+  var disposeEvent = { type: 'dispose' }
 
   var STATE = {
     NONE: -1,
