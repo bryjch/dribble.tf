@@ -12,6 +12,7 @@ import { useStore } from '@zus/store'
 import { CLASS_MAP } from '@constants/mappings'
 import { objCoordsToVector3, radianizeVector } from '@utils/geometry'
 import { getAsset } from '@utils/misc'
+import { useEventListener } from '@utils/hooks'
 
 // Default TF2 player dimensions as specified in:
 // https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper%27s_Reference
@@ -224,25 +225,19 @@ export const HealBeam = (props: HealBeamProps) => {
 
 export interface POVCameraProps {}
 
-export const POVCamera = (_: POVCameraProps) => {
+export const POVCamera = ({}: POVCameraProps) => {
   const ref = useRef<THREE.PerspectiveCamera>(null)
 
   const settings = useStore(state => state.settings)
 
-  // // Un-comment this to render camera helpers for debugging
-  // const { scene } = useThree()
+  const updateCamera = () => {
+    if (!ref.current) return
+    ref.current.aspect = window.innerWidth / window.innerHeight
+    ref.current.updateProjectionMatrix()
+  }
 
-  // const cameraHelper = useRef<THREE.CameraHelper>()
-
-  // if (ref.current && !cameraHelper.current) {
-  //   cameraHelper.current = new THREE.CameraHelper(ref.current)
-  //   scene.add(cameraHelper.current)
-  // }
-
-  useEffect(() => {
-    ref.current?.updateProjectionMatrix()
-    // cameraHelper.current?.update()
-  }, [settings])
+  useEffect(updateCamera, [settings])
+  useEventListener('resize', updateCamera, window)
 
   return (
     <perspectiveCamera
