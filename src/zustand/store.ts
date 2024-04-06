@@ -89,7 +89,6 @@ export type StoreState = {
       mode: SceneMode
     }
     camera: {
-      orthographic: boolean
       position: [number, number, number]
       near: number
       far: number
@@ -114,7 +113,7 @@ export type StoreState = {
         showHealth: boolean
         showClass: boolean
       }
-      xrayPlayers: boolean
+      playerOutlines: boolean
       showStats: boolean
       showSkybox: boolean
     }
@@ -160,7 +159,6 @@ const initialState: StoreState = {
       mode: SceneMode.UNTEXTURED,
     },
     camera: {
-      orthographic: false,
       position: [0, -400, 200] as [number, number, number],
       near: 0.1,
       far: 15000,
@@ -188,7 +186,7 @@ const initialState: StoreState = {
         showHealth: true,
         showClass: true,
       },
-      xrayPlayers: true,
+      playerOutlines: false,
       showStats: false,
       showSkybox: true,
     },

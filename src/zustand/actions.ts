@@ -227,7 +227,6 @@ export const changeSceneModeAction = async (mode: SceneMode | 'next') => {
     await updateSettingsOptionAction('scene.mode', mode)
   }
 }
-
 //
 // ─── PLAYBACK ───────────────────────────────────────────────────────────────────
 //

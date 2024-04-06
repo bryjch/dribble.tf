@@ -1,12 +1,16 @@
-import { Component, createRef, useRef, useEffect } from 'react'
+import { Component, createRef, useRef, useEffect, Suspense } from 'react'
 
 // THREE related imports
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber'
-import { PerspectiveCamera, OrthographicCamera, Stats } from '@react-three/drei'
+import { PerspectiveCamera, Stats } from '@react-three/drei'
+import { EffectComposer, Outline, Selection } from '@react-three/postprocessing'
+import { BlendFunction } from 'postprocessing'
 
 // Scene items
+// @ts-ignore
 import { RtsControls } from '@components/Controls/RtsControls'
+// @ts-ignore
 import { SpectatorControls } from '@components/Controls/SpectatorControls'
 import { CanvasKeyHandler } from '@components/Scene/CanvasKeyHandler'
 import { Lights } from '@components/Scene/Lights'
@@ -40,14 +44,14 @@ THREE.Object3D.DEFAULT_UP.set(0, 0, 1)
 THREE.Cache.enabled = true
 
 // Basic controls for our scene
-extend({ RtsControls })
-extend({ SpectatorControls })
+extend({ RtsControls, SpectatorControls })
 
 // This component is messy af but whatever yolo
 const Controls = () => {
-  const cameraRef = useRef<THREE.PerspectiveCamera | THREE.OrthographicCamera>(null)
+  const cameraRef = useRef<THREE.PerspectiveCamera>(null)
   const controlsRef = useRef<any>()
   const spectatorRef = useRef<any>()
+  // const [spectatorRef, setSpectatorRef] = useState()
   const { gl, scene, set } = useThree()
 
   const settings = useStore(state => state.settings)
@@ -55,8 +59,6 @@ const Controls = () => {
   const bounds = useStore(state => state.scene.bounds)
   const focusedObject = useInstance(state => state.focusedObject)
   const lastFocusedPOV = useInstance(state => state.lastFocusedPOV)
-
-  const Camera = settings.camera.orthographic ? OrthographicCamera : PerspectiveCamera
 
   // Keep a reference of our scene in the store's instances for easy access
   useEffect(() => {
@@ -118,12 +120,19 @@ const Controls = () => {
 
   return (
     <>
-      <Camera ref={cameraRef} name="freeCamera" attach="camera" makeDefault {...settings.camera} />
+      <PerspectiveCamera
+        ref={cameraRef}
+        name="freeCamera"
+        attach="camera"
+        makeDefault
+        {...settings.camera}
+      />
 
       {controlsMode === 'rts' && cameraRef.current && (
+        // @ts-ignore
         <rtsControls
           ref={controlsRef}
-          name="controls"
+          name="rts"
           attach="controls"
           args={[cameraRef.current, gl.domElement]}
           {...settings.controls}
@@ -131,9 +140,10 @@ const Controls = () => {
       )}
 
       {controlsMode === 'spectator' && cameraRef.current && (
+        // @ts-ignore
         <spectatorControls
           ref={spectatorRef}
-          name="controls"
+          name="spectator"
           attach="controls"
           args={[cameraRef.current, gl.domElement]}
           {...settings.controls}
@@ -243,8 +253,14 @@ class DemoViewer extends Component<DemoViewerProps> {
 
     return (
       <div className="h-screen w-screen">
-        <Canvas ref={this.canvasRef} id="main-canvas" onContextMenu={e => e.preventDefault()}>
+        <Canvas
+          ref={this.canvasRef}
+          id="main-canvas"
+          gl={{ alpha: true }}
+          onContextMenu={e => e.preventDefault()}
+        >
           {/* Base scene elements */}
+
           <Lights />
           <Controls />
           <CanvasKeyHandler />
@@ -252,12 +268,17 @@ class DemoViewer extends Component<DemoViewerProps> {
             <Stats className="!left-[unset] !top-[unset] bottom-0 right-0" parent={this.uiLayers} />
           )}
 
-          {/* Demo specific elements */}
-          {demo?.header?.map ? (
-            <World map={demo.header.map} mode={settings.scene.mode} />
-          ) : (
-            <World map={`cp_process_f12`} mode={settings.scene.mode} />
-          )}
+          {/* World Map */}
+
+          <Suspense fallback={null}>
+            {demo?.header?.map ? (
+              <World map={demo.header.map} mode={settings.scene.mode} />
+            ) : (
+              <World map={`cp_process_f12`} mode={settings.scene.mode} />
+            )}
+          </Suspense>
+
+          {/* Skybox */}
 
           {settings.ui.showSkybox &&
             (demo?.header?.map ? (
@@ -266,7 +287,24 @@ class DemoViewer extends Component<DemoViewerProps> {
               <Skybox map={`cp_process_f12`} />
             ))}
 
-          <Actors players={playersThisTick} />
+          {/* Actors */}
+
+          <Suspense fallback={null}>
+            <Selection>
+              <Actors players={playersThisTick} />
+
+              <EffectComposer enabled={settings.ui.playerOutlines} autoClear={false}>
+                <Outline
+                  blendFunction={BlendFunction.SCREEN}
+                  visibleEdgeColor={0xffffff}
+                  hiddenEdgeColor={0xffffff}
+                  xRay={true}
+                />
+              </EffectComposer>
+            </Selection>
+          </Suspense>
+
+          {/* Projectiles */}
 
           <Projectiles projectiles={projectilesThisTick} />
         </Canvas>
