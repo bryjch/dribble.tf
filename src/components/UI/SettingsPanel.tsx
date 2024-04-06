@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { clamp } from 'lodash'
 
 import { TogglePanel } from '@components/UI/Shared/TogglePanel'
+import { IoMdSettingsIcon } from '@components/Misc/Icons'
 
 import { useStore } from '@zus/store'
 import { toggleUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
@@ -142,7 +143,7 @@ export const SettingsPanel = () => {
         className="mr-2 flex h-9 w-9 items-center justify-center bg-pp-panel/75"
         onClick={toggleUIPanel}
       >
-        SET
+        <IoMdSettingsIcon />
       </button>
 
       <TogglePanel className="w-[360px] max-w-full bg-pp-panel/80" isOpen={isOpen}>

@@ -1,4 +1,5 @@
 import { TogglePanel } from '@components/UI/Shared/TogglePanel'
+import { TiInfoLargeIcon } from '@components/Misc/Icons'
 
 import { useStore } from '@zus/store'
 import { toggleUIPanelAction, parseDemoAction } from '@zus/actions'
@@ -30,7 +31,7 @@ export const AboutPanel = () => {
         className="mr-2 flex h-9 w-9 items-center justify-center bg-pp-panel/75"
         onClick={toggleUIPanel}
       >
-        ABT
+        <TiInfoLargeIcon />
       </button>
 
       <TogglePanel className="w-[360px] max-w-full bg-pp-panel/80" isOpen={isOpen}>

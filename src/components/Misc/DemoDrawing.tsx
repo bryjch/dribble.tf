@@ -2,7 +2,8 @@ import { useRef, useState, useLayoutEffect, CSSProperties } from 'react'
 import CanvasDraw from 'react-canvas-draw'
 import { motion } from 'framer-motion'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import { ReloadIcon, TrashIcon } from '@radix-ui/react-icons'
+
+import { FaTrashIcon, FaUndoIcon } from './Icons'
 
 import { useStore, useInstance } from '@zus/store'
 import { cn } from '@utils/styling'
@@ -89,7 +90,8 @@ export const DemoDrawing = () => {
               <div
                 key={`drawing-brush-color-option-${color}`}
                 className={cn(
-                  'mx-2 h-10 w-10 cursor-pointer rounded-full [border:3px_solid_transparent] [transition:0.3s_ease_all]',
+                  'mx-2 h-10 w-10 cursor-pointer rounded-full hover:scale-125',
+                  '[border:3px_solid_transparent] [transition:0.3s_ease_all]',
                   brushColor === color && 'scale-125 [border:3px_solid_white]'
                 )}
                 style={{ backgroundColor: color }}
@@ -105,10 +107,10 @@ export const DemoDrawing = () => {
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <div
-                    className="inline-block cursor-pointer"
+                    className="inline-block cursor-pointer transition-all hover:scale-125"
                     onClick={drawingCanvasRef.current?.undo}
                   >
-                    <ReloadIcon className="scale-x-[-1]" />
+                    <FaUndoIcon />
                   </div>
                 </Tooltip.Trigger>
 
@@ -130,7 +132,7 @@ export const DemoDrawing = () => {
                 <div
                   key={`drawing-brush-radius-option-${size}`}
                   className={cn(
-                    'cursor-pointer select-none px-2 py-1 text-lg',
+                    'cursor-pointer select-none px-2 py-1 text-lg hover:underline',
                     brushRadius === size && 'font-bold underline',
                     `option ${brushRadius === size ? 'active' : ''}`
                   )}
@@ -147,10 +149,10 @@ export const DemoDrawing = () => {
               <Tooltip.Root>
                 <Tooltip.Trigger asChild>
                   <div
-                    className="inline-block cursor-pointer"
+                    className="inline-block cursor-pointer transition-all hover:scale-125"
                     onClick={drawingCanvasRef.current?.clear}
                   >
-                    <TrashIcon className="h-5 w-5" />
+                    <FaTrashIcon className="h-5 w-5" />
                   </div>
                 </Tooltip.Trigger>
 

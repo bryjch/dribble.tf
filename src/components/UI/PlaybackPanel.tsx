@@ -1,12 +1,11 @@
 import * as Tooltip from '@radix-ui/react-tooltip'
+
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  DoubleArrowLeftIcon,
-  DoubleArrowRightIcon,
-  PauseIcon,
-  PlayIcon,
-} from '@radix-ui/react-icons'
+  AiFillStepForwardIcon,
+  AiFillFastForwardIcon,
+  IoMdPauseIcon,
+  IoMdPlayIcon,
+} from '@components/Misc/Icons'
 
 import { useStore } from '@zus/store'
 import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@zus/actions'
@@ -14,11 +13,11 @@ import { focusMainCanvas } from '@utils/misc'
 import { cn } from '@utils/styling'
 
 export const PLAYBACK_SPEED_OPTIONS = [
-  { label: '3x', value: 3 },
-  { label: '2x', value: 2 },
-  { label: '1x', value: 1 },
-  { label: '0.5x', value: 0.5 },
-  { label: '0.1x', value: 0.1 },
+  { label: '3×', value: 3 },
+  { label: '2×', value: 2 },
+  { label: '1×', value: 1 },
+  { label: '0.5×', value: 0.5 },
+  { label: '0.1×', value: 0.1 },
 ]
 
 interface PlaybackActionProps {
@@ -32,7 +31,13 @@ const PlaybackAction = (props: PlaybackActionProps) => {
     <Tooltip.Provider delayDuration={0}>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
-          <div className="cursor-pointer" onClick={props.onClick}>
+          <div
+            className={cn(
+              'cursor-pointer opacity-80',
+              'transform transition-all hover:scale-125 hover:opacity-100'
+            )}
+            onClick={props.onClick}
+          >
             {props.icon}
           </div>
         </Tooltip.Trigger>
@@ -69,9 +74,11 @@ export const PlaybackPanel = () => {
 
   return (
     <div className="m-4 max-w-full">
-      <div className="pointer-events-none select-none">Tick #{tick * 2}</div>
+      <div className="pointer-events-none select-none text-sm tracking-widest">
+        TICK #{tick * 2}
+      </div>
 
-      <div className="mt-3 flex items-center justify-center gap-4">
+      <div className="mt-4 flex items-center justify-center gap-6">
         {/* Spacer to match play speed width (looks more balanced) */}
 
         <span className="w-[32px]" />
@@ -79,7 +86,7 @@ export const PlaybackPanel = () => {
         {/* Jump to start action */}
 
         <PlaybackAction
-          icon={<DoubleArrowLeftIcon width="2rem" height="2rem" />}
+          icon={<AiFillFastForwardIcon width="2rem" height="2rem" className="rotate-180" />}
           content={<div>Jump to start</div>}
           onClick={goToTick.bind(null, 1)}
         />
@@ -87,7 +94,7 @@ export const PlaybackPanel = () => {
         {/* Seek back action */}
 
         <PlaybackAction
-          icon={<ChevronLeftIcon width="2rem" height="2rem" />}
+          icon={<AiFillStepForwardIcon width="2rem" height="2rem" className="rotate-180" />}
           content={
             <div className="grid grid-cols-[auto,auto] gap-x-4 gap-y-1">
               <div className="col-span-2 text-center">Seek back</div>
@@ -105,9 +112,9 @@ export const PlaybackPanel = () => {
         <PlaybackAction
           icon={
             playing ? (
-              <PauseIcon width="2rem" height="2rem" />
+              <IoMdPauseIcon width="2rem" height="2rem" />
             ) : (
-              <PlayIcon width="2rem" height="2rem" />
+              <IoMdPlayIcon width="2rem" height="2rem" />
             )
           }
           content={
@@ -121,7 +128,7 @@ export const PlaybackPanel = () => {
         {/* Seek forward action */}
 
         <PlaybackAction
-          icon={<ChevronRightIcon width="2rem" height="2rem" />}
+          icon={<AiFillStepForwardIcon width="2rem" height="2rem" />}
           content={
             <div className="grid grid-cols-[auto,auto] gap-x-4 gap-y-1">
               <div className="col-span-2 text-center">Seek forward</div>
@@ -137,7 +144,7 @@ export const PlaybackPanel = () => {
         {/* Jump to end action */}
 
         <PlaybackAction
-          icon={<DoubleArrowRightIcon width="2rem" height="2rem" />}
+          icon={<AiFillFastForwardIcon width="2rem" height="2rem" />}
           content={<div>Jump to end</div>}
           onClick={goToTick.bind(null, maxTicks)}
         />
@@ -145,7 +152,11 @@ export const PlaybackPanel = () => {
         {/* Change play speed */}
 
         <PlaybackAction
-          icon={<div className="select-none text-xl font-medium">{speed}x</div>}
+          icon={
+            <div className="select-none rounded-3xl bg-white/90 px-2 text-sm text-black">
+              {speed}×
+            </div>
+          }
           content={
             <>
               <div className="text-center">Playback speed</div>
