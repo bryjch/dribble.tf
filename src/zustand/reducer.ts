@@ -1,7 +1,7 @@
 import localForage from 'localforage'
 import { set, clone, clamp, uniq, without } from 'lodash'
 
-import { StoreState, StoreAction } from './store'
+import { StoreState, StoreAction, useInstance } from './store'
 
 const reducers = (state: StoreState, action: StoreAction) => {
   switch (action.type) {
@@ -45,6 +45,21 @@ const reducers = (state: StoreState, action: StoreAction) => {
       }
 
     case 'CHANGE_CONTROLS_MODE':
+      /**
+       * There is a severe problem with @react-three/postprocessing Selection and Select
+       * components that cause our custom Controls to never dispose properly when switching
+       * modes. Even though they are no longer on the scene, they never seem to "unmount"
+       *
+       * To workaround this, we manually call dispose() on these controls before switching
+       * to the next one. Not sure if the issue is with our custom controls or the postprocessing
+       * implementation of Selection/Select - but those components seem straightforward, so
+       * really not sure where the issue lies.
+       */
+      const currentControls = (useInstance.getState().threeScene as any).controls
+      if (currentControls && action.payload !== currentControls.name) {
+        currentControls.dispose?.()
+      }
+
       return {
         ...state,
         scene: {
