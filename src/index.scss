@@ -29,8 +29,9 @@
   --text-primary: #eeeeee;
 
   --pp-panel: 0 0 0;
-  --pp-accent-primary: 255 0 0;
+  --pp-accent-primary: 150 113 216;
   --pp-accent-secondary: 241 104 24;
+  --pp-accent-tertiary: 214 77 138;
 
   --pp-actor-model-red: 255 2 2;
   --pp-actor-model-blue: 3 116 255;
@@ -66,7 +67,7 @@ samp {
 
 code {
   font-size: 87.5%;
-  color: #e83e8c;
+  color: var(--pp-accent-tertiary);
   word-wrap: break-word;
 }
 

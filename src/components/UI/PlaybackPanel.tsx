@@ -75,20 +75,15 @@ export const PlaybackPanel = () => {
   }
 
   return (
-    <div
-      className={cn(
-        'm-4 max-w-full rounded-2xl px-6 py-2 transition-all',
-        false && 'bg-pp-panel/50'
-      )}
-    >
-      <div className="mt-4 flex items-center justify-center gap-6">
+    <div className={cn('m-4 max-w-full rounded-2xl px-6 py-2 transition-all')}>
+      <div className="mt-4 flex items-center justify-center gap-6 rounded-full bg-black/70 px-5 py-3">
         {/* Jump to tick action */}
 
         <PlaybackAction
           icon={
-            <div className="flex min-w-9 select-none flex-col items-center text-center text-xs leading-none">
-              <div>TICK</div>
-              <div className="font-bold">{tick * 2}</div>
+            <div className="-mr-1 flex min-w-9 select-none flex-col items-center text-center">
+              <div className="text-xs leading-none">TICK</div>
+              <div className="font-bold leading-none">{tick * 2}</div>
             </div>
           }
           content={
@@ -129,7 +124,7 @@ export const PlaybackPanel = () => {
         {/* Jump to start action */}
 
         <PlaybackAction
-          icon={<AiFillFastForwardIcon width="2rem" height="2rem" className="rotate-180" />}
+          icon={<AiFillFastForwardIcon width="1.75rem" height="1.75rem" className="rotate-180" />}
           content={<div>Jump to start</div>}
           onClick={goToTick.bind(null, 1)}
         />
@@ -137,7 +132,7 @@ export const PlaybackPanel = () => {
         {/* Seek back action */}
 
         <PlaybackAction
-          icon={<AiFillStepForwardIcon width="2rem" height="2rem" className="rotate-180" />}
+          icon={<AiFillStepForwardIcon width="1.75rem" height="1.75rem" className="rotate-180" />}
           content={
             <div className="grid grid-cols-[auto,auto] gap-x-4 gap-y-1">
               <div className="col-span-2 text-center">Seek back</div>
@@ -155,9 +150,9 @@ export const PlaybackPanel = () => {
         <PlaybackAction
           icon={
             playing ? (
-              <IoMdPauseIcon width="2rem" height="2rem" />
+              <IoMdPauseIcon width="1.75rem" height="1.75rem" />
             ) : (
-              <IoMdPlayIcon width="2rem" height="2rem" />
+              <IoMdPlayIcon width="1.75rem" height="1.75rem" />
             )
           }
           content={
@@ -171,7 +166,7 @@ export const PlaybackPanel = () => {
         {/* Seek forward action */}
 
         <PlaybackAction
-          icon={<AiFillStepForwardIcon width="2rem" height="2rem" />}
+          icon={<AiFillStepForwardIcon width="1.75rem" height="1.75rem" />}
           content={
             <div className="grid grid-cols-[auto,auto] gap-x-4 gap-y-1">
               <div className="col-span-2 text-center">Seek forward</div>
@@ -187,7 +182,7 @@ export const PlaybackPanel = () => {
         {/* Jump to end action */}
 
         <PlaybackAction
-          icon={<AiFillFastForwardIcon width="2rem" height="2rem" />}
+          icon={<AiFillFastForwardIcon width="1.75rem" height="1.75rem" />}
           content={<div>Jump to end</div>}
           onClick={goToTick.bind(null, maxTicks)}
         />

@@ -7,6 +7,7 @@ export default {
         'pp-panel': 'rgb(var(--pp-panel) / <alpha-value>)',
         'pp-accent-primary': 'rgb(var(--pp-accent-primary) / <alpha-value>)',
         'pp-accent-secondary': 'rgb(var(--pp-accent-secondary) / <alpha-value>)',
+        'pp-accent-tertiary': 'rgb(var(--pp-accent-tertiary) / <alpha-value>)',
 
         'pp-actor-model-blue': 'rgb(var(--pp-actor-model-blue) / <alpha-value>)',
         'pp-actor-model-red': 'rgb(var(--pp-actor-model-red) / <alpha-value>)',
