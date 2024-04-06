@@ -89,7 +89,6 @@ export type StoreState = {
       mode: SceneMode
     }
     camera: {
-      orthographic: boolean
       position: [number, number, number]
       near: number
       far: number
@@ -160,7 +159,6 @@ const initialState: StoreState = {
       mode: SceneMode.UNTEXTURED,
     },
     camera: {
-      orthographic: false,
       position: [0, -400, 200] as [number, number, number],
       near: 0.1,
       far: 15000,
