@@ -1,6 +1,8 @@
 import * as Tooltip from '@radix-ui/react-tooltip'
+import * as Slider from '@radix-ui/react-slider'
 
 import {
+  IoArrowForwardSharpIcon,
   AiFillStepForwardIcon,
   AiFillFastForwardIcon,
   IoMdPauseIcon,
@@ -73,15 +75,56 @@ export const PlaybackPanel = () => {
   }
 
   return (
-    <div className="m-4 max-w-full">
-      <div className="pointer-events-none select-none text-sm tracking-widest">
-        TICK #{tick * 2}
-      </div>
-
+    <div
+      className={cn(
+        'm-4 max-w-full rounded-2xl px-6 py-2 transition-all',
+        false && 'bg-pp-panel/50'
+      )}
+    >
       <div className="mt-4 flex items-center justify-center gap-6">
-        {/* Spacer to match play speed width (looks more balanced) */}
+        {/* Jump to tick action */}
 
-        <span className="w-[32px]" />
+        <PlaybackAction
+          icon={
+            <div className="flex min-w-9 select-none flex-col items-center text-center text-xs leading-none">
+              <div>TICK</div>
+              <div className="font-bold">{tick * 2}</div>
+            </div>
+          }
+          content={
+            <div className="text-center">
+              <div>Jump to tick</div>
+              <form
+                className="relative mt-2 text-black"
+                onSubmit={(e: React.ChangeEvent<HTMLFormElement>) => {
+                  e.preventDefault()
+                  const tickEl = e.target.elements.namedItem('tick') as HTMLInputElement
+                  const newTick = Number(tickEl.value)
+                  if (isNaN(newTick)) return
+                  goToTick(newTick / 2)
+                }}
+              >
+                <input
+                  type="number"
+                  name="tick"
+                  className="w-28 rounded bg-white py-1 pl-2 pr-7"
+                  placeholder="0"
+                />
+                <button
+                  type="submit"
+                  className="absolute bottom-0 right-0 top-0 ml-2 flex aspect-square items-center justify-center"
+                >
+                  <IoArrowForwardSharpIcon />
+                </button>
+              </form>
+
+              <div className="mt-2 flex justify-between text-xs opacity-80">
+                <div>Total Ticks</div>
+                <div className="font-bold">{maxTicks * 2}</div>
+              </div>
+            </div>
+          }
+        />
 
         {/* Jump to start action */}
 
@@ -149,7 +192,7 @@ export const PlaybackPanel = () => {
           onClick={goToTick.bind(null, maxTicks)}
         />
 
-        {/* Change play speed */}
+        {/* Change play speed action */}
 
         <PlaybackAction
           icon={
@@ -193,19 +236,23 @@ export const PlaybackPanel = () => {
               </div>
             </>
           }
-          onClick={() => null}
         />
       </div>
 
-      <input
-        className="mt-4 w-[400px] max-w-full"
-        type="range"
-        min="1"
-        max={maxTicks}
-        value={tick}
-        onChange={({ target }) => goToTick(Number(target.value))}
-        tabIndex={-1}
-      />
+      <div className="mt-1">
+        <Slider.Root
+          className="relative flex h-8 w-full cursor-pointer select-none items-center"
+          min={1}
+          max={maxTicks}
+          value={[tick]}
+          step={1}
+          onValueChange={([value]) => goToTick(value)}
+        >
+          <Slider.Track className="relative h-2 grow rounded-full bg-pp-panel/30">
+            <Slider.Range className="absolute h-full rounded-full bg-white" />
+          </Slider.Track>
+        </Slider.Root>
+      </div>
     </div>
   )
 }
