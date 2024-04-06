@@ -2,6 +2,29 @@ import { SVGProps } from 'react'
 
 // Source: https://react-icons.github.io/react-icons
 
+export const IoArrowForwardSharpIcon = (props: SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      stroke="currentColor"
+      fill="currentColor"
+      stroke-width="0"
+      viewBox="0 0 512 512"
+      height="1rem"
+      width="1rem"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path
+        fill="none"
+        stroke-linecap="square"
+        stroke-miterlimit="10"
+        stroke-width="48"
+        d="m268 112 144 144-144 144m124-144H100"
+      ></path>
+    </svg>
+  )
+}
+
 export const AiFillStepForwardIcon = (props: SVGProps<SVGSVGElement>) => {
   return (
     <svg

@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@bryjch/demo.js": "git+https://github.com/bryjch/demo.js.git",
+    "@radix-ui/react-slider": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.0.7",
     "@react-three/fiber": "^8.16.1",
     "@react-three/postprocessing": "^2.16.2",
