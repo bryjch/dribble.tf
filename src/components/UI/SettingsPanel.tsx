@@ -261,7 +261,7 @@ export const SettingsPanel = () => {
                 { label: 'Textured', value: 'textured' },
               ].map(button => (
                 <button
-                  key={`select-material-btn-${button.value}`}
+                  key={`geometry-material-btn-${button.value}`}
                   className={cn(
                     'rounded-xl border px-2 text-sm',
                     settings.scene.mode === button.value && 'border-[#3273f6] bg-[#3273f6]'
@@ -336,6 +336,7 @@ export const SettingsPanel = () => {
                 { label: 'Toggle', value: 'toggle' },
               ].map(button => (
                 <button
+                  key={`drawing-activation-method-btn-${button.value}`}
                   className={cn(
                     'rounded-xl border px-2 text-sm',
                     settings.drawing.activation === button.value && 'border-[#3273f6] bg-[#3273f6]'
