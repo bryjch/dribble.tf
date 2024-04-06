@@ -4,7 +4,23 @@
 
 @layer components {
   .ui-layer {
-    @apply pointer-events-none absolute inset-0 flex *:pointer-events-auto; // z-[2000000000]
+    @apply pointer-events-none absolute inset-0 flex *:pointer-events-auto;
+  }
+
+  // z-index stuff
+
+  // Some components rely on @react-three/drei Html (e.g. Nameplate) that has it's own logic to
+  // determine the layering of elements, and sets this via z-index. They values used are super
+  // huge (e.g. 10604212) which result in them being placed above the non-THREE.js UI elements.
+  // To prevent this, we give all our normal UI element's a high z index.
+  .ui-layer {
+    @apply z-[2000000000];
+  }
+
+  // Radix Tooltips rely on Popper, but don't expose a way to set the z-index (defaults to 'auto').
+  // We need to make sure it renders above the rest of the UI layers (i.e. .ui-layer items).
+  [data-radix-popper-content-wrapper] {
+    z-index: 2000000001 !important;
   }
 }
 
@@ -39,9 +55,6 @@ html {
   font-size: 14px;
   font-family: 'Source Sans Pro';
 }
-
-// Some stuff from Bootstrap
-// (only using Bootstrap layout, not full because it super annoyingly overrides a lot of classes)
 
 pre,
 code,
@@ -81,13 +94,4 @@ input::-webkit-inner-spin-button {
 /* Disable number input arrows - Firefox */
 input[type='number'] {
   -moz-appearance: textfield;
-}
-
-@keyframes dead-pulse {
-  0% {
-    opacity: 0.5;
-  }
-  100% {
-    opacity: 1;
-  }
 }

@@ -1,6 +1,4 @@
-import { useState } from 'react'
 import * as Tooltip from '@radix-ui/react-tooltip'
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -13,13 +11,14 @@ import {
 import { useStore } from '@zus/store'
 import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@zus/actions'
 import { focusMainCanvas } from '@utils/misc'
+import { cn } from '@utils/styling'
 
 export const PLAYBACK_SPEED_OPTIONS = [
-  { label: 'x3', value: 3 },
-  { label: 'x2', value: 2 },
-  { label: 'x1', value: 1 },
-  { label: 'x0.5', value: 0.5 },
-  { label: 'x0.1', value: 0.1 },
+  { label: '3x', value: 3 },
+  { label: '2x', value: 2 },
+  { label: '1x', value: 1 },
+  { label: '0.5x', value: 0.5 },
+  { label: '0.1x', value: 0.1 },
 ]
 
 interface PlaybackActionProps {
@@ -33,71 +32,17 @@ const PlaybackAction = (props: PlaybackActionProps) => {
     <Tooltip.Provider delayDuration={0}>
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
-          <button onClick={props.onClick}>{props.icon}</button>
+          <div className="cursor-pointer" onClick={props.onClick}>
+            {props.icon}
+          </div>
         </Tooltip.Trigger>
 
         <Tooltip.Portal>
           <Tooltip.Content sideOffset={5}>
             <div className="rounded-lg bg-pp-panel/90 px-4 py-3">{props.content}</div>
-            <Tooltip.Arrow />
+            <Tooltip.Arrow className="fill-pp-panel/90" />
           </Tooltip.Content>
         </Tooltip.Portal>
-      </Tooltip.Root>
-    </Tooltip.Provider>
-  )
-}
-
-interface PlaybackSpeedDropdownProps {
-  speed: number
-  onChangeSpeed: (speed: number) => void
-}
-
-const PlaybackSpeedDropdown = (props: PlaybackSpeedDropdownProps) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false)
-
-  return (
-    <Tooltip.Provider delayDuration={0}>
-      <Tooltip.Root>
-        <Tooltip.Trigger className="inline-flex" asChild>
-          <button tabIndex={-1} onFocus={e => e.target.blur()}>
-            <DropdownMenu.Root onOpenChange={setDropdownOpen}>
-              <DropdownMenu.Trigger asChild>
-                <button className="flex items-center" tabIndex={-1} onFocus={e => e.target.blur()}>
-                  <div className="text-xl font-medium">x {props.speed}</div>
-                </button>
-              </DropdownMenu.Trigger>
-
-              <DropdownMenu.Portal>
-                <DropdownMenu.Content sideOffset={5}>
-                  {PLAYBACK_SPEED_OPTIONS.map(({ label, value }) => (
-                    <DropdownMenu.Item key={`play-speed-option-${label}`}>
-                      <button onClick={() => props.onChangeSpeed(Number(value))}>{label}</button>
-                    </DropdownMenu.Item>
-                  ))}
-
-                  <DropdownMenu.Arrow />
-                </DropdownMenu.Content>
-              </DropdownMenu.Portal>
-            </DropdownMenu.Root>
-          </button>
-        </Tooltip.Trigger>
-
-        {!dropdownOpen && (
-          <Tooltip.Portal>
-            <Tooltip.Content sideOffset={5}>
-              <div className="rounded-lg bg-pp-panel/90 px-4 py-3">
-                <div className="grid grid-cols-[auto,auto] gap-x-4 gap-y-1">
-                  <div className="col-span-2 text-center">Playback speed</div>
-                  <div>Increase</div>
-                  <kbd>↑</kbd>
-                  <div>Decrease</div>
-                  <kbd>↓</kbd>
-                </div>
-              </div>
-              <Tooltip.Arrow />
-            </Tooltip.Content>
-          </Tooltip.Portal>
-        )}
       </Tooltip.Root>
     </Tooltip.Provider>
   )
@@ -127,7 +72,7 @@ export const PlaybackPanel = () => {
       <div className="pointer-events-none select-none">Tick #{tick * 2}</div>
 
       <div className="mt-3 flex items-center justify-center gap-4">
-        {/* Spacer to match play speed dropdown width */}
+        {/* Spacer to match play speed width (looks more balanced) */}
 
         <span className="w-[32px]" />
 
@@ -197,9 +142,48 @@ export const PlaybackPanel = () => {
           onClick={goToTick.bind(null, maxTicks)}
         />
 
-        {/* Change play speed dropdown */}
+        {/* Change play speed */}
 
-        <PlaybackSpeedDropdown speed={speed} onChangeSpeed={changePlaySpeed} />
+        <PlaybackAction
+          icon={<div className="select-none text-xl font-medium">{speed}x</div>}
+          content={
+            <>
+              <div className="text-center">Playback speed</div>
+
+              <div
+                className="mt-2 grid gap-1"
+                style={{
+                  gridTemplateColumns: `repeat(${PLAYBACK_SPEED_OPTIONS.length}, minmax(0, 1fr))`,
+                }}
+              >
+                {[...PLAYBACK_SPEED_OPTIONS].reverse().map(({ label, value }) => (
+                  <button
+                    key={`play-speed-option-${label}`}
+                    className={cn(
+                      'flex-1 rounded border border-transparent px-2 py-1 text-center',
+                      'hover:border-white',
+                      value === speed && 'bg-white text-black'
+                    )}
+                    onClick={() => changePlaySpeed(Number(value))}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-5 grid grid-cols-[auto,auto] gap-x-4 gap-y-1">
+                <div className="flex justify-start">
+                  Increase <kbd className="ml-2">↑</kbd>
+                </div>
+
+                <div className="flex justify-end">
+                  Decrease <kbd className="ml-2">↓</kbd>
+                </div>
+              </div>
+            </>
+          }
+          onClick={() => null}
+        />
       </div>
 
       <input
