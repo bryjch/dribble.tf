@@ -1,11 +1,12 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import { useDropzone } from 'react-dropzone'
 import * as Tooltip from '@radix-ui/react-tooltip'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
 import { TiInfoLargeIcon } from '@components/Misc/Icons'
 
 import { useStore } from '@zus/store'
-import { toggleUIPanelAction, parseDemoAction } from '@zus/actions'
+import { toggleUIPanelAction, parseDemoAction, onUploadDemoAction } from '@zus/actions'
 import { getAsset } from '@utils/misc'
 import { MAP_NAME_SEARCH_MAP } from '@constants/mappings'
 
@@ -19,9 +20,24 @@ const GITHUB_URL = `https://www.github.com/bryjch/dribble.tf`
 export const AboutPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('About'))
 
+  const {
+    open: openFileBrowser,
+    getInputProps,
+    acceptedFiles,
+  } = useDropzone({
+    noClick: true,
+    noKeyboard: true,
+    maxFiles: 1,
+    multiple: false,
+  })
+
   const toggleUIPanel = () => {
     toggleUIPanelAction('Settings', false)
     toggleUIPanelAction('About')
+  }
+
+  const onClickDropSelectFile = async () => {
+    openFileBrowser()
   }
 
   const onClickSampleDemo = async () => {
@@ -29,6 +45,10 @@ export const AboutPanel = () => {
     const fileBuffer = await fetch(url).then(res => res.arrayBuffer())
     parseDemoAction(fileBuffer)
   }
+
+  useEffect(() => {
+    if (acceptedFiles.length > 0) onUploadDemoAction(acceptedFiles)
+  }, [acceptedFiles, onUploadDemoAction])
 
   return (
     <div className="flex items-start">
@@ -103,7 +123,11 @@ export const AboutPanel = () => {
           {/* Main CTAs */}
 
           <div className="mt-8 flex items-center justify-center text-sm">
-            <button className="rounded-full border border-dashed px-3.5 py-1 transition-all hover:border-solid hover:bg-black hover:invert">
+            <input {...getInputProps()} />
+            <button
+              className="rounded-full border border-dashed px-3.5 py-1 transition-all hover:border-solid hover:bg-black hover:invert"
+              onClick={onClickDropSelectFile}
+            >
               Drop/select <code>.dem</code> file
             </button>
 

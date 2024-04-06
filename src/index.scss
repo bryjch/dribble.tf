@@ -42,8 +42,8 @@
 
   --pp-killfeed-text-blue: 119 169 236;
   --pp-killfeed-text-red: 255 74 74;
-  --pp-focused-background-blue: 172 38 65;
-  --pp-focused-background-red: 136 174 184;
+  --pp-focused-background-blue: 136 174 184;
+  --pp-focused-background-red: 172 38 65;
   --pp-healthbar-blue: 136 174 184;
   --pp-healthbar-red: 172 38 65;
   --pp-health-overhealed: 77 210 65;
@@ -67,7 +67,7 @@ samp {
 
 code {
   font-size: 87.5%;
-  color: var(--pp-accent-tertiary);
+  color: rgb(var(--pp-accent-tertiary));
   word-wrap: break-word;
 }
 

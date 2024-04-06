@@ -6,7 +6,6 @@ import { DemoDropzone } from '@components/Misc/DemoDropzone'
 import { DemoDrawing } from '@components/Misc/DemoDrawing'
 import { DemoViewer } from '@components/DemoViewer'
 
-import { parseDemoAction } from '@zus/actions'
 import { useStore, useInstance } from '@zus/store'
 import { usePointerLock } from '@utils/hooks'
 
@@ -38,23 +37,6 @@ const ViewerPage = () => {
   const showSpectatorFlyTip = useMemo(() => {
     return controlsMode === 'spectator' && (forceShow || !isPointerLocked)
   }, [forceShow, controlsMode, isPointerLocked])
-
-  //
-  // ─── METHODS ────────────────────────────────────────────────────────────────────
-  //
-
-  const onDemoDropped = (files: File[]) => {
-    const demoFile: File = files[0]
-
-    const reader = new FileReader()
-
-    reader.readAsArrayBuffer(demoFile)
-
-    reader.onload = function () {
-      const fileBuffer = reader.result as ArrayBuffer
-      parseDemoAction(fileBuffer)
-    }
-  }
 
   //
   // ─── RENDER ─────────────────────────────────────────────────────────────────────
@@ -167,7 +149,7 @@ const ViewerPage = () => {
       {/* Dropzone overlay */}
       {parser.status !== 'loading' && (
         <div className="ui-layer">
-          <DemoDropzone onDrop={onDemoDropped} />
+          <DemoDropzone />
         </div>
       )}
     </div>
