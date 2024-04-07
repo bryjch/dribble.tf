@@ -7,7 +7,7 @@ export const IoArrowForwardSharpIcon = (props: SVGProps<SVGSVGElement>) => {
     <svg
       stroke="currentColor"
       fill="currentColor"
-      stroke-width="0"
+      strokeWidth="0"
       viewBox="0 0 512 512"
       height="1rem"
       width="1rem"
@@ -16,9 +16,9 @@ export const IoArrowForwardSharpIcon = (props: SVGProps<SVGSVGElement>) => {
     >
       <path
         fill="none"
-        stroke-linecap="square"
-        stroke-miterlimit="10"
-        stroke-width="48"
+        strokeLinecap="square"
+        strokeMiterlimit="10"
+        strokeWidth="48"
         d="m268 112 144 144-144 144m124-144H100"
       ></path>
     </svg>
@@ -30,7 +30,7 @@ export const AiFillStepForwardIcon = (props: SVGProps<SVGSVGElement>) => {
     <svg
       stroke="currentColor"
       fill="currentColor"
-      stroke-width="0"
+      strokeWidth="0"
       viewBox="0 0 1024 1024"
       height="1rem"
       width="1rem"
@@ -47,7 +47,7 @@ export const AiFillFastForwardIcon = (props: SVGProps<SVGSVGElement>) => {
     <svg
       stroke="currentColor"
       fill="currentColor"
-      stroke-width="0"
+      strokeWidth="0"
       viewBox="0 0 1024 1024"
       height="1rem"
       width="1rem"
@@ -64,7 +64,7 @@ export const IoMdPlayIcon = (props: SVGProps<SVGSVGElement>) => {
     <svg
       stroke="currentColor"
       fill="currentColor"
-      stroke-width="0"
+      strokeWidth="0"
       viewBox="0 0 512 512"
       height="1rem"
       width="1rem"
@@ -81,7 +81,7 @@ export const IoMdPauseIcon = (props: SVGProps<SVGSVGElement>) => {
     <svg
       stroke="currentColor"
       fill="currentColor"
-      stroke-width="0"
+      strokeWidth="0"
       viewBox="0 0 512 512"
       height="1rem"
       width="1rem"
@@ -98,7 +98,7 @@ export const IoMdSettingsIcon = (props: SVGProps<SVGSVGElement>) => {
     <svg
       stroke="currentColor"
       fill="currentColor"
-      stroke-width="0"
+      strokeWidth="0"
       viewBox="0 0 512 512"
       height="1rem"
       width="1rem"
@@ -115,7 +115,7 @@ export const TiInfoLargeIcon = (props: SVGProps<SVGSVGElement>) => {
     <svg
       stroke="currentColor"
       fill="currentColor"
-      stroke-width="0"
+      strokeWidth="0"
       version="1.2"
       viewBox="0 0 24 24"
       height="1rem"
@@ -134,7 +134,7 @@ export const FaUndoIcon = (props: SVGProps<SVGSVGElement>) => {
     <svg
       stroke="currentColor"
       fill="currentColor"
-      stroke-width="0"
+      strokeWidth="0"
       viewBox="0 0 512 512"
       height="1rem"
       width="1rem"
@@ -151,7 +151,7 @@ export const FaTrashIcon = (props: SVGProps<SVGSVGElement>) => {
     <svg
       stroke="currentColor"
       fill="currentColor"
-      stroke-width="0"
+      strokeWidth="0"
       viewBox="0 0 448 512"
       height="1rem"
       width="1rem"

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { clamp } from 'lodash'
 
-import { TogglePanel } from '@components/UI/Shared/TogglePanel'
+import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
 import { IoMdSettingsIcon } from '@components/Misc/Icons'
 
 import { useStore } from '@zus/store'
@@ -139,40 +139,16 @@ export const SettingsPanel = () => {
 
   return (
     <div className="flex items-start">
-      <button
-        className="mr-2 flex h-9 w-9 items-center justify-center bg-pp-panel/75"
-        onClick={toggleUIPanel}
-      >
+      <TogglePanelButton onClick={toggleUIPanel}>
         <IoMdSettingsIcon />
-      </button>
+      </TogglePanelButton>
 
-      <TogglePanel className="w-[360px] max-w-full bg-pp-panel/80" isOpen={isOpen}>
-        <div className="flex flex-row items-center justify-between bg-black/30 px-3 py-2 tracking-widest">
-          <div>SETTINGS</div>
-
-          <button
-            type="button"
-            className="inline-flex items-center justify-center rounded-md"
-            onClick={toggleUIPanel}
-          >
-            <svg
-              className="h-6 w-6"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-
+      <TogglePanel
+        className="w-[460px]"
+        showCloseButton
+        isOpen={isOpen}
+        onClickClose={toggleUIPanel}
+      >
         <div className="max-h-[70vh] overflow-auto px-6 pb-8 pt-3">
           {/* ************************************************************* */}
 

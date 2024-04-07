@@ -29,8 +29,9 @@
   --text-primary: #eeeeee;
 
   --pp-panel: 0 0 0;
-  --pp-accent-primary: 255 0 0;
+  --pp-accent-primary: 150 113 216;
   --pp-accent-secondary: 241 104 24;
+  --pp-accent-tertiary: 214 77 138;
 
   --pp-actor-model-red: 255 2 2;
   --pp-actor-model-blue: 3 116 255;
@@ -41,8 +42,8 @@
 
   --pp-killfeed-text-blue: 119 169 236;
   --pp-killfeed-text-red: 255 74 74;
-  --pp-focused-background-blue: 172 38 65;
-  --pp-focused-background-red: 136 174 184;
+  --pp-focused-background-blue: 136 174 184;
+  --pp-focused-background-red: 172 38 65;
   --pp-healthbar-blue: 136 174 184;
   --pp-healthbar-red: 172 38 65;
   --pp-health-overhealed: 77 210 65;
@@ -66,7 +67,7 @@ samp {
 
 code {
   font-size: 87.5%;
-  color: #e83e8c;
+  color: rgb(var(--pp-accent-tertiary));
   word-wrap: break-word;
 }
 

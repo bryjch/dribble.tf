@@ -17,6 +17,19 @@ import { dispatch, getState, useInstance } from './store'
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
 //
 
+export const onUploadDemoAction = async (files: File[]) => {
+  const demoFile: File = files[0]
+
+  const reader = new FileReader()
+
+  reader.readAsArrayBuffer(demoFile)
+
+  reader.onload = function () {
+    const fileBuffer = reader.result as ArrayBuffer
+    parseDemoAction(fileBuffer)
+  }
+}
+
 export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
   try {
     dispatch({ type: 'PARSE_DEMO_INIT' })
