@@ -6,7 +6,12 @@ import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePane
 import { TiInfoLargeIcon } from '@components/Misc/Icons'
 
 import { useStore } from '@zus/store'
-import { toggleUIPanelAction, parseDemoAction, onUploadDemoAction } from '@zus/actions'
+import {
+  toggleUIPanelAction,
+  parseDemoAction,
+  onUploadDemoAction,
+  goToTickAction,
+} from '@zus/actions'
 import { getAsset } from '@utils/misc'
 import { MAP_NAME_SEARCH_MAP } from '@constants/mappings'
 
@@ -43,7 +48,8 @@ export const AboutPanel = () => {
   const onClickSampleDemo = async () => {
     let url = getAsset('/samples/i52_snakewater_gc.dem')
     const fileBuffer = await fetch(url).then(res => res.arrayBuffer())
-    parseDemoAction(fileBuffer)
+    await parseDemoAction(fileBuffer)
+    goToTickAction(1000) // Skip to the juice
   }
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useGLTF } from '@react-three/drei'
 import { motion } from 'framer-motion'
 
 import { GlobalKeyHandler } from '@components/Misc/GlobalKeyHandler'
@@ -37,6 +38,15 @@ const ViewerPage = () => {
   const showSpectatorFlyTip = useMemo(() => {
     return controlsMode === 'spectator' && (forceShow || !isPointerLocked)
   }, [forceShow, controlsMode, isPointerLocked])
+
+  // Preload any assets here
+  useEffect(() => {
+    const preloadAssets: string[] = [
+      // Maybe load player models
+    ]
+
+    useGLTF.preload(preloadAssets)
+  }, [])
 
   //
   // ─── RENDER ─────────────────────────────────────────────────────────────────────

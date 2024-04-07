@@ -3,7 +3,7 @@ import { Building } from '@bryjch/demo.js/build/Data/Building'
 import { PlayerResource } from '@bryjch/demo.js/build/Data/PlayerResource'
 import { Projectile } from '@bryjch/demo.js/build/Data/Projectile'
 
-import { getMapBoundaries } from '../MapBoundries'
+import { getMapBoundaries } from '../MapBoundaries'
 import { PlayerCache, CachedPlayer } from './PlayerCache'
 import { BuildingCache, CachedBuilding } from './BuildingCache'
 import { ProjectileCache } from './ProjectileCache'
