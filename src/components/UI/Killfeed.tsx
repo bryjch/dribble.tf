@@ -37,7 +37,7 @@ export const Killfeed = (props: KillfeedProps) => {
 
   return (
     <div className="flex flex-col items-end text-right">
-      {relevantDeaths.map((death, index) => {
+      {relevantDeaths.map(death => {
         let highlighted = false
 
         if (focusedObject) {
@@ -47,7 +47,11 @@ export const Killfeed = (props: KillfeedProps) => {
         }
 
         return (
-          <KillfeedItem key={`killfeed-item-${index}`} death={death} highlighted={highlighted} />
+          <KillfeedItem
+            key={`killfeed-item-${death.tick}-${death.victim.user.entityId}`}
+            death={death}
+            highlighted={highlighted}
+          />
         )
       })}
     </div>
