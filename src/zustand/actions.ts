@@ -51,7 +51,7 @@ export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
 
     dispatch({ type: 'PARSE_DEMO_SUCCESS' })
 
-    loadSceneFromDemoAction(parsedDemo)
+    await loadSceneFromDemoAction(parsedDemo)
 
     return parsedDemo
   } catch (error) {

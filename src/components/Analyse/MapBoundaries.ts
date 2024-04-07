@@ -1,3 +1,5 @@
+import { MapBoundary } from './Data/PositionCache'
+
 const overWriteMapBoundaries: any = {
   pl_badwater_pro_v9: {
     boundaryMin: {
@@ -490,18 +492,7 @@ export function findMapAlias(map: string): string {
   return alias ? alias : baseName
 }
 
-export interface MapBoundries {
-  boundaryMin: {
-    x: number
-    y: number
-  }
-  boundaryMax: {
-    x: number
-    y: number
-  }
-}
-
-export function getMapBoundaries(map: string): MapBoundries | null {
+export function getMapBoundaries(map: string): MapBoundary | null {
   const mapAlias = findMapAlias(map)
   return overWriteMapBoundaries[mapAlias]
 }

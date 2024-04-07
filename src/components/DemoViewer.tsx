@@ -18,6 +18,9 @@ import { Actors } from '@components/Scene/Actors'
 import { Projectiles } from '@components/Scene/Projectiles'
 import { World } from '@components/Scene/World'
 import { Skybox } from '@components/Scene/Skybox'
+import { AsyncParser } from './Analyse/Data/AsyncParser'
+import { CachedPlayer } from './Analyse/Data/PlayerCache'
+import { CachedProjectile } from './Analyse/Data/ProjectileCache'
 
 // UI Panels
 import { AboutPanel } from '@components/UI/AboutPanel'
@@ -31,9 +34,7 @@ import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 // Actions & utils
 import { useStore, getState, useInstance } from '@zus/store'
 import { goToTickAction } from '@zus/actions'
-import { AsyncParser } from './Analyse/Data/AsyncParser'
-import { CachedPlayer } from './Analyse/Data/PlayerCache'
-import { CachedProjectile } from './Analyse/Data/ProjectileCache'
+import { DEFAULT_SCENE } from '@constants/scene'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -82,7 +83,7 @@ const Controls = () => {
     // - reposition our Controls where that object was
     // - reposition our Controls to the center of the scene
     const newPos = lastFocusedPOV ? lastFocusedPOV.position : bounds.center
-    let cameraOffset = new THREE.Vector3(1000, -1000, 1000)
+    let cameraOffset = DEFAULT_SCENE.cameraOffset
     let controlsOffset = new THREE.Vector3(0, 0, 100)
 
     if (lastFocusedPOV) {
@@ -274,7 +275,7 @@ class DemoViewer extends Component<DemoViewerProps> {
             {demo?.header?.map ? (
               <World map={demo.header.map} mode={settings.scene.mode} />
             ) : (
-              <World map={`cp_process_f12`} mode={settings.scene.mode} />
+              <World map={DEFAULT_SCENE.mapName} mode={settings.scene.mode} />
             )}
           </Suspense>
 
@@ -284,7 +285,7 @@ class DemoViewer extends Component<DemoViewerProps> {
             (demo?.header?.map ? (
               <Skybox map={demo.header.map} />
             ) : (
-              <Skybox map={`cp_process_f12`} />
+              <Skybox map={DEFAULT_SCENE.mapName} />
             ))}
 
           {/* Actors */}

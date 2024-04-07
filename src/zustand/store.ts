@@ -12,6 +12,7 @@ import {
   SceneMode,
   UIPanelType,
 } from '@constants/types'
+import { DEFAULT_SCENE } from '@constants/scene'
 import rootReducer from './reducer'
 
 // This "Instance Store" is meant to be used for larger objects that are problematic
@@ -132,12 +133,8 @@ const initialState: StoreState = {
 
   scene: {
     players: new Map(),
-    map: '',
-    bounds: {
-      min: new THREE.Vector3(0, 0, 0),
-      max: new THREE.Vector3(0, 0, 0),
-      center: new THREE.Vector3(500, 500, 0), // offset to account for default spawned map (cp_process)
-    },
+    map: DEFAULT_SCENE.mapName,
+    bounds: DEFAULT_SCENE.bounds,
     controls: {
       mode: ControlsMode.RTS,
     },
@@ -156,7 +153,7 @@ const initialState: StoreState = {
 
   settings: {
     scene: {
-      mode: SceneMode.UNTEXTURED,
+      mode: SceneMode.TEXTURED,
     },
     camera: {
       position: [0, -400, 200] as [number, number, number],
