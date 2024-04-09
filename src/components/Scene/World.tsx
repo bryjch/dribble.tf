@@ -32,6 +32,12 @@ export const World = (props: WorldProps) => {
 
   const bounds = useStore(state => state.scene.bounds)
 
+  // Briefly ensure the map is cleared when the map changes
+  // to prevent lingering of the previous map
+  useEffect(() => {
+    setMapModel(null)
+  }, [map])
+
   useEffect(() => {
     try {
       const mapModelFileUrls = getMapModelUrls(map)

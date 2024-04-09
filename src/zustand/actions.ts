@@ -4,6 +4,8 @@ import * as THREE from 'three'
 
 import { ActorDimensions } from '@components/Scene/Actor'
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import { MapBoundary } from '@components/Analyse/Data/PositionCache'
+import { getMapBoundaries } from '@components/Analyse/MapBoundaries'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { getSceneActors } from '@utils/scene'
@@ -11,7 +13,7 @@ import { objCoordsToVector3 } from '@utils/geometry'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import { ControlsMode, SceneMode, UIPanelType } from '@constants/types'
 
-import { dispatch, getState, useInstance } from './store'
+import { dispatch, getState, initialState, useInstance } from './store'
 
 //
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
@@ -64,6 +66,18 @@ export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
 //
 
+function toVectorizedBounds(boundaries: MapBoundary) {
+  return {
+    min: objCoordsToVector3(boundaries.boundaryMin),
+    max: objCoordsToVector3(boundaries.boundaryMax),
+    center: new THREE.Vector3(
+      0.5 * (boundaries.boundaryMax.x - boundaries.boundaryMin.x),
+      0.5 * (boundaries.boundaryMax.y - boundaries.boundaryMin.y),
+      -boundaries.boundaryMin.z - 0.5 * ActorDimensions.z
+    ),
+  }
+}
+
 export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
   try {
     toggleUIPanelAction('About', false)
@@ -78,15 +92,7 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
         scene: {
           players: parsedDemo.entityPlayerMap,
           map: parsedDemo.header.map,
-          bounds: {
-            min: objCoordsToVector3(parsedDemo.world.boundaryMin),
-            max: objCoordsToVector3(parsedDemo.world.boundaryMax),
-            center: new THREE.Vector3(
-              0.5 * (parsedDemo.world.boundaryMax.x - parsedDemo.world.boundaryMin.x),
-              0.5 * (parsedDemo.world.boundaryMax.y - parsedDemo.world.boundaryMin.y),
-              -parsedDemo.world.boundaryMin.z - 0.5 * ActorDimensions.z
-            ),
-          },
+          bounds: toVectorizedBounds(parsedDemo.world),
           controls: {
             mode: 'rts',
           },
@@ -98,6 +104,34 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
           maxTicks: parsedDemo.ticks - 1,
           intervalPerTick: parsedDemo.intervalPerTick,
         },
+      },
+    })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const loadEmptySceneMapAction = async (mapName: string) => {
+  try {
+    const boundaries = getMapBoundaries(mapName)
+    if (!boundaries) {
+      alert('Unable to load map. Could not determine map boundaries.')
+      return
+    }
+
+    // Remember to update the non-redux instances!
+    useInstance.getState().setParsedDemo(undefined)
+    useInstance.getState().setFocusedObject(undefined)
+
+    dispatch({
+      type: 'LOAD_SCENE_FROM_PARSER',
+      payload: {
+        scene: {
+          ...initialState.scene,
+          map: mapName,
+          bounds: toVectorizedBounds(boundaries),
+        },
+        playback: initialState.playback,
       },
     })
   } catch (error) {

@@ -31,7 +31,7 @@ export type InstanceState = {
   lastFocusedPOV?: THREE.Object3D
   drawingCanvas?: CanvasDraw
   setThreeScene: (threeScene: THREE.Scene) => void
-  setParsedDemo: (parsedDemo: AsyncParser) => void
+  setParsedDemo: (parsedDemo: AsyncParser | undefined) => void
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => void
   setFocusedObject: (focusedObject?: THREE.Object3D) => void
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => void
@@ -44,7 +44,7 @@ const useInstance = create<InstanceState>()(set => ({
   lastFocusedPOV: undefined,
   drawingCanvas: undefined,
   setThreeScene: (threeScene: THREE.Scene) => set({ threeScene }),
-  setParsedDemo: (parsedDemo: AsyncParser) => set({ parsedDemo }),
+  setParsedDemo: (parsedDemo: AsyncParser | undefined) => set({ parsedDemo }),
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => set({ drawingCanvas }),
   setFocusedObject: (focusedObject?: THREE.Object3D) => set({ focusedObject }),
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => set({ lastFocusedPOV }),
@@ -124,7 +124,7 @@ export type StoreState = {
   }
 }
 
-const initialState: StoreState = {
+export const initialState: StoreState = {
   parser: {
     status: ParserStatus.INIT,
     progress: 0,

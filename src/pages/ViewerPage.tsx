@@ -13,6 +13,7 @@ import { usePointerLock } from '@utils/hooks'
 const ViewerPage = () => {
   const parser = useStore(state => state.parser)
   const parsedDemo = useInstance(state => state.parsedDemo)
+  const loadedMap = useStore(state => state.scene.map)
   const controlsMode = useStore(state => state.scene.controls.mode)
 
   const { isPointerLocked } = usePointerLock()
@@ -56,7 +57,7 @@ const ViewerPage = () => {
     <div className="antialiased">
       <GlobalKeyHandler />
 
-      <DemoViewer demo={parsedDemo} />
+      <DemoViewer demo={parsedDemo} map={loadedMap} />
 
       {/* Parsing demo overlay */}
       <div className="ui-layer top-20 items-start justify-center">
