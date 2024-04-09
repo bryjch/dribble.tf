@@ -2,16 +2,15 @@ import { get, merge, clamp, sortBy } from 'lodash'
 import localForage from 'localforage'
 import * as THREE from 'three'
 
-import { ActorDimensions } from '@components/Scene/Actor'
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import { getMapBoundaries } from '@components/Analyse/MapBoundaries'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
-import { getSceneActors } from '@utils/scene'
-import { objCoordsToVector3 } from '@utils/geometry'
+import { getSceneActors, parseMapBoundaries } from '@utils/scene'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import { ControlsMode, SceneMode, UIPanelType } from '@constants/types'
 
-import { dispatch, getState, useInstance } from './store'
+import { dispatch, getState, initialState, useInstance } from './store'
 
 //
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
@@ -78,15 +77,10 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
         scene: {
           players: parsedDemo.entityPlayerMap,
           map: parsedDemo.header.map,
-          bounds: {
-            min: objCoordsToVector3(parsedDemo.world.boundaryMin),
-            max: objCoordsToVector3(parsedDemo.world.boundaryMax),
-            center: new THREE.Vector3(
-              0.5 * (parsedDemo.world.boundaryMax.x - parsedDemo.world.boundaryMin.x),
-              0.5 * (parsedDemo.world.boundaryMax.y - parsedDemo.world.boundaryMin.y),
-              -parsedDemo.world.boundaryMin.z - 0.5 * ActorDimensions.z
-            ),
-          },
+          bounds: parseMapBoundaries({
+            ...getMapBoundaries(parsedDemo.header.map), // get camera/control offsets
+            ...parsedDemo.world,
+          }),
           controls: {
             mode: 'rts',
           },
@@ -98,6 +92,34 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
           maxTicks: parsedDemo.ticks - 1,
           intervalPerTick: parsedDemo.intervalPerTick,
         },
+      },
+    })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const loadEmptySceneMapAction = async (mapName: string) => {
+  try {
+    const boundaries = getMapBoundaries(mapName)
+    if (!boundaries) {
+      alert('Unable to load map. Could not determine map boundaries.')
+      return
+    }
+
+    // Remember to update the non-redux instances!
+    useInstance.getState().setParsedDemo(undefined)
+    useInstance.getState().setFocusedObject(undefined)
+
+    dispatch({
+      type: 'LOAD_SCENE_FROM_PARSER',
+      payload: {
+        scene: {
+          ...initialState.scene,
+          map: mapName,
+          bounds: parseMapBoundaries(boundaries),
+        },
+        playback: initialState.playback,
       },
     })
   } catch (error) {

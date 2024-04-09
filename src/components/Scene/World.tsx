@@ -32,6 +32,12 @@ export const World = (props: WorldProps) => {
 
   const bounds = useStore(state => state.scene.bounds)
 
+  // Briefly ensure the map is cleared when the map changes
+  // to prevent lingering of the previous map
+  useEffect(() => {
+    setMapModel(null)
+  }, [map])
+
   useEffect(() => {
     try {
       const mapModelFileUrls = getMapModelUrls(map)
@@ -157,8 +163,8 @@ function loadGLTF(file: string) {
         // Netlify. This may be due to some content headers needing to be set:
         // https://community.netlify.com/t/progressevent-total-is-0-for-asset-on-deployed-site-but-works-in-local-environment/3747
         if (xhr.lengthComputable) {
-          const percentComplete = (xhr.loaded / xhr.total) * 100
-          console.log(`Map load progress: ${Math.round(percentComplete)}%`)
+          // const percentComplete = (xhr.loaded / xhr.total) * 100
+          // console.log(`Map load progress: ${Math.round(percentComplete)}%`)
         }
       }
 

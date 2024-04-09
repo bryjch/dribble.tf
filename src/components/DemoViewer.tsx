@@ -33,7 +33,6 @@ import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 // Actions & utils
 import { useStore, getState, useInstance } from '@zus/store'
 import { goToTickAction } from '@zus/actions'
-import { DEFAULT_SCENE } from '@constants/scene'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -82,8 +81,8 @@ const Controls = () => {
     // - reposition our Controls where that object was
     // - reposition our Controls to the center of the scene
     const newPos = lastFocusedPOV ? lastFocusedPOV.position : bounds.center
-    let cameraOffset = DEFAULT_SCENE.cameraOffset
-    let controlsOffset = new THREE.Vector3(0, 0, 100)
+    let cameraOffset = bounds.defaultCameraOffset
+    let controlsOffset = bounds.defaultControlOffset
 
     if (lastFocusedPOV) {
       if (controlsMode === 'rts') {
@@ -158,6 +157,7 @@ const Controls = () => {
 //
 type DemoViewerProps = {
   demo?: AsyncParser
+  map: string
 }
 
 class DemoViewer extends Component<DemoViewerProps> {
@@ -238,7 +238,7 @@ class DemoViewer extends Component<DemoViewerProps> {
 
   render() {
     const { playback, settings } = this.state
-    const { demo } = this.props
+    const { demo, map } = this.props
 
     let playersThisTick: CachedPlayer[] = []
     let projectilesThisTick: CachedProjectile[] = []
@@ -271,21 +271,12 @@ class DemoViewer extends Component<DemoViewerProps> {
           {/* World Map */}
 
           <Suspense fallback={null}>
-            {demo?.header?.map ? (
-              <World map={demo.header.map} mode={settings.scene.mode} />
-            ) : (
-              <World map={DEFAULT_SCENE.mapName} mode={settings.scene.mode} />
-            )}
+            <World map={map} mode={settings.scene.mode} />
           </Suspense>
 
           {/* Skybox */}
 
-          {settings.ui.showSkybox &&
-            (demo?.header?.map ? (
-              <Skybox map={demo.header.map} />
-            ) : (
-              <Skybox map={DEFAULT_SCENE.mapName} />
-            ))}
+          {settings.ui.showSkybox && <Skybox map={map} />}
 
           {/* Actors */}
 

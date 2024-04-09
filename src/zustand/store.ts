@@ -4,6 +4,9 @@ import CanvasDraw from 'react-canvas-draw'
 import * as THREE from 'three'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import { getMapBoundaries } from '@components/Analyse/MapBoundaries'
+
+import { parseMapBoundaries } from '@utils/scene'
 
 import {
   ControlsMode,
@@ -12,7 +15,6 @@ import {
   SceneMode,
   UIPanelType,
 } from '@constants/types'
-import { DEFAULT_SCENE } from '@constants/scene'
 import rootReducer from './reducer'
 
 // This "Instance Store" is meant to be used for larger objects that are problematic
@@ -31,7 +33,7 @@ export type InstanceState = {
   lastFocusedPOV?: THREE.Object3D
   drawingCanvas?: CanvasDraw
   setThreeScene: (threeScene: THREE.Scene) => void
-  setParsedDemo: (parsedDemo: AsyncParser) => void
+  setParsedDemo: (parsedDemo: AsyncParser | undefined) => void
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => void
   setFocusedObject: (focusedObject?: THREE.Object3D) => void
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => void
@@ -44,7 +46,7 @@ const useInstance = create<InstanceState>()(set => ({
   lastFocusedPOV: undefined,
   drawingCanvas: undefined,
   setThreeScene: (threeScene: THREE.Scene) => set({ threeScene }),
-  setParsedDemo: (parsedDemo: AsyncParser) => set({ parsedDemo }),
+  setParsedDemo: (parsedDemo: AsyncParser | undefined) => set({ parsedDemo }),
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => set({ drawingCanvas }),
   setFocusedObject: (focusedObject?: THREE.Object3D) => set({ focusedObject }),
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => set({ lastFocusedPOV }),
@@ -71,6 +73,8 @@ export type StoreState = {
       min: THREE.Vector3
       max: THREE.Vector3
       center: THREE.Vector3
+      defaultCameraOffset: THREE.Vector3
+      defaultControlOffset: THREE.Vector3
     }
     controls: {
       mode: ControlsMode
@@ -124,7 +128,7 @@ export type StoreState = {
   }
 }
 
-const initialState: StoreState = {
+export const initialState: StoreState = {
   parser: {
     status: ParserStatus.INIT,
     progress: 0,
@@ -133,8 +137,8 @@ const initialState: StoreState = {
 
   scene: {
     players: new Map(),
-    map: DEFAULT_SCENE.mapName,
-    bounds: DEFAULT_SCENE.bounds,
+    map: 'cp_snakewater',
+    bounds: parseMapBoundaries(getMapBoundaries('cp_snakewater')!),
     controls: {
       mode: ControlsMode.RTS,
     },

@@ -1,6 +1,11 @@
 import * as THREE from 'three'
 import { first, last } from 'lodash'
 
+import { ActorDimensions } from '@components/Scene/Actor'
+import { MapBoundaries } from '@components/Analyse/Data/PositionCache'
+
+import { objCoordsToVector3 } from './geometry'
+
 /**
  * Get all Actors in the scene
  */
@@ -54,4 +59,22 @@ export function getSceneProjectiles(scene: THREE.Scene, name: string): THREE.Obj
   })
 
   return projectiles
+}
+
+export function parseMapBoundaries(boundaries: MapBoundaries) {
+  return {
+    min: objCoordsToVector3(boundaries.boundaryMin),
+    max: objCoordsToVector3(boundaries.boundaryMax),
+    center: new THREE.Vector3(
+      0.5 * (boundaries.boundaryMax.x - boundaries.boundaryMin.x),
+      0.5 * (boundaries.boundaryMax.y - boundaries.boundaryMin.y),
+      -boundaries.boundaryMin.z - 0.5 * ActorDimensions.z
+    ),
+    defaultCameraOffset: boundaries.cameraOffset
+      ? objCoordsToVector3(boundaries.cameraOffset)
+      : new THREE.Vector3(0, 0, 0),
+    defaultControlOffset: boundaries.controlOffset
+      ? objCoordsToVector3(boundaries.controlOffset)
+      : new THREE.Vector3(0, 0, 100),
+  }
 }

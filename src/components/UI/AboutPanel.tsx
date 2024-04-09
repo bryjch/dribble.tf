@@ -11,6 +11,7 @@ import {
   parseDemoAction,
   onUploadDemoAction,
   goToTickAction,
+  loadEmptySceneMapAction,
 } from '@zus/actions'
 import { getAsset } from '@utils/misc'
 import { MAP_NAME_SEARCH_MAP } from '@constants/mappings'
@@ -50,6 +51,10 @@ export const AboutPanel = () => {
     const fileBuffer = await fetch(url).then(res => res.arrayBuffer())
     await parseDemoAction(fileBuffer)
     goToTickAction(1000) // Skip to the juice
+  }
+
+  const onClickMapName = async (mapName: string) => {
+    loadEmptySceneMapAction(mapName)
   }
 
   useEffect(() => {
@@ -140,7 +145,7 @@ export const AboutPanel = () => {
             <div className="mx-2">/</div>
 
             <button
-              className="bg-pp-accent-tertiary hover:text-pp-accent-tertiary flex cursor-pointer items-center rounded-full px-3.5 py-1 font-medium tracking-wide transition-all hover:bg-white"
+              className="flex cursor-pointer items-center rounded-full bg-pp-accent-tertiary px-3.5 py-1 font-medium tracking-wide transition-all hover:bg-white hover:text-pp-accent-tertiary"
               onClick={onClickSampleDemo}
             >
               Load sample demo
@@ -178,8 +183,14 @@ export const AboutPanel = () => {
             {Object.keys(MAP_NAME_SEARCH_MAP)
               .sort((a, b) => a.localeCompare(b))
               .map(mapName => (
-                <div key={`map-${mapName}`}>
-                  <span className="opacity-50">&bull;</span>&nbsp;&nbsp;{mapName}
+                <div key={`map-${mapName}`} className="flex justify-start">
+                  <div
+                    className="cursor-pointer hover:underline"
+                    onClick={onClickMapName.bind(this, mapName)}
+                  >
+                    <span className="opacity-50">&bull;</span>
+                    &nbsp;&nbsp;{mapName}
+                  </div>
                 </div>
               ))}
           </div>
