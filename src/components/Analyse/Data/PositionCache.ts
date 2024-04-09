@@ -1,9 +1,11 @@
 import { Vector } from '@bryjch/demo.js/build'
 import { DataCache } from './DataCache'
 
-export interface MapBoundary {
+export interface MapBoundaries {
   boundaryMin: Vector
   boundaryMax: Vector
+  cameraOffset?: Vector
+  controlOffset?: Vector
 }
 
 export class PositionCache extends DataCache {

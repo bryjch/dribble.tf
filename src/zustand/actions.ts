@@ -2,14 +2,11 @@ import { get, merge, clamp, sortBy } from 'lodash'
 import localForage from 'localforage'
 import * as THREE from 'three'
 
-import { ActorDimensions } from '@components/Scene/Actor'
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
-import { MapBoundary } from '@components/Analyse/Data/PositionCache'
 import { getMapBoundaries } from '@components/Analyse/MapBoundaries'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
-import { getSceneActors } from '@utils/scene'
-import { objCoordsToVector3 } from '@utils/geometry'
+import { getSceneActors, parseMapBoundaries } from '@utils/scene'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import { ControlsMode, SceneMode, UIPanelType } from '@constants/types'
 
@@ -66,18 +63,6 @@ export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
 //
 
-function toVectorizedBounds(boundaries: MapBoundary) {
-  return {
-    min: objCoordsToVector3(boundaries.boundaryMin),
-    max: objCoordsToVector3(boundaries.boundaryMax),
-    center: new THREE.Vector3(
-      0.5 * (boundaries.boundaryMax.x - boundaries.boundaryMin.x),
-      0.5 * (boundaries.boundaryMax.y - boundaries.boundaryMin.y),
-      -boundaries.boundaryMin.z - 0.5 * ActorDimensions.z
-    ),
-  }
-}
-
 export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
   try {
     toggleUIPanelAction('About', false)
@@ -92,7 +77,7 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
         scene: {
           players: parsedDemo.entityPlayerMap,
           map: parsedDemo.header.map,
-          bounds: toVectorizedBounds(parsedDemo.world),
+          bounds: parseMapBoundaries(parsedDemo.world),
           controls: {
             mode: 'rts',
           },
@@ -129,7 +114,7 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
         scene: {
           ...initialState.scene,
           map: mapName,
-          bounds: toVectorizedBounds(boundaries),
+          bounds: parseMapBoundaries(boundaries),
         },
         playback: initialState.playback,
       },

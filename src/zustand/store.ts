@@ -4,6 +4,9 @@ import CanvasDraw from 'react-canvas-draw'
 import * as THREE from 'three'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import { getMapBoundaries } from '@components/Analyse/MapBoundaries'
+
+import { parseMapBoundaries } from '@utils/scene'
 
 import {
   ControlsMode,
@@ -12,7 +15,6 @@ import {
   SceneMode,
   UIPanelType,
 } from '@constants/types'
-import { DEFAULT_SCENE } from '@constants/scene'
 import rootReducer from './reducer'
 
 // This "Instance Store" is meant to be used for larger objects that are problematic
@@ -71,6 +73,8 @@ export type StoreState = {
       min: THREE.Vector3
       max: THREE.Vector3
       center: THREE.Vector3
+      defaultCameraOffset: THREE.Vector3
+      defaultControlOffset: THREE.Vector3
     }
     controls: {
       mode: ControlsMode
@@ -133,8 +137,8 @@ export const initialState: StoreState = {
 
   scene: {
     players: new Map(),
-    map: DEFAULT_SCENE.mapName,
-    bounds: DEFAULT_SCENE.bounds,
+    map: 'cp_snakewater',
+    bounds: parseMapBoundaries(getMapBoundaries('cp_snakewater')!),
     controls: {
       mode: ControlsMode.RTS,
     },
