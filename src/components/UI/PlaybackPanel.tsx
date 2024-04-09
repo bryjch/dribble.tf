@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import * as Slider from '@radix-ui/react-slider'
 
@@ -9,10 +10,15 @@ import {
   IoMdPlayIcon,
 } from '@components/Misc/Icons'
 
-import { useStore } from '@zus/store'
+import { useInstance, useStore } from '@zus/store'
 import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@zus/actions'
 import { focusMainCanvas } from '@utils/misc'
 import { cn } from '@utils/styling'
+import { getDurationFromTicks } from '@utils/parser'
+
+// Since parser only returns round ends (not round starts) we need to
+// account for the humiliation period before it resets
+const ROUND_HUMILIATION_BUFFER_TICKS = 300
 
 export const PLAYBACK_SPEED_OPTIONS = [
   { label: '3×', value: 3 },
@@ -56,8 +62,35 @@ const PlaybackAction = (props: PlaybackActionProps) => {
 }
 
 export const PlaybackPanel = () => {
+  const parsedDemo = useInstance(state => state.parsedDemo)
   const playback = useStore(state => state.playback)
   const { playing, speed, tick, maxTicks } = playback
+
+  const rounds = useMemo(() => {
+    const result = [
+      {
+        tick: ROUND_HUMILIATION_BUFFER_TICKS,
+        winningTeam: parsedDemo?.rounds[0]?.winner || 'none',
+        duration: parsedDemo?.rounds[0]?.length,
+      },
+    ]
+
+    // The last round is always the end of the demo, so we can ignore it
+    parsedDemo?.rounds?.slice(0, -1).forEach((round, index) => {
+      result.push({
+        tick: round.endTick + ROUND_HUMILIATION_BUFFER_TICKS,
+        winningTeam: parsedDemo?.rounds[index + 1]?.winner || 'none',
+        duration: parsedDemo?.rounds[index + 1]?.length,
+      })
+    })
+
+    return result
+  }, [parsedDemo?.rounds])
+
+  const onClickRound = async (round: any) => {
+    await goToTickAction(round.tick)
+    focusMainCanvas()
+  }
 
   const togglePlayback = () => {
     togglePlaybackAction()
@@ -75,13 +108,19 @@ export const PlaybackPanel = () => {
   }
 
   return (
-    <div className={cn('m-4 max-w-full rounded-2xl px-6 py-2 transition-all')}>
-      <div className="mt-4 flex items-center justify-center gap-6 rounded-full bg-black/70 px-5 py-3">
+    <div className={cn('group relative m-4 max-w-full rounded-2xl px-6 py-2 transition-all')}>
+      <div
+        className={cn(
+          'mt-4 flex items-center justify-center gap-6 rounded-full px-5 py-3 transition-all duration-500',
+          playing ? 'scale-90 opacity-0 delay-700' : 'bg-black/70 delay-0',
+          'group-hover:scale-100 group-hover:bg-black/70 group-hover:opacity-100 group-hover:delay-0'
+        )}
+      >
         {/* Jump to tick action */}
 
         <PlaybackAction
           icon={
-            <div className="-mr-1 flex min-w-9 select-none flex-col items-center text-center">
+            <div className="-mr-1 flex min-w-11 select-none flex-col items-center text-center">
               <div className="text-xs leading-none">TICK</div>
               <div className="font-bold leading-none">{tick * 2}</div>
             </div>
@@ -234,9 +273,11 @@ export const PlaybackPanel = () => {
         />
       </div>
 
-      <div className="mt-1">
+      <div className="-ml-[5%] mt-3 w-[110%]">
+        {/* Timeline slider */}
+
         <Slider.Root
-          className="relative flex h-8 w-full cursor-pointer select-none items-center"
+          className="relative flex w-full cursor-pointer select-none items-center"
           min={1}
           max={maxTicks}
           value={[tick]}
@@ -247,6 +288,41 @@ export const PlaybackPanel = () => {
             <Slider.Range className="absolute h-full rounded-full bg-white" />
           </Slider.Track>
         </Slider.Root>
+
+        <div className="mt-2 flex items-center justify-between">
+          {/* Rounds (Jump to round) */}
+
+          <div className="flex items-center text-sm">
+            <div className="text-outline mr-2">Round</div>
+
+            {rounds.map((round, index) => (
+              <div
+                key={`jump-to-round-${index}`}
+                className={cn(
+                  'relative mr-2 flex h-5 w-5 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-pp-panel/40 text-sm hover:opacity-80',
+                  round.tick <= tick && 'bg-white text-black'
+                )}
+                onClick={onClickRound.bind(null, round)}
+              >
+                <span>{index + 1}</span>
+
+                <div
+                  className={cn(
+                    'absolute -bottom-2 -right-2 h-4 w-4 rotate-45',
+                    round.winningTeam === 'red' && 'bg-pp-killfeed-text-red',
+                    round.winningTeam === 'blue' && 'bg-pp-killfeed-text-blue'
+                  )}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Duration (Current Time / Total Time) */}
+
+          <div className="text-outline text-sm">
+            {getDurationFromTicks(tick).formatted} / {getDurationFromTicks(maxTicks).formatted}
+          </div>
+        </div>
       </div>
     </div>
   )
