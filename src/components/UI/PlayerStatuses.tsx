@@ -35,7 +35,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
 
   return (
     <>
-      <div className="absolute left-0 flex flex-col items-start">
+      <div className="absolute left-0 mx-[1.5px] flex flex-col items-start gap-[1.5px]">
         {bluePlayers.sort(sortPlayersByClassId).map((player, index) => (
           <StatusItem
             key={`blue-player-status-item-${index}`}
@@ -47,7 +47,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
           />
         ))}
 
-        {blueMedics.length > 0 ? <div className="separator" /> : null}
+        {blueMedics.length > 0 ? <div className="h-2" /> : null}
 
         {blueMedics.map((player, index) => (
           <StatusItem
@@ -60,7 +60,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
         ))}
       </div>
 
-      <div className="absolute right-0 flex flex-col items-end">
+      <div className="absolute right-0 mx-[1.5px] flex flex-col items-end gap-[1.5px]">
         {redPlayers.sort(sortPlayersByClassId).map((player, index) => (
           <StatusItem
             key={`red-player-status-item-${index}`}
@@ -132,13 +132,16 @@ export const StatusItem = (props: StatusItemProps) => {
     <>
       <div
         className={cn(
-          'my-px flex cursor-pointer items-center bg-pp-panel/40 text-[0.9rem] font-semibold',
+          'flex cursor-pointer items-center bg-pp-panel/40 text-[0.9rem] font-semibold',
+          'overflow-hidden rounded-xl transition-all',
           STATUS_ITEM_WIDTH,
           STATUS_ITEM_HEIGHT,
           alignment === 'left' && 'flex-row',
           alignment === 'right' && 'flex-row-reverse',
-          focused && 'outline outline-[3px] outline-[#fbff09]',
-          health <= 0 && 'opacity-60'
+          focused && 'z-10 outline outline-[3px] outline-white',
+          focused && alignment === 'left' && 'translate-x-3',
+          focused && alignment === 'right' && '-translate-x-3',
+          health === 0 && 'opacity-60'
         )}
         onClick={onClickItem}
       >
@@ -190,13 +193,20 @@ export const StatusItem = (props: StatusItemProps) => {
           {/* Health */}
           <div
             className={cn(
-              'relative px-2 text-[1.1rem] font-bold text-white',
+              'relative w-8 flex-shrink-0 text-center text-[1.1rem] font-bold text-white',
               percentage > 100 && 'text-pp-health-overhealed',
               type === 'player' && percentage < 40 && 'text-pp-health-low'
             )}
           >
-            {health}
+            {/* TODO: use respawn timer */}
+            {health > 0 && health}
+            {health === 0 && type === 'player' && (
+              <span className="text-xs text-white opacity-70">Dead</span>
+            )}
           </div>
+
+          {/* Spacer */}
+          <div className="w-1.5" />
         </div>
       </div>
     </>

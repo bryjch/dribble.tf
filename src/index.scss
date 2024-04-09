@@ -7,6 +7,14 @@
     @apply pointer-events-none absolute inset-0 flex *:pointer-events-auto;
   }
 
+  .text-outline {
+    text-shadow:
+      0 0 2px #000000,
+      0 0 2px #000000,
+      0 0 2px #000000,
+      0 0 2px #000000;
+  }
+
   // z-index stuff
 
   // Some components rely on @react-three/drei Html (e.g. Nameplate) that has it's own logic to
@@ -46,8 +54,8 @@
   --pp-focused-background-red: 172 38 65;
   --pp-healthbar-blue: 136 174 184;
   --pp-healthbar-red: 172 38 65;
-  --pp-health-overhealed: 77 210 65;
-  --pp-health-low: 255 98 98;
+  --pp-health-overhealed: 62 255 0;
+  --pp-health-low: 255 119 104;
 }
 
 html {

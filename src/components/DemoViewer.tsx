@@ -26,7 +26,6 @@ import { CachedProjectile } from './Analyse/Data/ProjectileCache'
 import { AboutPanel } from '@components/UI/AboutPanel'
 import { SettingsPanel } from '@components/UI/SettingsPanel'
 import { PlaybackPanel } from '@components/UI/PlaybackPanel'
-import { DemoInfoPanel } from '@components/UI/DemoInfoPanel'
 import { Killfeed } from '@components/UI/Killfeed'
 import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
@@ -316,12 +315,6 @@ class DemoViewer extends Component<DemoViewerProps> {
           <div className="ui-layer mb-4 items-end justify-center text-center">
             <PlaybackPanel />
           </div>
-
-          {demo && (
-            <div className="ui-layer m-4 items-end justify-start">
-              <DemoInfoPanel parser={demo} />
-            </div>
-          )}
 
           {demo && (
             <div className="ui-layer m-4 items-start justify-end">
