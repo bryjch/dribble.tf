@@ -163,8 +163,8 @@ function loadGLTF(file: string) {
         // Netlify. This may be due to some content headers needing to be set:
         // https://community.netlify.com/t/progressevent-total-is-0-for-asset-on-deployed-site-but-works-in-local-environment/3747
         if (xhr.lengthComputable) {
-          const percentComplete = (xhr.loaded / xhr.total) * 100
-          console.log(`Map load progress: ${Math.round(percentComplete)}%`)
+          // const percentComplete = (xhr.loaded / xhr.total) * 100
+          // console.log(`Map load progress: ${Math.round(percentComplete)}%`)
         }
       }
 

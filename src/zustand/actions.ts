@@ -77,7 +77,10 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
         scene: {
           players: parsedDemo.entityPlayerMap,
           map: parsedDemo.header.map,
-          bounds: parseMapBoundaries(parsedDemo.world),
+          bounds: parseMapBoundaries({
+            ...getMapBoundaries(parsedDemo.header.map), // get camera/control offsets
+            ...parsedDemo.world,
+          }),
           controls: {
             mode: 'rts',
           },
