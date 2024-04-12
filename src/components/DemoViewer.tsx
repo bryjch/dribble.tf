@@ -259,8 +259,8 @@ class DemoViewer extends Component<DemoViewerProps> {
 
       actorsThisTick = playersThisTick.map((player, index) => ({
         ...player,
-        positionNext: playersNextTick[index].position,
-        viewAnglesNext: playersNextTick[index].viewAngles,
+        positionNext: playersNextTick[index]?.position ?? player.position,
+        viewAnglesNext: playersNextTick[index]?.viewAngles ?? player.viewAngles,
       }))
 
       projectilesThisTick = demo.getProjectilesAtTick(playback.tick)
