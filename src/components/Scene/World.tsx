@@ -3,7 +3,7 @@ import { useRef, useState, useEffect } from 'react'
 import * as THREE from 'three'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/Addons.js'
 
-import { ActorDimensions } from '@components/Scene/Actor'
+import { ActorDimensions } from '@components/Scene/Actors'
 
 import { useStore } from '@zus/store'
 import { getMapModelUrls } from '@utils/game'

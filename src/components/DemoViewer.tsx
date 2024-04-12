@@ -33,6 +33,7 @@ import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 // Actions & utils
 import { useStore, getState, useInstance } from '@zus/store'
 import { goToTickAction } from '@zus/actions'
+import { ActorProps } from './Scene/Actors'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -219,11 +220,13 @@ class DemoViewer extends Component<DemoViewerProps> {
     this.elapsedTime += timestamp - this.lastTimestamp
 
     if (playback.playing) {
+      useInstance.getState().setFrameProgress(this.elapsedTime / millisPerTick)
       if (this.elapsedTime > millisPerTick) {
         goToTickAction(playback.tick + 1)
         this.elapsedTime = 0
       }
     } else {
+      useInstance.getState().setFrameProgress(0)
       this.elapsedTime = 0
     }
 
@@ -241,12 +244,24 @@ class DemoViewer extends Component<DemoViewerProps> {
     const { demo, map } = this.props
 
     let playersThisTick: CachedPlayer[] = []
+    let playersNextTick: CachedPlayer[] = []
+    let actorsThisTick: ActorProps[] = []
     let projectilesThisTick: CachedProjectile[] = []
 
     if (!!demo) {
       playersThisTick = demo
         .getPlayersAtTick(playback.tick)
         .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
+
+      playersNextTick = demo
+        .getPlayersAtTick(playback.tick + 1)
+        .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
+
+      actorsThisTick = playersThisTick.map((player, index) => ({
+        ...player,
+        positionNext: playersNextTick[index].position,
+        viewAnglesNext: playersNextTick[index].viewAngles,
+      }))
 
       projectilesThisTick = demo.getProjectilesAtTick(playback.tick)
     }
@@ -282,7 +297,7 @@ class DemoViewer extends Component<DemoViewerProps> {
 
           <Suspense fallback={null}>
             <Selection>
-              <Actors players={playersThisTick} />
+              <Actors actors={actorsThisTick} />
 
               <EffectComposer enabled={settings.ui.playerOutlines} autoClear={false}>
                 <Outline
