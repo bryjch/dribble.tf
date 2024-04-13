@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { first, last } from 'lodash'
 
-import { ActorDimensions } from '@components/Scene/Actor'
+import { ActorDimensions } from '@components/Scene/Actors'
 import { MapBoundaries } from '@components/Analyse/Data/PositionCache'
 
 import { objCoordsToVector3 } from './geometry'

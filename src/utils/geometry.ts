@@ -44,8 +44,8 @@ export const degreesToRadians = (degrees: number): number => {
  * Apply degreesToRadians for x, y, z values of a given Vector3
  */
 
-export const radianizeVector = (vector: THREE.Vector3): THREE.Vector3 => {
-  return vector.set(
+export const radianizeVector = (vector: THREE.Vector3Like): THREE.Vector3 => {
+  return new THREE.Vector3(
     degreesToRadians(vector.x),
     degreesToRadians(vector.y),
     degreesToRadians(vector.z)

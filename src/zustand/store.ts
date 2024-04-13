@@ -32,11 +32,13 @@ export type InstanceState = {
   focusedObject?: THREE.Object3D
   lastFocusedPOV?: THREE.Object3D
   drawingCanvas?: CanvasDraw
+  frameProgress: number
   setThreeScene: (threeScene: THREE.Scene) => void
   setParsedDemo: (parsedDemo: AsyncParser | undefined) => void
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => void
   setFocusedObject: (focusedObject?: THREE.Object3D) => void
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => void
+  setFrameProgress: (frameProgress: number) => void
 }
 
 const useInstance = create<InstanceState>()(set => ({
@@ -45,11 +47,13 @@ const useInstance = create<InstanceState>()(set => ({
   focusedObject: undefined,
   lastFocusedPOV: undefined,
   drawingCanvas: undefined,
+  frameProgress: 0,
   setThreeScene: (threeScene: THREE.Scene) => set({ threeScene }),
   setParsedDemo: (parsedDemo: AsyncParser | undefined) => set({ parsedDemo }),
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => set({ drawingCanvas }),
   setFocusedObject: (focusedObject?: THREE.Object3D) => set({ focusedObject }),
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => set({ lastFocusedPOV }),
+  setFrameProgress: (frameProgress: number) => set({ frameProgress }),
 }))
 
 // This "Standard Store" is pretty much just a typical Redux store. Note that we are using
@@ -92,6 +96,7 @@ export type StoreState = {
   settings: {
     scene: {
       mode: SceneMode
+      interpolateFrames: boolean
     }
     camera: {
       position: [number, number, number]
@@ -158,6 +163,7 @@ export const initialState: StoreState = {
   settings: {
     scene: {
       mode: SceneMode.TEXTURED,
+      interpolateFrames: true,
     },
     camera: {
       position: [0, -400, 200] as [number, number, number],

@@ -227,7 +227,7 @@ export const SettingsPanel = () => {
           {/* ************************************************************* */}
 
           <div className="mb-5 mt-16 text-center text-sm font-black uppercase tracking-widest">
-            Geometry
+            Scene
           </div>
 
           <Option label="Material" keyCode="M">
@@ -250,6 +250,12 @@ export const SettingsPanel = () => {
               ))}
             </div>
           </Option>
+
+          <ToggleOption
+            label="Frame smoothing (*expensive)"
+            checked={settings.scene.interpolateFrames}
+            onChange={checked => updateSettingsOption('scene.interpolateFrames', checked)}
+          />
 
           {/* ************************************************************* */}
 
