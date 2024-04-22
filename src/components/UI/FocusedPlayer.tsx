@@ -29,34 +29,53 @@ export const FocusedPlayer = (props: FocusedPlayerProps) => {
 
   return (
     <div className="flex w-auto flex-col items-center">
-      <div className="mb-4">
-        {health === 0 && (
-          <div className="shadow-[0 0 3px #0a0a0a] animate-dead-pulse text-3xl font-black text-[#fbff09]">
+      <div className="mb-4 bg-black text-3xl">
+        {/* {health === 0 && (
+          <div className="animate-dead-pulse text-xl font-black text-[#fbff09] [text-shadow:0_0_3px_#000000]">
             *RESPAWNING*
           </div>
-        )}
+        )} */}
       </div>
 
-      <div className="flex">
+      <div className="flex items-center">
         <div
           className={cn(
-            'relative w-[65px] text-center text-[2.5rem] font-black leading-10 text-white [text-shadow:0_0_3px_#000000]',
-            percentage > 100 && 'text-pp-health-overhealed',
-            percentage < 40 && 'text-pp-health-low'
+            'relative mr-3 flex w-[15px] justify-end text-right font-black text-white [text-shadow:0_0_3px_#000000]'
           )}
         >
-          {health}
+          {health > 0 ? (
+            <div
+              className={cn(
+                'text-[2.5rem] leading-10',
+                percentage > 100 && 'text-pp-health-overhealed',
+                percentage < 40 && 'text-pp-health-low'
+              )}
+            >
+              {health}
+            </div>
+          ) : (
+            <div className="text-xl opacity-60">Dead</div>
+          )}
         </div>
 
         <div
           className={cn(
-            'flex max-w-[260px] items-center border-b-[6px] bg-pp-panel/30 py-[0.1rem]',
-            focused.team === 'blue' && 'border-b-pp-focused-background-blue',
-            focused.team === 'red' && 'border-b-pp-focused-background-red'
+            'flex max-w-[260px] flex-col overflow-hidden rounded-xl bg-pp-panel/70',
+            health === 0 && 'opacity-60'
           )}
         >
-          <div className="overflow-hidden text-ellipsis whitespace-nowrap px-1.5">{name}</div>
-          <div className="px-1.5">{icon}</div>
+          <div className="flex flex-1 items-center px-4 py-2">
+            <div className="overflow-hidden text-ellipsis whitespace-nowrap">{name}</div>
+            <div className="pl-2">{icon}</div>
+          </div>
+
+          <div
+            className={cn(
+              'h-1 w-full',
+              focused.team === 'blue' && 'bg-pp-focused-background-blue',
+              focused.team === 'red' && 'bg-pp-focused-background-red'
+            )}
+          />
         </div>
       </div>
     </div>

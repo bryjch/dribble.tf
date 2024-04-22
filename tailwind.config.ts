@@ -26,20 +26,9 @@ export default {
         'pp-health-low': 'rgb(var(--pp-health-low) / <alpha-value>)',
       },
 
-      keyframes: {
-        'dead-pulse': {
-          '0%': {
-            opacity: 0.5,
-          },
-          '100%': {
-            opacity: 1,
-          },
-        },
-      },
+      keyframes: {},
 
-      animation: {
-        'dead-pulse': 'dead-pulse 0.3s ease-in infinite alternate',
-      },
+      animation: {},
     },
   },
   plugins: [],
