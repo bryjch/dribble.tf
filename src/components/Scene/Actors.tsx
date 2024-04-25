@@ -126,10 +126,10 @@ export const Actor = (props: ActorProps) => {
       return
     }
 
-    // we skip rendering for 0 because there are some race conditions between useFrame
+    // we skip rendering for 0 and 0.99 because there are some race conditions between useFrame
     // and requestAnimationFrame, which results in jerky rendering. This can be safely
     // done since the lerp smoothens out any potential "missed renders"
-    if (frameProgress > 0) {
+    if (frameProgress > 0 && frameProgress < 0.99) {
       // handle position lerping
       const lerpedPos = positionVec3.clone().lerp(positionNext, frameProgress)
       actorRef.current.position.set(lerpedPos.x, lerpedPos.y, lerpedPos.z)
