@@ -18,12 +18,25 @@ type OptionProps = {
   children?: React.ReactNode
   leftClass?: string
   rightClass?: string
+  onClickLabel?: () => void
 }
 
-const Option = ({ label, keyCode, children, leftClass = '', rightClass = '' }: OptionProps) => (
+const Option = ({
+  label,
+  keyCode,
+  children,
+  leftClass = '',
+  rightClass = '',
+  onClickLabel,
+}: OptionProps) => (
   <div className="mb-4 flex items-center justify-between">
     <div className={cn('flex items-center', leftClass)}>
-      <div className="text-base font-semibold">{label}</div>
+      <div
+        className={cn('select-none text-base font-semibold', !!onClickLabel && 'cursor-default')}
+        onClick={onClickLabel}
+      >
+        {label}
+      </div>
       {!!keyCode && <kbd className="ml-2 text-[66%]">{keyCode}</kbd>}
     </div>
 
@@ -108,7 +121,7 @@ const ToggleOption = ({ label, keyCode, checked, disabled, onChange }: ToggleOpt
   }
 
   return (
-    <Option label={label} keyCode={keyCode}>
+    <Option label={label} keyCode={keyCode} onClickLabel={callback}>
       <input
         type="checkbox"
         className="h-4 w-4"
@@ -149,12 +162,10 @@ export const SettingsPanel = () => {
         isOpen={isOpen}
         onClickClose={toggleUIPanel}
       >
-        <div className="max-h-[70vh] overflow-auto px-6 pb-8 pt-3">
+        <div className="max-h-[70vh] overflow-auto px-8 pb-8 pt-10">
           {/* ************************************************************* */}
 
-          <div className="mb-5 text-center text-sm font-black uppercase tracking-widest">
-            Camera
-          </div>
+          <div className="mb-4 text-xs font-black uppercase opacity-60">Camera</div>
 
           <Option label="POV Camera (next)" keyCode="1" leftClass="col" />
           <Option label="POV Camera (prev)" keyCode="Shift + 1" leftClass="col" />
@@ -226,9 +237,7 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
-          <div className="mb-5 mt-16 text-center text-sm font-black uppercase tracking-widest">
-            Scene
-          </div>
+          <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Scene</div>
 
           <Option label="Material" keyCode="M">
             <div className="flex gap-1">
@@ -259,9 +268,7 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
-          <div className="mb-5 mt-16 text-center text-sm font-black uppercase tracking-widest">
-            Players
-          </div>
+          <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Players</div>
 
           <ToggleOption
             label="Player outlines (*expensive)"
@@ -304,9 +311,7 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
-          <div className="mb-5 mt-16 text-center text-sm font-black uppercase tracking-widest">
-            Drawing
-          </div>
+          <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Drawing</div>
 
           <Option label="Activate" keyCode="F" />
           <Option label="Clear" keyCode="C" />
@@ -340,9 +345,7 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
-          <div className="mb-5 mt-16 text-center text-sm font-black uppercase tracking-widest">
-            Misc
-          </div>
+          <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Misc</div>
 
           <ToggleOption
             label="Show FPS"
