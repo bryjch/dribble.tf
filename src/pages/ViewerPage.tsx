@@ -55,7 +55,7 @@ const ViewerPage = () => {
       </div>
 
       {/* Camera tip panels overlays */}
-      <div className="ui-layer bottom-0 right-0 items-end justify-end p-4">
+      <div className="ui-layer bottom-0 right-0 items-end justify-end overflow-hidden p-4">
         <POVCameraTipPanel />
         <SpectatorCameraTipPanel />
         <RtsCameraTipPanel />
