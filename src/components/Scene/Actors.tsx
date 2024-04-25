@@ -114,8 +114,13 @@ export const Actor = (props: ActorProps) => {
   useFrame(() => {
     if (!actorRef.current || !playerAimRef.current) return
 
-    // Only do lerping for slower playback speeds for performance reasons
-    if (settings.scene.interpolateFrames === false || playback.speed > 1) {
+    // Prefer to only do lerping for slower playback speeds for performance reasons
+    // and if the playback is currently paused / user explicitly doesn't want it
+    if (
+      settings.scene.interpolateFrames === false ||
+      playback.playing === false ||
+      playback.speed > 1
+    ) {
       actorRef.current.position.set(position.x, position.y, position.z)
       actorRef.current.rotation.set(0, 0, viewAnglesVec3.x)
       return
