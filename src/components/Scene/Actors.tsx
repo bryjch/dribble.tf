@@ -122,7 +122,12 @@ export const Actor = (props: ActorProps) => {
       playback.speed > 1
     ) {
       actorRef.current.position.set(position.x, position.y, position.z)
-      actorRef.current.rotation.set(0, 0, viewAnglesVec3.x)
+      if (viewAnglesVec3.x !== 0) {
+        actorRef.current.rotation.set(0, 0, viewAnglesVec3.x)
+      }
+      if (viewAnglesVec3.y !== 0) {
+        playerAimRef.current.rotation.set(0, viewAnglesVec3.y, 0)
+      }
       return
     }
 
@@ -135,16 +140,22 @@ export const Actor = (props: ActorProps) => {
       actorRef.current.position.set(lerpedPos.x, lerpedPos.y, lerpedPos.z)
 
       // handle actor Z rotation lerping
-      actorQuat.setFromAxisAngle(VectorZ, viewAnglesVec3.x)
-      nextActorQuat.setFromAxisAngle(VectorZ, degreesToRadians(viewAnglesNext.x))
-      actorRef.current.rotation.setFromQuaternion(
-        actorQuat.clone().slerp(nextActorQuat, frameProgress)
-      )
+      // note: some ticks erronously return 0, so we skip lerping in those cases
+      if (viewAnglesVec3.x !== 0 && viewAnglesNext.x !== 0) {
+        actorQuat.setFromAxisAngle(VectorZ, viewAnglesVec3.x)
+        nextActorQuat.setFromAxisAngle(VectorZ, degreesToRadians(viewAnglesNext.x))
+        actorRef.current.rotation.setFromQuaternion(
+          actorQuat.clone().slerp(nextActorQuat, frameProgress)
+        )
+      }
 
       // handle aim Y rotation lerping
-      aimQuat.setFromAxisAngle(VectorY, viewAnglesVec3.y)
-      nextAimQuat.setFromAxisAngle(VectorY, degreesToRadians(viewAnglesNext.y))
-      playerAimRef.current.rotation.setFromQuaternion(aimQuat.slerp(nextAimQuat, frameProgress))
+      // note: some ticks erronously return 0, so we skip lerping in those cases
+      if (viewAnglesVec3.y !== 0 && viewAnglesNext.y !== 0) {
+        aimQuat.setFromAxisAngle(VectorY, viewAnglesVec3.y)
+        nextAimQuat.setFromAxisAngle(VectorY, degreesToRadians(viewAnglesNext.y))
+        playerAimRef.current.rotation.setFromQuaternion(aimQuat.slerp(nextAimQuat, frameProgress))
+      }
     }
   })
 
