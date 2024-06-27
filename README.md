@@ -20,5 +20,5 @@ Models are primarily served as glTF assets.
 
 -----
 
-<img width="1118" alt="dribble interface" src="https://github.com/bryjch/dribble.tf/assets/9291779/67dbe001-bc2d-4e55-8848-59097cfe736f">
-<img width="1329" alt="dribble interface" src="https://github.com/bryjch/dribble.tf/assets/9291779/767f8e11-9770-402e-8f35-1c7fc65195ed">
+<img alt="dribble interface normal" src="https://github.com/bryjch/dribble.tf/assets/9291779/4b6d62ed-52bb-4302-86c2-bb9e44664d76">
+<img alt="dribble interface drawing" src="https://github.com/bryjch/dribble.tf/assets/9291779/36d990f8-d310-4f84-b5be-cfdccea70554">
