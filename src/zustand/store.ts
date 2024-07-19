@@ -131,6 +131,11 @@ export type StoreState = {
   ui: {
     activePanels: UIPanelType[]
   }
+  eventHistory: {
+    type: string
+    value?: string
+    timestamp: number
+  }[]
 }
 
 export const initialState: StoreState = {
@@ -202,6 +207,8 @@ export const initialState: StoreState = {
   ui: {
     activePanels: [UIPanelType.ABOUT],
   },
+
+  eventHistory: [],
 }
 
 export type StoreAction = {

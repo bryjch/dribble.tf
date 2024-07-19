@@ -289,18 +289,22 @@ export const playbackJumpAction = async (direction: string) => {
     switch (direction) {
       case 'seekBackward':
         goToTickAction(tick - PLAYBACK_JUMP_TICK_INCREMENT)
+        addEventHistoryAction('seekBackward')
         break
 
       case 'seekForward':
         goToTickAction(tick + PLAYBACK_JUMP_TICK_INCREMENT)
+        addEventHistoryAction('seekForward')
         break
 
       case 'previousTick':
         goToTickAction(tick - 1)
+        addEventHistoryAction('previousTick')
         break
 
       case 'nextTick':
         goToTickAction(tick + 1)
+        addEventHistoryAction('nextTick')
         break
 
       default:
@@ -323,6 +327,8 @@ export const togglePlaybackAction = async (playing = undefined) => {
     }
 
     dispatch({ type: 'TOGGLE_PLAYBACK', payload: isPlaying })
+
+    addEventHistoryAction(isPlaying ? 'play' : 'pause')
   } catch (error) {
     console.error(error)
   }
@@ -343,6 +349,7 @@ export const changePlaySpeedAction = async (speed: 'faster' | 'slower' | number)
           type: 'CHANGE_PLAY_SPEED',
           payload: PLAYBACK_SPEED_OPTIONS[prevIndex].value,
         })
+        addEventHistoryAction(PLAYBACK_SPEED_OPTIONS[prevIndex].value + '× speed')
         break
 
       case 'slower':
@@ -350,6 +357,8 @@ export const changePlaySpeedAction = async (speed: 'faster' | 'slower' | number)
           type: 'CHANGE_PLAY_SPEED',
           payload: PLAYBACK_SPEED_OPTIONS[nextIndex].value,
         })
+        addEventHistoryAction(PLAYBACK_SPEED_OPTIONS[nextIndex].value + '× speed')
+
         break
 
       default:
@@ -450,6 +459,16 @@ export const toggleUIDrawingAction = async (active?: boolean) => {
         drawingCanvas?.clear()
       }
     }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+// ─── EVENT HISTORY ───────────────────────────────────────────────────────────
+
+export const addEventHistoryAction = async (type: string, value?: string) => {
+  try {
+    dispatch({ type: 'ADD_EVENT_HISTORY', payload: { type, value, timestamp: Date.now() } })
   } catch (error) {
     console.error(error)
   }

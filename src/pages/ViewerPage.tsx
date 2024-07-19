@@ -45,12 +45,12 @@ const ViewerPage = () => {
       {/* Parsing demo overlay */}
       <div className="ui-layer top-20 items-start justify-center">
         <motion.div
-          className="inline-flex bg-pp-panel/80 px-4 py-2"
+          className="inline-flex rounded-lg bg-pp-panel/80 px-5 py-2"
           animate={parser.status === 'loading' ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
           initial={false}
         >
-          <div>Parsing demo... {parser.progress}%</div>
+          <div>Parsing demo ... {parser.progress}%</div>
         </motion.div>
       </div>
 
