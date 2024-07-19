@@ -141,6 +141,16 @@ const reducers = (state: StoreState, action: StoreAction) => {
         drawing: { ...state.drawing, enabled: false },
       }
 
+    //
+    // ─── EVENT HISTORY ───────────────────────────────────────────────
+    //
+
+    case 'ADD_EVENT_HISTORY':
+      return {
+        ...state,
+        eventHistory: [action.payload, ...state.eventHistory].slice(0, 10),
+      }
+
     default:
       return state
   }

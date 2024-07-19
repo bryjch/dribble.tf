@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import * as Slider from '@radix-ui/react-slider'
+import { motion } from 'framer-motion'
 
 import {
   IoArrowForwardSharpIcon,
@@ -9,6 +10,7 @@ import {
   IoMdPauseIcon,
   IoMdPlayIcon,
 } from '@components/Misc/Icons'
+import { EventHistoryText } from './EventHistoryText'
 
 import { useInstance, useStore } from '@zus/store'
 import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@zus/actions'
@@ -64,6 +66,7 @@ const PlaybackAction = (props: PlaybackActionProps) => {
 export const PlaybackPanel = () => {
   const parsedDemo = useInstance(state => state.parsedDemo)
   const playback = useStore(state => state.playback)
+  const lastEventHistory = useStore(state => state.eventHistory)?.[0]
   const { playing, speed, tick, maxTicks } = playback
 
   const rounds = useMemo(() => {
@@ -108,7 +111,21 @@ export const PlaybackPanel = () => {
   }
 
   return (
-    <div className={cn('group relative m-4 max-w-full rounded-2xl px-6 py-2 transition-all')}>
+    <div className={cn('group relative m-4 max-w-full rounded-2xl px-6 py-2')}>
+      {lastEventHistory && (
+        <div className={cn('transition-all', playing ? '-mb-16 delay-700 group-hover:mb-0' : '')}>
+          <motion.div
+            className="pointer-events-none inline-block rounded-3xl bg-black/70 p-2"
+            initial={{ opacity: 1, y: 4 }}
+            animate={{ opacity: 0, y: 0 }}
+            transition={{ duration: 0.6 }}
+            key={`${lastEventHistory.type}.${lastEventHistory.timestamp}`}
+          >
+            <EventHistoryText type={lastEventHistory.type} />
+          </motion.div>
+        </div>
+      )}
+
       <div
         className={cn(
           'mt-4 flex items-center justify-center gap-6 rounded-full px-5 py-3 transition-all duration-500',
