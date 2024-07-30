@@ -67,13 +67,8 @@ export const AboutPanel = () => {
         <TiInfoLargeIcon />
       </TogglePanelButton>
 
-      <TogglePanel
-        className="w-[380px]"
-        showCloseButton
-        isOpen={isOpen}
-        onClickClose={toggleUIPanel}
-      >
-        <div className="px-8 pb-12 pt-8">
+      <TogglePanel showCloseButton isOpen={isOpen} onClickClose={toggleUIPanel}>
+        <div className="max-h-[75vh] overflow-auto px-8 pb-12 pt-8">
           <div className="flex items-center">
             {/* Logo */}
 

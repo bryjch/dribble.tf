@@ -157,12 +157,12 @@ export const SettingsPanel = () => {
       </TogglePanelButton>
 
       <TogglePanel
-        className="w-[460px]"
+        className="w-[clamp(100px,460px,80vw)]"
         showCloseButton
         isOpen={isOpen}
         onClickClose={toggleUIPanel}
       >
-        <div className="max-h-[70vh] overflow-auto px-8 pb-8 pt-10">
+        <div className="max-h-[90vh] overflow-auto px-8 pb-8 pt-10">
           {/* ************************************************************* */}
 
           <div className="mb-4 text-xs font-black uppercase opacity-60">Camera</div>

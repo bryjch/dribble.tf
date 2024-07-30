@@ -61,8 +61,15 @@
 html {
   background-color: var(--background-primary);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 1.5vw;
+  font-size: clamp(8px, 1.5vw, 14px);
   font-family: 'Source Sans Pro', sans-serif;
+}
+
+@media screen and (min-width: 1024px) {
+  html {
+    font-size: 14px;
+  }
 }
 
 pre,
