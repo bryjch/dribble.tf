@@ -67,7 +67,7 @@ export const PlaybackPanel = () => {
   const parsedDemo = useInstance(state => state.parsedDemo)
   const playback = useStore(state => state.playback)
   const lastEventHistory = useStore(state => state.eventHistory)?.[0]
-  const { playing, speed, tick, maxTicks } = playback
+  const { playing, speed, tick, maxTicks, forceShowPanel } = playback
 
   const rounds = useMemo(() => {
     const result = [
@@ -129,7 +129,7 @@ export const PlaybackPanel = () => {
       <div
         className={cn(
           'mt-4 flex items-center justify-center gap-6 rounded-full px-5 py-3 transition-all duration-500',
-          playing ? 'scale-90 opacity-0 delay-700' : 'bg-black/70 delay-0',
+          playing && !forceShowPanel ? 'scale-90 opacity-0 delay-700' : 'bg-black/70 delay-0',
           'group-hover:scale-100 group-hover:bg-black/70 group-hover:opacity-100 group-hover:delay-0'
         )}
       >

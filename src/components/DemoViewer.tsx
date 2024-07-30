@@ -32,7 +32,7 @@ import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 
 // Actions & utils
 import { useStore, getState, useInstance } from '@zus/store'
-import { goToTickAction } from '@zus/actions'
+import { forceShowPanelAction, goToTickAction } from '@zus/actions'
 import { ActorProps } from './Scene/Actors'
 
 //
@@ -170,6 +170,7 @@ class DemoViewer extends Component<DemoViewerProps> {
   // Timing variables for animation loop
   elapsedTime = 0
   lastTimestamp = 0
+  lastTouchPos = { x: 0, y: 0 }
 
   state = {
     playback: getState().playback,
@@ -235,6 +236,19 @@ class DemoViewer extends Component<DemoViewerProps> {
     requestAnimationFrame(this.animate)
   }
 
+  onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    this.lastTouchPos = { x: event.clientX, y: event.clientY }
+  }
+
+  onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (
+      Math.abs(event.clientX - this.lastTouchPos.x) < 10 &&
+      Math.abs(event.clientY - this.lastTouchPos.y) < 10
+    ) {
+      forceShowPanelAction()
+    }
+  }
+
   //
   // ─── RENDER ─────────────────────────────────────────────────────────────────────
   //
@@ -273,6 +287,8 @@ class DemoViewer extends Component<DemoViewerProps> {
           id="main-canvas"
           gl={{ alpha: true }}
           onContextMenu={e => e.preventDefault()}
+          onPointerDown={this.onPointerDown}
+          onPointerUp={this.onPointerUp}
         >
           {/* Base scene elements */}
 
@@ -344,7 +360,7 @@ class DemoViewer extends Component<DemoViewerProps> {
             <SettingsPanel />
           </div>
 
-          <div className="ui-layer justift-start m-4 mt-[calc(1.75rem+33px)] items-start">
+          <div className="ui-layer justift-start m-4 mt-16 items-start">
             <AboutPanel />
           </div>
         </div>

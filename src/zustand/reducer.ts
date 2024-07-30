@@ -87,6 +87,9 @@ const reducers = (state: StoreState, action: StoreAction) => {
     case 'CHANGE_PLAY_SPEED':
       return { ...state, playback: { ...state.playback, speed: action.payload } }
 
+    case 'FORCE_SHOW_PANEL':
+      return { ...state, playback: { ...state.playback, forceShowPanel: action.payload } }
+
     //
     // ─── SETTINGS ────────────────────────────────────────────────────
     //
