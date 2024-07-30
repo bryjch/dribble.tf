@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import * as Slider from '@radix-ui/react-slider'
 import { motion } from 'framer-motion'
@@ -34,13 +34,33 @@ interface PlaybackActionProps {
   content: React.ReactNode
   icon: React.ReactNode
   onClick?: () => void
+  /**
+   * Radix doesn't display tooltips on mobile, so we need a way to force show it
+   * https://github.com/radix-ui/primitives/issues/1573
+   */
+  mobileTooltipBypass?: boolean
 }
 
 const PlaybackAction = (props: PlaybackActionProps) => {
+  const [open, setOpen] = useState(false)
+
+  let bypassProps = { root: {}, trigger: {} }
+
+  if (props.mobileTooltipBypass) {
+    bypassProps = {
+      root: { open, onOpenChange: setOpen },
+      trigger: {
+        onClick: () => setOpen(prevOpen => !prevOpen),
+        onFocus: () => setTimeout(() => setOpen(true), 0),
+        onBlur: () => setOpen(false),
+      },
+    }
+  }
+
   return (
     <Tooltip.Provider delayDuration={0}>
-      <Tooltip.Root>
-        <Tooltip.Trigger asChild>
+      <Tooltip.Root {...bypassProps.root}>
+        <Tooltip.Trigger asChild {...bypassProps.trigger}>
           <div
             className={cn(
               'cursor-pointer opacity-80',
@@ -67,7 +87,7 @@ export const PlaybackPanel = () => {
   const parsedDemo = useInstance(state => state.parsedDemo)
   const playback = useStore(state => state.playback)
   const lastEventHistory = useStore(state => state.eventHistory)?.[0]
-  const { playing, speed, tick, maxTicks } = playback
+  const { playing, speed, tick, maxTicks, forceShowPanel } = playback
 
   const rounds = useMemo(() => {
     const result = [
@@ -129,13 +149,14 @@ export const PlaybackPanel = () => {
       <div
         className={cn(
           'mt-4 flex items-center justify-center gap-6 rounded-full px-5 py-3 transition-all duration-500',
-          playing ? 'scale-90 opacity-0 delay-700' : 'bg-black/70 delay-0',
+          playing && !forceShowPanel ? 'scale-90 opacity-0 delay-700' : 'bg-black/70 delay-0',
           'group-hover:scale-100 group-hover:bg-black/70 group-hover:opacity-100 group-hover:delay-0'
         )}
       >
         {/* Jump to tick action */}
 
         <PlaybackAction
+          mobileTooltipBypass
           icon={
             <div className="-mr-1 flex min-w-11 select-none flex-col items-center text-center">
               <div className="text-xs leading-none">TICK</div>
@@ -246,6 +267,7 @@ export const PlaybackPanel = () => {
         {/* Change play speed action */}
 
         <PlaybackAction
+          mobileTooltipBypass
           icon={
             <div className="select-none rounded-3xl bg-white/90 px-2 text-sm text-black">
               {speed}×

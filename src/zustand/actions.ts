@@ -370,6 +370,20 @@ export const changePlaySpeedAction = async (speed: 'faster' | 'slower' | number)
   }
 }
 
+export const forceShowPanelAction = async (forceShowPanel?: boolean) => {
+  try {
+    if (forceShowPanel === undefined) {
+      forceShowPanel = !getState().playback.forceShowPanel
+    }
+
+    dispatch({ type: 'FORCE_SHOW_PANEL', payload: forceShowPanel })
+
+    setTimeout(() => dispatch({ type: 'FORCE_SHOW_PANEL', payload: false }), 1500)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 //
 // ─── SETTINGS ───────────────────────────────────────────────────────────────────
 //

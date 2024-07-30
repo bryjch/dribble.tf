@@ -43,7 +43,7 @@ const ViewerPage = () => {
       <DemoViewer demo={parsedDemo} map={loadedMap} />
 
       {/* Parsing demo overlay */}
-      <div className="ui-layer top-20 items-start justify-center">
+      <div className="ui-layer pointer-events-none top-20 items-start justify-center">
         <motion.div
           className="inline-flex rounded-lg bg-pp-panel/80 px-5 py-2"
           animate={parser.status === 'loading' ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
@@ -55,7 +55,7 @@ const ViewerPage = () => {
       </div>
 
       {/* Camera tip panels overlays */}
-      <div className="ui-layer bottom-0 right-0 items-end justify-end overflow-hidden p-4">
+      <div className="ui-layer pointer-events-none bottom-0 right-0 items-end justify-end overflow-hidden p-4 [&>div]:pointer-events-none">
         <POVCameraTipPanel />
         <SpectatorCameraTipPanel />
         <RtsCameraTipPanel />
