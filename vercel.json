@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/umami/:match*",
+      "destination": "https://analytics.umami.is/:match*"
+    }
+  ]
+}
