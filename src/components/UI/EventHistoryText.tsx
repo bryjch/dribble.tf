@@ -8,7 +8,7 @@ import { cn } from '@utils/styling'
 
 const iconClasses = 'w-5 h-5'
 
-export const EventHistoryText = ({ type }: { type: string }) => {
+export const EventHistoryText = ({ type, value }: { type: string; value?: any }) => {
   switch (type) {
     case 'seekBackward':
       return <AiFillFastForwardIcon className={cn(iconClasses, 'rotate-180')} />
@@ -27,8 +27,15 @@ export const EventHistoryText = ({ type }: { type: string }) => {
 
     case 'seekForward':
       return <AiFillFastForwardIcon className={cn(iconClasses)} />
+
+    case 'changeMaterial':
+      return (
+        <div className="px-2">
+          Material: <span className="font-bold">{value}</span>
+        </div>
+      )
   }
 
   // Probably a string, so pad the sides a bit
-  return <div className="px-2">{type}</div>
+  return <div className="px-2">{value}</div>
 }
