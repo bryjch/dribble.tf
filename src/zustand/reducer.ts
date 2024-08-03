@@ -154,6 +154,37 @@ const reducers = (state: StoreState, action: StoreAction) => {
         eventHistory: [action.payload, ...state.eventHistory].slice(0, 10),
       }
 
+    //
+    // ─── DOWNLOADS ───────────────────────────────────────────────────
+    //
+
+    case 'ADD_DOWNLOAD': {
+      const downloads = new Map(state.downloads)
+      downloads.set(action.payload.url, action.payload)
+      return { ...state, downloads }
+    }
+
+    case 'REMOVE_DOWNLOAD': {
+      const downloads = new Map(state.downloads)
+      downloads.delete(action.payload.url)
+      return { ...state, downloads }
+    }
+
+    case 'UPDATE_DOWNLOAD': {
+      const downloads = new Map(state.downloads)
+      const download = downloads.get(action.payload.url)
+
+      if (download) {
+        downloads.set(action.payload.url, { ...download, ...action.payload })
+      }
+
+      return { ...state, downloads }
+    }
+
+    //
+    // ─── DEFAULT ─────────────────────────────────────────────────────
+    //
+
     default:
       return state
   }

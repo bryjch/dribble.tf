@@ -5,7 +5,8 @@ import { GLTF, GLTFLoader } from 'three/examples/jsm/Addons.js'
 
 import { ActorDimensions } from '@components/Scene/Actors'
 
-import { useStore } from '@zus/store'
+import { addDownloadAction, updateDownloadAction } from '@zus/actions'
+import { getState, useStore } from '@zus/store'
 import { getMapModelUrls } from '@utils/game'
 
 const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
@@ -48,7 +49,7 @@ export const World = (props: WorldProps) => {
       }
 
       if (mode === 'textured') {
-        loadGLTF(mapModelFileUrls.textured).then(gltf => {
+        loadGLTF(mapModelFileUrls.textured, `${map} (textured)`).then(gltf => {
           if (gltf && gltf.scene) {
             setMapModel(gltf.scene)
           }
@@ -67,7 +68,7 @@ export const World = (props: WorldProps) => {
       }
 
       if (mode === 'untextured' || mode === 'wireframe') {
-        loadGLTF(mapModelFileUrls.untextured).then(gltf => {
+        loadGLTF(mapModelFileUrls.untextured, `${map} (untextured)`).then(gltf => {
           if (gltf && gltf.scene) {
             setMapModel(gltf.scene)
             setMapOverlay(null)
@@ -149,7 +150,7 @@ export const World = (props: WorldProps) => {
 
 // Useful resource: https://github.com/donmccurdy/three-gltf-viewer/blob/master/src/viewer.js
 
-function loadGLTF(file: string) {
+function loadGLTF(url: string, name?: string) {
   return new Promise<GLTF>((resolve, reject) => {
     try {
       const gltfLoader = new GLTFLoader().setCrossOrigin('anonymous')
@@ -162,9 +163,13 @@ function loadGLTF(file: string) {
         // TODO: The lengthComputable seems to be false after being deployed to
         // Netlify. This may be due to some content headers needing to be set:
         // https://community.netlify.com/t/progressevent-total-is-0-for-asset-on-deployed-site-but-works-in-local-environment/3747
+
+        const fileDownload = getState().downloads.get(url)
+        if (!fileDownload) addDownloadAction({ type: 'map', name: name ?? url, url: url })
+
         if (xhr.lengthComputable) {
-          // const percentComplete = (xhr.loaded / xhr.total) * 100
-          // console.log(`Map load progress: ${Math.round(percentComplete)}%`)
+          const percentComplete = (xhr.loaded / xhr.total) * 100
+          updateDownloadAction(url, { progress: percentComplete, size: xhr.total })
         }
       }
 
@@ -172,7 +177,7 @@ function loadGLTF(file: string) {
         throw error
       }
 
-      gltfLoader.load(file, onLoad, onProgress, onError)
+      gltfLoader.load(url, onLoad, onProgress, onError)
     } catch (error) {
       console.error(error)
       reject(error)

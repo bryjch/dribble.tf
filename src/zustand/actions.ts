@@ -1,4 +1,4 @@
-import { get, merge, clamp, sortBy } from 'lodash'
+import { get, merge, clamp, sortBy, round } from 'lodash'
 import localForage from 'localforage'
 import * as THREE from 'three'
 
@@ -8,7 +8,7 @@ import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { getSceneActors, parseMapBoundaries } from '@utils/scene'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
-import { ControlsMode, SceneMode, UIPanelType } from '@constants/types'
+import { ControlsMode, Download, SceneMode, UIPanelType } from '@constants/types'
 
 import { dispatch, getState, initialState, useInstance } from './store'
 
@@ -483,6 +483,44 @@ export const toggleUIDrawingAction = async (active?: boolean) => {
 export const addEventHistoryAction = async (type: string, value?: string) => {
   try {
     dispatch({ type: 'ADD_EVENT_HISTORY', payload: { type, value, timestamp: Date.now() } })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+// ─── DOWNLOADS ────────────────────────────────────────────────────────────────
+
+export const addDownloadAction = async ({
+  type,
+  name,
+  url,
+}: Pick<Download, 'type' | 'name' | 'url'>) => {
+  try {
+    dispatch({
+      type: 'ADD_DOWNLOAD',
+      payload: { type, name, url, status: 'loading', progress: 0 },
+    })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const updateDownloadAction = async (
+  url: string,
+  { progress, size }: Pick<Download, 'progress' | 'size'>
+) => {
+  try {
+    if (size) {
+      dispatch({ type: 'UPDATE_DOWNLOAD', payload: { url, size } })
+    }
+
+    if (progress) {
+      dispatch({ type: 'UPDATE_DOWNLOAD', payload: { url, progress: round(progress, 1) } })
+
+      if (progress >= 100) {
+        dispatch({ type: 'UPDATE_DOWNLOAD', payload: { url, status: 'success' } })
+      }
+    }
   } catch (error) {
     console.error(error)
   }
