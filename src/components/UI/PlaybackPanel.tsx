@@ -141,7 +141,7 @@ export const PlaybackPanel = () => {
             transition={{ duration: 0.6 }}
             key={`${lastEventHistory.type}.${lastEventHistory.timestamp}`}
           >
-            <EventHistoryText type={lastEventHistory.type} />
+            <EventHistoryText {...lastEventHistory} />
           </motion.div>
         </div>
       )}

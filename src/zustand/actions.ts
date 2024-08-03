@@ -260,8 +260,10 @@ export const changeSceneModeAction = async (mode: SceneMode | 'next') => {
 
   if (mode) {
     await updateSettingsOptionAction('scene.mode', mode)
+    addEventHistoryAction('changeMaterial', mode)
   }
 }
+
 //
 // ─── PLAYBACK ───────────────────────────────────────────────────────────────────
 //
@@ -349,7 +351,10 @@ export const changePlaySpeedAction = async (speed: 'faster' | 'slower' | number)
           type: 'CHANGE_PLAY_SPEED',
           payload: PLAYBACK_SPEED_OPTIONS[prevIndex].value,
         })
-        addEventHistoryAction(PLAYBACK_SPEED_OPTIONS[prevIndex].value + '× speed')
+        addEventHistoryAction(
+          'changePlaySpeed',
+          PLAYBACK_SPEED_OPTIONS[prevIndex].value + '× speed'
+        )
         break
 
       case 'slower':
@@ -357,7 +362,10 @@ export const changePlaySpeedAction = async (speed: 'faster' | 'slower' | number)
           type: 'CHANGE_PLAY_SPEED',
           payload: PLAYBACK_SPEED_OPTIONS[nextIndex].value,
         })
-        addEventHistoryAction(PLAYBACK_SPEED_OPTIONS[nextIndex].value + '× speed')
+        addEventHistoryAction(
+          'changePlaySpeed',
+          PLAYBACK_SPEED_OPTIONS[nextIndex].value + '× speed'
+        )
 
         break
 
