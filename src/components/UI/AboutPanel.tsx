@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import * as Tooltip from '@radix-ui/react-tooltip'
+import axios from 'axios'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
 import { TiInfoLargeIcon } from '@components/Misc/Icons'
@@ -12,6 +13,8 @@ import {
   onUploadDemoAction,
   goToTickAction,
   loadEmptySceneMapAction,
+  addDownloadAction,
+  updateDownloadAction,
 } from '@zus/actions'
 import { getAsset } from '@utils/misc'
 import { MAP_NAME_SEARCH_MAP } from '@constants/mappings'
@@ -48,7 +51,21 @@ export const AboutPanel = () => {
 
   const onClickSampleDemo = async () => {
     let url = getAsset('/samples/i52_snakewater_gc.dem')
-    const fileBuffer = await fetch(url).then(res => res.arrayBuffer())
+
+    await addDownloadAction({ type: 'demo', url, name: 'i52_snakewater_gc.dem' })
+
+    const fileBuffer = await axios
+      .get(url, {
+        responseType: 'arraybuffer',
+        onDownloadProgress: event => {
+          updateDownloadAction(url, {
+            progress: event.progress ? event.progress * 100 : 0,
+            size: event.total,
+          })
+        },
+      })
+      .then(res => res.data)
+
     await parseDemoAction(fileBuffer)
     goToTickAction(1000) // Skip to the juice
   }

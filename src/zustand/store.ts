@@ -10,6 +10,7 @@ import { parseMapBoundaries } from '@utils/scene'
 
 import {
   ControlsMode,
+  Download,
   DrawingActivation,
   ParserStatus,
   SceneMode,
@@ -137,6 +138,7 @@ export type StoreState = {
     value?: string
     timestamp: number
   }[]
+  downloads: Map<string, Download>
 }
 
 export const initialState: StoreState = {
@@ -211,6 +213,8 @@ export const initialState: StoreState = {
   },
 
   eventHistory: [],
+
+  downloads: new Map(),
 }
 
 export type StoreAction = {

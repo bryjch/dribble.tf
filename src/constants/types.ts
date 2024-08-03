@@ -35,3 +35,12 @@ export const UIPanelType = {
 } as const
 
 export type UIPanelType = (typeof UIPanelType)[keyof typeof UIPanelType]
+
+export type Download = {
+  type: 'map' | 'demo'
+  status: 'loading' | 'success' | 'error'
+  name: string
+  url: string
+  progress: number
+  size?: number
+}
