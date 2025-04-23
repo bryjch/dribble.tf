@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { redux } from 'zustand/middleware'
 import CanvasDraw from 'react-canvas-draw'
+import { isMobile } from 'react-device-detect'
 import * as THREE from 'three'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
@@ -171,7 +172,7 @@ export const initialState: StoreState = {
 
   settings: {
     scene: {
-      mode: SceneMode.TEXTURED,
+      mode: isMobile ? SceneMode.UNTEXTURED : SceneMode.TEXTURED,
       interpolateFrames: true,
     },
     camera: {
