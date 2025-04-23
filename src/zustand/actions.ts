@@ -10,7 +10,8 @@ import { getSceneActors, parseMapBoundaries } from '@utils/scene'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import { ControlsMode, Download, SceneMode, UIPanelType } from '@constants/types'
 
-import { dispatch, getState, initialState, useInstance } from './store'
+import { dispatch, getState, initialState, StoreState, useInstance } from './store'
+import { isMobile } from 'react-device-detect'
 
 //
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
@@ -399,7 +400,13 @@ export const forceShowPanelAction = async (forceShowPanel?: boolean) => {
 export const loadSettingsAction = async () => {
   try {
     const defaultSettings = getState().settings
-    const settings = await localForage.getItem('settings')
+    const settings = await localForage.getItem<StoreState['settings']>('settings')
+
+    // Always default to untextured on mobile devices because textured scene takes up
+    // a lot of memory - and risk the device's browser crashing.
+    if (settings && isMobile) {
+      settings.scene.mode = SceneMode.UNTEXTURED
+    }
 
     dispatch({ type: 'LOAD_SETTINGS', payload: { settings: merge(defaultSettings, settings) } })
   } catch (error) {
