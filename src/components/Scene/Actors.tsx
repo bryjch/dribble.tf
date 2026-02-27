@@ -114,8 +114,10 @@ export const Actor = (props: ActorProps) => {
 
   const playback = useStore(state => state.playback)
   const settings = useStore(state => state.settings)
+  const focusedObject = useInstance(state => state.focusedObject)
 
   const { classId, health, team, user, healTarget } = props
+  const isFocusedPOV = focusedObject?.userData?.entityId === user.entityId
   let { position, viewAngles, positionNext, viewAnglesNext } = props
 
   // Resolve zero-valued view angles (parser bug) by falling back to last non-zero angles
@@ -235,7 +237,7 @@ export const Actor = (props: ActorProps) => {
         <Suspense fallback={null}>
           {
             team && classId && !changing ? (
-              <PlayerModel visible={alive} team={team} classId={classId} />
+              <PlayerModel visible={alive && !isFocusedPOV} team={team} classId={classId} />
             ) : null
           }
         </Suspense>
@@ -268,7 +270,7 @@ export const Actor = (props: ActorProps) => {
 
       {/* Nameplate */}
 
-      {settings.ui.nameplate.enabled && (
+      {settings.ui.nameplate.enabled && !isFocusedPOV && (
         <Html
           name="html"
           className="pointer-events-none select-none"
