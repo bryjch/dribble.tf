@@ -35,6 +35,28 @@ export const focusMainCanvas = debounce((): void => {
  * if so, it should always fallback to loading from local assets)
  */
 
+/**
+ * Read the current JS heap memory usage in megabytes (Chrome only).
+ * Returns undefined on browsers that don't support performance.memory.
+ */
+export const readJsHeapMemoryMb = (): number | undefined => {
+  const mem = (performance as unknown as { memory?: { usedJSHeapSize: number } })
+    .memory
+  if (!mem) return undefined
+  return mem.usedJSHeapSize / (1024 * 1024)
+}
+
+/**
+ * Check if performance logging is enabled via `?perf=true` URL parameter.
+ */
+export const isPerfLoggingEnabled = (): boolean => {
+  try {
+    return new URLSearchParams(window.location.search).get('perf') === 'true'
+  } catch {
+    return false
+  }
+}
+
 export const getAsset = (endpoint: string): string => {
   let url = ''
 

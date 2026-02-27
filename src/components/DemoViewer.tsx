@@ -3,7 +3,7 @@ import { Component, createRef, useRef, useEffect, Suspense } from 'react'
 // THREE related imports
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber'
-import { PerspectiveCamera, Stats } from '@react-three/drei'
+import { PerspectiveCamera } from '@react-three/drei'
 import { EffectComposer, Outline, Selection } from '@react-three/postprocessing'
 import { BlendFunction } from 'postprocessing'
 
@@ -20,7 +20,7 @@ import { World } from '@components/Scene/World'
 import { Skybox } from '@components/Scene/Skybox'
 import { AsyncParser } from './Analyse/Data/AsyncParser'
 import { CachedPlayer } from './Analyse/Data/PlayerCache'
-import { CachedProjectile } from './Analyse/Data/ProjectileCache'
+import { InterpolatedProjectile } from './Scene/Projectiles'
 
 // UI Panels
 import { AboutPanel } from '@components/UI/AboutPanel'
@@ -29,11 +29,13 @@ import { PlaybackPanel } from '@components/UI/PlaybackPanel'
 import { Killfeed } from '@components/UI/Killfeed'
 import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
+import { FpsCounter } from '@components/UI/FpsCounter'
 
 // Actions & utils
 import { useStore, getState, useInstance } from '@zus/store'
 import { forceShowPanelAction, goToTickAction } from '@zus/actions'
 import { ActorProps } from './Scene/Actors'
+import { isPerfLoggingEnabled, readJsHeapMemoryMb } from '@utils/misc'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -99,7 +101,7 @@ const Controls = () => {
 
     cameraRef.current.position.copy(newPos).add(cameraOffset)
     cameraRef.current.near = 10
-    cameraRef.current.far = 15000
+    cameraRef.current.far = settings.ui.viewDistance || 15000
 
     if (controlsMode === 'rts' && controlsRef.current) {
       controlsRef.current.target.copy(newPos).add(controlsOffset)
@@ -112,6 +114,12 @@ const Controls = () => {
       spectatorRef.current.enable()
     }
   }, [cameraRef.current, lastFocusedPOV, bounds, controlsMode])
+
+  useEffect(() => {
+    if (!cameraRef.current) return
+    cameraRef.current.far = settings.ui.viewDistance || 15000
+    cameraRef.current.updateProjectionMatrix()
+  }, [settings.ui.viewDistance])
 
   useFrame(() => {
     if (controlsRef.current) controlsRef.current.update()
@@ -167,6 +175,10 @@ class DemoViewer extends Component<DemoViewerProps> {
   canvasRef = createRef<HTMLCanvasElement>()
   uiLayers = createRef<HTMLDivElement>()
 
+  // Perf logging
+  perfLoggingEnabled = isPerfLoggingEnabled()
+  perfLogTimer = 0
+
   // Timing variables for animation loop
   elapsedTime = 0
   lastTimestamp = 0
@@ -217,8 +229,9 @@ class DemoViewer extends Component<DemoViewerProps> {
 
     const intervalPerTick = playback.intervalPerTick || 0.015
     const millisPerTick = 1000 * intervalPerTick * (1 / playback.speed)
+    const frameDelta = timestamp - this.lastTimestamp
 
-    this.elapsedTime += timestamp - this.lastTimestamp
+    this.elapsedTime += frameDelta
 
     if (playback.playing) {
       if (this.elapsedTime >= millisPerTick) {
@@ -230,6 +243,18 @@ class DemoViewer extends Component<DemoViewerProps> {
     } else {
       useInstance.getState().setFrameProgress(0)
       this.elapsedTime = 0
+    }
+
+    if (this.perfLoggingEnabled) {
+      this.perfLogTimer += frameDelta
+      if (this.perfLogTimer >= 5000) {
+        this.perfLogTimer = 0
+        const heapMb = readJsHeapMemoryMb()
+        console.log(
+          `[Perf] tick=${playback.tick}` +
+            (heapMb !== undefined ? ` heap=${heapMb.toFixed(1)}MB` : '')
+        )
+      }
     }
 
     this.lastTimestamp = timestamp
@@ -257,19 +282,21 @@ class DemoViewer extends Component<DemoViewerProps> {
   render() {
     const { playback, settings } = this.state
     const { demo, map } = this.props
+    const INTERP_DELAY_TICKS = 2
+    const interpTick = Math.max(1, playback.tick - INTERP_DELAY_TICKS)
 
     let playersThisTick: CachedPlayer[] = []
     let playersNextTick: CachedPlayer[] = []
     let actorsThisTick: ActorProps[] = []
-    let projectilesThisTick: CachedProjectile[] = []
+    let projectilesThisTick: InterpolatedProjectile[] = []
 
     if (!!demo) {
       playersThisTick = demo
-        .getPlayersAtTick(playback.tick)
+        .getPlayersAtTick(interpTick)
         .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
 
       playersNextTick = demo
-        .getPlayersAtTick(playback.tick + 1)
+        .getPlayersAtTick(interpTick + 1)
         .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
 
       const nextTickMap = new Map(playersNextTick.map(p => [p.user.entityId, p]))
@@ -283,7 +310,20 @@ class DemoViewer extends Component<DemoViewerProps> {
         }
       })
 
-      projectilesThisTick = demo.getProjectilesAtTick(playback.tick)
+      const projectilesCurrentTick = demo.getProjectilesAtTick(interpTick)
+      const projectilesNextTick = demo.getProjectilesAtTick(interpTick + 1)
+      const projectilesNextById = new Map(
+        projectilesNextTick.map(p => [p.entityId, p])
+      )
+
+      projectilesThisTick = projectilesCurrentTick.map(projectile => {
+        const nextProjectile = projectilesNextById.get(projectile.entityId)
+        return {
+          ...projectile,
+          positionNext: nextProjectile?.position ?? projectile.position,
+          rotationNext: nextProjectile?.rotation ?? projectile.rotation,
+        }
+      })
     }
 
     return (
@@ -298,12 +338,10 @@ class DemoViewer extends Component<DemoViewerProps> {
         >
           {/* Base scene elements */}
 
-          <Lights />
+          <Lights map={map} />
           <Controls />
           <CanvasKeyHandler />
-          {settings.ui.showStats && (
-            <Stats className="!left-[unset] !top-[unset] bottom-0 right-0" parent={this.uiLayers} />
-          )}
+
 
           {/* World Map */}
 
@@ -338,6 +376,8 @@ class DemoViewer extends Component<DemoViewerProps> {
         </Canvas>
 
         {/* Normal React (non-THREE.js) UI elements */}
+
+        {settings.ui.showStats && <FpsCounter />}
 
         <div className="ui-layers" ref={this.uiLayers}>
           <div className="ui-layer mb-4 items-end justify-center text-center">
