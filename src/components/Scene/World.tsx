@@ -9,6 +9,27 @@ import { addDownloadAction, updateDownloadAction } from '@zus/actions'
 import { getState, useStore } from '@zus/store'
 import { getMapModelUrls } from '@utils/game'
 
+const INVISIBLE_TOOL_MATERIALS = new Set([
+  'toolsnodraw',
+  'toolsclip',
+  'toolsplayerclip',
+  'toolsinvisible',
+  'toolsinvisibleladder',
+  'toolstrigger',
+  'toolsareaportal',
+  'toolsblockbullets',
+  'toolshint',
+  'toolsskip',
+  'toolsfog',
+  'toolsskybox',
+])
+
+function isInvisibleToolMaterial(materialName: string): boolean {
+  const name = materialName.toLowerCase()
+  const baseName = name.includes('/') ? name.split('/').pop()! : name
+  return INVISIBLE_TOOL_MATERIALS.has(baseName)
+}
+
 const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
   color: '#333333',
   opacity: 0.1,
@@ -107,6 +128,12 @@ export const World = (props: WorldProps) => {
     if (mapModel) {
       mapModel.traverse((child: THREE.Object3D) => {
         traverseMaterials(child, (material: any, node: any) => {
+          // Hide invisible tool materials (nodraw, clip, trigger, etc.)
+          if (isInvisibleToolMaterial(material.name)) {
+            node.visible = false
+            return
+          }
+
           // if (material.map) material.map.encoding = THREE.sRGBEncoding
           // if (material.emissiveMap) material.emissiveMap.encoding = THREE.sRGBEncoding
           material.depthWrite = true
