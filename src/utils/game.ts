@@ -5,6 +5,18 @@ import { MAP_NAME_SEARCH_MAP, MAP_SKYBOX_MAP } from '@constants/mappings'
 // can parse a given {mapName}, then determine which gltf model to use
 // (e.g. cp_process_final and cp_process_f7 can just use the same map model)
 
+export const resolveMapFolderName = (loadedMapName: string): string => {
+  let folderName = loadedMapName
+
+  Object.entries(MAP_NAME_SEARCH_MAP).forEach(([shortname, foldername]) => {
+    if (loadedMapName.includes(shortname)) {
+      folderName = foldername
+    }
+  })
+
+  return folderName
+}
+
 interface MapModelTypes {
   overlay: string
   textured: string
@@ -25,6 +37,12 @@ export const getMapModelUrls = (loadedMapName: string): MapModelTypes | undefine
   })
 
   return urls
+}
+
+export const getMapConversionUrl = (loadedMapName: string): string | undefined => {
+  if (!loadedMapName) return undefined
+  const foldername = resolveMapFolderName(loadedMapName)
+  return getAsset(`/models/maps/${foldername}/conversion.json`)
 }
 
 interface MapSkyboxTypes {

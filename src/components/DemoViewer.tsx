@@ -298,7 +298,7 @@ class DemoViewer extends Component<DemoViewerProps> {
         >
           {/* Base scene elements */}
 
-          <Lights />
+          <Lights map={map} />
           <Controls />
           <CanvasKeyHandler />
           {settings.ui.showStats && (
