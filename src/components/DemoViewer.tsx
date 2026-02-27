@@ -20,7 +20,7 @@ import { World } from '@components/Scene/World'
 import { Skybox } from '@components/Scene/Skybox'
 import { AsyncParser } from './Analyse/Data/AsyncParser'
 import { CachedPlayer } from './Analyse/Data/PlayerCache'
-import { CachedProjectile } from './Analyse/Data/ProjectileCache'
+import { InterpolatedProjectile } from './Scene/Projectiles'
 
 // UI Panels
 import { AboutPanel } from '@components/UI/AboutPanel'
@@ -263,7 +263,7 @@ class DemoViewer extends Component<DemoViewerProps> {
     let playersThisTick: CachedPlayer[] = []
     let playersNextTick: CachedPlayer[] = []
     let actorsThisTick: ActorProps[] = []
-    let projectilesThisTick: CachedProjectile[] = []
+    let projectilesThisTick: InterpolatedProjectile[] = []
 
     if (!!demo) {
       playersThisTick = demo
@@ -285,7 +285,20 @@ class DemoViewer extends Component<DemoViewerProps> {
         }
       })
 
-      projectilesThisTick = demo.getProjectilesAtTick(interpTick)
+      const projectilesCurrentTick = demo.getProjectilesAtTick(interpTick)
+      const projectilesNextTick = demo.getProjectilesAtTick(interpTick + 1)
+      const projectilesNextById = new Map(
+        projectilesNextTick.map(p => [p.entityId, p])
+      )
+
+      projectilesThisTick = projectilesCurrentTick.map(projectile => {
+        const nextProjectile = projectilesNextById.get(projectile.entityId)
+        return {
+          ...projectile,
+          positionNext: nextProjectile?.position ?? projectile.position,
+          rotationNext: nextProjectile?.rotation ?? projectile.rotation,
+        }
+      })
     }
 
     return (
