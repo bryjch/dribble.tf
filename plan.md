@@ -25,7 +25,7 @@ Quick fixes for correctness bugs. Tasks 0.1 and 0.2 are **superseded by Phase 1*
   - **Depends on: 0.1** (must ship together)
   - **Superseded by: 1.3** (ParseWorker is fully rewritten)
 
-- [ ] **0.3 — Use parsed intervalPerTick instead of hardcoded 0.03 in DemoViewer**
+- [x] **0.3 — Use parsed intervalPerTick instead of hardcoded 0.03 in DemoViewer**
   - File: `src/components/DemoViewer.tsx:218`
   - Add `intervalPerTick: number` to `StoreState.playback` in `src/zustand/store.ts:89-95` (default: `0.015`)
   - Replace `const intervalPerTick = 0.03` with `const intervalPerTick = playback.intervalPerTick || 0.015`
