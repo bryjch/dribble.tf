@@ -25,6 +25,22 @@ const VectorY = new THREE.Vector3(0, 1, 0)
 
 export const AimLineSize = 150
 
+/**
+ * Resolve view angles that may erroneously be all-zero from the parser.
+ * Updates lastGoodRef when non-zero angles are found, and falls back
+ * to the last known good angles when all components are zero.
+ */
+function resolveViewAngles(
+  angles: Vector,
+  lastGoodRef: { current: Vector }
+): Vector {
+  if (angles.x === 0 && angles.y === 0 && angles.z === 0) {
+    return lastGoodRef.current
+  }
+  lastGoodRef.current = angles
+  return angles
+}
+
 //
 // ─── PLAYER MODEL ───────────────────────────────────────────────────────────────
 //
@@ -81,6 +97,7 @@ export type ActorProps = CachedPlayer & { positionNext: Vector; viewAnglesNext: 
 export const Actor = (props: ActorProps) => {
   const actorRef = useRef<THREE.Group>(null)
   const playerAimRef = useRef<THREE.Group>(null)
+  const lastGoodViewAngles = useRef<Vector>({ x: 0, y: 0, z: 0 })
   const [changing, setChanging] = useState<boolean>(false)
   const { scene } = useThree()
 
@@ -89,6 +106,12 @@ export const Actor = (props: ActorProps) => {
 
   const { classId, health, team, user, healTarget } = props
   let { position, viewAngles, positionNext, viewAnglesNext } = props
+
+  // Resolve zero-valued view angles (parser bug) by falling back to last non-zero angles
+  viewAngles = resolveViewAngles(viewAngles, lastGoodViewAngles)
+  if (viewAnglesNext.x === 0 && viewAnglesNext.y === 0 && viewAnglesNext.z === 0) {
+    viewAnglesNext = viewAngles
+  }
 
   const alive = health > 0
   let color
@@ -122,12 +145,8 @@ export const Actor = (props: ActorProps) => {
       playback.speed > 1
     ) {
       actorRef.current.position.set(position.x, position.y, position.z)
-      if (viewAnglesVec3.x !== 0) {
-        actorRef.current.rotation.set(0, 0, viewAnglesVec3.x)
-      }
-      if (viewAnglesVec3.y !== 0) {
-        playerAimRef.current.rotation.set(0, viewAnglesVec3.y, 0)
-      }
+      actorRef.current.rotation.set(0, 0, viewAnglesVec3.x)
+      playerAimRef.current.rotation.set(0, viewAnglesVec3.y, 0)
       return
     }
 
@@ -140,22 +159,16 @@ export const Actor = (props: ActorProps) => {
       actorRef.current.position.set(lerpedPos.x, lerpedPos.y, lerpedPos.z)
 
       // handle actor Z rotation lerping
-      // note: some ticks erronously return 0, so we skip lerping in those cases
-      if (viewAnglesVec3.x !== 0 && viewAnglesNext.x !== 0) {
-        actorQuat.setFromAxisAngle(VectorZ, viewAnglesVec3.x)
-        nextActorQuat.setFromAxisAngle(VectorZ, degreesToRadians(viewAnglesNext.x))
-        actorRef.current.rotation.setFromQuaternion(
-          actorQuat.clone().slerp(nextActorQuat, frameProgress)
-        )
-      }
+      actorQuat.setFromAxisAngle(VectorZ, viewAnglesVec3.x)
+      nextActorQuat.setFromAxisAngle(VectorZ, degreesToRadians(viewAnglesNext.x))
+      actorRef.current.rotation.setFromQuaternion(
+        actorQuat.clone().slerp(nextActorQuat, frameProgress)
+      )
 
       // handle aim Y rotation lerping
-      // note: some ticks erronously return 0, so we skip lerping in those cases
-      if (viewAnglesVec3.y !== 0 && viewAnglesNext.y !== 0) {
-        aimQuat.setFromAxisAngle(VectorY, viewAnglesVec3.y)
-        nextAimQuat.setFromAxisAngle(VectorY, degreesToRadians(viewAnglesNext.y))
-        playerAimRef.current.rotation.setFromQuaternion(aimQuat.slerp(nextAimQuat, frameProgress))
-      }
+      aimQuat.setFromAxisAngle(VectorY, viewAnglesVec3.y)
+      nextAimQuat.setFromAxisAngle(VectorY, degreesToRadians(viewAnglesNext.y))
+      playerAimRef.current.rotation.setFromQuaternion(aimQuat.slerp(nextAimQuat, frameProgress))
     }
   })
 
