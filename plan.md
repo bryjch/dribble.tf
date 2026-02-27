@@ -164,7 +164,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Add cleanup: dispose textures and null out scene.background/environment on unmount
   - Prevents main thread blocking during texture decode; enables physically correct reflections
 
-- [ ] **4.4 — Add dynamic lighting profiles from map metadata**
+- [x] **4.4 — Add dynamic lighting profiles from map metadata**
   - File: `src/components/Scene/Lights.tsx` (expand from 11 lines)
   - Add `LightingProfile` interface: `ambientColor`, `ambientIntensity`, `keyColor`, `keyIntensity`, `keyDirection`, `fillColor`, `fillIntensity`, `fillDirection`
   - Add `deriveLightingProfile(lightEnv)` that parses Source engine `light_environment` color strings (`"r g b intensity"` format)
