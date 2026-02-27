@@ -1,37 +1,36 @@
-import { useFrame } from '@react-three/fiber'
-import { useRef, RefObject } from 'react'
-import { createPortal } from 'react-dom'
+import { useRef, useEffect } from 'react'
 
-interface FpsCounterProps {
-  parent: RefObject<HTMLDivElement | null>
-}
-
-export function FpsCounter({ parent }: FpsCounterProps) {
+export function FpsCounter() {
   const textRef = useRef<HTMLDivElement>(null)
-  const framesRef = useRef(0)
-  const lastTimeRef = useRef(performance.now())
 
-  useFrame(() => {
-    framesRef.current++
-    const now = performance.now()
-    if (now - lastTimeRef.current >= 1000) {
-      if (textRef.current) {
-        textRef.current.textContent = `${framesRef.current} FPS`
+  useEffect(() => {
+    let frames = 0
+    let lastTime = performance.now()
+    let rafId: number
+
+    const tick = () => {
+      frames++
+      const now = performance.now()
+      if (now - lastTime >= 1000) {
+        if (textRef.current) {
+          textRef.current.textContent = `${frames} FPS`
+        }
+        frames = 0
+        lastTime = now
       }
-      framesRef.current = 0
-      lastTimeRef.current = now
+      rafId = requestAnimationFrame(tick)
     }
-  })
 
-  if (!parent.current) return null
+    rafId = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafId)
+  }, [])
 
-  return createPortal(
+  return (
     <div
       ref={textRef}
       className="fixed bottom-0 right-0 bg-black/50 px-2 py-1 font-mono text-xs text-white"
     >
       0 FPS
-    </div>,
-    parent.current
+    </div>
   )
 }

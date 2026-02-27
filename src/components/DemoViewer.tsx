@@ -341,7 +341,7 @@ class DemoViewer extends Component<DemoViewerProps> {
           <Lights map={map} />
           <Controls />
           <CanvasKeyHandler />
-          {settings.ui.showStats && <FpsCounter parent={this.uiLayers} />}
+
 
           {/* World Map */}
 
@@ -376,6 +376,8 @@ class DemoViewer extends Component<DemoViewerProps> {
         </Canvas>
 
         {/* Normal React (non-THREE.js) UI elements */}
+
+        {settings.ui.showStats && <FpsCounter />}
 
         <div className="ui-layers" ref={this.uiLayers}>
           <div className="ui-layer mb-4 items-end justify-center text-center">
