@@ -184,7 +184,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - This matches Source engine's cl_interp approach — always has future data to interpolate toward
   - **Depends on: 2.2** (needs entityId matching)
 
-- [ ] **5.2 — Add projectile interpolation**
+- [x] **5.2 — Add projectile interpolation**
   - File: `src/components/DemoViewer.tsx:280` and `src/components/Scene/Projectiles.tsx`
   - In DemoViewer: fetch `projectilesNextTick` at `interpTick + 1`, build entityId map, attach `positionNext`/`rotationNext` to each projectile
   - Add `InterpolatedProjectile` type extending `CachedProjectile` with optional `positionNext`/`rotationNext`
