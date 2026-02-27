@@ -5,11 +5,9 @@ import { BuildingCache } from './BuildingCache'
 import { ProjectileCache } from './ProjectileCache'
 import { getMapBoundaries } from '../MapBoundaries'
 import { PlayerRef } from './Types'
+import { POSITION_FIXED_SCALE } from './PositionEncoding'
 
 declare function postMessage(message: any, transfer?: any[]): void
-
-// Fixed-point scale used by the WASM parser for position encoding
-const POSITION_FIXED_SCALE = 32
 
 type WasmPlayerCache = {
   position: Uint32Array[]
@@ -146,6 +144,7 @@ onmessage = async (event: MessageEvent) => {
     projectileCache.rotationCache.data = wasmProjectileCache.rotation as any
     projectileCache.teamNumberCache.data = wasmProjectileCache.team as any
     projectileCache.typeCache.data = wasmProjectileCache.type as any
+    projectileCache.setProjectileIds(wasmProjectileCache.ids)
 
     // Apply map boundary override and shift position data
     const boundaryOverride = getMapBoundaries(header.map)

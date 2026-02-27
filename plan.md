@@ -70,7 +70,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Add `ParserPerformanceStats` interface and populate from worker results
   - **Depends on: 1.3**
 
-- [ ] **1.5 — Update PlayerCache and ProjectileCache for typed array storage**
+- [x] **1.5 — Update PlayerCache and ProjectileCache for typed array storage**
   - Files: `src/components/Analyse/Data/PlayerCache.ts`, `src/components/Analyse/Data/ProjectileCache.ts`
   - Update cache classes to accept typed array data from parser2
   - Ensure `getPlayersAtTick(tick)` and `getProjectilesAtTick(tick)` decode from typed arrays on-the-fly, maintaining the same return type (`CachedPlayer[]`, `CachedProjectile[]`) for downstream consumers
