@@ -52,7 +52,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Test that `import init, { parse_demo_cache_with_progress } from '@libs/parser2/parser2'` works in a worker context
   - **Depends on: 1.1**
 
-- [ ] **1.3 — Rewrite ParseWorker to use parser2 WASM**
+- [x] **1.3 — Rewrite ParseWorker to use parser2 WASM**
   - File: `src/components/Analyse/Data/ParseWorker.ts` (full rewrite)
   - Replace `Parser` JS class import with WASM: `import init, { parse_demo_cache_with_progress } from '@libs/parser2/parser2'`
   - Call `await init()` to initialize WASM module, then `parse_demo_cache_with_progress(new Uint8Array(buffer), progressCallback)`
