@@ -204,71 +204,33 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Add `SliderOption` in SettingsPanel under Scene section: min=2000, max=30000, step=500
   - Users on lower-end hardware can reduce view distance; high-end users can increase it
 
-- [ ] **6.2 — Add exportInProgress flag to playback store**
-  - File: `src/zustand/store.ts:89-95`
-  - Add `exportInProgress: boolean` to `StoreState.playback` (default: `false`)
-  - Prepares store for MP4 export. Canvas switches `frameloop` based on this flag
-  - **No dependencies**
-
 ---
 
-## Phase 7: Video Export Frame Control
+## Phase 7: Performance Monitoring & Debugging
 
-- [ ] **7.1 — Add frame advancement infrastructure to store and DemoViewer**
-  - File: `src/zustand/store.ts` — add to `InstanceState`: `advanceFrame`, `renderedPlaybackTick`, setters
-  - File: `src/components/DemoViewer.tsx`
-  - Add `MAX_REALTIME_PLAYBACK_FPS = 100` constant
-  - Switch Canvas `frameloop` to `'never'` when `playback.exportInProgress` is true
-  - In Canvas `onCreated`, store `state.advance` function in zustand instance store
-  - When export is active, frames are advanced manually (frame-perfect capture without drops)
-  - **Depends on: 6.2**
-
-- [ ] **7.2 — Create videoExport utility with manual frame advancement**
-  - File: `src/utils/videoExport.ts` (new)
-  - Add `waitForRenderedPlaybackTick(tick)` — polls instance store until tick renders
-  - Add `waitForTaskTurn()` — uses `MessageChannel` for non-RAF scheduling
-  - Export loop drives frames manually: `manualAdvanceFrame!(timestamp, true)` then increments timestamp by `frameDurationMs`
-  - Removes real-time pacing bottleneck — video renders as fast as GPU allows
-  - **Depends on: 7.1**
-
----
-
-## Phase 8: Performance Monitoring & Debugging
-
-- [ ] **8.1 — Create FpsCounter component**
+- [ ] **7.1 — Create FpsCounter component**
   - File: `src/components/UI/FpsCounter.tsx` (new)
   - Lightweight text-based FPS counter using `useFrame` + `performance.now()` delta tracking
   - Render as fixed overlay: `bg-black/50 px-2 py-1 font-mono text-xs`
   - Alternative to existing `Stats` from drei which renders a full canvas stats panel
 
-- [ ] **8.2 — Add JS heap memory profiling utility**
+- [ ] **7.2 — Add JS heap memory profiling utility**
   - File: `src/utils/misc.ts` (append)
   - Add `readJsHeapMemoryMb()` — reads `performance.memory.usedJSHeapSize` (Chrome only), returns `undefined` elsewhere
   - Add `isPerfLoggingEnabled()` — checks URL for `?perf=true`
 
-- [ ] **8.3 — Add perf logging to DemoViewer animate loop**
+- [ ] **7.3 — Add perf logging to DemoViewer animate loop**
   - File: `src/components/DemoViewer.tsx`
   - Add class fields: `perfLoggingEnabled = isPerfLoggingEnabled()`, `perfLogTimer = 0`
   - In `animate()`: increment `perfLogTimer`, every 5 seconds log tick and heap memory to console
   - Append `?perf=true` to URL to enable during testing
-  - **Depends on: 8.2**
+  - **Depends on: 7.2**
 
-- [ ] **8.4 — Add parser performance tracking**
+- [ ] **7.4 — Add parser performance tracking**
   - File: `src/components/Analyse/Data/AsyncParser.ts` — add `ParserPerformanceStats` interface with `parseMs`, `playerCount`, `ticks`
   - File: `src/components/Analyse/Data/ParseWorker.ts` — wrap `parser.cacheData()` in `performance.now()` timing, attach stats to `CachedDemo`
   - In AsyncParser `onmessage` handler: compute transfer time (`performance.now() - cachedData.now`) and log both parse + transfer durations
   - Identifies whether parser or data transfer is the bottleneck for large demos
-
----
-
-## Phase 9: Asset Optimization
-
-- [ ] **9.1 — Compress player model GLB files with gltfpack**
-  - Directory: `public/models/players/`
-  - Run `gltfpack -i <file>.glb -o <file>.glb` (or equivalent `optimizeglb`) on all 18 player model files
-  - Expected reduction: ~90% (e.g. Scout 3.6MB → 109KB)
-  - Asset-only change, no code modifications
-  - Verify models still render correctly after compression
 
 ---
 
@@ -283,4 +245,3 @@ After implementing all phases:
 6. **Skybox**: Load a map with mismatched skybox face sizes, verify no errors and correct rendering
 7. **FPS counter**: Enable via settings, verify reasonable frame rate
 8. **Perf logging**: Append `?perf=true`, verify heap memory logs in console every 5s
-9. **Model sizes**: Check network tab, verify player model GLBs are ~100-500KB not multi-MB
