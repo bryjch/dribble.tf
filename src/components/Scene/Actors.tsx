@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Select } from '@react-three/postprocessing'
 import { Html, MeshWobbleMaterial, useGLTF, Clone } from '@react-three/drei'
-import { Vector } from '@bryjch/demo.js'
+import { Vector } from '@components/Analyse/Data/Types'
 
 import { Nameplate } from '@components/Scene/Nameplate'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'

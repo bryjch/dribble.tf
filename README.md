@@ -14,7 +14,7 @@ Models are primarily served as glTF assets.
 
 - [@dylansq](https://github.com/dylansq) - solving map models, textures, skyboxes and grinding map exports
 - [demos.tf](https://github.com/demostf/demos.tf) by [@icewind1991](https://github.com/icewind1991) - 2D viewer as basis for the project
-- [demo.js](https://github.com/demostf/demo.js) by [@icewind1991](https://github.com/icewind1991) - parsing .dem files
+- [parser](https://github.com/Hona/parser) by [@Hona](https://github.com/Hona) (Rust/WASM fork of [demostf/parser](https://github.com/demostf/parser)) - parsing .dem files
 - [io_import_vmt](https://github.com/lasa01/io_import_vmf) by [@lasa01](https://github.com/lasa01) - import maps into Blender, for exporting as .gltf
 - [react-canvas-draw](https://github.com/embiem/react-canvas-draw) by [embiem](https://github.com/embiem) - canvas drawing tools
 

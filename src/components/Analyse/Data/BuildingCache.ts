@@ -1,7 +1,23 @@
-import { Vector } from '@bryjch/demo.js/build'
-import { Building } from '@bryjch/demo.js/build/Data/Building'
-
+import { Vector } from './Types'
 import { SparseDataCache } from './SparseDataCache'
+
+interface BaseBuilding {
+  builder: number
+  position: Vector
+  level: number
+  health: number
+  team: number
+  angle: number
+  type: string
+}
+
+interface Teleporter extends BaseBuilding {
+  type: 'teleporter'
+  isEntrance: boolean
+  yawToExit: number
+}
+
+type Building = BaseBuilding | Teleporter
 
 export interface CachedBuilding {
   type: number
