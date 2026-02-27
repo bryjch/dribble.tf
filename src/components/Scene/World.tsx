@@ -148,6 +148,14 @@ export const World = (props: WorldProps) => {
             node.material = MAP_WIREFRAME_MATERIAL
           }
         })
+
+        // Enable frustum culling with proper bounding volumes
+        if (child.type === 'Mesh') {
+          const mesh = child as THREE.Mesh
+          mesh.geometry.computeBoundingBox()
+          mesh.geometry.computeBoundingSphere()
+          mesh.frustumCulled = true
+        }
       })
     }
   }, [mapModel, mode])
