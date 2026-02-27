@@ -35,6 +35,7 @@ import { FpsCounter } from '@components/UI/FpsCounter'
 import { useStore, getState, useInstance } from '@zus/store'
 import { forceShowPanelAction, goToTickAction } from '@zus/actions'
 import { ActorProps } from './Scene/Actors'
+import { isPerfLoggingEnabled, readJsHeapMemoryMb } from '@utils/misc'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -174,6 +175,10 @@ class DemoViewer extends Component<DemoViewerProps> {
   canvasRef = createRef<HTMLCanvasElement>()
   uiLayers = createRef<HTMLDivElement>()
 
+  // Perf logging
+  perfLoggingEnabled = isPerfLoggingEnabled()
+  perfLogTimer = 0
+
   // Timing variables for animation loop
   elapsedTime = 0
   lastTimestamp = 0
@@ -224,8 +229,9 @@ class DemoViewer extends Component<DemoViewerProps> {
 
     const intervalPerTick = playback.intervalPerTick || 0.015
     const millisPerTick = 1000 * intervalPerTick * (1 / playback.speed)
+    const frameDelta = timestamp - this.lastTimestamp
 
-    this.elapsedTime += timestamp - this.lastTimestamp
+    this.elapsedTime += frameDelta
 
     if (playback.playing) {
       if (this.elapsedTime >= millisPerTick) {
@@ -237,6 +243,18 @@ class DemoViewer extends Component<DemoViewerProps> {
     } else {
       useInstance.getState().setFrameProgress(0)
       this.elapsedTime = 0
+    }
+
+    if (this.perfLoggingEnabled) {
+      this.perfLogTimer += frameDelta
+      if (this.perfLogTimer >= 5000) {
+        this.perfLogTimer = 0
+        const heapMb = readJsHeapMemoryMb()
+        console.log(
+          `[Perf] tick=${playback.tick}` +
+            (heapMb !== undefined ? ` heap=${heapMb.toFixed(1)}MB` : '')
+        )
+      }
     }
 
     this.lastTimestamp = timestamp
