@@ -77,7 +77,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - This keeps DemoViewer, Actors, and Projectiles components working without changes
   - **Depends on: 1.4**
 
-- [ ] **1.6 — Remove old JS parser dependency**
+- [x] **1.6 — Remove old JS parser dependency**
   - Delete `src/components/Analyse/Data/Parser.ts` (222 lines, old JS implementation)
   - Remove `@bryjch/demo.js` from `package.json` dependencies
   - Remove `src/libs/demo.js/` directory if present
@@ -89,7 +89,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
 
 ## Phase 2: Playback Engine Improvements
 
-- [ ] **2.1 — Multi-tick advance for high-speed playback**
+- [x] **2.1 — Multi-tick advance for high-speed playback**
   - File: `src/components/DemoViewer.tsx:223-228`
   - Replace single-tick advance with: `const ticksToAdvance = Math.floor(elapsedTime / millisPerTick)`
   - Call `goToTickAction(playback.tick + ticksToAdvance)` and carry remainder: `elapsedTime -= ticksToAdvance * millisPerTick`
