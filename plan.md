@@ -214,7 +214,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Render as fixed overlay: `bg-black/50 px-2 py-1 font-mono text-xs`
   - Alternative to existing `Stats` from drei which renders a full canvas stats panel
 
-- [ ] **7.2 — Add JS heap memory profiling utility**
+- [x] **7.2 — Add JS heap memory profiling utility**
   - File: `src/utils/misc.ts` (append)
   - Add `readJsHeapMemoryMb()` — reads `performance.memory.usedJSHeapSize` (Chrome only), returns `undefined` elsewhere
   - Add `isPerfLoggingEnabled()` — checks URL for `?perf=true`
