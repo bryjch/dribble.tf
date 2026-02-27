@@ -92,6 +92,7 @@ export type StoreState = {
     tick: number
     maxTicks: number
     forceShowPanel: boolean
+    intervalPerTick: number
   }
   drawing: {
     enabled: boolean
@@ -164,6 +165,7 @@ export const initialState: StoreState = {
     tick: 1,
     maxTicks: 3000,
     forceShowPanel: false,
+    intervalPerTick: 0.015,
   },
 
   drawing: {

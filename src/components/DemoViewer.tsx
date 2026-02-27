@@ -215,7 +215,7 @@ class DemoViewer extends Component<DemoViewerProps> {
   animate = async (timestamp: number) => {
     const { playback } = this.state
 
-    const intervalPerTick = 0.03 // TODO: read value from demo file instead
+    const intervalPerTick = playback.intervalPerTick || 0.015
     const millisPerTick = 1000 * intervalPerTick * (1 / playback.speed)
 
     this.elapsedTime += timestamp - this.lastTimestamp
