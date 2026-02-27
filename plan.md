@@ -219,7 +219,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Add `readJsHeapMemoryMb()` — reads `performance.memory.usedJSHeapSize` (Chrome only), returns `undefined` elsewhere
   - Add `isPerfLoggingEnabled()` — checks URL for `?perf=true`
 
-- [ ] **7.3 — Add perf logging to DemoViewer animate loop**
+- [x] **7.3 — Add perf logging to DemoViewer animate loop**
   - File: `src/components/DemoViewer.tsx`
   - Add class fields: `perfLoggingEnabled = isPerfLoggingEnabled()`, `perfLogTimer = 0`
   - In `animate()`: increment `perfLogTimer`, every 5 seconds log tick and heap memory to console
