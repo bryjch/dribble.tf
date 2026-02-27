@@ -30,7 +30,7 @@ onmessage = (event: MessageEvent) => {
     buildingCache: parser.buildingCache,
     projectileCache: parser.projectileCache,
     deaths: parser.deaths,
-    intervalPerTick: parser.match.intervalPerTick * 2,
+    intervalPerTick: parser.match.intervalPerTick,
     world: parser.match.world,
     rounds: parser.match.rounds,
     nextMappedPlayer: parser.nextMappedPlayer,
