@@ -272,11 +272,16 @@ class DemoViewer extends Component<DemoViewerProps> {
         .getPlayersAtTick(playback.tick + 1)
         .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
 
-      actorsThisTick = playersThisTick.map((player, index) => ({
-        ...player,
-        positionNext: playersNextTick[index]?.position ?? player.position,
-        viewAnglesNext: playersNextTick[index]?.viewAngles ?? player.viewAngles,
-      }))
+      const nextTickMap = new Map(playersNextTick.map(p => [p.user.entityId, p]))
+
+      actorsThisTick = playersThisTick.map((player) => {
+        const next = nextTickMap.get(player.user.entityId)
+        return {
+          ...player,
+          positionNext: next?.position ?? player.position,
+          viewAnglesNext: next?.viewAngles ?? player.viewAngles,
+        }
+      })
 
       projectilesThisTick = demo.getProjectilesAtTick(playback.tick)
     }

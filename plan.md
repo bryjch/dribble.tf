@@ -97,7 +97,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Without this, max effective speed is capped at ~1x because only 1 tick advances per frame
   - **Depends on: 0.3**
 
-- [ ] **2.2 — Fix player-to-next-tick matching by entityId**
+- [x] **2.2 — Fix player-to-next-tick matching by entityId**
   - File: `src/components/DemoViewer.tsx:274-278`
   - Current code matches by array index: `playersNextTick[index]` — breaks when player order changes between ticks
   - Build a `Map` keyed by `player.user.entityId` for lookup: `const nextTickMap = new Map(playersNextTick.map(p => [p.user.entityId, p]))`
