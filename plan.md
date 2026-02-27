@@ -153,7 +153,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Set `mesh.frustumCulled = true` (Three.js default but requires valid bounds)
   - Without valid bounding volumes, Three.js submits every mesh to the GPU regardless of visibility
 
-- [ ] **4.3 — Rewrite Skybox with async loading and mismatched face handling**
+- [x] **4.3 — Rewrite Skybox with async loading and mismatched face handling**
   - File: `src/components/Scene/Skybox.tsx` (full rewrite)
   - Replace synchronous `CubeTextureLoader.load()` (line 32) with async `Promise.all` image loading
   - Add `normalizeCubeFace()` to resize mismatched cube face dimensions via canvas — some maps have faces at different resolutions which causes Three.js errors
