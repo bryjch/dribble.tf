@@ -352,7 +352,7 @@ export const POVCamera = ({}: POVCameraProps) => {
       ref={ref}
       {...settings?.camera}
       position={[0, 0, 0]}
-      rotation={[Math.PI * 0.5, Math.PI * -0.5, 0]}
+      rotation={[0, 0, 0]}
     />
   )
 }

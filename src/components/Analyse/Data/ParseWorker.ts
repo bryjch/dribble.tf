@@ -38,6 +38,8 @@ type WasmResult = {
   header: CachedDemo['header']
   ticks: number
   intervalPerTick: number
+  positionScale?: number
+  angleScale?: number
   world: CachedDemo['world']
   players: WasmPlayer[]
   playerCache: WasmPlayerCache
@@ -118,6 +120,8 @@ onmessage = async (event: MessageEvent) => {
     const {
       header,
       ticks,
+      positionScale = POSITION_FIXED_SCALE,
+      angleScale = 1,
       intervalPerTick,
       world,
       players,
@@ -130,7 +134,12 @@ onmessage = async (event: MessageEvent) => {
     // Hydrate player cache with WASM typed arrays
     const playerCache = new PlayerCache(ticks, world.boundaryMin)
     playerCache.positionCache.data = wasmPlayerCache.position
+    playerCache.positionCache.scale =
+      Number.isFinite(positionScale) && positionScale > 0
+        ? positionScale
+        : POSITION_FIXED_SCALE
     playerCache.viewAnglesCache.data = wasmPlayerCache.viewAngles
+    playerCache.viewAnglesCache.scale = Number.isFinite(angleScale) ? angleScale : 1
     playerCache.healthCache.data = wasmPlayerCache.health as any
     playerCache.metaCache.data = wasmPlayerCache.meta as any
     playerCache.connectedCache.data = wasmPlayerCache.connected as any
@@ -141,7 +150,12 @@ onmessage = async (event: MessageEvent) => {
     // Hydrate projectile cache with WASM typed arrays
     const projectileCache = new ProjectileCache(ticks, world.boundaryMin)
     projectileCache.positionCache.data = wasmProjectileCache.position as any
+    projectileCache.positionCache.scale =
+      Number.isFinite(positionScale) && positionScale > 0
+        ? positionScale
+        : POSITION_FIXED_SCALE
     projectileCache.rotationCache.data = wasmProjectileCache.rotation as any
+    projectileCache.rotationCache.scale = Number.isFinite(angleScale) ? angleScale : 1
     projectileCache.teamNumberCache.data = wasmProjectileCache.team as any
     projectileCache.typeCache.data = wasmProjectileCache.type as any
     projectileCache.setProjectileIds(wasmProjectileCache.ids)
@@ -152,9 +166,10 @@ onmessage = async (event: MessageEvent) => {
       const deltaX = Math.trunc(world.boundaryMin.x - boundaryOverride.boundaryMin.x)
       const deltaY = Math.trunc(world.boundaryMin.y - boundaryOverride.boundaryMin.y)
       const deltaZ = Math.trunc(world.boundaryMin.z - boundaryOverride.boundaryMin.z)
-      const deltaXFixed = Math.trunc(deltaX * POSITION_FIXED_SCALE)
-      const deltaYFixed = Math.trunc(deltaY * POSITION_FIXED_SCALE)
-      const deltaZFixed = Math.trunc(deltaZ * POSITION_FIXED_SCALE)
+      const posScale = Number.isFinite(positionScale) ? positionScale : POSITION_FIXED_SCALE
+      const deltaXFixed = Math.trunc(deltaX * posScale)
+      const deltaYFixed = Math.trunc(deltaY * posScale)
+      const deltaZFixed = Math.trunc(deltaZ * posScale)
 
       shiftVectorCache(
         playerCache.positionCache.data as Uint32Array[],
