@@ -108,13 +108,13 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
 
 ## Phase 3: Actor Rendering Improvements
 
-- [ ] **3.1 — Add Source engine angle-to-quaternion helpers**
+- [x] **3.1 — Add Source engine angle-to-quaternion helpers**
   - File: `src/utils/geometry.ts` (append)
   - Add `cameraQuaternionFromSourceAnglesDeg(pitchDeg, yawDeg, rollDeg)` — builds quaternion using Source convention (yaw around Z, pitch around Y, roll around X)
   - Add `yawQuaternionFromDegrees(yawDeg)` — yaw-only quaternion for body rotation
   - Existing code uses generic `setFromAxisAngle` which doesn't handle Source angle convention correctly
 
-- [ ] **3.2 — Add frame-rate-independent smoothing alpha utility**
+- [x] **3.2 — Add frame-rate-independent smoothing alpha utility**
   - File: `src/utils/geometry.ts` (append)
   - Add `smoothingAlpha(deltaSeconds, tauSeconds)` returning `1 - Math.exp(-deltaSeconds / tauSeconds)`
   - Current hardcoded `viewSmoothing = 0.35` is frame-rate dependent (behaves differently at 30fps vs 144fps)

@@ -134,6 +134,21 @@ export function yawQuaternionFromDegrees(yawDeg: number): THREE.Quaternion {
 }
 
 /**
+ * Frame-rate-independent exponential smoothing alpha.
+ * Returns a blend factor for lerp/slerp that behaves consistently regardless of frame rate.
+ *
+ * @param deltaSeconds - Time elapsed since last frame (from useFrame callback)
+ * @param tauSeconds - Time constant controlling smoothing speed (larger = slower)
+ * @returns Blend factor in [0, 1]
+ */
+export const smoothingAlpha = (deltaSeconds: number, tauSeconds: number): number => {
+  if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) {
+    return 1
+  }
+  return 1 - Math.exp(-deltaSeconds / Math.max(0.0001, tauSeconds))
+}
+
+/**
  * Find all meshes in an Object3D array (can specify specific mesh name)
  */
 export const getMeshes = (sceneObjects: THREE.Object3D[], meshName: string = ''): THREE.Mesh[] => {
