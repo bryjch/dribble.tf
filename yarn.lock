@@ -221,14 +221,6 @@
     "@babel/helper-validator-identifier" "^7.22.20"
     to-fast-properties "^2.0.0"
 
-"@bryjch/demo.js@git+https://github.com/bryjch/demo.js.git":
-  version "2.1.1"
-  resolved "git+https://github.com/bryjch/demo.js.git#df86a18ccb38f24af3f527c695942cc7271b582e"
-  dependencies:
-    bit-buffer "^0.2.4"
-    snappyjs "^0.6.0"
-    text-encoding-shim "git+https://gitlab.com/hongaar/text-encoding-shim.git#83ff0f77f48d05b8ce83ddc7ca49d8df61363b31"
-
 "@emotion/is-prop-valid@^0.8.2":
   version "0.8.8"
   resolved "https://registry.yarnpkg.com/@emotion/is-prop-valid/-/is-prop-valid-0.8.8.tgz#db28b1c4368a259b60a97311d6a952d4fd01ac1a"
@@ -1181,11 +1173,6 @@ binary-extensions@^2.0.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/binary-extensions/-/binary-extensions-2.3.0.tgz#f6e14a97858d327252200242d4ccfe522c445522"
   integrity sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==
-
-bit-buffer@^0.2.4:
-  version "0.2.5"
-  resolved "https://registry.yarnpkg.com/bit-buffer/-/bit-buffer-0.2.5.tgz#a7d060d6d957ff363540e8502e2105a5a4240f28"
-  integrity sha512-x1yGnmXvFg6e3DiyRztElbcn1bsCTFSoM/ncAzY62uE0JdTl5xlKJd0ooqLYoPbhdsnpehSIQrdIvclcZJYwiA==
 
 bn.js@^4.0.0, bn.js@^4.1.0, bn.js@^4.11.9:
   version "4.12.0"
@@ -2984,11 +2971,6 @@ signal-exit@^4.0.1:
   resolved "https://registry.yarnpkg.com/signal-exit/-/signal-exit-4.1.0.tgz#952188c1cbd546070e2dd20d0f41c0ae0530cb04"
   integrity sha512-bzyZ1e88w9O1iNJbKnOlvYTrWPDl46O1bG0D3XInv+9tkPrxrN8jUUTiFlDkkmKWgn1M6CfIA13SuGqOa9Korw==
 
-snappyjs@^0.6.0:
-  version "0.6.1"
-  resolved "https://registry.yarnpkg.com/snappyjs/-/snappyjs-0.6.1.tgz#9bca9ff8c54b133a9cc84a71d22779e97fc51878"
-  integrity sha512-YIK6I2lsH072UE0aOFxxY1dPDCS43I5ktqHpeAsuLNYWkE5pGxRGWfDM4/vSUfNzXjC1Ivzt3qx31PCLmc9yqg==
-
 "source-map-js@>=0.6.2 <2.0.0", source-map-js@^1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/source-map-js/-/source-map-js-1.2.0.tgz#16b809c162517b5b8c3e7dcd315a2a5c2612b2af"
@@ -3156,10 +3138,6 @@ tailwindcss@^3.4.3:
     postcss-selector-parser "^6.0.11"
     resolve "^1.22.2"
     sucrase "^3.32.0"
-
-"text-encoding-shim@git+https://gitlab.com/hongaar/text-encoding-shim.git#83ff0f77f48d05b8ce83ddc7ca49d8df61363b31":
-  version "1.0.0"
-  resolved "git+https://gitlab.com/hongaar/text-encoding-shim.git#83ff0f77f48d05b8ce83ddc7ca49d8df61363b31"
 
 thenify-all@^1.0.0:
   version "1.6.0"

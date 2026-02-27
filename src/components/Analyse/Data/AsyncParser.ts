@@ -1,19 +1,31 @@
-import { Demo, Header, Player, Match, World } from '@bryjch/demo.js/build'
-
 import { PlayerCache, CachedPlayer } from './PlayerCache'
 import { BuildingCache, CachedBuilding } from './BuildingCache'
 import { ProjectileCache, CachedProjectile } from './ProjectileCache'
-import { Round } from './Types'
+import { Header, PlayerRef, Round, World } from './Types'
 
 export interface CachedDeath {
   tick: number
-  victim: Player
-  assister: Player | null
-  killer: Player | null
+  victim: PlayerRef
+  assister: PlayerRef | null
+  killer: PlayerRef | null
   weapon: string
   victimTeam: number
   assisterTeam: number
   killerTeam: number
+}
+
+export interface ParserPerformanceStats {
+  workerTotalMs: number
+  parseMs: number
+  hydrateMs: number
+  transferMs: number
+  playerCount: number
+  projectileCount: number
+  ticks: number
+  playerCacheBytes: number
+  projectileCacheBytes: number
+  transferBytes: number
+  totalBytes: number
 }
 
 export interface CachedDemo {
@@ -27,26 +39,26 @@ export interface CachedDemo {
   intervalPerTick: number
   world: World
   nextMappedPlayer: number
-  entityPlayerMap: Map<number, Player>
+  entityPlayerMap: Map<number, PlayerRef>
   now: number
+  perf?: ParserPerformanceStats
 }
 
 export class AsyncParser {
   buffer: ArrayBuffer
-  demo: Demo
-  header: Header
-  playerCache: PlayerCache
+  header!: Header
+  playerCache!: PlayerCache
   nextMappedPlayer = 0
-  entityPlayerMap: Map<number, Player> = new Map()
-  ticks: number
-  match: Match
+  entityPlayerMap: Map<number, PlayerRef> = new Map()
+  ticks!: number
   deaths: { [tick: string]: CachedDeath[] } = {}
-  rounds: Round[]
-  buildingCache: BuildingCache
-  projectileCache: ProjectileCache
-  intervalPerTick: number
-  world: World
+  rounds!: Round[]
+  buildingCache!: BuildingCache
+  projectileCache!: ProjectileCache
+  intervalPerTick!: number
+  world!: World
   progressCallback: (progress: number) => void
+  perf?: ParserPerformanceStats
 
   constructor(buffer: ArrayBuffer, progressCallback: (progress: number) => void) {
     this.buffer = buffer
@@ -66,6 +78,28 @@ export class AsyncParser {
       this.world = cachedData.world
       this.nextMappedPlayer = cachedData.nextMappedPlayer
       this.entityPlayerMap = cachedData.entityPlayerMap
+      this.perf = cachedData.perf
+
+      if (cachedData.perf) {
+        const toMb = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+        console.info('[Perf][ParserCache]', {
+          ticks: cachedData.perf.ticks,
+          players: cachedData.perf.playerCount,
+          projectiles: cachedData.perf.projectileCount,
+          memory: {
+            total: toMb(cachedData.perf.totalBytes),
+            playerCache: toMb(cachedData.perf.playerCacheBytes),
+            projectileCache: toMb(cachedData.perf.projectileCacheBytes),
+            transfer: toMb(cachedData.perf.transferBytes),
+          },
+          timings: {
+            workerTotalMs: Math.round(cachedData.perf.workerTotalMs),
+            parseMs: Math.round(cachedData.perf.parseMs),
+            hydrateMs: Math.round(cachedData.perf.hydrateMs),
+            transferMs: Math.round(cachedData.perf.transferMs),
+          },
+        })
+      }
     })
   }
 
@@ -91,6 +125,12 @@ export class AsyncParser {
         PlayerCache.rehydrate(cachedData.playerCache)
         BuildingCache.rehydrate(cachedData.buildingCache)
         ProjectileCache.rehydrate(cachedData.projectileCache)
+
+        // Compute transfer time (worker posted at cachedData.now)
+        if (cachedData.perf) {
+          cachedData.perf.transferMs = performance.now() - cachedData.now
+        }
+
         resolve(event.data)
       }
     })
@@ -101,7 +141,7 @@ export class AsyncParser {
     for (let i = 0; i < this.nextMappedPlayer; i++) {
       let entity = this.entityPlayerMap.get(i)
       if (entity) {
-        players.push(this.playerCache.getPlayer(tick, i, entity.user))
+        players.push(this.playerCache.getPlayer(tick, i, entity.user as any))
       }
     }
 

@@ -76,6 +76,78 @@ export function eulerizeVector(
   return new THREE.Euler()
 }
 
+// ─── Source Engine Angle Helpers ──────────────────────────────────────────────
+
+export type SourceAnglesDeg = {
+  // Source QAngle convention (degrees): pitch=x, yaw=y, roll=z
+  pitch: number
+  yaw: number
+  roll?: number
+}
+
+/**
+ * AngleVectors basis (pitch/yaw/roll -> forward/right/up) using Source/TF2 conventions.
+ */
+export function angleVectorsFromSourceAnglesDeg(angles: SourceAnglesDeg): {
+  forward: THREE.Vector3
+  right: THREE.Vector3
+  up: THREE.Vector3
+} {
+  const pitch = angles.pitch || 0
+  const yaw = angles.yaw || 0
+  const roll = angles.roll || 0
+
+  const sp = Math.sin(degreesToRadians(pitch))
+  const cp = Math.cos(degreesToRadians(pitch))
+  const sy = Math.sin(degreesToRadians(yaw))
+  const cy = Math.cos(degreesToRadians(yaw))
+  const sr = Math.sin(degreesToRadians(roll))
+  const cr = Math.cos(degreesToRadians(roll))
+
+  const forward = new THREE.Vector3(cp * cy, cp * sy, -sp)
+  const right = new THREE.Vector3(-sr * sp * cy + cr * sy, -sr * sp * sy - cr * cy, -sr * cp)
+  const up = new THREE.Vector3(cr * sp * cy + sr * sy, cr * sp * sy - sr * cy, cr * cp)
+
+  return { forward, right, up }
+}
+
+/**
+ * Build a Three.js quaternion for a camera such that:
+ * - camera world direction (local -Z) matches Source forward
+ * - camera +X matches Source right
+ * - camera +Y matches Source up
+ */
+export function cameraQuaternionFromSourceAnglesDeg(angles: SourceAnglesDeg): THREE.Quaternion {
+  const { forward, right, up } = angleVectorsFromSourceAnglesDeg(angles)
+
+  // Three cameras look down local -Z, so local +Z maps to -forward.
+  const zAxis = forward.clone().multiplyScalar(-1)
+  const m = new THREE.Matrix4().makeBasis(right, up, zAxis)
+  return new THREE.Quaternion().setFromRotationMatrix(m)
+}
+
+/**
+ * Yaw-only quaternion for body rotation (rotation around Z axis).
+ */
+export function yawQuaternionFromDegrees(yawDeg: number): THREE.Quaternion {
+  return new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), degreesToRadians(yawDeg))
+}
+
+/**
+ * Frame-rate-independent exponential smoothing alpha.
+ * Returns a blend factor for lerp/slerp that behaves consistently regardless of frame rate.
+ *
+ * @param deltaSeconds - Time elapsed since last frame (from useFrame callback)
+ * @param tauSeconds - Time constant controlling smoothing speed (larger = slower)
+ * @returns Blend factor in [0, 1]
+ */
+export const smoothingAlpha = (deltaSeconds: number, tauSeconds: number): number => {
+  if (!Number.isFinite(deltaSeconds) || deltaSeconds <= 0) {
+    return 1
+  }
+  return 1 - Math.exp(-deltaSeconds / Math.max(0.0001, tauSeconds))
+}
+
 /**
  * Find all meshes in an Object3D array (can specify specific mesh name)
  */

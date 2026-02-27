@@ -1,4 +1,4 @@
-export const getDurationFromTicks = (ticks: number, tickRate = 66.67 / 2) => {
+export const getDurationFromTicks = (ticks: number, tickRate = 66.67) => {
   const totalSeconds = ticks / tickRate
   const hours = Math.floor(totalSeconds / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)

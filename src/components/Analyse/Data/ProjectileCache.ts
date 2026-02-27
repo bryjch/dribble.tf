@@ -1,8 +1,8 @@
-import { Vector } from '@bryjch/demo.js/build'
-import { Projectile, ProjectileTypeMap } from '@bryjch/demo.js/build/Data/Projectile'
+import { Vector } from './Types'
 
 import { SparseDataCache } from './SparseDataCache'
 import { VectorCache } from './VectorCache'
+import { POSITION_FIXED_SCALE } from './PositionEncoding'
 
 export interface CachedProjectile {
   entityId: number
@@ -12,37 +12,47 @@ export interface CachedProjectile {
   teamNumber: number
 }
 
+const ProjectileTypeMap: Record<number, string> = {
+  1: 'rocket',
+  2: 'pipebomb',
+  3: 'stickybomb',
+  4: 'healingBolt',
+}
+
 export class ProjectileCache {
   positionCache: VectorCache
   rotationCache: VectorCache
   teamNumberCache: SparseDataCache
   typeCache: SparseDataCache
   projectileCount: number = 0
-  projectileEntityMap: Map<number, Projectile>
+  projectileIds: number[]
 
   constructor(tickCount: number, positionOffset: Vector) {
-    this.positionCache = new VectorCache(tickCount, positionOffset)
+    this.positionCache = new VectorCache(tickCount, positionOffset, POSITION_FIXED_SCALE)
     this.rotationCache = new VectorCache(tickCount)
     this.teamNumberCache = new SparseDataCache(tickCount, 1, 8, 6)
     this.typeCache = new SparseDataCache(tickCount, 1, 8, 6)
-    this.projectileEntityMap = new Map<number, Projectile>()
+    this.projectileIds = []
   }
 
-  setProjectile(tick: number, projectile: Projectile, entityId: number) {
-    if (!this.projectileEntityMap.get(entityId)) {
-      this.projectileEntityMap.set(entityId, projectile)
-    }
-    this.positionCache.setVector(entityId, tick, projectile.position)
-    this.rotationCache.setVector(entityId, tick, projectile.rotation)
-    this.teamNumberCache.set(entityId, tick, projectile.teamNumber)
-    this.typeCache.set(entityId, tick, projectile.type)
+  setProjectileIds(ids: number[]) {
+    this.projectileIds = ids
+    this.projectileCount = ids.length
   }
 
-  getProjectile(tick: number, entityId: number): CachedProjectile | null {
-    if (this.positionCache.get(entityId, tick, 0) === 0) {
+  getProjectile(tick: number, index: number): CachedProjectile | null {
+    const entityId = this.projectileIds[index]
+    if (entityId === undefined) {
       return null
     }
-    const type = ProjectileTypeMap[this.typeCache.get(entityId, tick)]
+
+    const x = this.positionCache.get(index, tick, 0)
+    const y = this.positionCache.get(index, tick, 1)
+    const z = this.positionCache.get(index, tick, 2)
+    if ((x | y | z) === 0) {
+      return null
+    }
+    const type = ProjectileTypeMap[this.typeCache.get(index, tick)]
 
     if (!type) {
       return null
@@ -50,9 +60,9 @@ export class ProjectileCache {
 
     return {
       entityId: entityId,
-      position: this.positionCache.getVector(entityId, tick),
-      rotation: this.rotationCache.getVector(entityId, tick),
-      teamNumber: this.teamNumberCache.get(entityId, tick),
+      position: this.positionCache.getVector(index, tick),
+      rotation: this.rotationCache.getVector(index, tick),
+      teamNumber: this.teamNumberCache.get(index, tick),
       type: type,
     }
   }
@@ -60,8 +70,8 @@ export class ProjectileCache {
   getProjectiles(tick: number) {
     let projectiles: CachedProjectile[] = []
 
-    for (const [entityId] of this.projectileEntityMap.entries()) {
-      const projectile = this.getProjectile(tick, entityId)
+    for (let index = 0; index < this.projectileIds.length; index++) {
+      const projectile = this.getProjectile(tick, index)
       if (projectile) {
         projectiles.push(projectile)
       }
@@ -75,6 +85,11 @@ export class ProjectileCache {
     VectorCache.rehydrate(data.rotationCache)
     SparseDataCache.rehydrate(data.teamNumberCache)
     SparseDataCache.rehydrate(data.typeCache)
+
+    if (!data.projectileIds) {
+      data.projectileIds = []
+    }
+    data.projectileCount = data.projectileIds.length
 
     Object.setPrototypeOf(data, ProjectileCache.prototype)
   }

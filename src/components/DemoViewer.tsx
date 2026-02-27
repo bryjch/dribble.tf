@@ -215,17 +215,18 @@ class DemoViewer extends Component<DemoViewerProps> {
   animate = async (timestamp: number) => {
     const { playback } = this.state
 
-    const intervalPerTick = 0.03 // TODO: read value from demo file instead
+    const intervalPerTick = playback.intervalPerTick || 0.015
     const millisPerTick = 1000 * intervalPerTick * (1 / playback.speed)
 
     this.elapsedTime += timestamp - this.lastTimestamp
 
     if (playback.playing) {
-      useInstance.getState().setFrameProgress(this.elapsedTime / millisPerTick)
-      if (this.elapsedTime > millisPerTick) {
-        goToTickAction(playback.tick + 1)
-        this.elapsedTime = 0
+      if (this.elapsedTime >= millisPerTick) {
+        const ticksToAdvance = Math.floor(this.elapsedTime / millisPerTick)
+        this.elapsedTime -= ticksToAdvance * millisPerTick
+        goToTickAction(playback.tick + ticksToAdvance)
       }
+      useInstance.getState().setFrameProgress(Math.min(this.elapsedTime / millisPerTick, 0.999))
     } else {
       useInstance.getState().setFrameProgress(0)
       this.elapsedTime = 0
@@ -271,11 +272,16 @@ class DemoViewer extends Component<DemoViewerProps> {
         .getPlayersAtTick(playback.tick + 1)
         .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
 
-      actorsThisTick = playersThisTick.map((player, index) => ({
-        ...player,
-        positionNext: playersNextTick[index]?.position ?? player.position,
-        viewAnglesNext: playersNextTick[index]?.viewAngles ?? player.viewAngles,
-      }))
+      const nextTickMap = new Map(playersNextTick.map(p => [p.user.entityId, p]))
+
+      actorsThisTick = playersThisTick.map((player) => {
+        const next = nextTickMap.get(player.user.entityId)
+        return {
+          ...player,
+          positionNext: next?.position ?? player.position,
+          viewAnglesNext: next?.viewAngles ?? player.viewAngles,
+        }
+      })
 
       projectilesThisTick = demo.getProjectilesAtTick(playback.tick)
     }

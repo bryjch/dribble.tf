@@ -1,25 +1,22 @@
-import { Player, UserInfo, Vector } from '@bryjch/demo.js/build'
-import { PlayerResource } from '@bryjch/demo.js/build/Data/PlayerResource'
-import { CWeaponMedigun } from '@bryjch/demo.js/build/Data/Weapon'
+import { UserInfo, Vector } from './Types'
 
 import { PositionCache } from './PositionCache'
 import { ViewAnglesCache } from './ViewAnglesCache'
 import { PlayerMetaCache } from './PlayerMetaCache'
 import { HealthCache } from './HealthCache'
 import { SparseDataCache } from './SparseDataCache'
-import { LifeState } from './Enums'
 
 export class CachedPlayer {
-  position: Vector
-  viewAngles: Vector
-  user: UserInfo
-  health: number
-  teamId: number
-  classId: number
-  team: string
-  connected: number
-  chargeLevel: number | null
-  healTarget: number | null
+  position!: Vector
+  viewAngles!: Vector
+  user!: UserInfo
+  health!: number
+  teamId!: number
+  classId!: number
+  team!: string
+  connected!: number
+  chargeLevel!: number | null
+  healTarget!: number | null
 }
 
 export class PlayerCache {
@@ -41,29 +38,6 @@ export class PlayerCache {
     this.uberCache = new SparseDataCache(tickCount, 1, 8, 4)
     this.healTargetCache = new SparseDataCache(tickCount, 1, 8, 4)
     this.connectedCache = new SparseDataCache(tickCount, 1, 8, 4)
-  }
-
-  setPlayer(tick: number, playerId: number, player: Player, playerResource: PlayerResource) {
-    this.positionCache.setPosition(playerId, tick, player.position)
-    this.viewAnglesCache.setAngles(playerId, tick, player.viewAngles)
-    this.healthCache.set(playerId, tick, player.lifeState === LifeState.ALIVE ? player.health : 0)
-    this.metaCache.setMeta(playerId, tick, { classId: player.classId, teamId: player.team })
-    this.connectedCache.set(playerId, tick, playerResource.connected ? 1 : 0)
-
-    // additional data for medics
-    if (playerResource.chargeLevel > 0) {
-      this.uberCache.set(playerId, tick, playerResource.chargeLevel)
-
-      let healTarget
-      try {
-        healTarget = (player.weapons.find(
-          ({ className }) => className === 'CWeaponMedigun'
-        ) as CWeaponMedigun).healTarget
-      } catch (error) {
-        healTarget = 0
-      }
-      this.healTargetCache.set(playerId, tick, healTarget)
-    }
   }
 
   getPlayer(tick: number, playerId: number, user: UserInfo): CachedPlayer {
