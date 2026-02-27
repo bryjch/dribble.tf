@@ -12,7 +12,7 @@ This backlog extracts only the performance improvements, ordered by dependency. 
 
 Quick fixes for correctness bugs. Tasks 0.1 and 0.2 are **superseded by Phase 1** (parser2 outputs correct intervalPerTick natively) — but are listed here as immediate fixes if Phase 1 is deferred.
 
-- [ ] **0.1 — Fix tick rate calculation in parser utility**
+- [x] **0.1 — Fix tick rate calculation in parser utility**
   - File: `src/utils/parser.ts:1`
   - Change `tickRate = 66.67 / 2` to `tickRate = 66.67` in `getDurationFromTicks()` default param
   - The halved tick rate causes all duration displays to show 2x real duration
