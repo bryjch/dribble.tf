@@ -11,7 +11,13 @@ import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 
 import { useInstance, useStore } from '@zus/store'
 import { CLASS_MAP } from '@constants/mappings'
-import { degreesToRadians, objCoordsToVector3, radianizeVector } from '@utils/geometry'
+import {
+  degreesToRadians,
+  objCoordsToVector3,
+  cameraQuaternionFromSourceAnglesDeg,
+  yawQuaternionFromDegrees,
+  smoothingAlpha,
+} from '@utils/geometry'
 import { getAsset } from '@utils/misc'
 import { useEventListener } from '@utils/hooks'
 
@@ -21,9 +27,11 @@ export const ActorDimensions = new THREE.Vector3(49, 49, 83)
 
 // Some reusable vectors used for quaternion calculations
 const VectorZ = new THREE.Vector3(0, 0, 1)
-const VectorY = new THREE.Vector3(0, 1, 0)
 
 export const AimLineSize = 150
+const RENDER_POSITION_SMOOTH_SECONDS = 0.04
+const RENDER_ROTATION_SMOOTH_SECONDS = 0.03
+const TELEPORT_LERP_DISTANCE = 4096
 
 /**
  * Resolve view angles that may erroneously be all-zero from the parser.
@@ -96,8 +104,11 @@ export type ActorProps = CachedPlayer & { positionNext: Vector; viewAnglesNext: 
 
 export const Actor = (props: ActorProps) => {
   const actorRef = useRef<THREE.Group>(null)
+  const bodyRef = useRef<THREE.Group>(null)
   const playerAimRef = useRef<THREE.Group>(null)
   const lastGoodViewAngles = useRef<Vector>({ x: 0, y: 0, z: 0 })
+  const lerpedPosition = useRef(new THREE.Vector3())
+  const hasPositionInit = useRef(false)
   const [changing, setChanging] = useState<boolean>(false)
   const { scene } = useThree()
 
@@ -118,57 +129,91 @@ export const Actor = (props: ActorProps) => {
   if (team === 'red') color = '#ff0202'
   if (team === 'blue') color = '#0374ff'
 
-  // Conversion needed because parser uses different Vector type
+  // Source QAngle convention (degrees): x=pitch, y=yaw, z=roll
   const positionVec3: THREE.Vector3 = objCoordsToVector3(position)
-  const viewAnglesVec3: THREE.Vector3 = radianizeVector(objCoordsToVector3(viewAngles))
+  const positionNextVec3: THREE.Vector3 = objCoordsToVector3(positionNext)
+  const pitchDeg = viewAngles.x
+  const yawDeg = viewAngles.y
+  const rollDeg = viewAngles.z
+  const pitchNextDeg = viewAnglesNext.x
+  const yawNextDeg = viewAnglesNext.y
+  const rollNextDeg = viewAnglesNext.z
+  const yawRad = degreesToRadians(yawDeg)
+
   const healTargetVec3: THREE.Vector3 | undefined = healTarget
     ? scene
         .getObjectByName('actors')
         ?.children.find(({ userData }) => userData.entityId === healTarget)?.position
     : undefined
 
-  let actorQuat = new THREE.Quaternion()
-  let nextActorQuat = new THREE.Quaternion()
-  let aimQuat = new THREE.Quaternion()
-  let nextAimQuat = new THREE.Quaternion()
+  useFrame((_, delta) => {
+    if (!actorRef.current || !bodyRef.current || !playerAimRef.current) return
 
-  const frameProgress = useInstance(state => state.frameProgress)
+    // Actor group is position-only; rotations are applied to children.
+    actorRef.current.quaternion.identity()
 
-  useFrame(() => {
-    if (!actorRef.current || !playerAimRef.current) return
-
-    // Prefer to only do lerping for slower playback speeds for performance reasons
-    // and if the playback is currently paused / user explicitly doesn't want it
-    if (
-      settings.scene.interpolateFrames === false ||
-      playback.playing === false ||
-      playback.speed > 1
-    ) {
+    // Skip interpolation when disabled or paused
+    if (settings.scene.interpolateFrames === false || playback.playing === false) {
       actorRef.current.position.set(position.x, position.y, position.z)
-      actorRef.current.rotation.set(0, 0, viewAnglesVec3.x)
-      playerAimRef.current.rotation.set(0, viewAnglesVec3.y, 0)
+      hasPositionInit.current = true
+      bodyRef.current.quaternion.copy(yawQuaternionFromDegrees(yawDeg))
+      playerAimRef.current.position.set(0, 0, ActorDimensions.z)
+      playerAimRef.current.quaternion.copy(
+        cameraQuaternionFromSourceAnglesDeg({ pitch: pitchDeg, yaw: yawDeg, roll: rollDeg })
+      )
       return
     }
 
-    // we skip rendering for 0 and 0.99 because there are some race conditions between useFrame
-    // and requestAnimationFrame, which results in jerky rendering. This can be safely
-    // done since the lerp smoothens out any potential "missed renders"
-    if (frameProgress > 0 && frameProgress < 0.99) {
-      // handle position lerping
-      const lerpedPos = positionVec3.clone().lerp(positionNext, frameProgress)
-      actorRef.current.position.set(lerpedPos.x, lerpedPos.y, lerpedPos.z)
+    const frameProgress = useInstance.getState().frameProgress
+    const lerpProgress = Math.min(Math.max(frameProgress, 0), 0.999)
+    const didTeleport = positionVec3.distanceTo(positionNextVec3) > TELEPORT_LERP_DISTANCE
+    const wasInitialized = hasPositionInit.current
+    const positionBlend = smoothingAlpha(delta, RENDER_POSITION_SMOOTH_SECONDS)
+    const rotationBlend = smoothingAlpha(delta, RENDER_ROTATION_SMOOTH_SECONDS)
 
-      // handle actor Z rotation lerping
-      actorQuat.setFromAxisAngle(VectorZ, viewAnglesVec3.x)
-      nextActorQuat.setFromAxisAngle(VectorZ, degreesToRadians(viewAnglesNext.x))
-      actorRef.current.rotation.setFromQuaternion(
-        actorQuat.clone().slerp(nextActorQuat, frameProgress)
+    // Position interpolation
+    if (didTeleport) {
+      lerpedPosition.current.copy(positionVec3)
+    } else {
+      lerpedPosition.current.copy(positionVec3).lerp(positionNextVec3, lerpProgress)
+    }
+
+    if (didTeleport || !wasInitialized) {
+      actorRef.current.position.copy(lerpedPosition.current)
+    } else {
+      actorRef.current.position.lerp(lerpedPosition.current, positionBlend)
+    }
+    hasPositionInit.current = true
+
+    // Body: yaw-only quaternion
+    const bodyTarget = yawQuaternionFromDegrees(yawDeg)
+      .clone()
+      .slerp(yawQuaternionFromDegrees(yawNextDeg), lerpProgress)
+    if (didTeleport || !wasInitialized) {
+      bodyRef.current.quaternion.copy(bodyTarget)
+    } else {
+      bodyRef.current.quaternion.slerp(bodyTarget, rotationBlend)
+    }
+
+    // Aim/camera: full view angles
+    const camTarget = cameraQuaternionFromSourceAnglesDeg({
+      pitch: pitchDeg,
+      yaw: yawDeg,
+      roll: rollDeg,
+    })
+      .clone()
+      .slerp(
+        cameraQuaternionFromSourceAnglesDeg({
+          pitch: pitchNextDeg,
+          yaw: yawNextDeg,
+          roll: rollNextDeg,
+        }),
+        lerpProgress
       )
-
-      // handle aim Y rotation lerping
-      aimQuat.setFromAxisAngle(VectorY, viewAnglesVec3.y)
-      nextAimQuat.setFromAxisAngle(VectorY, degreesToRadians(viewAnglesNext.y))
-      playerAimRef.current.rotation.setFromQuaternion(aimQuat.slerp(nextAimQuat, frameProgress))
+    if (didTeleport || !wasInitialized) {
+      playerAimRef.current.quaternion.copy(camTarget)
+    } else {
+      playerAimRef.current.quaternion.slerp(camTarget, rotationBlend)
     }
   })
 
@@ -186,28 +231,19 @@ export const Actor = (props: ActorProps) => {
     <group name="actor" ref={actorRef} userData={user}>
       {/* Player model */}
 
-      <Suspense fallback={null}>
-        {
-          team && classId && !changing ? (
-            <PlayerModel visible={alive} team={team} classId={classId} />
-          ) : null
-          // <mesh visible={alive} position={new THREE.Vector3(0, 0, ActorDimensions.z * 0.5)}>
-          //   <boxGeometry
-          //     attach="geometry"
-          //     args={[ActorDimensions.x * 0.75, ActorDimensions.y * 0.75, ActorDimensions.z]}
-          //   />
-          //   <meshStandardMaterial attach="material" color={color} metalness={0.5} />
-          // </mesh>
-        }
-      </Suspense>
+      <group name="playerBody" ref={bodyRef}>
+        <Suspense fallback={null}>
+          {
+            team && classId && !changing ? (
+              <PlayerModel visible={alive} team={team} classId={classId} />
+            ) : null
+          }
+        </Suspense>
+      </group>
 
       {/* Player aim */}
 
-      <group
-        ref={playerAimRef}
-        name="playerAim"
-        position={[ActorDimensions.x * 0.4, 0, ActorDimensions.z]}
-      >
+      <group ref={playerAimRef} name="playerAim" position={[0, 0, ActorDimensions.z]}>
         {/* Aim line (debugging) */}
         {/* <mesh visible={alive} position={[AimLineSize * 0.5, 0, 0]}>
           <boxGeometry attach="geometry" args={[AimLineSize, 5, 5]} />
@@ -220,14 +256,11 @@ export const Actor = (props: ActorProps) => {
       {/* Medic heal beam */}
 
       {healTargetVec3 && (
-        <group rotation={[0, 0, -viewAnglesVec3.x]}>
+        <group rotation={[0, 0, -yawRad]}>
           <HealBeam
             origin={positionVec3}
             target={healTargetVec3}
-            control={new THREE.Vector3(100, 0, 0).applyAxisAngle(
-              new THREE.Vector3(0, 1, 0),
-              viewAnglesVec3.x
-            )}
+            control={new THREE.Vector3(100, 0, 0).applyAxisAngle(VectorZ, yawRad)}
             color={color}
           />
         </group>

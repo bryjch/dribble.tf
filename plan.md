@@ -126,7 +126,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Centralize into a single function that falls back to previous non-zero angles
   - Prepares for quaternion-based interpolation which needs clean angle data
 
-- [ ] **3.4 — Rewrite Actor interpolation with separate body and aim quaternions**
+- [x] **3.4 — Rewrite Actor interpolation with separate body and aim quaternions**
   - File: `src/components/Scene/Actors.tsx:114-159` (replace `useFrame` callback)
   - Add constants: `RENDER_POSITION_SMOOTH_SECONDS = 0.04`, `RENDER_ROTATION_SMOOTH_SECONDS = 0.03`, `TELEPORT_LERP_DISTANCE = 4096`
   - Add refs: `lerpedPosition`, `bodyQuat`, `aimQuat`
