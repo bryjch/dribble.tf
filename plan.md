@@ -40,7 +40,7 @@ Replace the JavaScript demo parser (`@bryjch/demo.js` + `Parser.ts`) with a pre-
 
 Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications to `AsyncParser.ts` + `ParseWorker.ts`.
 
-- [ ] **1.1 — Copy parser2 WASM files into project**
+- [x] **1.1 — Copy parser2 WASM files into project**
   - Extract from `tf2jump/dev`: `src/libs/parser2/parser2.js`, `parser2.d.ts`, `parser2_bg.wasm`, `parser2_bg.wasm.d.ts`
   - Place in `src/libs/parser2/`
   - These are pre-built artifacts from https://github.com/Hona/parser (Rust fork of demostf/parser)
