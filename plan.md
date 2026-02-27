@@ -18,7 +18,7 @@ Quick fixes for correctness bugs. Tasks 0.1 and 0.2 are **superseded by Phase 1*
   - The halved tick rate causes all duration displays to show 2x real duration
   - **Superseded by: 1.3** (parser2 provides correct intervalPerTick)
 
-- [ ] **0.2 — Remove intervalPerTick doubling in ParseWorker**
+- [x] **0.2 — Remove intervalPerTick doubling in ParseWorker**
   - File: `src/components/Analyse/Data/ParseWorker.ts:33`
   - Change `parser.match.intervalPerTick * 2` to `parser.match.intervalPerTick`
   - The `* 2` was a workaround for the halved tick rate that's no longer needed after 0.1
