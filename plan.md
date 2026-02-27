@@ -62,7 +62,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Post result back with typed array buffers as transferables
   - **Depends on: 1.2**
 
-- [ ] **1.4 — Update CachedDemo type and AsyncParser hydration**
+- [x] **1.4 — Update CachedDemo type and AsyncParser hydration**
   - File: `src/components/Analyse/Data/AsyncParser.ts`
   - Update `CachedDemo` interface to match parser2 output: typed arrays for player/projectile caches instead of JS objects
   - Update `getCachedData()` to hydrate WASM typed arrays into the existing `PlayerCache`/`ProjectileCache` format that the rest of the app expects
