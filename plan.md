@@ -226,7 +226,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Append `?perf=true` to URL to enable during testing
   - **Depends on: 7.2**
 
-- [ ] **7.4 — Add parser performance tracking**
+- [x] **7.4 — Add parser performance tracking**
   - File: `src/components/Analyse/Data/AsyncParser.ts` — add `ParserPerformanceStats` interface with `parseMs`, `playerCount`, `ticks`
   - File: `src/components/Analyse/Data/ParseWorker.ts` — wrap `parser.cacheData()` in `performance.now()` timing, attach stats to `CachedDemo`
   - In AsyncParser `onmessage` handler: compute transfer time (`performance.now() - cachedData.now`) and log both parse + transfer durations
