@@ -257,6 +257,8 @@ class DemoViewer extends Component<DemoViewerProps> {
   render() {
     const { playback, settings } = this.state
     const { demo, map } = this.props
+    const INTERP_DELAY_TICKS = 2
+    const interpTick = Math.max(1, playback.tick - INTERP_DELAY_TICKS)
 
     let playersThisTick: CachedPlayer[] = []
     let playersNextTick: CachedPlayer[] = []
@@ -265,11 +267,11 @@ class DemoViewer extends Component<DemoViewerProps> {
 
     if (!!demo) {
       playersThisTick = demo
-        .getPlayersAtTick(playback.tick)
+        .getPlayersAtTick(interpTick)
         .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
 
       playersNextTick = demo
-        .getPlayersAtTick(playback.tick + 1)
+        .getPlayersAtTick(interpTick + 1)
         .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
 
       const nextTickMap = new Map(playersNextTick.map(p => [p.user.entityId, p]))
@@ -283,7 +285,7 @@ class DemoViewer extends Component<DemoViewerProps> {
         }
       })
 
-      projectilesThisTick = demo.getProjectilesAtTick(playback.tick)
+      projectilesThisTick = demo.getProjectilesAtTick(interpTick)
     }
 
     return (
