@@ -176,7 +176,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
 
 ## Phase 5: Interpolation Enhancement
 
-- [ ] **5.1 — Add 2-tick interpolation delay with multi-tick data fetching**
+- [x] **5.1 — Add 2-tick interpolation delay with multi-tick data fetching**
   - File: `src/components/DemoViewer.tsx:265-281`
   - Add `const INTERP_DELAY_TICKS = 2`
   - Calculate `const interpTick = Math.max(1, playback.tick - INTERP_DELAY_TICKS)`
