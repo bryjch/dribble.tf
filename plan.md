@@ -46,7 +46,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - These are pre-built artifacts from https://github.com/Hona/parser (Rust fork of demostf/parser)
   - Verify Vite can bundle the WASM file (may need `vite-plugin-wasm` or `?url` import)
 
-- [ ] **1.2 — Update Vite config for WASM support**
+- [x] **1.2 — Update Vite config for WASM support**
   - File: `vite.config.mts`
   - Ensure WASM files are handled correctly — may need to add `vite-plugin-wasm` and `vite-plugin-top-level-await`, or configure `optimizeDeps.exclude` for the parser2 module
   - Test that `import init, { parse_demo_cache_with_progress } from '@libs/parser2/parser2'` works in a worker context

@@ -2,10 +2,11 @@
 
 ## Build & Dev
 
-- **Package manager**: yarn
-- **Build**: `npx vite build` — completes in ~10s
+- **Package manager**: npm (`yarn` not installed; use `npm run build`, `npm run dev`)
+- **Build**: `npm run build` — completes in ~10s
 - **Type check**: `npx tsc --noEmit` — note: has pre-existing TS errors (uninitialized properties in AsyncParser, unused React imports)
-- **Dev server**: `yarn dev` (Vite)
+- **Dev server**: `npm run dev` (Vite)
+- **WASM support**: Vite 5 handles `.wasm` via `new URL('./file.wasm', import.meta.url)` natively — no `vite-plugin-wasm` or `vite-plugin-top-level-await` needed; wasm-bindgen's JS glue uses this pattern and has its own MIME-type fallback
 - **Framework**: React + Three.js (react-three-fiber) + Zustand + Tailwind
 
 ## Project Structure
