@@ -221,11 +221,12 @@ class DemoViewer extends Component<DemoViewerProps> {
     this.elapsedTime += timestamp - this.lastTimestamp
 
     if (playback.playing) {
-      useInstance.getState().setFrameProgress(this.elapsedTime / millisPerTick)
-      if (this.elapsedTime > millisPerTick) {
-        goToTickAction(playback.tick + 1)
-        this.elapsedTime = 0
+      if (this.elapsedTime >= millisPerTick) {
+        const ticksToAdvance = Math.floor(this.elapsedTime / millisPerTick)
+        this.elapsedTime -= ticksToAdvance * millisPerTick
+        goToTickAction(playback.tick + ticksToAdvance)
       }
+      useInstance.getState().setFrameProgress(Math.min(this.elapsedTime / millisPerTick, 0.999))
     } else {
       useInstance.getState().setFrameProgress(0)
       this.elapsedTime = 0
