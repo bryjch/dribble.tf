@@ -3,7 +3,7 @@ import { Component, createRef, useRef, useEffect, Suspense } from 'react'
 // THREE related imports
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber'
-import { PerspectiveCamera, Stats } from '@react-three/drei'
+import { PerspectiveCamera } from '@react-three/drei'
 import { EffectComposer, Outline, Selection } from '@react-three/postprocessing'
 import { BlendFunction } from 'postprocessing'
 
@@ -29,6 +29,7 @@ import { PlaybackPanel } from '@components/UI/PlaybackPanel'
 import { Killfeed } from '@components/UI/Killfeed'
 import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
+import { FpsCounter } from '@components/UI/FpsCounter'
 
 // Actions & utils
 import { useStore, getState, useInstance } from '@zus/store'
@@ -322,9 +323,7 @@ class DemoViewer extends Component<DemoViewerProps> {
           <Lights map={map} />
           <Controls />
           <CanvasKeyHandler />
-          {settings.ui.showStats && (
-            <Stats className="!left-[unset] !top-[unset] bottom-0 right-0" parent={this.uiLayers} />
-          )}
+          {settings.ui.showStats && <FpsCounter parent={this.uiLayers} />}
 
           {/* World Map */}
 

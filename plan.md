@@ -208,7 +208,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
 
 ## Phase 7: Performance Monitoring & Debugging
 
-- [ ] **7.1 — Create FpsCounter component**
+- [x] **7.1 — Create FpsCounter component**
   - File: `src/components/UI/FpsCounter.tsx` (new)
   - Lightweight text-based FPS counter using `useFrame` + `performance.now()` delta tracking
   - Render as fixed overlay: `bg-black/50 px-2 py-1 font-mono text-xs`
