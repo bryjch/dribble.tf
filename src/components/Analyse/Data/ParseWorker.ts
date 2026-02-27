@@ -1,9 +1,10 @@
 import init, { parse_demo_cache_with_progress } from '../../../libs/parser2/parser2.js'
-import { CachedDemo } from './AsyncParser'
+import { CachedDemo, ParserPerformanceStats } from './AsyncParser'
 import { PlayerCache } from './PlayerCache'
 import { BuildingCache } from './BuildingCache'
 import { ProjectileCache } from './ProjectileCache'
 import { getMapBoundaries } from '../MapBoundaries'
+import { PlayerRef } from './Types'
 
 declare function postMessage(message: any, transfer?: any[]): void
 
@@ -83,6 +84,12 @@ const pushBuffers = (target: ArrayBufferLike[], arrays: ArrayBufferView[]) => {
   }
 }
 
+const sumBytes = (arrays: ArrayBufferView[]) => {
+  let total = 0
+  for (const arr of arrays) total += arr.byteLength
+  return total
+}
+
 /**
  * @global postMessage
  * @param event
@@ -101,13 +108,14 @@ onmessage = async (event: MessageEvent) => {
       }
     )
 
-    const parseEnd = performance.now()
-    console.log(`parser2 WASM parse: ${(parseEnd - parseStart).toFixed(1)}ms`)
+    const parseMs = performance.now() - parseStart
 
     if (typeof result === 'string' || !result) {
       postMessage({ error: result || 'Failed to parse demo.' })
       return
     }
+
+    const hydrateStart = performance.now()
 
     const {
       header,
@@ -167,7 +175,7 @@ onmessage = async (event: MessageEvent) => {
     }
 
     // Build entity player map from WASM player list
-    const entityPlayerMap = new Map<number, any>()
+    const entityPlayerMap = new Map<number, PlayerRef>()
     let nextMappedPlayer = 0
 
     for (const player of players) {
@@ -177,13 +185,48 @@ onmessage = async (event: MessageEvent) => {
           userId: player.userId,
           steamId: player.steamId,
           entityId: player.entityId,
-          team: player.team,
+          team: player.team as PlayerRef['user']['team'],
         },
       })
       if (player.id + 1 > nextMappedPlayer) {
         nextMappedPlayer = player.id + 1
       }
     }
+
+    const hydrateMs = performance.now() - hydrateStart
+    const workerTotalMs = performance.now() - parseStart
+
+    // Compute memory stats
+    const playerCacheBytes =
+      sumBytes(playerCache.positionCache.data) +
+      sumBytes(playerCache.viewAnglesCache.data) +
+      sumBytes(playerCache.healthCache.data) +
+      sumBytes(playerCache.metaCache.data) +
+      sumBytes(playerCache.connectedCache.data)
+    const projectileCacheBytes =
+      sumBytes(projectileCache.positionCache.data) +
+      sumBytes(projectileCache.rotationCache.data) +
+      sumBytes(projectileCache.teamNumberCache.data) +
+      sumBytes(projectileCache.typeCache.data)
+    const transferBytes = playerCacheBytes + projectileCacheBytes
+
+    const perf: ParserPerformanceStats = {
+      workerTotalMs,
+      parseMs,
+      hydrateMs,
+      transferMs: 0, // Filled in by AsyncParser after message transfer
+      playerCount: players.length,
+      projectileCount: wasmProjectileCache.ids.length,
+      ticks,
+      playerCacheBytes,
+      projectileCacheBytes,
+      transferBytes,
+      totalBytes: playerCacheBytes + projectileCacheBytes,
+    }
+
+    console.log(
+      `parser2: parse=${parseMs.toFixed(1)}ms hydrate=${hydrateMs.toFixed(1)}ms total=${workerTotalMs.toFixed(1)}ms`
+    )
 
     const cachedDemo: CachedDemo = {
       ticks,
@@ -198,6 +241,7 @@ onmessage = async (event: MessageEvent) => {
       nextMappedPlayer,
       entityPlayerMap,
       now: performance.now(),
+      perf,
     }
 
     // Collect typed array buffers for zero-copy transfer
