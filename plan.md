@@ -119,7 +119,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - Add `smoothingAlpha(deltaSeconds, tauSeconds)` returning `1 - Math.exp(-deltaSeconds / tauSeconds)`
   - Current hardcoded `viewSmoothing = 0.35` is frame-rate dependent (behaves differently at 30fps vs 144fps)
 
-- [ ] **3.3 — Add resolveViewAngles helper for zero-valued angles**
+- [x] **3.3 — Add resolveViewAngles helper for zero-valued angles**
   - File: `src/components/Scene/Actors.tsx` (add helper function)
   - Parser sometimes returns `{x:0, y:0, z:0}` for view angles (known bug)
   - Current code has scattered `!== 0` checks (lines 125-126, 144, 154)
