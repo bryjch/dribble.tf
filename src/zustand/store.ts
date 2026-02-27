@@ -130,6 +130,7 @@ export type StoreState = {
       playerOutlines: boolean
       showStats: boolean
       showSkybox: boolean
+      viewDistance: number
     }
   }
   ui: {
@@ -208,6 +209,7 @@ export const initialState: StoreState = {
       playerOutlines: false,
       showStats: false,
       showSkybox: true,
+      viewDistance: 15000,
     },
   },
 

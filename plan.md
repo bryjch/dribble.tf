@@ -197,7 +197,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
 
 ## Phase 6: Settings & Store Expansions
 
-- [ ] **6.1 — Add viewDistance setting to store and camera**
+- [x] **6.1 — Add viewDistance setting to store and camera**
   - Files: `src/zustand/store.ts`, `src/components/DemoViewer.tsx:102`, `src/components/UI/SettingsPanel.tsx`
   - Add `viewDistance: number` to `StoreState.settings.ui` (default: `15000`)
   - In Controls component (DemoViewer.tsx:102): replace `cameraRef.current.far = 15000` with `settings.ui.viewDistance || 15000`

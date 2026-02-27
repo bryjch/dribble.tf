@@ -266,6 +266,15 @@ export const SettingsPanel = () => {
             onChange={checked => updateSettingsOption('scene.interpolateFrames', checked)}
           />
 
+          <SliderOption
+            label="View distance"
+            min={2000}
+            max={30000}
+            step={500}
+            value={settings.ui.viewDistance}
+            onChange={value => updateSettingsOption('ui.viewDistance', value)}
+          />
+
           {/* ************************************************************* */}
 
           <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Players</div>

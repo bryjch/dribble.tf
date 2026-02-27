@@ -99,7 +99,7 @@ const Controls = () => {
 
     cameraRef.current.position.copy(newPos).add(cameraOffset)
     cameraRef.current.near = 10
-    cameraRef.current.far = 15000
+    cameraRef.current.far = settings.ui.viewDistance || 15000
 
     if (controlsMode === 'rts' && controlsRef.current) {
       controlsRef.current.target.copy(newPos).add(controlsOffset)
@@ -112,6 +112,12 @@ const Controls = () => {
       spectatorRef.current.enable()
     }
   }, [cameraRef.current, lastFocusedPOV, bounds, controlsMode])
+
+  useEffect(() => {
+    if (!cameraRef.current) return
+    cameraRef.current.far = settings.ui.viewDistance || 15000
+    cameraRef.current.updateProjectionMatrix()
+  }, [settings.ui.viewDistance])
 
   useFrame(() => {
     if (controlsRef.current) controlsRef.current.update()
