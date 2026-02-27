@@ -147,7 +147,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
   - In `mapModel.traverse` callback, set `node.visible = false` for matches
   - Source engine converters include invisible tool brushes as visible geometry — hiding them reduces draw calls
 
-- [ ] **4.2 — Enable frustum culling on world meshes with proper bounding volumes**
+- [x] **4.2 — Enable frustum culling on world meshes with proper bounding volumes**
   - File: `src/components/Scene/World.tsx:108-123`
   - In the `mapModel.traverse` callback, for each `Mesh` child: call `mesh.geometry.computeBoundingBox()` and `mesh.geometry.computeBoundingSphere()`
   - Set `mesh.frustumCulled = true` (Three.js default but requires valid bounds)
