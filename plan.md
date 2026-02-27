@@ -140,7 +140,7 @@ Source: `tf2jump/dev` branch, files under `src/libs/parser2/` and modifications 
 
 ## Phase 4: Scene Rendering Optimizations
 
-- [ ] **4.1 — Add tool material filtering to World mesh traversal**
+- [x] **4.1 — Add tool material filtering to World mesh traversal**
   - File: `src/components/Scene/World.tsx:108-123`
   - Add `INVISIBLE_TOOL_MATERIALS` list: `toolsnodraw`, `toolsclip`, `toolsplayerclip`, `toolsinvisible`, `toolsinvisibleladder`, `toolstrigger`, `toolsareaportal`, `toolsblockbullets`, `toolshint`, `toolsskip`, `toolsfog`, `toolsskybox`
   - Add `isInvisibleToolMaterial(materialName)` helper
