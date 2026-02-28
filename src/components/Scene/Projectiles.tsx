@@ -19,8 +19,8 @@ import { getAsset } from '@utils/misc'
 const TELEPORT_LERP_DISTANCE = 4096
 const PROJECTILE_POSITION_SMOOTH_SECONDS = 0.05
 const PROJECTILE_ROTATION_SMOOTH_SECONDS = 0.08
-const EXPLOSION_DURATION_MS = 400
-const EXPLOSION_MAX_RADIUS = 50
+const EXPLOSION_DURATION_MS = 200
+const EXPLOSION_MAX_RADIUS = 40
 const EXPLOSION_MAX_OPACITY = 0.4
 
 // Team colors for trails/explosions
@@ -516,7 +516,8 @@ export const Projectiles = (props: ProjectilesProps) => {
   useEffect(() => {
     const currentIds = new Set(projectiles.map(p => p.entityId))
     const tickChanged = tick !== prevTick.current
-    const isForwardStep = tickChanged && tick === prevTick.current + 1
+    const tickDelta = tick - prevTick.current
+    const isForwardStep = tickChanged && tickDelta >= 1 && tickDelta <= 3
     const isScrubbedOrJumped = tickChanged && !isForwardStep
     const now = performance.now()
 
