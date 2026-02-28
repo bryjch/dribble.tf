@@ -424,13 +424,13 @@ class DemoViewer extends Component<DemoViewerProps> {
 
           {playersThisTick.length > 0 && (
             <div className="ui-layer items-center justify-stretch">
-              <PlayerStatuses players={playersThisTick} />
+              <PlayerStatuses players={playersThisTick} tick={playback.tick} intervalPerTick={demo?.intervalPerTick ?? 0.015} />
             </div>
           )}
 
           {playersThisTick.length > 0 && (
             <div className="ui-layer bottom-[20vh] items-end justify-center">
-              <FocusedPlayer players={playersThisTick} />
+              <FocusedPlayer players={playersThisTick} tick={playback.tick} intervalPerTick={demo?.intervalPerTick ?? 0.015} />
             </div>
           )}
 

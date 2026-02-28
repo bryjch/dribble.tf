@@ -8,6 +8,8 @@ import { cn } from '@utils/styling'
 
 export interface FocusedPlayerProps {
   players: CachedPlayer[]
+  tick: number
+  intervalPerTick: number
 }
 
 export const FocusedPlayer = (props: FocusedPlayerProps) => {
@@ -16,7 +18,7 @@ export const FocusedPlayer = (props: FocusedPlayerProps) => {
 
   if (controlsMode !== 'pov' || !focusedObject) return null
 
-  const { players } = props
+  const { players, tick, intervalPerTick } = props
   const focused = players.find(player => player.user.entityId === focusedObject?.userData?.entityId)
 
   if (!focused) return null
@@ -29,12 +31,12 @@ export const FocusedPlayer = (props: FocusedPlayerProps) => {
 
   return (
     <div className="flex w-auto flex-col items-center">
-      <div className="mb-4 bg-black text-3xl">
-        {/* {health === 0 && (
-          <div className="animate-dead-pulse text-xl font-black text-[#fbff09] [text-shadow:0_0_3px_#000000]">
-            *RESPAWNING*
+      <div className="mb-4 text-3xl">
+        {health === 0 && focused.respawnTick != null && (
+          <div className="animate-pulse text-xl font-black text-[#fbff09] [text-shadow:0_0_3px_#000000]">
+            Respawning in {Math.ceil((focused.respawnTick - tick) * intervalPerTick)}
           </div>
-        )} */}
+        )}
       </div>
 
       <div className="flex items-center">
