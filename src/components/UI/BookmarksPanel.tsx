@@ -36,7 +36,7 @@ export const BookmarksPanel = () => {
       </TogglePanelButton>
 
       <TogglePanel showCloseButton isOpen={isOpen} onClickClose={toggleUIPanel}>
-        <div className="w-[280px] px-6 pb-6 pt-6">
+        <div className="w-[min(280px,calc(100vw-2rem))] px-6 pb-6 pt-6">
           <div className="mb-3 mr-8 flex items-center justify-between">
             <div className="text-sm font-semibold">
               Bookmarks ({bookmarks.length})
@@ -62,7 +62,7 @@ export const BookmarksPanel = () => {
                 <div
                   key={`bookmark-row-${bookmarkTick}`}
                   className={cn(
-                    'mb-0.5 flex cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-white/10',
+                    'mb-0.5 flex cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs transition-colors hover:bg-white/10 active:bg-white/10',
                     bookmarkTick === tick && 'bg-amber-400/20'
                   )}
                   onClick={() => seekToTick(bookmarkTick)}

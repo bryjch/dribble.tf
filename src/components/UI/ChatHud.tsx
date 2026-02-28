@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { isMobile } from 'react-device-detect'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
 import { ChatEntry } from '@components/Analyse/Data/Types'
@@ -191,7 +192,7 @@ export const ChatHud = (props: ChatHudProps) => {
     [parser, tick, intervalPerTick]
   )
 
-  if (!visible.length) {
+  if (!visible.length || isMobile) {
     return null
   }
 

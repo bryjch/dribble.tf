@@ -1,4 +1,4 @@
-import { Component, createRef, useRef, useEffect, Suspense } from 'react'
+import { Component, createRef, useRef, useEffect, useState, useCallback, Suspense } from 'react'
 
 // THREE related imports
 import * as THREE from 'three'
@@ -35,11 +35,16 @@ import { BookmarksPanel } from '@components/UI/BookmarksPanel'
 import { FpsCounter } from '@components/UI/FpsCounter'
 import { Crosshair } from '@components/UI/Crosshair'
 
+import { motion } from 'framer-motion'
+import { AiFillFastForwardIcon } from '@components/Misc/Icons'
+
 // Actions & utils
 import { useStore, getState, useInstance } from '@zus/store'
-import { forceShowPanelAction, goToTickAction } from '@zus/actions'
+import { forceShowPanelAction, goToTickAction, playbackJumpAction } from '@zus/actions'
 import { ActorProps } from './Scene/Actors'
 import { isPerfLoggingEnabled, readJsHeapMemoryMb } from '@utils/misc'
+import { useIsMobile } from '@utils/hooks'
+import { cn } from '@utils/styling'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -160,6 +165,127 @@ const Controls = () => {
           args={[cameraRef.current, gl.domElement]}
           {...settings.controls}
         />
+      )}
+    </>
+  )
+}
+
+// Double-tap seek overlay for mobile (YouTube-style)
+const DOUBLE_TAP_SEEK_TICKS = 50
+const DOUBLE_TAP_TIMEOUT = 300
+
+const DoubleTapSeek = () => {
+  const isMobile = useIsMobile()
+  const lastTapRef = useRef<{ time: number; side: 'left' | 'right' } | null>(null)
+  const [ripple, setRipple] = useState<{ side: 'left' | 'right'; key: number } | null>(null)
+
+  const handleTap = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    // Only respond to single-finger taps
+    if (e.touches.length > 1) return
+
+    const touch = e.changedTouches[0]
+    const side = touch.clientX < window.innerWidth / 2 ? 'left' : 'right'
+    const now = Date.now()
+
+    if (
+      lastTapRef.current &&
+      lastTapRef.current.side === side &&
+      now - lastTapRef.current.time < DOUBLE_TAP_TIMEOUT
+    ) {
+      // Double tap detected
+      e.preventDefault()
+      if (side === 'right') {
+        playbackJumpAction('seekForward')
+      } else {
+        playbackJumpAction('seekBackward')
+      }
+      setRipple({ side, key: now })
+      lastTapRef.current = null
+    } else {
+      lastTapRef.current = { time: now, side }
+    }
+  }, [])
+
+  if (!isMobile) return null
+
+  return (
+    <div
+      className="ui-layer pointer-events-auto z-10"
+      onTouchEnd={handleTap}
+      style={{ touchAction: 'manipulation' }}
+    >
+      {/* Ripple feedback */}
+      {ripple && (
+        <div className={cn('absolute inset-y-0 flex items-center justify-center', ripple.side === 'left' ? 'left-0 w-1/2' : 'right-0 w-1/2')}>
+          <motion.div
+            key={ripple.key}
+            className="flex flex-col items-center gap-1 rounded-full bg-black/30 px-6 py-4"
+            initial={{ opacity: 0.9, scale: 0.8 }}
+            animate={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.6 }}
+          >
+            <AiFillFastForwardIcon
+              width="2rem"
+              height="2rem"
+              className={ripple.side === 'left' ? 'rotate-180' : ''}
+            />
+            <span className="text-sm font-bold">
+              {ripple.side === 'left' ? '-' : '+'}{DOUBLE_TAP_SEEK_TICKS} ticks
+            </span>
+          </motion.div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// FocusedPlayer wrapper - adjusts positioning for mobile
+const FocusedPlayerLayer = (props: { players: CachedPlayer[]; tick: number; intervalPerTick: number }) => {
+  const isMobile = useIsMobile()
+  return (
+    <div className={cn('ui-layer items-end justify-center', isMobile ? 'bottom-[12vh]' : 'bottom-[20vh]')}>
+      <FocusedPlayer {...props} />
+    </div>
+  )
+}
+
+// Panel toolbar - functional component so we can use useIsMobile hook
+const PanelToolbar = ({ hasDemoLoaded }: { hasDemoLoaded: boolean }) => {
+  const isMobile = useIsMobile()
+
+  if (isMobile) {
+    return (
+      <div className="ui-layer m-3 items-start justify-start">
+        <div className="flex items-center">
+          <SettingsPanel />
+          <AboutPanel />
+          {hasDemoLoaded && <MatchKillfeedPanel />}
+          {hasDemoLoaded && <BookmarksPanel />}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className="ui-layer m-4 items-start justify-start">
+        <SettingsPanel />
+      </div>
+
+      <div className="ui-layer justift-start m-4 mt-16 items-start">
+        <AboutPanel />
+      </div>
+
+      {hasDemoLoaded && (
+        <div className="ui-layer m-4 mt-28 items-start justify-start">
+          <MatchKillfeedPanel />
+        </div>
+      )}
+
+      {hasDemoLoaded && (
+        <div className="ui-layer m-4 mt-40 items-start justify-start">
+          <BookmarksPanel />
+        </div>
       )}
     </>
   )
@@ -412,6 +538,8 @@ class DemoViewer extends Component<DemoViewerProps> {
         </div>
 
         <div className="ui-layers" ref={this.uiLayers}>
+          <DoubleTapSeek />
+
           <div className="ui-layer mb-4 items-end justify-center text-center">
             <PlaybackPanel />
           </div>
@@ -435,30 +563,10 @@ class DemoViewer extends Component<DemoViewerProps> {
           )}
 
           {playersThisTick.length > 0 && (
-            <div className="ui-layer bottom-[20vh] items-end justify-center">
-              <FocusedPlayer players={playersThisTick} tick={playback.tick} intervalPerTick={demo?.intervalPerTick ?? 0.015} />
-            </div>
+            <FocusedPlayerLayer players={playersThisTick} tick={playback.tick} intervalPerTick={demo?.intervalPerTick ?? 0.015} />
           )}
 
-          <div className="ui-layer m-4 items-start justify-start">
-            <SettingsPanel />
-          </div>
-
-          <div className="ui-layer justift-start m-4 mt-16 items-start">
-            <AboutPanel />
-          </div>
-
-          {demo && (
-            <div className="ui-layer m-4 mt-28 items-start justify-start">
-              <MatchKillfeedPanel />
-            </div>
-          )}
-
-          {demo && (
-            <div className="ui-layer m-4 mt-40 items-start justify-start">
-              <BookmarksPanel />
-            </div>
-          )}
+          <PanelToolbar hasDemoLoaded={!!demo} />
         </div>
       </div>
     )

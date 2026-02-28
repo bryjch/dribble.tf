@@ -19,6 +19,7 @@ import { goToTickAction, togglePlaybackAction, changePlaySpeedAction, toggleBook
 import { focusMainCanvas } from '@utils/misc'
 import { cn } from '@utils/styling'
 import { getDurationFromTicks } from '@utils/parser'
+import { useIsMobile } from '@utils/hooks'
 
 // Since parser only returns round ends (not round starts) we need to
 // account for the humiliation period before it resets
@@ -66,7 +67,7 @@ const PlaybackAction = (props: PlaybackActionProps) => {
           <div
             className={cn(
               'cursor-pointer opacity-80',
-              'transform transition-all hover:scale-125 hover:opacity-100'
+              'transform transition-all hover:scale-125 hover:opacity-100 active:scale-110 active:opacity-100'
             )}
             onClick={props.onClick}
           >
@@ -92,6 +93,7 @@ export const PlaybackPanel = () => {
   const lastEventHistory = useStore(state => state.eventHistory)?.[0]
   const { playing, speed, tick, maxTicks, forceShowPanel } = playback
   const isBookmarked = bookmarks.includes(tick)
+  const isMobile = useIsMobile()
 
   const rounds = useMemo(() => {
     const result = [
@@ -152,14 +154,15 @@ export const PlaybackPanel = () => {
 
       <div
         className={cn(
-          'z-20 mt-4 flex items-center justify-center gap-6 rounded-full px-5 py-3 transition-all duration-500',
+          'z-20 mt-4 flex items-center justify-center rounded-full px-5 py-3 transition-all duration-500',
+          isMobile ? 'gap-3' : 'gap-6',
           playing && !forceShowPanel ? 'scale-90 opacity-0 delay-700' : 'bg-black/70 delay-0',
           'group-hover:scale-100 group-hover:bg-black/70 group-hover:opacity-100 group-hover:delay-0'
         )}
       >
         {/* Jump to tick action */}
 
-        <PlaybackAction
+        {!isMobile && <PlaybackAction
           mobileTooltipBypass
           icon={
             <div className="-mr-1 flex min-w-11 select-none flex-col items-center text-center">
@@ -200,7 +203,7 @@ export const PlaybackPanel = () => {
               </div>
             </div>
           }
-        />
+        />}
 
         {/* Jump to start action */}
 
@@ -270,7 +273,7 @@ export const PlaybackPanel = () => {
 
         {/* Change play speed action */}
 
-        <PlaybackAction
+        {!isMobile && <PlaybackAction
           mobileTooltipBypass
           icon={
             <div className="select-none rounded-3xl bg-white/90 px-2 text-sm text-black">
@@ -313,7 +316,7 @@ export const PlaybackPanel = () => {
               </div>
             </>
           }
-        />
+        />}
 
         {/* Toggle bookmark action */}
 
@@ -349,7 +352,7 @@ export const PlaybackPanel = () => {
             step={1}
             onValueChange={([value]) => goToTick(value)}
           >
-            <Slider.Track className="relative h-2 grow rounded-full bg-pp-panel/30">
+            <Slider.Track className={cn('relative grow rounded-full bg-pp-panel/30', isMobile ? 'h-3' : 'h-2')}>
               <Slider.Range className="absolute h-full rounded-full bg-white" />
             </Slider.Track>
           </Slider.Root>
@@ -375,7 +378,8 @@ export const PlaybackPanel = () => {
               <div
                 key={`jump-to-round-${index}`}
                 className={cn(
-                  'relative mr-2 flex h-5 w-5 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-pp-panel/40 text-sm hover:opacity-80',
+                  'relative mr-2 flex cursor-pointer items-center justify-center overflow-hidden rounded-full bg-pp-panel/40 text-sm hover:opacity-80 active:opacity-80',
+                  isMobile ? 'h-8 w-8' : 'h-5 w-5',
                   round.tick <= tick && 'bg-white text-black'
                 )}
                 onClick={onClickRound.bind(null, round)}

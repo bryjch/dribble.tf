@@ -14,11 +14,13 @@ import {
 } from '@components/UI/CameraTipPanels'
 
 import { useStore, useInstance } from '@zus/store'
+import { useIsMobile } from '@utils/hooks'
 
 const ViewerPage = () => {
   const parser = useStore(state => state.parser)
   const parsedDemo = useInstance(state => state.parsedDemo)
   const loadedMap = useStore(state => state.scene.map)
+  const isMobile = useIsMobile()
 
   const loadingDownloads = useStore(state =>
     Array.from(state.downloads.values()).filter(({ status }) => status === 'loading')
@@ -98,12 +100,14 @@ const ViewerPage = () => {
         </motion.div>
       </div>
 
-      {/* Camera tip panels overlays */}
-      <div className="ui-layer pointer-events-none bottom-0 right-0 items-end justify-end overflow-hidden p-4 [&>div]:pointer-events-none">
-        <POVCameraTipPanel />
-        <SpectatorCameraTipPanel />
-        <RtsCameraTipPanel />
-      </div>
+      {/* Camera tip panels overlays - hidden on mobile (keyboard shortcuts not relevant) */}
+      {!isMobile && (
+        <div className="ui-layer pointer-events-none bottom-0 right-0 items-end justify-end overflow-hidden p-4 [&>div]:pointer-events-none">
+          <POVCameraTipPanel />
+          <SpectatorCameraTipPanel />
+          <RtsCameraTipPanel />
+        </div>
+      )}
 
       {/* Drawing overlay */}
       <div className="ui-layer">

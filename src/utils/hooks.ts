@@ -43,6 +43,12 @@ export function useEventListener(
   )
 }
 
+export function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(window.innerWidth < breakpoint)
+  useEventListener('resize', () => setIsMobile(window.innerWidth < breakpoint), window)
+  return isMobile
+}
+
 export function usePointerLock() {
   const [isPointerLocked, setIsPointerLocked] = useState(false)
 

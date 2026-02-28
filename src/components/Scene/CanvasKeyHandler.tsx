@@ -1,5 +1,6 @@
 import { useRef, useCallback } from 'react'
 import keycode from 'keycode'
+import { isMobile } from 'react-device-detect'
 
 import { useThree } from '@react-three/fiber'
 
@@ -81,6 +82,7 @@ export const CanvasKeyHandler = () => {
             break
 
           case '2':
+            if (isMobile) break // Spectator camera not supported on mobile
             if (keysHeld.current.has('2')) return null // Prevent rapid camera cycling
             keysHeld.current.set('2', true)
             changeControlsModeAction('spectator')

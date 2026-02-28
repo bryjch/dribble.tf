@@ -15,6 +15,7 @@ import { BRUSH_COLOR_OPTIONS } from '@components/Misc/DemoDrawing'
 import { useStore } from '@zus/store'
 import { toggleUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
 import { cn } from '@utils/styling'
+import { useIsMobile } from '@utils/hooks'
 
 //
 // ─── BASE OPTION WRAPPER ────────────────────────────────────────────────────────
@@ -149,6 +150,7 @@ export const SettingsPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('Settings'))
   const scene = useStore(state => state.scene)
   const settings = useStore(state => state.settings)
+  const isMobile = useIsMobile()
 
   const toggleUIPanel = () => {
     toggleUIPanelAction('About', false)
@@ -179,9 +181,15 @@ export const SettingsPanel = () => {
 
           <Option label="POV Camera (next)" keyCode="1" leftClass="col" />
           <Option label="POV Camera (prev)" keyCode="Shift + 1" leftClass="col" />
-          <Option label="Spectator Camera" keyCode="2" leftClass="col" />
 
-          {scene.controls.mode === 'spectator' && (
+          {!isMobile && <Option label="Spectator Camera" keyCode="2" leftClass="col" />}
+          {isMobile && (
+            <Option label="Spectator Camera" leftClass="col">
+              <span className="text-xs opacity-40">Desktop only</span>
+            </Option>
+          )}
+
+          {scene.controls.mode === 'spectator' && !isMobile && (
             <div className="ml-3">
               <SliderOption
                 label="- FOV"

@@ -6,6 +6,7 @@ import { ClassIcon } from '@components/UI/ClassIcon'
 import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
 import { focusMainCanvas } from '@utils/misc'
 import { cn } from '@utils/styling'
+import { useIsMobile } from '@utils/hooks'
 
 import { useInstance } from '@zus/store'
 import { jumpToPlayerPOVCamera } from '@zus/actions'
@@ -21,6 +22,7 @@ export interface PlayerStatusesProps {
 }
 
 export const PlayerStatuses = (props: PlayerStatusesProps) => {
+  const isMobile = useIsMobile()
   const bluePlayers: CachedPlayer[] = []
   const redPlayers: CachedPlayer[] = []
 
@@ -30,6 +32,43 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
   for (const player of players) {
     if (player.team === 'blue') bluePlayers.push(player)
     if (player.team === 'red') redPlayers.push(player)
+  }
+
+  if (isMobile) {
+    return (
+      <div className="absolute inset-x-0 bottom-0 flex h-8 items-stretch">
+        {/* Blue team - left half */}
+        <div className="flex flex-1 items-stretch gap-px">
+          {bluePlayers.sort(sortPlayersByClassId).map((player, index) => (
+            <MobileStatusItem
+              key={`blue-mobile-${index}`}
+              player={player}
+              team="blue"
+              focused={focusedEntityId === player.user.entityId}
+              tick={tick}
+              intervalPerTick={intervalPerTick}
+            />
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div className="w-px bg-white/20" />
+
+        {/* Red team - right half */}
+        <div className="flex flex-1 items-stretch gap-px">
+          {redPlayers.sort(sortPlayersByClassId).map((player, index) => (
+            <MobileStatusItem
+              key={`red-mobile-${index}`}
+              player={player}
+              team="red"
+              focused={focusedEntityId === player.user.entityId}
+              tick={tick}
+              intervalPerTick={intervalPerTick}
+            />
+          ))}
+        </div>
+      </div>
+    )
   }
 
   const blueMedics = bluePlayers.filter(({ classId }) => classId === 5)
@@ -95,6 +134,60 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
         ))}
       </div>
     </>
+  )
+}
+
+//
+// ─── MOBILE STATUS ITEM ─────────────────────────────────────────────────────────
+//
+
+interface MobileStatusItemProps {
+  player: CachedPlayer
+  team: 'blue' | 'red'
+  focused?: boolean
+  tick: number
+  intervalPerTick: number
+}
+
+const MobileStatusItem = (props: MobileStatusItemProps) => {
+  const { player, team, focused, tick, intervalPerTick } = props
+  const health = player.health
+  const { percentage } = parseClassHealth(player.classId, health)
+
+  const onClickItem = async () => {
+    const entityId = player?.user?.entityId || null
+    if (entityId) await jumpToPlayerPOVCamera(entityId)
+    focusMainCanvas()
+  }
+
+  return (
+    <div
+      className={cn(
+        'flex flex-1 cursor-pointer items-center justify-center gap-0.5 text-xs font-semibold',
+        team === 'blue' && 'bg-pp-healthbar-blue/40',
+        team === 'red' && 'bg-pp-healthbar-red/40',
+        health === 0 && 'opacity-40',
+        focused && 'outline outline-1 outline-white'
+      )}
+      onClick={onClickItem}
+    >
+      <div className="flex h-5 w-5 shrink-0 items-center justify-center">
+        <ClassIcon classId={player.classId} />
+      </div>
+      <span
+        className={cn(
+          'font-bold',
+          percentage > 100 && 'text-pp-health-overhealed',
+          percentage < 40 && health > 0 && 'text-pp-health-low'
+        )}
+      >
+        {health > 0 ? health : (
+          player.respawnTick != null
+            ? Math.ceil((player.respawnTick - tick) * intervalPerTick)
+            : ''
+        )}
+      </span>
+    </div>
   )
 }
 

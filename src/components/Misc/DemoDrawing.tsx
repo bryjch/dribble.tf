@@ -78,7 +78,7 @@ export const DemoDrawing = () => {
         )}
       >
         <motion.div
-          className="pointer-events-auto flex w-[450px] flex-col justify-between rounded-2xl bg-[rgba(50,50,50,0.95)] px-6 pb-4 pt-6 text-white"
+          className="pointer-events-auto flex w-[min(450px,calc(100vw-2rem))] flex-col justify-between rounded-2xl bg-[rgba(50,50,50,0.95)] px-6 pb-4 pt-6 text-white"
           animate={enabled ? { opacity: 1, y: '-2rem' } : { opacity: 0, y: 100 }}
           transition={{ duration: 0.2 }}
           initial={false}

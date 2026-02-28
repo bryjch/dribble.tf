@@ -95,7 +95,7 @@ export const MatchKillfeedPanel = () => {
       </TogglePanelButton>
 
       <TogglePanel showCloseButton isOpen={isOpen} onClickClose={toggleUIPanel}>
-        <div className="w-[520px] px-6 pb-6 pt-6">
+        <div className="w-[min(520px,calc(100vw-2rem))] px-6 pb-6 pt-6">
           <div className="relative mb-3 mr-8">
             <input
               type="text"
@@ -268,7 +268,7 @@ const ClickableName = ({
   onClick: () => void
 }) => (
   <span
-    className={cn('cursor-pointer rounded px-0.5 py-1 hover:bg-white/15', className)}
+    className={cn('cursor-pointer rounded px-0.5 py-1 hover:bg-white/15 active:bg-white/15 active:underline', className)}
     onClick={onClick}
     title={`Watch ${name}'s POV`}
   >

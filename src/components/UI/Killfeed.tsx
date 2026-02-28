@@ -8,6 +8,7 @@ import { jumpToPlayerPOVCamera } from '@zus/actions'
 import { useInstance } from '@zus/store'
 import { focusMainCanvas } from '@utils/misc'
 import { cn } from '@utils/styling'
+import { useIsMobile } from '@utils/hooks'
 
 const RELEVANT_DEATH_LINGER_TICKS = 200 // Keep death in feed for this many ticks
 
@@ -23,6 +24,7 @@ export interface KillfeedItemProps {
 
 export const Killfeed = (props: KillfeedProps) => {
   const focusedObject = useInstance(state => state.focusedObject)
+  const isMobile = useIsMobile()
   const { parser, tick } = props
   const { deaths } = parser
 
@@ -35,8 +37,13 @@ export const Killfeed = (props: KillfeedProps) => {
     }
   }
 
+  // Limit to 3 kills on mobile to save space
+  if (isMobile) {
+    relevantDeaths = relevantDeaths.slice(-3)
+  }
+
   return (
-    <div className="flex flex-col items-end text-right">
+    <div className={cn('flex flex-col items-end text-right', isMobile && 'text-xs')}>
       {relevantDeaths.map(death => {
         let highlighted = false
 
@@ -92,7 +99,7 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
     >
       {killer && killer !== victim && (
         <div
-          className={cn('cursor-pointer hover:underline', killerTeamColor)}
+          className={cn('cursor-pointer hover:underline active:underline', killerTeamColor)}
           onClick={onClickPlayerName.bind(this, killer.user.entityId)}
         >
           {killer.user.name}
@@ -103,7 +110,7 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
 
       {assister && (
         <div
-          className={cn('cursor-pointer hover:underline', killerTeamColor)}
+          className={cn('cursor-pointer hover:underline active:underline', killerTeamColor)}
           onClick={onClickPlayerName.bind(this, assister.user.entityId)}
         >
           {assister.user.name}
@@ -120,7 +127,7 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
       </div>
 
       <div
-        className={cn('cursor-pointer hover:underline', victimTeamColor)}
+        className={cn('cursor-pointer hover:underline active:underline', victimTeamColor)}
         onClick={onClickPlayerName.bind(this, victim.user.entityId)}
       >
         {victim.user.name}
