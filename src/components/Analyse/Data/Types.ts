@@ -43,3 +43,11 @@ export interface Round {
   length: number
   endTick: number
 }
+
+export interface ChatEntry {
+  tick: number
+  kind: string
+  rawText: string
+  clientEntityId?: number | null
+  clientPlayerId?: number | null
+}

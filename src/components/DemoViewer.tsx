@@ -27,6 +27,7 @@ import { AboutPanel } from '@components/UI/AboutPanel'
 import { SettingsPanel } from '@components/UI/SettingsPanel'
 import { PlaybackPanel } from '@components/UI/PlaybackPanel'
 import { Killfeed } from '@components/UI/Killfeed'
+import { ChatHud } from '@components/UI/ChatHud'
 import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 import { MatchKillfeedPanel } from '@components/UI/MatchKillfeedPanel'
@@ -412,6 +413,12 @@ class DemoViewer extends Component<DemoViewerProps> {
           {demo && (
             <div className="ui-layer m-4 items-start justify-end">
               <Killfeed parser={demo} tick={playback.tick} />
+            </div>
+          )}
+
+          {demo && (
+            <div className="ui-layer m-4 items-end justify-start">
+              <ChatHud parser={demo} tick={playback.tick} />
             </div>
           )}
 

@@ -4,7 +4,7 @@ import { PlayerCache } from './PlayerCache'
 import { BuildingCache } from './BuildingCache'
 import { ProjectileCache } from './ProjectileCache'
 import { getMapBoundaries } from '../MapBoundaries'
-import { PlayerRef } from './Types'
+import { ChatEntry, PlayerRef } from './Types'
 import { POSITION_FIXED_SCALE } from './PositionEncoding'
 
 declare function postMessage(message: any, transfer?: any[]): void
@@ -46,6 +46,7 @@ type WasmResult = {
   players: WasmPlayer[]
   playerCache: WasmPlayerCache
   projectileCache: WasmProjectileCache
+  chat: ChatEntry[]
   deaths: CachedDemo['deaths']
   rounds: CachedDemo['rounds']
 }
@@ -129,6 +130,7 @@ onmessage = async (event: MessageEvent) => {
       players,
       playerCache: wasmPlayerCache,
       projectileCache: wasmProjectileCache,
+      chat = [],
       deaths,
       rounds,
     } = result as WasmResult
@@ -254,6 +256,7 @@ onmessage = async (event: MessageEvent) => {
       playerCache,
       buildingCache,
       projectileCache,
+      chat,
       deaths,
       rounds,
       intervalPerTick,
