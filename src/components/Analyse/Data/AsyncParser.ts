@@ -1,7 +1,7 @@
 import { PlayerCache, CachedPlayer } from './PlayerCache'
 import { BuildingCache, CachedBuilding } from './BuildingCache'
 import { ProjectileCache, CachedProjectile } from './ProjectileCache'
-import { Header, PlayerRef, Round, World } from './Types'
+import { ChatEntry, Header, PlayerRef, Round, World } from './Types'
 
 export interface CachedDeath {
   tick: number
@@ -32,6 +32,7 @@ export interface CachedDemo {
   header: Header
   playerCache: PlayerCache
   ticks: number
+  chat: ChatEntry[]
   deaths: { [tick: string]: CachedDeath[] }
   rounds: Round[]
   buildingCache: BuildingCache
@@ -51,6 +52,7 @@ export class AsyncParser {
   nextMappedPlayer = 0
   entityPlayerMap: Map<number, PlayerRef> = new Map()
   ticks!: number
+  chat: ChatEntry[] = []
   deaths: { [tick: string]: CachedDeath[] } = {}
   rounds!: Round[]
   buildingCache!: BuildingCache
@@ -72,6 +74,7 @@ export class AsyncParser {
       this.playerCache = cachedData.playerCache
       this.buildingCache = cachedData.buildingCache
       this.projectileCache = cachedData.projectileCache
+      this.chat = cachedData.chat
       this.deaths = cachedData.deaths
       this.rounds = cachedData.rounds
       this.intervalPerTick = cachedData.intervalPerTick
