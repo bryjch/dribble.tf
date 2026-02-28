@@ -5,7 +5,13 @@ import { HiListBulletIcon } from '@components/Misc/Icons'
 
 import { useStore, useInstance } from '@zus/store'
 import { toggleUIPanelAction, goToTickAction, jumpToPlayerPOVCamera } from '@zus/actions'
-import { getAllKills, getUberPops, MatchEvent, MatchKillEvent } from '@utils/matchEvents'
+import {
+  getAllKills,
+  getUberPops,
+  annotateKillstreaks,
+  MatchUberEvent,
+  AnnotatedMatchKillEvent,
+} from '@utils/matchEvents'
 import { getDurationFromTicks } from '@utils/parser'
 import { KILL_ICON_ALIASES } from '@constants/killIconAliases'
 import { cn } from '@utils/styling'
@@ -21,11 +27,29 @@ const teamIdToName = (teamId: number): string => {
   return ''
 }
 
+// ─── STREAK HELPERS ──────────────────────────────────────────────────────────────
+
+type PanelEvent = AnnotatedMatchKillEvent | MatchUberEvent
+
+const getStreakBorderColor = (streakCount: number): string => {
+  if (streakCount >= 4) return '#ef4444'
+  if (streakCount === 3) return '#f97316'
+  return '#f59e0b'
+}
+
+const getStreakTextColor = (streakCount: number): string => {
+  if (streakCount >= 4) return 'text-red-400'
+  if (streakCount === 3) return 'text-orange-400'
+  return 'text-amber-400'
+}
+
 export const MatchKillfeedPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('MatchKillfeed'))
   const parser = useInstance(state => state.parsedDemo)
 
   const [filterText, setFilterText] = useState('')
+
+  const tickRate = parser?.intervalPerTick ? 1 / parser.intervalPerTick : 66.67
 
   const toggleUIPanel = () => {
     toggleUIPanelAction('Settings', false)
@@ -35,10 +59,11 @@ export const MatchKillfeedPanel = () => {
 
   const events = useMemo(() => {
     if (!parser) return []
-    const kills: MatchEvent[] = getAllKills(parser)
-    const ubers: MatchEvent[] = getUberPops(parser)
-    return [...kills, ...ubers].sort((a, b) => a.tick - b.tick)
-  }, [parser])
+    const rawKills = getAllKills(parser)
+    const annotatedKills = annotateKillstreaks(rawKills, tickRate)
+    const ubers: MatchUberEvent[] = getUberPops(parser)
+    return [...annotatedKills, ...ubers].sort((a, b) => a.tick - b.tick)
+  }, [parser, tickRate])
 
   const filteredEvents = useMemo(() => {
     if (!filterText) return events
@@ -54,20 +79,12 @@ export const MatchKillfeedPanel = () => {
       return event.medicName.toLowerCase().includes(query)
     })
   }, [events, filterText])
-
-  const tickRate = parser?.intervalPerTick ? 1 / parser.intervalPerTick : 66.67
   const killfeedSeekBuffer = useStore(state => state.settings.ui.killfeedSeekBuffer)
 
-  const onClickEvent = (event: MatchEvent) => {
+  const seekToPlayer = (tick: number, entityId: number) => {
     const bufferTicks = Math.round(killfeedSeekBuffer * tickRate)
-    goToTickAction(Math.max(1, event.tick - bufferTicks))
-
-    if (event.type === 'kill') {
-      const entityId = event.killer?.user.entityId ?? event.victim.user.entityId
-      jumpToPlayerPOVCamera(entityId)
-    } else {
-      jumpToPlayerPOVCamera(event.medicEntityId)
-    }
+    goToTickAction(Math.max(1, tick - bufferTicks))
+    jumpToPlayerPOVCamera(entityId)
   }
 
   return (
@@ -91,7 +108,12 @@ export const MatchKillfeedPanel = () => {
                 className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-white/40 transition-colors hover:text-white"
                 onClick={() => setFilterText('')}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="h-4 w-4"
+                >
                   <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
                 </svg>
               </button>
@@ -104,7 +126,7 @@ export const MatchKillfeedPanel = () => {
                 key={`${event.type}-${event.tick}-${index}`}
                 event={event}
                 tickRate={tickRate}
-                onClick={() => onClickEvent(event)}
+                onSeek={seekToPlayer}
                 onFilter={setFilterText}
               />
             ))}
@@ -118,44 +140,48 @@ export const MatchKillfeedPanel = () => {
 // ─── EVENT ROW ──────────────────────────────────────────────────────────────────
 
 interface MatchEventRowProps {
-  event: MatchEvent
+  event: PanelEvent
   tickRate: number
-  onClick: () => void
+  onSeek: (tick: number, entityId: number) => void
   onFilter: (name: string) => void
 }
 
-const MatchEventRow = ({ event, tickRate, onClick, onFilter }: MatchEventRowProps) => {
+const MatchEventRow = ({ event, tickRate, onSeek, onFilter }: MatchEventRowProps) => {
   const timestamp = getDurationFromTicks(event.tick, tickRate).formatted
 
   if (event.type === 'uber') {
     const teamColor = teamTextColorMap[teamIdToName(event.medicTeam)] || ''
     return (
       <div
-        className="mb-1 flex cursor-pointer items-center rounded-lg px-2 py-1 text-xs hover:bg-white/10"
-        onClick={onClick}
+        className="mb-0.5 flex items-center rounded-lg px-2 py-1 text-xs"
+        style={{ borderLeft: '3px solid transparent' }}
       >
         <span className="mr-3 w-12 flex-shrink-0 font-mono text-white/50">{timestamp}</span>
         <FilterButton onClick={() => onFilter(event.medicName)} />
-        <span className={cn('font-bold', teamColor)}>{event.medicName}</span>
+        <ClickableName
+          name={event.medicName}
+          className={cn('font-bold', teamColor)}
+          onClick={() => onSeek(event.tick, event.medicEntityId)}
+        />
         <span className="ml-2 italic text-yellow-300">popped uber</span>
       </div>
     )
   }
 
-  return <KillRow event={event} timestamp={timestamp} onClick={onClick} onFilter={onFilter} />
+  return <KillRow event={event} timestamp={timestamp} onSeek={onSeek} onFilter={onFilter} />
 }
 
 // ─── KILL ROW ───────────────────────────────────────────────────────────────────
 
 interface KillRowProps {
-  event: MatchKillEvent
+  event: AnnotatedMatchKillEvent
   timestamp: string
-  onClick: () => void
+  onSeek: (tick: number, entityId: number) => void
   onFilter: (name: string) => void
 }
 
-const KillRow = ({ event, timestamp, onClick, onFilter }: KillRowProps) => {
-  const { killer, victim, assister, weapon } = event
+const KillRow = ({ event, timestamp, onSeek, onFilter }: KillRowProps) => {
+  const { killer, victim, assister, weapon, streak } = event
 
   const iconName = KILL_ICON_ALIASES[weapon] || weapon
   const [weaponIcon, setWeaponIcon] = useState(
@@ -170,23 +196,43 @@ const KillRow = ({ event, timestamp, onClick, onFilter }: KillRowProps) => {
   const victimTeamColor = teamTextColorMap[victim.user.team] || ''
   const filterName = killer && killer !== victim ? killer.user.name : victim.user.name
 
+  const streakStyle = streak
+    ? { borderLeft: `3px solid ${getStreakBorderColor(streak.streakCount)}` }
+    : { borderLeft: '3px solid transparent' }
+
   return (
-    <div
-      className="mb-1 flex cursor-pointer items-center rounded-lg px-2 py-1 text-xs hover:bg-white/10"
-      onClick={onClick}
-    >
+    <div className="mb-0.5 flex items-center rounded-lg px-2 py-1 text-xs" style={streakStyle}>
       <span className="mr-3 w-12 flex-shrink-0 font-mono text-white/50">{timestamp}</span>
       <FilterButton onClick={() => onFilter(filterName)} />
 
+      {streak && (
+        <span
+          className={cn(
+            'mr-1.5 flex-shrink-0 text-[0.65rem] font-bold leading-none',
+            getStreakTextColor(streak.streakCount)
+          )}
+        >
+          {streak.streakCount}K
+        </span>
+      )}
+
       <div className="flex min-w-0 flex-1 items-center">
         {killer && killer !== victim && (
-          <span className={cn('truncate font-bold', killerTeamColor)}>{killer.user.name}</span>
+          <ClickableName
+            name={killer.user.name}
+            className={cn('truncate font-bold', killerTeamColor)}
+            onClick={() => onSeek(event.tick, killer.user.entityId)}
+          />
         )}
 
         {assister && (
           <>
             <span className={cn('mx-1', killerTeamColor)}>+</span>
-            <span className={cn('truncate font-bold', killerTeamColor)}>{assister.user.name}</span>
+            <ClickableName
+              name={assister.user.name}
+              className={cn('truncate font-bold', killerTeamColor)}
+              onClick={() => onSeek(event.tick, assister.user.entityId)}
+            />
           </>
         )}
 
@@ -199,11 +245,35 @@ const KillRow = ({ event, timestamp, onClick, onFilter }: KillRowProps) => {
           />
         </div>
 
-        <span className={cn('truncate font-bold', victimTeamColor)}>{victim.user.name}</span>
+        <ClickableName
+          name={victim.user.name}
+          className={cn('truncate font-bold', victimTeamColor)}
+          onClick={() => onSeek(event.tick, victim.user.entityId)}
+        />
       </div>
     </div>
   )
 }
+
+// ─── CLICKABLE NAME ─────────────────────────────────────────────────────────────
+
+const ClickableName = ({
+  name,
+  className,
+  onClick,
+}: {
+  name: string
+  className?: string
+  onClick: () => void
+}) => (
+  <span
+    className={cn('cursor-pointer rounded px-0.5 py-1 hover:bg-white/15', className)}
+    onClick={onClick}
+    title={`Watch ${name}'s POV`}
+  >
+    {name}
+  </span>
+)
 
 // ─── FILTER BUTTON ──────────────────────────────────────────────────────────────
 
@@ -216,8 +286,17 @@ const FilterButton = ({ onClick }: { onClick: () => void }) => (
     }}
     title="Filter by this player"
   >
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3 w-3">
-      <path fillRule="evenodd" d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 01.628.74v2.288a2.25 2.25 0 01-.659 1.59l-4.682 4.683a2.25 2.25 0 00-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 018 18.25v-5.757a2.25 2.25 0 00-.659-1.591L2.659 6.22A2.25 2.25 0 012 4.629V2.34a.75.75 0 01.628-.74z" clipRule="evenodd" />
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 20 20"
+      fill="currentColor"
+      className="h-3 w-3"
+    >
+      <path
+        fillRule="evenodd"
+        d="M2.628 1.601C5.028 1.206 7.49 1 10 1s4.973.206 7.372.601a.75.75 0 01.628.74v2.288a2.25 2.25 0 01-.659 1.59l-4.682 4.683a2.25 2.25 0 00-.659 1.59v3.037c0 .684-.31 1.33-.844 1.757l-1.937 1.55A.75.75 0 018 18.25v-5.757a2.25 2.25 0 00-.659-1.591L2.659 6.22A2.25 2.25 0 012 4.629V2.34a.75.75 0 01.628-.74z"
+        clipRule="evenodd"
+      />
     </svg>
   </button>
 )
