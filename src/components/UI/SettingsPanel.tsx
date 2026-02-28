@@ -144,6 +144,7 @@ export const SettingsPanel = () => {
 
   const toggleUIPanel = () => {
     toggleUIPanelAction('About', false)
+    toggleUIPanelAction('MatchKillfeed', false)
     toggleUIPanelAction('Settings')
   }
   const updateSettingsOption = (option: string, value: any) => {
@@ -365,6 +366,15 @@ export const SettingsPanel = () => {
             label="Show Skybox"
             checked={settings.ui.showSkybox}
             onChange={checked => updateSettingsOption('ui.showSkybox', checked)}
+          />
+
+          <SliderOption
+            label="Killfeed seek buffer"
+            min={1}
+            max={10}
+            step={1}
+            value={settings.ui.killfeedSeekBuffer}
+            onChange={value => updateSettingsOption('ui.killfeedSeekBuffer', value)}
           />
         </div>
       </TogglePanel>

@@ -32,6 +32,7 @@ export type DrawingActivation = (typeof DrawingActivation)[keyof typeof DrawingA
 export const UIPanelType = {
   ABOUT: 'About',
   SETTINGS: 'Settings',
+  MATCH_KILLFEED: 'MatchKillfeed',
 } as const
 
 export type UIPanelType = (typeof UIPanelType)[keyof typeof UIPanelType]
