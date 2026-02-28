@@ -42,6 +42,7 @@ export const AboutPanel = () => {
 
   const toggleUIPanel = () => {
     toggleUIPanelAction('Settings', false)
+    toggleUIPanelAction('MatchKillfeed', false)
     toggleUIPanelAction('About')
   }
 

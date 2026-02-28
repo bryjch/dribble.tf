@@ -15,6 +15,8 @@ type WasmPlayerCache = {
   health: Uint16Array[]
   meta: Uint8Array[]
   connected: Uint8Array[]
+  uber: Uint16Array[]
+  healTarget: Uint16Array[]
 }
 
 type WasmProjectileCache = {
@@ -143,6 +145,8 @@ onmessage = async (event: MessageEvent) => {
     playerCache.healthCache.data = wasmPlayerCache.health as any
     playerCache.metaCache.data = wasmPlayerCache.meta as any
     playerCache.connectedCache.data = wasmPlayerCache.connected as any
+    playerCache.uberCache.data = wasmPlayerCache.uber as any
+    playerCache.healTargetCache.data = wasmPlayerCache.healTarget as any
 
     // Empty building cache (WASM parser does not output building data)
     const buildingCache = new BuildingCache(ticks, world.boundaryMin)
@@ -216,7 +220,9 @@ onmessage = async (event: MessageEvent) => {
       sumBytes(playerCache.viewAnglesCache.data) +
       sumBytes(playerCache.healthCache.data) +
       sumBytes(playerCache.metaCache.data) +
-      sumBytes(playerCache.connectedCache.data)
+      sumBytes(playerCache.connectedCache.data) +
+      sumBytes(playerCache.uberCache.data) +
+      sumBytes(playerCache.healTargetCache.data)
     const projectileCacheBytes =
       sumBytes(projectileCache.positionCache.data) +
       sumBytes(projectileCache.rotationCache.data) +
@@ -265,6 +271,8 @@ onmessage = async (event: MessageEvent) => {
     pushBuffers(transfers, playerCache.healthCache.data)
     pushBuffers(transfers, playerCache.metaCache.data)
     pushBuffers(transfers, playerCache.connectedCache.data)
+    pushBuffers(transfers, playerCache.uberCache.data)
+    pushBuffers(transfers, playerCache.healTargetCache.data)
     pushBuffers(transfers, projectileCache.positionCache.data)
     pushBuffers(transfers, projectileCache.rotationCache.data)
     pushBuffers(transfers, projectileCache.teamNumberCache.data)

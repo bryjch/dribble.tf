@@ -131,6 +131,7 @@ export type StoreState = {
       showStats: boolean
       showSkybox: boolean
       viewDistance: number
+      killfeedSeekBuffer: number
     }
   }
   ui: {
@@ -210,6 +211,7 @@ export const initialState: StoreState = {
       showStats: false,
       showSkybox: true,
       viewDistance: 15000,
+      killfeedSeekBuffer: 2,
     },
   },
 

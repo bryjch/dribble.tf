@@ -29,6 +29,7 @@ import { PlaybackPanel } from '@components/UI/PlaybackPanel'
 import { Killfeed } from '@components/UI/Killfeed'
 import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
+import { MatchKillfeedPanel } from '@components/UI/MatchKillfeedPanel'
 import { FpsCounter } from '@components/UI/FpsCounter'
 
 // Actions & utils
@@ -433,6 +434,12 @@ class DemoViewer extends Component<DemoViewerProps> {
           <div className="ui-layer justift-start m-4 mt-16 items-start">
             <AboutPanel />
           </div>
+
+          {demo && (
+            <div className="ui-layer m-4 mt-28 items-start justify-start">
+              <MatchKillfeedPanel />
+            </div>
+          )}
         </div>
       </div>
     )
