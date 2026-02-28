@@ -283,7 +283,8 @@ class DemoViewer extends Component<DemoViewerProps> {
     const { playback, settings } = this.state
     const { demo, map } = this.props
     const INTERP_DELAY_TICKS = 2
-    const interpTick = Math.max(1, playback.tick - INTERP_DELAY_TICKS)
+    const renderTick = Math.max(1, playback.tick - INTERP_DELAY_TICKS)
+    const MAX_PROJECTILES_FOR_HIGH_QUALITY_INTERPOLATION = 16
 
     let playersThisTick: CachedPlayer[] = []
     let playersNextTick: CachedPlayer[] = []
@@ -292,11 +293,11 @@ class DemoViewer extends Component<DemoViewerProps> {
 
     if (!!demo) {
       playersThisTick = demo
-        .getPlayersAtTick(interpTick)
+        .getPlayersAtTick(renderTick)
         .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
 
       playersNextTick = demo
-        .getPlayersAtTick(interpTick + 1)
+        .getPlayersAtTick(renderTick + 1)
         .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
 
       const nextTickMap = new Map(playersNextTick.map(p => [p.user.entityId, p]))
@@ -310,17 +311,36 @@ class DemoViewer extends Component<DemoViewerProps> {
         }
       })
 
-      const projectilesCurrentTick = demo.getProjectilesAtTick(interpTick)
-      const projectilesNextTick = demo.getProjectilesAtTick(interpTick + 1)
+      const projectilesCurrentTick = demo.getProjectilesAtTick(renderTick)
+      const projectilesNextTick = demo.getProjectilesAtTick(renderTick + 1)
       const projectilesNextById = new Map(
         projectilesNextTick.map(p => [p.entityId, p])
       )
 
+      const useHighQualityProjectileInterpolation =
+        projectilesCurrentTick.length <= MAX_PROJECTILES_FOR_HIGH_QUALITY_INTERPOLATION
+      const projectilesPrevTick = useHighQualityProjectileInterpolation
+        ? demo.getProjectilesAtTick(Math.max(renderTick - 1, 1))
+        : []
+      const projectilesNext2Tick = useHighQualityProjectileInterpolation
+        ? demo.getProjectilesAtTick(renderTick + 2)
+        : []
+      const projectilesPrevById = new Map(
+        projectilesPrevTick.map(p => [p.entityId, p])
+      )
+      const projectilesNext2ById = new Map(
+        projectilesNext2Tick.map(p => [p.entityId, p])
+      )
+
       projectilesThisTick = projectilesCurrentTick.map(projectile => {
         const nextProjectile = projectilesNextById.get(projectile.entityId)
+        const prevProjectile = projectilesPrevById.get(projectile.entityId)
+        const next2Projectile = projectilesNext2ById.get(projectile.entityId)
         return {
           ...projectile,
+          positionPrev: prevProjectile?.position ?? projectile.position,
           positionNext: nextProjectile?.position ?? projectile.position,
+          positionNext2: next2Projectile?.position ?? nextProjectile?.position ?? projectile.position,
           rotationNext: nextProjectile?.rotation ?? projectile.rotation,
         }
       })
@@ -372,7 +392,11 @@ class DemoViewer extends Component<DemoViewerProps> {
 
           {/* Projectiles */}
 
-          <Projectiles projectiles={projectilesThisTick} />
+          <Projectiles
+            projectiles={projectilesThisTick}
+            tick={renderTick}
+            intervalPerTick={demo?.intervalPerTick ?? 0.015}
+          />
         </Canvas>
 
         {/* Normal React (non-THREE.js) UI elements */}
