@@ -33,6 +33,7 @@ export const UIPanelType = {
   ABOUT: 'About',
   SETTINGS: 'Settings',
   MATCH_KILLFEED: 'MatchKillfeed',
+  BOOKMARKS: 'Bookmarks',
 } as const
 
 export type UIPanelType = (typeof UIPanelType)[keyof typeof UIPanelType]

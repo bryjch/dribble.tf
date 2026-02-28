@@ -493,6 +493,44 @@ export const toggleUIDrawingAction = async (active?: boolean) => {
   }
 }
 
+//
+// ─── BOOKMARKS ──────────────────────────────────────────────────────────────────
+//
+
+export const toggleBookmarkAction = async (tick?: number) => {
+  try {
+    const currentTick = tick ?? getState().playback.tick
+    const bookmarks = getState().bookmarks
+
+    if (bookmarks.includes(currentTick)) {
+      dispatch({ type: 'REMOVE_BOOKMARK', payload: currentTick })
+      addEventHistoryAction('removeBookmark', `Tick ${currentTick}`)
+    } else {
+      dispatch({ type: 'ADD_BOOKMARK', payload: currentTick })
+      addEventHistoryAction('addBookmark', `Tick ${currentTick}`)
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const removeBookmarkAction = async (tick: number) => {
+  try {
+    dispatch({ type: 'REMOVE_BOOKMARK', payload: tick })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const clearBookmarksAction = async () => {
+  try {
+    dispatch({ type: 'CLEAR_BOOKMARKS' })
+    addEventHistoryAction('clearBookmarks')
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 // ─── EVENT HISTORY ───────────────────────────────────────────────────────────
 
 export const addEventHistoryAction = async (type: string, value?: string) => {

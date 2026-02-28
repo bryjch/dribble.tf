@@ -9,11 +9,13 @@ import {
   AiFillFastForwardIcon,
   IoMdPauseIcon,
   IoMdPlayIcon,
+  BsBookmarkIcon,
+  BsBookmarkFillIcon,
 } from '@components/Misc/Icons'
 import { EventHistoryText } from './EventHistoryText'
 
 import { useInstance, useStore } from '@zus/store'
-import { goToTickAction, togglePlaybackAction, changePlaySpeedAction } from '@zus/actions'
+import { goToTickAction, togglePlaybackAction, changePlaySpeedAction, toggleBookmarkAction } from '@zus/actions'
 import { focusMainCanvas } from '@utils/misc'
 import { cn } from '@utils/styling'
 import { getDurationFromTicks } from '@utils/parser'
@@ -86,8 +88,10 @@ const PlaybackAction = (props: PlaybackActionProps) => {
 export const PlaybackPanel = () => {
   const parsedDemo = useInstance(state => state.parsedDemo)
   const playback = useStore(state => state.playback)
+  const bookmarks = useStore(state => state.bookmarks)
   const lastEventHistory = useStore(state => state.eventHistory)?.[0]
   const { playing, speed, tick, maxTicks, forceShowPanel } = playback
+  const isBookmarked = bookmarks.includes(tick)
 
   const rounds = useMemo(() => {
     const result = [
@@ -310,23 +314,56 @@ export const PlaybackPanel = () => {
             </>
           }
         />
+
+        {/* Toggle bookmark action */}
+
+        <PlaybackAction
+          icon={
+            isBookmarked ? (
+              <BsBookmarkFillIcon width="1.25rem" height="1.25rem" className="text-amber-400" />
+            ) : (
+              <BsBookmarkIcon width="1.25rem" height="1.25rem" />
+            )
+          }
+          content={
+            <div>
+              Toggle bookmark <kbd className="ml-2">B</kbd>
+            </div>
+          }
+          onClick={() => {
+            toggleBookmarkAction()
+            focusMainCanvas()
+          }}
+        />
       </div>
 
       <div className="-ml-[5%] mt-3 w-[110%]">
         {/* Timeline slider */}
 
-        <Slider.Root
-          className="relative flex w-full cursor-pointer select-none items-center"
-          min={1}
-          max={maxTicks}
-          value={[tick]}
-          step={1}
-          onValueChange={([value]) => goToTick(value)}
-        >
-          <Slider.Track className="relative h-2 grow rounded-full bg-pp-panel/30">
-            <Slider.Range className="absolute h-full rounded-full bg-white" />
-          </Slider.Track>
-        </Slider.Root>
+        <div className="relative">
+          <Slider.Root
+            className="relative flex w-full cursor-pointer select-none items-center"
+            min={1}
+            max={maxTicks}
+            value={[tick]}
+            step={1}
+            onValueChange={([value]) => goToTick(value)}
+          >
+            <Slider.Track className="relative h-2 grow rounded-full bg-pp-panel/30">
+              <Slider.Range className="absolute h-full rounded-full bg-white" />
+            </Slider.Track>
+          </Slider.Root>
+
+          {/* Bookmark markers */}
+          {bookmarks.map(bookmarkTick => (
+            <div
+              key={`bookmark-marker-${bookmarkTick}`}
+              className="absolute top-1/2 h-3 w-1 -translate-y-1/2 cursor-pointer rounded-sm bg-amber-400 hover:bg-amber-300"
+              style={{ left: `${((bookmarkTick - 1) / (maxTicks - 1)) * 100}%` }}
+              onClick={() => goToTick(bookmarkTick)}
+            />
+          ))}
+        </div>
 
         <div className="mt-2 flex items-center justify-between">
           {/* Rounds (Jump to round) */}

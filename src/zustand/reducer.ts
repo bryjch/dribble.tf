@@ -1,5 +1,5 @@
 import localForage from 'localforage'
-import { set, clone, clamp, uniq, without } from 'lodash'
+import { set, clone, clamp, uniq, without, sortedUniq, sortBy } from 'lodash'
 
 import { StoreState, StoreAction, useInstance } from './store'
 
@@ -42,6 +42,7 @@ const reducers = (state: StoreState, action: StoreAction) => {
         ...state,
         scene: action.payload.scene,
         playback: action.payload.playback,
+        bookmarks: [],
       }
 
     case 'CHANGE_CONTROLS_MODE':
@@ -180,6 +181,28 @@ const reducers = (state: StoreState, action: StoreAction) => {
 
       return { ...state, downloads }
     }
+
+    //
+    // ─── BOOKMARKS ────────────────────────────────────────────────────
+    //
+
+    case 'ADD_BOOKMARK':
+      return {
+        ...state,
+        bookmarks: sortedUniq(sortBy([...state.bookmarks, action.payload])),
+      }
+
+    case 'REMOVE_BOOKMARK':
+      return {
+        ...state,
+        bookmarks: state.bookmarks.filter(t => t !== action.payload),
+      }
+
+    case 'CLEAR_BOOKMARKS':
+      return {
+        ...state,
+        bookmarks: [],
+      }
 
     //
     // ─── DEFAULT ─────────────────────────────────────────────────────

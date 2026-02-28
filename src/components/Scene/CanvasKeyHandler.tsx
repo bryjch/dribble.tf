@@ -11,6 +11,7 @@ import {
   changePlaySpeedAction,
   changeSceneModeAction,
   toggleSettingsOptionAction,
+  toggleBookmarkAction,
 } from '@zus/actions'
 
 import { useEventListener } from '@utils/hooks'
@@ -67,6 +68,10 @@ export const CanvasKeyHandler = () => {
 
           case 'o':
             toggleSettingsOptionAction('ui.playerOutlines')
+            break
+
+          case 'b':
+            toggleBookmarkAction()
             break
 
           case '1':

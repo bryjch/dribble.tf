@@ -31,6 +31,7 @@ import { ChatHud } from '@components/UI/ChatHud'
 import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 import { MatchKillfeedPanel } from '@components/UI/MatchKillfeedPanel'
+import { BookmarksPanel } from '@components/UI/BookmarksPanel'
 import { FpsCounter } from '@components/UI/FpsCounter'
 import { Crosshair } from '@components/UI/Crosshair'
 
@@ -450,6 +451,12 @@ class DemoViewer extends Component<DemoViewerProps> {
           {demo && (
             <div className="ui-layer m-4 mt-28 items-start justify-start">
               <MatchKillfeedPanel />
+            </div>
+          )}
+
+          {demo && (
+            <div className="ui-layer m-4 mt-40 items-start justify-start">
+              <BookmarksPanel />
             </div>
           )}
         </div>

@@ -141,6 +141,7 @@ export type StoreState = {
       killfeedSeekBuffer: number
     }
   }
+  bookmarks: number[]
   ui: {
     activePanels: UIPanelType[]
   }
@@ -227,6 +228,8 @@ export const initialState: StoreState = {
       killfeedSeekBuffer: 2,
     },
   },
+
+  bookmarks: [],
 
   ui: {
     activePanels: [UIPanelType.ABOUT],
