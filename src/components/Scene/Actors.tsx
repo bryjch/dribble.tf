@@ -38,10 +38,7 @@ const TELEPORT_LERP_DISTANCE = 4096
  * Updates lastGoodRef when non-zero angles are found, and falls back
  * to the last known good angles when all components are zero.
  */
-function resolveViewAngles(
-  angles: Vector,
-  lastGoodRef: { current: Vector }
-): Vector {
+function resolveViewAngles(angles: Vector, lastGoodRef: { current: Vector }): Vector {
   if (angles.x === 0 && angles.y === 0 && angles.z === 0) {
     return lastGoodRef.current
   }
@@ -235,11 +232,9 @@ export const Actor = (props: ActorProps) => {
 
       <group name="playerBody" ref={bodyRef}>
         <Suspense fallback={null}>
-          {
-            team && classId && !changing ? (
-              <PlayerModel visible={alive && !isFocusedPOV} team={team} classId={classId} />
-            ) : null
-          }
+          {team && classId && !changing ? (
+            <PlayerModel visible={alive && !isFocusedPOV} team={team} classId={classId} />
+          ) : null}
         </Suspense>
       </group>
 
@@ -258,14 +253,12 @@ export const Actor = (props: ActorProps) => {
       {/* Medic heal beam */}
 
       {healTargetVec3 && (
-        <group rotation={[0, 0, -yawRad]}>
-          <HealBeam
-            origin={positionVec3}
-            target={healTargetVec3}
-            control={new THREE.Vector3(100, 0, 0).applyAxisAngle(VectorZ, yawRad)}
-            color={color}
-          />
-        </group>
+        <HealBeam
+          origin={positionVec3}
+          target={healTargetVec3}
+          control={new THREE.Vector3(100, 0, 0).applyAxisAngle(VectorZ, yawRad)}
+          color={color}
+        />
       )}
 
       {/* Nameplate */}
