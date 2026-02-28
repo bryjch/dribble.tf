@@ -2,7 +2,15 @@ import { useState } from 'react'
 import { clamp } from 'lodash'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
-import { IoMdSettingsIcon } from '@components/Misc/Icons'
+import {
+  IoMdSettingsIcon,
+  CrosshairStyleIcon,
+  CrossStyleIcon,
+  CircleStyleIcon,
+  DotStyleIcon,
+} from '@components/Misc/Icons'
+import { CrosshairStyle } from '@constants/types'
+import { BRUSH_COLOR_OPTIONS } from '@components/Misc/DemoDrawing'
 
 import { useStore } from '@zus/store'
 import { toggleUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
@@ -317,6 +325,74 @@ export const SettingsPanel = () => {
                 onChange={checked => updateSettingsOption('ui.nameplate.showClass', checked)}
               />
             </div>
+          )}
+
+          {/* ************************************************************* */}
+
+          <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Crosshair</div>
+
+          <Option label="Style">
+            <div className="flex gap-1">
+              {([
+                { label: 'None', value: CrosshairStyle.NONE, icon: null },
+                { label: 'Crosshair', value: CrosshairStyle.CROSSHAIR, icon: <CrosshairStyleIcon className="h-4 w-4" /> },
+                { label: 'Cross', value: CrosshairStyle.CROSS, icon: <CrossStyleIcon className="h-4 w-4" /> },
+                { label: 'Circle', value: CrosshairStyle.CIRCLE, icon: <CircleStyleIcon className="h-4 w-4" /> },
+                { label: 'Dot', value: CrosshairStyle.DOT, icon: <DotStyleIcon className="h-4 w-4" /> },
+              ] as const).map(button => (
+                <button
+                  key={`crosshair-style-btn-${button.value}`}
+                  className={cn(
+                    'flex items-center gap-1 rounded-xl border px-2 py-0.5 text-sm',
+                    settings.ui.crosshair.style === button.value && 'border-[#3273f6] bg-[#3273f6]'
+                  )}
+                  onClick={() => updateSettingsOption('ui.crosshair.style', button.value)}
+                >
+                  {button.icon}
+                  {button.label}
+                </button>
+              ))}
+            </div>
+          </Option>
+
+          {settings.ui.crosshair.style !== 'none' && (
+            <>
+              <SliderOption
+                label="Size"
+                min={10}
+                max={60}
+                step={1}
+                value={settings.ui.crosshair.size}
+                onChange={value => updateSettingsOption('ui.crosshair.size', value)}
+              />
+
+              <SliderOption
+                label="Opacity"
+                min={0.1}
+                max={1}
+                step={0.05}
+                value={settings.ui.crosshair.opacity}
+                onChange={value => updateSettingsOption('ui.crosshair.opacity', value)}
+              />
+
+              <Option label="Color">
+                <div className="flex items-center gap-1.5">
+                  {BRUSH_COLOR_OPTIONS.map(({ color }) => (
+                    <div
+                      key={`crosshair-color-${color}`}
+                      className={cn(
+                        'h-6 w-6 cursor-pointer rounded-full [transition:0.2s_ease_all] hover:scale-110',
+                        settings.ui.crosshair.color === color
+                          ? '[border:2px_solid_white] scale-110'
+                          : '[border:2px_solid_transparent]'
+                      )}
+                      style={{ backgroundColor: color }}
+                      onClick={() => updateSettingsOption('ui.crosshair.color', color)}
+                    />
+                  ))}
+                </div>
+              </Option>
+            </>
           )}
 
           {/* ************************************************************* */}

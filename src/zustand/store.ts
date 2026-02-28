@@ -11,6 +11,7 @@ import { parseMapBoundaries } from '@utils/scene'
 
 import {
   ControlsMode,
+  CrosshairStyle,
   Download,
   DrawingActivation,
   ParserStatus,
@@ -127,6 +128,12 @@ export type StoreState = {
         showHealth: boolean
         showClass: boolean
       }
+      crosshair: {
+        style: CrosshairStyle
+        size: number
+        opacity: number
+        color: string
+      }
       playerOutlines: boolean
       showStats: boolean
       showSkybox: boolean
@@ -206,6 +213,12 @@ export const initialState: StoreState = {
         showName: true,
         showHealth: true,
         showClass: true,
+      },
+      crosshair: {
+        style: 'crosshair' as CrosshairStyle,
+        size: 16,
+        opacity: 0.8,
+        color: '#ffffff',
       },
       playerOutlines: false,
       showStats: false,

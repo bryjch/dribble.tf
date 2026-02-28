@@ -167,6 +167,80 @@ export const HiListBulletIcon = (props: SVGProps<SVGSVGElement>) => {
   )
 }
 
+// Crosshair style icons
+
+export const CrosshairStyleIcon = (props: SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      stroke="currentColor"
+      fill="none"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      height="1rem"
+      width="1rem"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <line x1="12" y1="2" x2="12" y2="9" strokeLinecap="round" />
+      <line x1="12" y1="15" x2="12" y2="22" strokeLinecap="round" />
+      <line x1="2" y1="12" x2="9" y2="12" strokeLinecap="round" />
+      <line x1="15" y1="12" x2="22" y2="12" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export const CrossStyleIcon = (props: SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      stroke="currentColor"
+      fill="none"
+      strokeWidth="2.5"
+      viewBox="0 0 24 24"
+      height="1rem"
+      width="1rem"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <line x1="12" y1="2" x2="12" y2="22" strokeLinecap="round" />
+      <line x1="2" y1="12" x2="22" y2="12" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export const CircleStyleIcon = (props: SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      stroke="currentColor"
+      fill="none"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      height="1rem"
+      width="1rem"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <circle cx="12" cy="12" r="8" />
+    </svg>
+  )
+}
+
+export const DotStyleIcon = (props: SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      stroke="currentColor"
+      fill="currentColor"
+      strokeWidth="0"
+      viewBox="0 0 24 24"
+      height="1rem"
+      width="1rem"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <circle cx="12" cy="12" r="6" />
+    </svg>
+  )
+}
+
 export const FaTrashIcon = (props: SVGProps<SVGSVGElement>) => {
   return (
     <svg

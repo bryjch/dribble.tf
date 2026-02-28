@@ -32,6 +32,7 @@ import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 import { MatchKillfeedPanel } from '@components/UI/MatchKillfeedPanel'
 import { FpsCounter } from '@components/UI/FpsCounter'
+import { Crosshair } from '@components/UI/Crosshair'
 
 // Actions & utils
 import { useStore, getState, useInstance } from '@zus/store'
@@ -404,6 +405,10 @@ class DemoViewer extends Component<DemoViewerProps> {
         {/* Normal React (non-THREE.js) UI elements */}
 
         {settings.ui.showStats && <FpsCounter />}
+
+        <div className="ui-layer items-center justify-center pointer-events-none">
+          <Crosshair />
+        </div>
 
         <div className="ui-layers" ref={this.uiLayers}>
           <div className="ui-layer mb-4 items-end justify-center text-center">

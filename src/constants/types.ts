@@ -37,6 +37,16 @@ export const UIPanelType = {
 
 export type UIPanelType = (typeof UIPanelType)[keyof typeof UIPanelType]
 
+export const CrosshairStyle = {
+  NONE: 'none',
+  CROSSHAIR: 'crosshair',
+  CROSS: 'cross',
+  CIRCLE: 'circle',
+  DOT: 'dot',
+} as const
+
+export type CrosshairStyle = (typeof CrosshairStyle)[keyof typeof CrosshairStyle]
+
 export type Download = {
   type: 'map' | 'demo'
   status: 'loading' | 'success' | 'error'
