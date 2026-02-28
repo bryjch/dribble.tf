@@ -17,6 +17,8 @@ import {
   cameraQuaternionFromSourceAnglesDeg,
   yawQuaternionFromDegrees,
   smoothingAlpha,
+  createStaleFrameGuard,
+  guardedLerpProgress,
 } from '@utils/geometry'
 import { getAsset } from '@utils/misc'
 import { useEventListener } from '@utils/hooks'
@@ -104,6 +106,7 @@ export const Actor = (props: ActorProps) => {
   const lastGoodViewAngles = useRef<Vector>({ x: 0, y: 0, z: 0 })
   const lerpedPosition = useRef(new THREE.Vector3())
   const hasPositionInit = useRef(false)
+  const staleGuard = useRef(createStaleFrameGuard(props.position))
   const [changing, setChanging] = useState<boolean>(false)
   const { scene } = useThree()
 
@@ -148,6 +151,8 @@ export const Actor = (props: ActorProps) => {
     // Actor group is position-only; rotations are applied to children.
     actorRef.current.quaternion.identity()
 
+    const frameProgress = useInstance.getState().frameProgress
+
     // Skip interpolation when disabled or paused
     if (settings.scene.interpolateFrames === false || playback.playing === false) {
       actorRef.current.position.set(position.x, position.y, position.z)
@@ -157,11 +162,13 @@ export const Actor = (props: ActorProps) => {
       playerAimRef.current.quaternion.copy(
         cameraQuaternionFromSourceAnglesDeg({ pitch: pitchDeg, yaw: yawDeg, roll: rollDeg })
       )
+      guardedLerpProgress(staleGuard.current, frameProgress, position, false)
       return
     }
 
-    const frameProgress = useInstance.getState().frameProgress
-    const lerpProgress = Math.min(Math.max(frameProgress, 0), 0.999)
+    const lerpProgress = guardedLerpProgress(
+      staleGuard.current, frameProgress, position, playback.playing
+    )
     const didTeleport = positionVec3.distanceTo(positionNextVec3) > TELEPORT_LERP_DISTANCE
     const wasInitialized = hasPositionInit.current
     const positionBlend = smoothingAlpha(delta, RENDER_POSITION_SMOOTH_SECONDS)

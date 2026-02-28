@@ -149,6 +149,62 @@ export const smoothingAlpha = (deltaSeconds: number, tauSeconds: number): number
 }
 
 /**
+ * State for detecting "stale frames" at tick boundaries where frameProgress
+ * has been updated but React hasn't re-rendered with new tick data yet.
+ */
+export type StaleFrameGuard = {
+  prevProgress: number
+  posX: number
+  posY: number
+  posZ: number
+  isStale: boolean
+}
+
+export function createStaleFrameGuard(pos: { x: number; y: number; z: number }): StaleFrameGuard {
+  return { prevProgress: 0, posX: pos.x, posY: pos.y, posZ: pos.z, isStale: false }
+}
+
+/**
+ * Compute a stable lerp progress that avoids backward jumps at tick boundaries.
+ *
+ * DemoViewer.animate() updates frameProgress synchronously via requestAnimationFrame,
+ * but position data flows through React props which update asynchronously. At tick
+ * boundaries, frameProgress resets to near 0 while props still contain old tick data,
+ * causing a one-frame backward jump. At slow playback speeds (e.g. 0.1x) this
+ * manifests as visible stutter.
+ */
+export function guardedLerpProgress(
+  guard: StaleFrameGuard,
+  frameProgress: number,
+  position: { x: number; y: number; z: number },
+  playing: boolean
+): number {
+  let lerpProgress = Math.min(Math.max(frameProgress, 0), 0.999)
+
+  const posChanged =
+    position.x !== guard.posX ||
+    position.y !== guard.posY ||
+    position.z !== guard.posZ
+
+  if (posChanged || !playing) {
+    guard.isStale = false
+  } else if (frameProgress < guard.prevProgress - 0.5) {
+    guard.isStale = true
+  }
+
+  if (guard.isStale) {
+    lerpProgress = 0.999
+  }
+
+  guard.prevProgress = frameProgress
+  guard.posX = position.x
+  guard.posY = position.y
+  guard.posZ = position.z
+
+  return lerpProgress
+}
+
+/**
  * Find all meshes in an Object3D array (can specify specific mesh name)
  */
 export const getMeshes = (sceneObjects: THREE.Object3D[], meshName: string = ''): THREE.Mesh[] => {

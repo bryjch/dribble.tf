@@ -6,10 +6,10 @@ import { Sphere, Trail, useGLTF } from '@react-three/drei'
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
 
 import { CachedProjectile } from '@components/Analyse/Data/ProjectileCache'
-import { useStore, useInstance } from '@zus/store'
+import { useStore, useInstance, getState } from '@zus/store'
 
 import { TEAM_MAP } from '@constants/mappings'
-import { objCoordsToVector3, eulerizeVector } from '@utils/geometry'
+import { objCoordsToVector3, eulerizeVector, createStaleFrameGuard, guardedLerpProgress } from '@utils/geometry'
 import { getAsset } from '@utils/misc'
 
 //
@@ -259,6 +259,7 @@ const RocketSmokeTrail = ({ data }: { data: TrailTargetData }) => {
   const hasInit = useRef(false)
   const opacityArray = useRef(new Float32Array(SMOKE_MAX_PUFFS))
   const opacityAttr = useRef<THREE.InstancedBufferAttribute | null>(null)
+  const staleGuard = useRef(createStaleFrameGuard(data.position))
 
   // Keep latest position data in refs
   const posRef = useRef(data.position)
@@ -294,7 +295,8 @@ const RocketSmokeTrail = ({ data }: { data: TrailTargetData }) => {
 
     const now = performance.now()
     const frameProgress = useInstance.getState().frameProgress
-    const lerpProgress = Math.min(Math.max(frameProgress, 0), 0.999)
+    const playing = getState().playback.playing
+    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, data.position, playing)
     const alpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
 
     // Update current position (same logic as TrailTarget)
@@ -434,6 +436,7 @@ const TrailTarget = ({ data }: { data: TrailTargetData }) => {
   const interpolatedPos = useRef(new THREE.Vector3())
   const smoothedPos = useRef(new THREE.Vector3())
   const hasInit = useRef(false)
+  const staleGuard = useRef(createStaleFrameGuard(data.position))
 
   // Keep latest position data in refs so useFrame always has current values
   const posRef = useRef(data.position)
@@ -458,7 +461,8 @@ const TrailTarget = ({ data }: { data: TrailTargetData }) => {
     if (!targetRef.current) return
 
     const frameProgress = useInstance.getState().frameProgress
-    const lerpProgress = Math.min(Math.max(frameProgress, 0), 0.999)
+    const playing = getState().playback.playing
+    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, data.position, playing)
     const alpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
 
     const pos = objCoordsToVector3(posRef.current)
@@ -701,6 +705,7 @@ export const RocketProjectile = (props: BaseProjectileProps) => {
   const position = objCoordsToVector3(props.position)
   const positionNext = objCoordsToVector3(props.positionNext)
   const hasRenderInit = useRef(false)
+  const staleGuard = useRef(createStaleFrameGuard(props.position))
 
   useEffect(() => {
     if (!prevLookAtPosition.current?.equals(position)) {
@@ -713,7 +718,8 @@ export const RocketProjectile = (props: BaseProjectileProps) => {
     const frameProgress = useInstance.getState().frameProgress
     if (!ref.current) return
 
-    const lerpProgress = Math.min(Math.max(frameProgress, 0), 0.999)
+    const playing = getState().playback.playing
+    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, props.position, playing)
     const alpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
 
     interpolatePosition(position, positionNext, lerpProgress, interpolatedPosition.current)
@@ -755,12 +761,14 @@ export const PipebombProjectile = (props: BaseProjectileProps) => {
   const nextQuat = useRef(new THREE.Quaternion())
   const interpolatedQuat = useRef(new THREE.Quaternion())
   const hasRenderInit = useRef(false)
+  const staleGuard = useRef(createStaleFrameGuard(props.position))
 
   useFrame((_, delta) => {
     const frameProgress = useInstance.getState().frameProgress
     if (!ref.current) return
 
-    const lerpProgress = Math.min(Math.max(frameProgress, 0), 0.999)
+    const playing = getState().playback.playing
+    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, props.position, playing)
     const posAlpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
     const rotAlpha = smoothingAlpha(PROJECTILE_ROTATION_SMOOTH_SECONDS, delta)
 
@@ -818,12 +826,14 @@ export const StickybombProjectile = (props: BaseProjectileProps) => {
   const nextQuat = useRef(new THREE.Quaternion())
   const interpolatedQuat = useRef(new THREE.Quaternion())
   const hasRenderInit = useRef(false)
+  const staleGuard = useRef(createStaleFrameGuard(props.position))
 
   useFrame((_, delta) => {
     const frameProgress = useInstance.getState().frameProgress
     if (!ref.current) return
 
-    const lerpProgress = Math.min(Math.max(frameProgress, 0), 0.999)
+    const playing = getState().playback.playing
+    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, props.position, playing)
     const posAlpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
     const rotAlpha = smoothingAlpha(PROJECTILE_ROTATION_SMOOTH_SECONDS, delta)
 
@@ -874,12 +884,14 @@ export const HealingBoltProjectile = (props: BaseProjectileProps) => {
   const position = objCoordsToVector3(props.position)
   const positionNext = objCoordsToVector3(props.positionNext)
   const hasRenderInit = useRef(false)
+  const staleGuard = useRef(createStaleFrameGuard(props.position))
 
   useFrame((_, delta) => {
     const frameProgress = useInstance.getState().frameProgress
     if (!ref.current) return
 
-    const lerpProgress = Math.min(Math.max(frameProgress, 0), 0.999)
+    const playing = getState().playback.playing
+    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, props.position, playing)
     const alpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
 
     interpolatePosition(position, positionNext, lerpProgress, interpolatedPosition.current)
