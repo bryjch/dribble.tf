@@ -544,6 +544,8 @@ export const Projectiles = (props: ProjectilesProps) => {
         } else {
           next.set(p.entityId, {
             ...existing,
+            type: p.type, // update type in case entityId was reused by a different projectile
+            teamNumber: p.teamNumber,
             position: p.position,
             positionNext: p.positionNext,
             // Unfreeze if entityId reappeared
