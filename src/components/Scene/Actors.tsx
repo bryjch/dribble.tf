@@ -3,16 +3,16 @@ import { useRef, useEffect, Suspense, useState } from 'react'
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Select } from '@react-three/postprocessing'
-import { Html, MeshWobbleMaterial, useGLTF, Clone } from '@react-three/drei'
+import { Html, useGLTF, Clone } from '@react-three/drei'
 import { Vector } from '@components/Analyse/Data/Types'
 
+import { HealBeam } from '@components/Scene/HealBeam'
 import { Nameplate } from '@components/Scene/Nameplate'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 
 import { useInstance, useStore } from '@zus/store'
 import { CLASS_MAP } from '@constants/mappings'
 import {
-  degreesToRadians,
   objCoordsToVector3,
   cameraQuaternionFromSourceAnglesDeg,
   yawQuaternionFromDegrees,
@@ -25,8 +25,6 @@ import { useEventListener } from '@utils/hooks'
 // https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper%27s_Reference
 export const ActorDimensions = new THREE.Vector3(49, 49, 83)
 
-// Some reusable vectors used for quaternion calculations
-const VectorZ = new THREE.Vector3(0, 0, 1)
 
 export const AimLineSize = 150
 const RENDER_POSITION_SMOOTH_SECONDS = 0.04
@@ -137,7 +135,6 @@ export const Actor = (props: ActorProps) => {
   const pitchNextDeg = viewAnglesNext.x
   const yawNextDeg = viewAnglesNext.y
   const rollNextDeg = viewAnglesNext.z
-  const yawRad = degreesToRadians(yawDeg)
 
   const healTargetVec3: THREE.Vector3 | undefined = healTarget
     ? scene
@@ -253,12 +250,7 @@ export const Actor = (props: ActorProps) => {
       {/* Medic heal beam */}
 
       {healTargetVec3 && (
-        <HealBeam
-          origin={positionVec3}
-          target={healTargetVec3}
-          control={new THREE.Vector3(100, 0, 0).applyAxisAngle(VectorZ, yawRad)}
-          color={color}
-        />
+        <HealBeam origin={positionVec3} target={healTargetVec3} color={color} />
       )}
 
       {/* Nameplate */}
@@ -281,46 +273,6 @@ export const Actor = (props: ActorProps) => {
           )}
         </Html>
       )}
-    </group>
-  )
-}
-
-// TODO: This implementation is quite sketchy (it relies on being parented to the Actor
-// and does weird stuff with vectors / angles). It might be worth trying to rewrite
-// this so it's rendered completely in world space.
-
-export interface HealBeamProps {
-  origin: THREE.Vector3
-  target: THREE.Vector3
-  control: THREE.Vector3
-  color?: string
-}
-
-export const HealBeam = (props: HealBeamProps) => {
-  const targetPos = new THREE.Vector3()
-  targetPos.subVectors(props.target, props.origin)
-
-  const curve = new THREE.QuadraticBezierCurve3(
-    new THREE.Vector3(0, 0, 0),
-    props.control,
-    targetPos
-  )
-
-  const geometry = new THREE.TubeGeometry(curve, 10, 5, 5)
-
-  return (
-    <group name="healBeam" position={new THREE.Vector3(0, 0, ActorDimensions.z * 0.5)}>
-      <mesh geometry={geometry}>
-        <MeshWobbleMaterial
-          attach="material"
-          factor={0.15}
-          speed={8}
-          time={1}
-          color={props.color || '#ffffff'}
-          opacity={0.7}
-          transparent
-        />
-      </mesh>
     </group>
   )
 }
