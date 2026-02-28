@@ -16,13 +16,15 @@ import { jumpToPlayerPOVCamera } from '@zus/actions'
 
 export interface PlayerStatusesProps {
   players: CachedPlayer[]
+  tick: number
+  intervalPerTick: number
 }
 
 export const PlayerStatuses = (props: PlayerStatusesProps) => {
   const bluePlayers: CachedPlayer[] = []
   const redPlayers: CachedPlayer[] = []
 
-  const { players } = props
+  const { players, tick, intervalPerTick } = props
   const focusedEntityId = useInstance(state => state?.focusedObject?.userData?.entityId)
 
   for (const player of players) {
@@ -44,6 +46,8 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
             team="blue"
             alignment="left"
             focused={focusedEntityId === player.user.entityId}
+            tick={tick}
+            intervalPerTick={intervalPerTick}
           />
         ))}
 
@@ -56,6 +60,8 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
             player={player}
             team="blue"
             alignment="left"
+            tick={tick}
+            intervalPerTick={intervalPerTick}
           />
         ))}
       </div>
@@ -69,6 +75,8 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
             team="red"
             alignment="right"
             focused={focusedEntityId === player.user.entityId}
+            tick={tick}
+            intervalPerTick={intervalPerTick}
           />
         ))}
 
@@ -81,6 +89,8 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
             player={player}
             team="red"
             alignment="right"
+            tick={tick}
+            intervalPerTick={intervalPerTick}
           />
         ))}
       </div>
@@ -101,10 +111,12 @@ export interface StatusItemProps {
   team: 'blue' | 'red'
   alignment: 'left' | 'right'
   focused?: boolean
+  tick: number
+  intervalPerTick: number
 }
 
 export const StatusItem = (props: StatusItemProps) => {
-  const { player, type, team, alignment, focused } = props
+  const { player, type, team, alignment, focused, tick, intervalPerTick } = props
   let name, health, percentage, icon
 
   switch (type) {
@@ -198,10 +210,15 @@ export const StatusItem = (props: StatusItemProps) => {
               type === 'player' && percentage < 40 && 'text-pp-health-low'
             )}
           >
-            {/* TODO: use respawn timer */}
             {health > 0 && health}
             {health === 0 && type === 'player' && (
-              <span className="text-xs text-white opacity-70">Dead</span>
+              player.respawnTick != null ? (
+                <span className="text-xs text-white opacity-70">
+                  {Math.ceil((player.respawnTick - tick) * intervalPerTick)}
+                </span>
+              ) : (
+                <span className="text-xs text-white opacity-70">Dead</span>
+              )
             )}
           </div>
 
