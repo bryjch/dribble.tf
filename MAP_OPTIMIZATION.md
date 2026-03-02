@@ -262,14 +262,14 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 26: Runtime Validation Tasks
 
-- [ ] Load Snakewater in the browser with perf logging enabled.
-- [ ] Measure render-call count while stationary in a representative outdoor area.
-- [ ] Measure render-call count while stationary in a representative indoor area.
-- [ ] Move the camera across multiple BSP regions and confirm visible chunk count changes.
-- [ ] Confirm no obvious chunk pop-in beyond normal BSP/PVS visibility changes.
-- [ ] Confirm actors and projectiles still align with the map.
-- [ ] Confirm invisible tool materials remain hidden.
-- [ ] Confirm toggling skybox on and off still works.
+- [x] Load Snakewater in the browser with perf logging enabled.
+- [x] Measure render-call count while stationary in a representative outdoor area.
+- [x] Measure render-call count while stationary in a representative indoor area.
+- [x] Move the camera across multiple BSP regions and confirm visible chunk count changes.
+- [x] Confirm no obvious chunk pop-in beyond normal BSP/PVS visibility changes.
+- [x] Confirm actors and projectiles still align with the map.
+- [x] Confirm invisible tool materials remain hidden.
+- [x] Confirm toggling skybox on and off still works.
 
 ### Phase 27: Regression Checks
 
