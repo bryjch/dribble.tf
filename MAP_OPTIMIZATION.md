@@ -281,11 +281,25 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 28: Acceptance Review
 
-- [ ] Compare before/after GLB stats using the diagnostic script.
-- [ ] Compare before/after render-call counts using the in-browser perf logger.
-- [ ] Compare before/after visible chunk counts across a short recorded camera path.
+- [x] Compare before/after GLB stats using the diagnostic script.
+- [x] Compare before/after render-call counts using the in-browser perf logger.
+- [x] Compare before/after visible chunk counts across a short recorded camera path.
 - [ ] Confirm the map is close to the 120 FPS target on the chosen midrange desktop at 1080p in textured mode with outlines off.
-- [ ] If FPS is still materially below target after draw-call reduction, create a follow-up backlog for optional second-pass work: mesh simplification, KTX2 loader path, skybox cost reduction, and material-side cleanup.
+- [x] If FPS is still materially below target after draw-call reduction, create a follow-up backlog for optional second-pass work: mesh simplification, KTX2 loader path, skybox cost reduction, and material-side cleanup.
+
+Acceptance review notes from 2026-03-03:
+
+- GLB stats improved from the phase-1 Snakewater baseline of `nodes=11029 / meshes=3817 / primitives=10140 / triangles=390955 / chunk roots=2` to `nodes=4108 / meshes=349 / primitives=1613 / triangles=388818 / chunk roots=31`.
+- A short five-view camera path with visibility metadata disabled (`visibility.json` forced to 404 in the browser harness) stayed at `visibleChunkCount=31` and `currentCluster=null`, with render calls ranging from `137` to `3539`.
+- The same path with visibility metadata enabled dropped visible chunk counts to `4-12`, set concrete BSP clusters (`275`, `633`, `661`, `758`, `1029`), and reduced render calls to `119-1233`.
+- The automated 1920x1080 textured/no-outlines FPS sample was run under headless Chrome with SwiftShader and measured about `2.6 FPS`, which is not a valid proxy for a GPU-backed midrange desktop. The 120 FPS target is therefore still unconfirmed in this environment.
+
+Follow-up backlog if the real GPU-backed pass is still below target:
+
+- Add an optional second-pass mesh simplification path after validating the current draw-call reductions.
+- Add a `KTX2Loader` runtime path and measure texture memory/bandwidth impact versus WebP.
+- Reduce skybox cost with a lower-cost background/environment path or resolution budget.
+- Continue material-side cleanup to improve merge/instancing opportunities and remove expensive leftovers.
 
 ## Test Cases and Scenarios
 
