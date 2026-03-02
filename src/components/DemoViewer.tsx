@@ -415,6 +415,8 @@ class DemoViewer extends Component<DemoViewerProps> {
     const INTERP_DELAY_TICKS = 2
     const renderTick = Math.max(1, playback.tick - INTERP_DELAY_TICKS)
     const MAX_PROJECTILES_FOR_HIGH_QUALITY_INTERPOLATION = 16
+    // Cap Retina/high-density DPR so fill-rate does not erase later draw-call wins.
+    const canvasDpr = typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio || 1, 1.25)
 
     let playersThisTick: CachedPlayer[] = []
     let playersNextTick: CachedPlayer[] = []
@@ -482,6 +484,7 @@ class DemoViewer extends Component<DemoViewerProps> {
           ref={this.canvasRef}
           id="main-canvas"
           gl={{ alpha: true }}
+          dpr={canvasDpr}
           onContextMenu={e => e.preventDefault()}
           onPointerDown={this.onPointerDown}
           onPointerUp={this.onPointerUp}

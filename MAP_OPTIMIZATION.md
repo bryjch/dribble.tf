@@ -237,9 +237,9 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 23: Clamp Canvas DPR
 
-- [ ] In [src/components/DemoViewer.tsx](/Users/bryan/Github/dribble.tf/src/components/DemoViewer.tsx), set the canvas `dpr` prop to `Math.min(window.devicePixelRatio, 1.25)`.
-- [ ] Keep this as the default for desktop and mobile unless a later perf mode is introduced.
-- [ ] Add a brief comment explaining that uncapped Retina DPR can dominate GPU cost after draw-call fixes.
+- [x] In [src/components/DemoViewer.tsx](/Users/bryan/Github/dribble.tf/src/components/DemoViewer.tsx), set the canvas `dpr` prop to `Math.min(window.devicePixelRatio, 1.25)`.
+- [x] Keep this as the default for desktop and mobile unless a later perf mode is introduced.
+- [x] Add a brief comment explaining that uncapped Retina DPR can dominate GPU cost after draw-call fixes.
 
 ### Phase 24: Perf Logging
 
