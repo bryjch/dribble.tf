@@ -72,14 +72,14 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 4: Chunk Brush Geometry
 
-- [ ] Add a helper that identifies brush-like objects by name prefix: `worldspawn`, `func_detail`, `func_brush`.
-- [ ] For each brush-like object, iterate faces and assign each face to a chunk using face-center in world space.
-- [ ] Preserve all UV layers when copying brush faces into chunk meshes.
-- [ ] Preserve material indices when copying brush faces into chunk meshes.
-- [ ] Preserve object transforms by baking face positions into the destination chunk object correctly.
-- [ ] Merge all brush faces that land in the same chunk into a single mesh object per chunk source category.
-- [ ] After copying, remove original brush-like source objects from the scene.
-- [ ] Add a validation step in the chunker that errors if brush chunking creates zero chunk roots.
+- [x] Add a helper that identifies brush-like objects by name prefix: `worldspawn`, `func_detail`, `func_brush`.
+- [x] For each brush-like object, iterate faces and assign each face to a chunk using face-center in world space.
+- [x] Preserve all UV layers when copying brush faces into chunk meshes.
+- [x] Preserve material indices when copying brush faces into chunk meshes.
+- [x] Preserve object transforms by baking face positions into the destination chunk object correctly.
+- [x] Merge all brush faces that land in the same chunk into a single mesh object per chunk source category.
+- [x] After copying, remove original brush-like source objects from the scene.
+- [x] Add a validation step in the chunker that errors if brush chunking creates zero chunk roots.
 
 ### Phase 5: Chunk Static Props
 

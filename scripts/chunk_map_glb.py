@@ -41,6 +41,10 @@ def has_name_prefix(obj, prefixes):
     return get_object_name(obj).startswith(prefixes)
 
 
+def is_brush_like_object(obj):
+    return obj.type == "MESH" and has_name_prefix(obj, BRUSH_LIKE_PREFIXES)
+
+
 def is_chunkable_mesh_object(obj):
     return obj.type == "MESH" and has_name_prefix(obj, CHUNKABLE_PREFIXES)
 
@@ -69,7 +73,7 @@ def classify_scene_objects():
             continue
 
         chunkable_mesh_objects.append(obj)
-        if has_name_prefix(obj, BRUSH_LIKE_PREFIXES):
+        if is_brush_like_object(obj):
             brush_like_objects.append(obj)
         elif has_name_prefix(obj, STATIC_PROP_PREFIXES):
             static_prop_objects.append(obj)
@@ -151,73 +155,131 @@ def parent_object_preserving_world_transform(obj, parent):
     obj.matrix_world = world_matrix
 
 
-def copy_faces_to_object(obj, faces, chunk_root, uv_layers, material_slots):
+def get_brush_category_name(obj):
+    name = get_object_name(obj)
+    for prefix in BRUSH_LIKE_PREFIXES:
+        if name.startswith(prefix):
+            return prefix
+    return "brush"
+
+
+def get_or_create_brush_chunk_builder(brush_chunk_builders, chunk_roots, ix, iy, category):
+    builder_key = (ix, iy, category)
+    builder = brush_chunk_builders.get(builder_key)
+    if builder:
+        return builder
+
+    builder = {
+        "chunk_root": get_or_create_chunk_root(chunk_roots, ix, iy),
+        "category": category,
+        "bm": bmesh.new(),
+        "uv_layers": {},
+        "materials": [],
+        "material_indices": {},
+        "verts": {},
+    }
+    brush_chunk_builders[builder_key] = builder
+    return builder
+
+
+def get_or_create_builder_uv_layer(builder, layer_name):
+    uv_layer = builder["uv_layers"].get(layer_name)
+    if uv_layer:
+        return uv_layer
+
+    uv_layer = builder["bm"].loops.layers.uv.new(layer_name)
+    builder["uv_layers"][layer_name] = uv_layer
+    return uv_layer
+
+
+def get_or_create_builder_material_index(builder, material):
+    material_key = material.name_full if material else "__none__"
+    material_index = builder["material_indices"].get(material_key)
+    if material_index is not None:
+        return material_index
+
+    material_index = len(builder["materials"])
+    builder["materials"].append(material)
+    builder["material_indices"][material_key] = material_index
+    return material_index
+
+
+def copy_brush_face_to_builder(obj, face, uv_layers, builder):
+    new_verts = []
+    for vert in face.verts:
+        # Bake each source vertex into world space so chunk meshes can merge
+        # faces from many source objects without depending on source transforms.
+        world_position = obj.matrix_world @ vert.co
+        vert_key = tuple(round(component, 6) for component in world_position)
+        if vert_key not in builder["verts"]:
+            builder["verts"][vert_key] = builder["bm"].verts.new(world_position)
+        new_verts.append(builder["verts"][vert_key])
+
+    try:
+        new_face = builder["bm"].faces.new(new_verts)
+    except ValueError:
+        return
+
+    material = obj.data.materials[face.material_index] if face.material_index < len(obj.data.materials) else None
+    new_face.material_index = get_or_create_builder_material_index(builder, material)
+
+    for src_layer in uv_layers:
+        dst_layer = get_or_create_builder_uv_layer(builder, src_layer.name)
+        for loop, new_loop in zip(face.loops, new_face.loops):
+            new_loop[dst_layer].uv = loop[src_layer].uv.copy()
+
+
+def build_brush_chunk_object(builder):
+    if not builder["bm"].faces:
+        builder["bm"].free()
+        return None
+
     object_name = "static_chunk_part"
     new_mesh = bpy.data.meshes.new(object_name)
-    new_bm = bmesh.new()
+    builder["bm"].to_mesh(new_mesh)
+    builder["bm"].free()
 
-    # Create matching UV layers in the new bmesh (preserves TEXCOORD_0, TEXCOORD_1, etc.)
-    new_uv_layers = []
-    for src_layer in uv_layers:
-        new_uv_layers.append(new_bm.loops.layers.uv.new(src_layer.name))
-
-    vert_map = {}
-
-    for face in faces:
-        new_verts = []
-        for vert in face.verts:
-            key = vert.index
-            if key not in vert_map:
-                vert_map[key] = new_bm.verts.new(vert.co.copy())
-            new_verts.append(vert_map[key])
-
-        try:
-            new_face = new_bm.faces.new(new_verts)
-        except ValueError:
-            continue
-
-        new_face.material_index = face.material_index
-
-        for src_layer, dst_layer in zip(uv_layers, new_uv_layers):
-            for loop, new_loop in zip(face.loops, new_face.loops):
-                new_loop[dst_layer].uv = loop[src_layer].uv.copy()
-
-    new_bm.to_mesh(new_mesh)
-    new_bm.free()
-
-    new_obj = bpy.data.objects.new(object_name, new_mesh)
-    for material in material_slots:
+    for material in builder["materials"]:
         new_mesh.materials.append(material)
 
-    new_obj.matrix_world = obj.matrix_world.copy()
+    new_obj = bpy.data.objects.new(object_name, new_mesh)
     bpy.context.scene.collection.objects.link(new_obj)
-    parent_object_preserving_world_transform(new_obj, chunk_root)
-
+    parent_object_preserving_world_transform(new_obj, builder["chunk_root"])
     return new_obj
 
 
-def chunk_brush_object(obj, grid, bounds_min, bounds_max, chunk_roots):
-    bm, uv_layers, chunks = build_chunk_faces(obj, grid, bounds_min, bounds_max)
-    material_slots = list(obj.data.materials)
+def chunk_brush_objects(brush_like_objects, grid, bounds_min, bounds_max):
+    chunk_roots = {}
+    brush_chunk_builders = {}
 
-    for (ix, iy), faces in chunks.items():
-        if not faces:
-            continue
-        chunk_root = get_or_create_chunk_root(chunk_roots, ix, iy)
-        copy_faces_to_object(obj, faces, chunk_root, uv_layers, material_slots)
+    for obj in list(brush_like_objects):
+        bm, uv_layers, chunks = build_chunk_faces(obj, grid, bounds_min, bounds_max)
+        category = get_brush_category_name(obj)
 
-    bm.free()
+        for (ix, iy), faces in chunks.items():
+            if not faces:
+                continue
 
-    bpy.data.objects.remove(obj, do_unlink=True)
+            builder = get_or_create_brush_chunk_builder(
+                brush_chunk_builders, chunk_roots, ix, iy, category
+            )
+            for face in faces:
+                copy_brush_face_to_builder(obj, face, uv_layers, builder)
+
+        bm.free()
+        bpy.data.objects.remove(obj, do_unlink=True)
+
+    for builder in brush_chunk_builders.values():
+        build_brush_chunk_object(builder)
+
+    if not chunk_roots:
+        raise RuntimeError("Brush chunking created zero chunk roots.")
+
+    return chunk_roots
 
 
 def chunk_scene_objects(classified_objects, grid, bounds_min, bounds_max):
-    chunk_roots = {}
-
-    for obj in list(classified_objects["brush_like_objects"]):
-        chunk_brush_object(obj, grid, bounds_min, bounds_max, chunk_roots)
-
-    return chunk_roots
+    return chunk_brush_objects(classified_objects["brush_like_objects"], grid, bounds_min, bounds_max)
 
 
 def main():
