@@ -1742,6 +1742,12 @@ if (fs.existsSync(chunkedOutput) && fs.statSync(chunkedOutput).size > 0) {
   fs.copyFileSync(chunkedOutput, chunkedPreLmOutput)
 }
 
+/*
+ * Static-map output pipeline order matters here:
+ * import -> chunk -> lightmap inject -> gltfpack -> metadata export.
+ * The later optimization and metadata steps assume they are operating on the
+ * chunked GLB, and the exported metadata should describe the packed map output.
+ */
 // ── Inject BSP lightmaps into the chunked GLB ──
 if (lightmapDataPath && fs.existsSync(chunkedOutput) && fs.statSync(chunkedOutput).size > 200) {
   try {
