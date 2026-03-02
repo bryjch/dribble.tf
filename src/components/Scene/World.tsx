@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 
 import * as THREE from 'three'
+import { useFrame } from '@react-three/fiber'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/Addons.js'
 
 import { ActorDimensions } from '@components/Scene/Actors'
@@ -49,8 +50,10 @@ export interface WorldProps {
 
 export const World = (props: WorldProps) => {
   const ref = useRef<THREE.Group>(null)
+  const cameraWorldPositionRef = useRef(new THREE.Vector3())
   const chunkRootsByNameRef = useRef<Map<string, THREE.Object3D>>(new Map())
   const visibilityCullingEnabledRef = useRef(false)
+  const currentClusterRef = useRef<number | null>(null)
   const [mapModel, setMapModel] = useState<THREE.Group | null>()
   const [mapOverlay, setMapOverlay] = useState<THREE.Group | null>()
   const [mapVisibility, setMapVisibility] = useState<MapVisibilityMetadata | null>(null)
@@ -174,6 +177,52 @@ export const World = (props: WorldProps) => {
     visibilityCullingEnabledRef.current = true
   }, [map, mapModel, mapVisibility])
 
+  useFrame(state => {
+    const chunkRootsByName = chunkRootsByNameRef.current
+    if (chunkRootsByName.size === 0) return
+
+    if (!visibilityCullingEnabledRef.current || !mapVisibility || !ref.current) {
+      if (currentClusterRef.current !== null) {
+        setChunkRootVisibility(chunkRootsByName, true)
+        currentClusterRef.current = null
+      }
+      return
+    }
+
+    const cameraWorldPosition = state.camera.getWorldPosition(cameraWorldPositionRef.current)
+    const currentCluster = getClusterIndexForWorldPoint(
+      cameraWorldPosition,
+      ref.current,
+      mapVisibility
+    )
+
+    if (currentCluster < 0) {
+      if (currentClusterRef.current !== -1) {
+        setChunkRootVisibility(chunkRootsByName, true)
+        currentClusterRef.current = -1
+      }
+      return
+    }
+
+    if (currentCluster === currentClusterRef.current) {
+      return
+    }
+
+    const visibleChunkIndices = mapVisibility.visibleChunksByCluster[currentCluster]
+    if (!Array.isArray(visibleChunkIndices) || visibleChunkIndices.length === 0) {
+      setChunkRootVisibility(chunkRootsByName, true)
+      currentClusterRef.current = -1
+      return
+    }
+
+    setChunkVisibilityForCluster(
+      chunkRootsByName,
+      mapVisibility.chunkNames,
+      visibleChunkIndices
+    )
+    currentClusterRef.current = currentCluster
+  })
+
   // Update map overlay materials
   useEffect(() => {
     if (mapOverlay) {
@@ -282,6 +331,20 @@ function collectChunkRoots(root: THREE.Object3D): Map<string, THREE.Object3D> {
 function setChunkRootVisibility(chunkRootsByName: Map<string, THREE.Object3D>, visible: boolean) {
   chunkRootsByName.forEach(chunkRoot => {
     chunkRoot.visible = visible
+  })
+}
+
+function setChunkVisibilityForCluster(
+  chunkRootsByName: Map<string, THREE.Object3D>,
+  chunkNames: string[],
+  visibleChunkIndices: number[]
+) {
+  const visibleChunkIndexSet = new Set(visibleChunkIndices)
+
+  chunkNames.forEach((chunkName, chunkIndex) => {
+    const chunkRoot = chunkRootsByName.get(chunkName)
+    if (!chunkRoot) return
+    chunkRoot.visible = visibleChunkIndexSet.has(chunkIndex)
   })
 }
 

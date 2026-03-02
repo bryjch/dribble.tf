@@ -219,14 +219,14 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 21: Implement Runtime Chunk Visibility
 
-- [ ] Add a `useFrame` loop in `World` that reads the current camera position and computes the current source cluster.
-- [ ] Only recompute chunk visibilities when the cluster changes.
-- [ ] If metadata is missing or invalid, show all chunk roots.
-- [ ] If the current cluster is invalid, show all chunk roots.
-- [ ] Otherwise, look up `visibleChunksByCluster[currentCluster]` and toggle chunk-root `.visible` flags from that list.
-- [ ] Make hidden chunks `visible = false`; do not remove them from the scene.
-- [ ] Ensure non-chunk map nodes remain visible and unaffected.
-- [ ] Keep the logic map-local so it does not interfere with actors, projectiles, or UI.
+- [x] Add a `useFrame` loop in `World` that reads the current camera position and computes the current source cluster.
+- [x] Only recompute chunk visibilities when the cluster changes.
+- [x] If metadata is missing or invalid, show all chunk roots.
+- [x] If the current cluster is invalid, show all chunk roots.
+- [x] Otherwise, look up `visibleChunksByCluster[currentCluster]` and toggle chunk-root `.visible` flags from that list.
+- [x] Make hidden chunks `visible = false`; do not remove them from the scene.
+- [x] Ensure non-chunk map nodes remain visible and unaffected.
+- [x] Keep the logic map-local so it does not interfere with actors, projectiles, or UI.
 
 ### Phase 22: Runtime State Hygiene
 
