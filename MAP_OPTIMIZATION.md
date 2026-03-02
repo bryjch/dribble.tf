@@ -273,11 +273,11 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 27: Regression Checks
 
-- [ ] Test at least one other converted map besides Snakewater to ensure the new chunker is not overfit to Snakewater naming/layout.
-- [ ] Verify a map with missing or bad `visibility.json` still renders fully without runtime errors.
-- [ ] Verify untextured and wireframe modes still load.
-- [ ] Verify player outlines still work when enabled.
-- [ ] Verify camera controls still function correctly after map transform and chunk visibility logic changes.
+- [x] Test at least one other converted map besides Snakewater to ensure the new chunker is not overfit to Snakewater naming/layout.
+- [x] Verify a map with missing or bad `visibility.json` still renders fully without runtime errors.
+- [x] Verify untextured and wireframe modes still load.
+- [x] Verify player outlines still work when enabled.
+- [x] Verify camera controls still function correctly after map transform and chunk visibility logic changes.
 
 ### Phase 28: Acceptance Review
 
