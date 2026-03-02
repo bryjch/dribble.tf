@@ -56,3 +56,14 @@ export type Download = {
   progress: number
   size?: number
 }
+
+export type MapVisibilityMetadata = {
+  version: 2
+  transform: 'gltf-to-source:x,-z,y'
+  chunkNames: string[]
+  chunkBounds: { min: [number, number, number]; max: [number, number, number] }[]
+  planes: [number, number, number, number][]
+  nodes: [number, number, number][]
+  leafClusters: number[]
+  visibleChunksByCluster: number[][]
+}

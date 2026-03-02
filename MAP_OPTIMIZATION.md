@@ -178,10 +178,10 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 16: Add Frontend Visibility Types
 
-- [ ] Create a small type definition for `MapVisibilityMetadata` in the frontend codebase.
-- [ ] Put the type near other scene/map-related types so `World.tsx` can import it without circular dependencies.
-- [ ] Include the exact version-2 fields only.
-- [ ] Avoid optional fields except where truly necessary for fallback parsing.
+- [x] Create a small type definition for `MapVisibilityMetadata` in the frontend codebase.
+- [x] Put the type near other scene/map-related types so `World.tsx` can import it without circular dependencies.
+- [x] Include the exact version-2 fields only.
+- [x] Avoid optional fields except where truly necessary for fallback parsing.
 
 ### Phase 17: Load Visibility Metadata in `World`
 
