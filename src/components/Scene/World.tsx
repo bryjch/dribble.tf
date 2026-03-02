@@ -304,6 +304,70 @@ function freezeStaticMapSubtree(root: THREE.Object3D) {
   root.updateMatrixWorld(true)
 }
 
+function getMapLocalPoint(worldPoint: THREE.Vector3, mapRoot: THREE.Object3D): THREE.Vector3 | null {
+  mapRoot.updateWorldMatrix(true, false)
+
+  const inverseWorldMatrix = new THREE.Matrix4().copy(mapRoot.matrixWorld)
+  if (inverseWorldMatrix.determinant() === 0) {
+    return null
+  }
+
+  return worldPoint.clone().applyMatrix4(inverseWorldMatrix.invert())
+}
+
+function convertGltfPointToSource(point: THREE.Vector3): [number, number, number] {
+  return [point.x, -point.z, point.y]
+}
+
+function getLeafIndexForSourcePoint(
+  sourcePoint: [number, number, number],
+  metadata: MapVisibilityMetadata
+): number {
+  let nodeIndex = 0
+
+  while (Number.isInteger(nodeIndex) && nodeIndex >= 0) {
+    if (nodeIndex >= metadata.nodes.length) return -1
+
+    const [planeIndex, frontChild, backChild] = metadata.nodes[nodeIndex]
+    const plane = metadata.planes[planeIndex]
+    if (!plane) return -1
+
+    const distance =
+      sourcePoint[0] * plane[0] + sourcePoint[1] * plane[1] + sourcePoint[2] * plane[2] - plane[3]
+    nodeIndex = distance >= 0 ? frontChild : backChild
+  }
+
+  const leafIndex = -nodeIndex - 1
+  return leafIndex >= 0 && leafIndex < metadata.leafClusters.length ? leafIndex : -1
+}
+
+function getClusterIndexForLeaf(leafIndex: number, metadata: MapVisibilityMetadata): number {
+  if (leafIndex < 0 || leafIndex >= metadata.leafClusters.length) {
+    return -1
+  }
+
+  const clusterIndex = metadata.leafClusters[leafIndex]
+  return Number.isInteger(clusterIndex) && clusterIndex >= 0 ? clusterIndex : -1
+}
+
+function getClusterIndexForWorldPoint(
+  worldPoint: THREE.Vector3,
+  mapRoot: THREE.Object3D | null,
+  metadata: MapVisibilityMetadata | null
+): number {
+  if (!mapRoot || !metadata) {
+    return -1
+  }
+
+  const mapLocalPoint = getMapLocalPoint(worldPoint, mapRoot)
+  if (!mapLocalPoint) {
+    return -1
+  }
+
+  const leafIndex = getLeafIndexForSourcePoint(convertGltfPointToSource(mapLocalPoint), metadata)
+  return getClusterIndexForLeaf(leafIndex, metadata)
+}
+
 //
 // ─── HELPERS ────────────────────────────────────────────────────────────────────
 //

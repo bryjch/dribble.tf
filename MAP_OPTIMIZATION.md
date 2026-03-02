@@ -210,12 +210,12 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 20: Implement Runtime BSP Leaf Lookup
 
-- [ ] In `World`, add a helper that converts camera position from world coordinates into the map’s local GLTF coordinates.
-- [ ] Reuse the map group transform and its inverse instead of hardcoding offsets.
-- [ ] Convert the resulting local point into Source BSP coordinates using `[x, -z, y]`.
-- [ ] Add a helper that walks BSP nodes and planes to find the current leaf index.
-- [ ] Add a helper that maps leaf index to source cluster index.
-- [ ] If any lookup step fails, treat the cluster as invalid and show all chunks.
+- [x] In `World`, add a helper that converts camera position from world coordinates into the map’s local GLTF coordinates.
+- [x] Reuse the map group transform and its inverse instead of hardcoding offsets.
+- [x] Convert the resulting local point into Source BSP coordinates using `[x, -z, y]`.
+- [x] Add a helper that walks BSP nodes and planes to find the current leaf index.
+- [x] Add a helper that maps leaf index to source cluster index.
+- [x] If any lookup step fails, treat the cluster as invalid and show all chunks.
 
 ### Phase 21: Implement Runtime Chunk Visibility
 
