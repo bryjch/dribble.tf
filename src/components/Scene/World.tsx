@@ -193,6 +193,16 @@ export const World = (props: WorldProps) => {
     }
   }, [mapOverlay, mode])
 
+  useEffect(() => {
+    if (mapModel) {
+      freezeStaticMapSubtree(mapModel)
+    }
+
+    if (mapOverlay) {
+      freezeStaticMapSubtree(mapOverlay)
+    }
+  }, [mapModel, mapOverlay])
+
   // Update map model materials
   useEffect(() => {
     if (mapModel) {
@@ -218,14 +228,6 @@ export const World = (props: WorldProps) => {
             node.material = MAP_WIREFRAME_MATERIAL
           }
         })
-
-        // Enable frustum culling with proper bounding volumes
-        if (child.type === 'Mesh') {
-          const mesh = child as THREE.Mesh
-          mesh.geometry.computeBoundingBox()
-          mesh.geometry.computeBoundingSphere()
-          mesh.frustumCulled = true
-        }
       })
     }
   }, [mapModel, mode])
@@ -281,6 +283,25 @@ function setChunkRootVisibility(chunkRootsByName: Map<string, THREE.Object3D>, v
   chunkRootsByName.forEach(chunkRoot => {
     chunkRoot.visible = visible
   })
+}
+
+function freezeStaticMapSubtree(root: THREE.Object3D) {
+  root.traverse(node => {
+    node.matrixAutoUpdate = false
+
+    if (node.type !== 'Mesh') return
+
+    const mesh = node as THREE.Mesh
+    if (!mesh.geometry.boundingBox) {
+      mesh.geometry.computeBoundingBox()
+    }
+    if (!mesh.geometry.boundingSphere) {
+      mesh.geometry.computeBoundingSphere()
+    }
+    mesh.frustumCulled = true
+  })
+
+  root.updateMatrixWorld(true)
 }
 
 //

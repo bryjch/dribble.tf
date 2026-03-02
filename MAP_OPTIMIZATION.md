@@ -201,12 +201,12 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 19: Freeze Static Map Transforms
 
-- [ ] In `World`, add a one-time pass after GLTF load that sets `matrixAutoUpdate = false` recursively on the static map subtree.
-- [ ] Call `updateMatrixWorld(true)` once after freezing.
-- [ ] Compute missing geometry bounding boxes once.
-- [ ] Compute missing geometry bounding spheres once.
-- [ ] Keep `frustumCulled = true` for meshes.
-- [ ] Avoid recomputing bounds on every render or setting update.
+- [x] In `World`, add a one-time pass after GLTF load that sets `matrixAutoUpdate = false` recursively on the static map subtree.
+- [x] Call `updateMatrixWorld(true)` once after freezing.
+- [x] Compute missing geometry bounding boxes once.
+- [x] Compute missing geometry bounding spheres once.
+- [x] Keep `frustumCulled = true` for meshes.
+- [x] Avoid recomputing bounds on every render or setting update.
 
 ### Phase 20: Implement Runtime BSP Leaf Lookup
 
