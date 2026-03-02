@@ -243,12 +243,12 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 24: Perf Logging
 
-- [ ] Extend the existing `?perf=true` logging path in [src/components/DemoViewer.tsx](/Users/bryan/Github/dribble.tf/src/components/DemoViewer.tsx) to include `renderer.info.render.calls`.
-- [ ] Also log `renderer.info.render.triangles`.
-- [ ] Expose current visible chunk count from `World` through a lightweight shared store or callback.
-- [ ] Log current visible chunk count every 5 seconds with the existing perf logger.
-- [ ] Log current BSP cluster every 5 seconds with the same logger.
-- [ ] Keep logging disabled by default.
+- [x] Extend the existing `?perf=true` logging path in [src/components/DemoViewer.tsx](/Users/bryan/Github/dribble.tf/src/components/DemoViewer.tsx) to include `renderer.info.render.calls`.
+- [x] Also log `renderer.info.render.triangles`.
+- [x] Expose current visible chunk count from `World` through a lightweight shared store or callback.
+- [x] Log current visible chunk count every 5 seconds with the existing perf logger.
+- [x] Log current BSP cluster every 5 seconds with the same logger.
+- [x] Keep logging disabled by default.
 
 ### Phase 25: Converter Validation Tasks
 

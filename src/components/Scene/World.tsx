@@ -8,7 +8,7 @@ import { ActorDimensions } from '@components/Scene/Actors'
 
 import { MapVisibilityMetadata } from '@constants/types'
 import { addDownloadAction, updateDownloadAction } from '@zus/actions'
-import { getState, useStore } from '@zus/store'
+import { getState, useInstance, useStore } from '@zus/store'
 import { getMapModelUrls, getMapVisibilityUrl } from '@utils/game'
 
 const INVISIBLE_TOOL_MATERIALS = new Set([
@@ -71,6 +71,10 @@ export const World = (props: WorldProps) => {
     chunkRootsByNameRef.current = new Map()
     visibilityCullingEnabledRef.current = false
     currentClusterRef.current = null
+    useInstance.getState().setRuntimePerf({
+      visibleChunkCount: 0,
+      currentCluster: null,
+    })
     setMapVisibility(null)
   }, [map])
 
@@ -164,6 +168,10 @@ export const World = (props: WorldProps) => {
       chunkRootsByNameRef.current = new Map()
       visibilityCullingEnabledRef.current = false
       currentClusterRef.current = null
+      useInstance.getState().setRuntimePerf({
+        visibleChunkCount: 0,
+        currentCluster: null,
+      })
       return
     }
 
@@ -171,6 +179,10 @@ export const World = (props: WorldProps) => {
     chunkRootsByNameRef.current = chunkRootsByName
     currentClusterRef.current = null
     setChunkRootVisibility(chunkRootsByName, true)
+    useInstance.getState().setRuntimePerf({
+      visibleChunkCount: chunkRootsByName.size,
+      currentCluster: null,
+    })
 
     if (!mapVisibility) {
       visibilityCullingEnabledRef.current = false
@@ -201,6 +213,10 @@ export const World = (props: WorldProps) => {
       if (currentClusterRef.current !== null) {
         setChunkRootVisibility(chunkRootsByName, true)
         currentClusterRef.current = null
+        useInstance.getState().setRuntimePerf({
+          visibleChunkCount: chunkRootsByName.size,
+          currentCluster: null,
+        })
       }
       return
     }
@@ -216,6 +232,10 @@ export const World = (props: WorldProps) => {
       if (currentClusterRef.current !== -1) {
         setChunkRootVisibility(chunkRootsByName, true)
         currentClusterRef.current = -1
+        useInstance.getState().setRuntimePerf({
+          visibleChunkCount: chunkRootsByName.size,
+          currentCluster: -1,
+        })
       }
       return
     }
@@ -228,6 +248,10 @@ export const World = (props: WorldProps) => {
     if (!Array.isArray(visibleChunkIndices) || visibleChunkIndices.length === 0) {
       setChunkRootVisibility(chunkRootsByName, true)
       currentClusterRef.current = -1
+      useInstance.getState().setRuntimePerf({
+        visibleChunkCount: chunkRootsByName.size,
+        currentCluster: -1,
+      })
       return
     }
 
@@ -237,6 +261,10 @@ export const World = (props: WorldProps) => {
       visibleChunkIndices
     )
     currentClusterRef.current = currentCluster
+    useInstance.getState().setRuntimePerf({
+      visibleChunkCount: visibleChunkIndices.length,
+      currentCluster,
+    })
   })
 
   // Update map overlay materials
