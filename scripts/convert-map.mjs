@@ -761,6 +761,7 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
   const samplePoint = new THREE.Vector3()
   const worldBoundsSample = new THREE.Vector3()
   const visibilityTransform = 'gltf-to-source:x,-z,y'
+  const minAssignedChunkRatio = 0.8
 
   const convertGltfPointToSource = point => {
     // GLTF world space is Y-up, while Source BSP space is Z-up with inverted Y.
@@ -837,7 +838,26 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
     return foundGeometry ? bounds : null
   }
 
+  const collectClustersForBoundsSamples = samples => {
+    const clusterSet = new Set()
+
+    for (const localSample of samples) {
+      samplePoint.set(localSample[0], localSample[1], localSample[2])
+      const leafIndex = locateLeafIndex(
+        convertGltfPointToSource([samplePoint.x, samplePoint.y, samplePoint.z])
+      )
+      if (leafIndex < 0) continue
+      const clusterIndex = leafClusters[leafIndex]
+      if (Number.isInteger(clusterIndex) && clusterIndex >= 0) {
+        clusterSet.add(clusterIndex)
+      }
+    }
+
+    return Array.from(clusterSet).sort((a, b) => a - b)
+  }
+
   let emptyChunkCount = 0
+  let assignedChunkCount = 0
 
   for (let nodeIndex = 0; nodeIndex < (gltf.nodes || []).length; nodeIndex += 1) {
     const node = gltf.nodes[nodeIndex]
@@ -858,7 +878,7 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
     const centerX = (bounds.min[0] + bounds.max[0]) * 0.5
     const centerY = (bounds.min[1] + bounds.max[1]) * 0.5
     const centerZ = (bounds.min[2] + bounds.max[2]) * 0.5
-    const localSamples = [
+    const primarySamples = [
       [centerX, centerY, centerZ],
       [bounds.min[0], bounds.min[1], bounds.min[2]],
       [bounds.min[0], bounds.min[1], bounds.max[2]],
@@ -869,23 +889,26 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
       [bounds.max[0], bounds.max[1], bounds.min[2]],
       [bounds.max[0], bounds.max[1], bounds.max[2]],
     ]
+    const fallbackFaceCenterSamples = [
+      [bounds.min[0], centerY, centerZ],
+      [bounds.max[0], centerY, centerZ],
+      [centerX, bounds.min[1], centerZ],
+      [centerX, bounds.max[1], centerZ],
+      [centerX, centerY, bounds.min[2]],
+      [centerX, centerY, bounds.max[2]],
+    ]
 
-    const clusterSet = new Set()
-    for (const localSample of localSamples) {
-      samplePoint.set(localSample[0], localSample[1], localSample[2])
-      const leafIndex = locateLeafIndex(
-        convertGltfPointToSource([samplePoint.x, samplePoint.y, samplePoint.z])
-      )
-      if (leafIndex < 0) continue
-      const clusterIndex = leafClusters[leafIndex]
-      if (Number.isInteger(clusterIndex) && clusterIndex >= 0) {
-        clusterSet.add(clusterIndex)
-      }
+    let clusters = collectClustersForBoundsSamples(primarySamples)
+    if (clusters.length === 0) {
+      clusters = collectClustersForBoundsSamples(fallbackFaceCenterSamples)
+    }
+    if (clusters.length > 0) {
+      assignedChunkCount += 1
     }
 
     chunkAssignments.push({
       name: node.name,
-      clusters: Array.from(clusterSet).sort((a, b) => a - b),
+      clusters,
     })
   }
 
@@ -893,10 +916,44 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
     return null
   }
 
+  const hasBspVisibilityRows =
+    clusterCount > 0 && clusterVisibilityOffsets.some(offset => Number.isInteger(offset) && offset >= 0)
+  const assignedChunkRatio = chunkAssignments.length > 0 ? assignedChunkCount / chunkAssignments.length : 0
+
+  if (assignedChunkCount === 0) {
+    return {
+      version: 1,
+      valid: false,
+      transform: visibilityTransform,
+      chunkCount: chunkAssignments.length,
+      assignedChunkCount,
+      clusterCount,
+      emptyChunkCount,
+      warning: hasBspVisibilityRows
+        ? 'Visibility metadata generation failed: no chunks resolved to any BSP cluster samples.'
+        : 'Visibility metadata generation failed: no chunks resolved to BSP clusters and the BSP has no usable visibility rows.',
+    }
+  }
+
+  if (hasBspVisibilityRows && assignedChunkRatio < minAssignedChunkRatio) {
+    return {
+      version: 1,
+      valid: false,
+      transform: visibilityTransform,
+      chunkCount: chunkAssignments.length,
+      assignedChunkCount,
+      clusterCount,
+      emptyChunkCount,
+      warning: `Visibility metadata skipped: only ${assignedChunkCount}/${chunkAssignments.length} chunks resolved to BSP clusters.`,
+    }
+  }
+
   return {
     version: 1,
+    valid: true,
     transform: visibilityTransform,
     chunkCount: chunkAssignments.length,
+    assignedChunkCount,
     clusterCount,
     emptyChunkCount,
     planes,
@@ -2300,11 +2357,16 @@ try {
     bspPath,
     glbPath: chunkedOutput,
   })
-  if (clusterVisibilityMetadata) {
+  if (clusterVisibilityMetadata?.valid) {
     fs.writeFileSync(clusterVisibilityPath, JSON.stringify(clusterVisibilityMetadata))
     console.log(
-      `Visibility metadata: ${clusterVisibilityPath} (${clusterVisibilityMetadata.chunkCount} chunks, ${clusterVisibilityMetadata.clusterCount} clusters)`
+      `Visibility metadata: ${clusterVisibilityPath} (${clusterVisibilityMetadata.assignedChunkCount}/${clusterVisibilityMetadata.chunkCount} chunks assigned, ${clusterVisibilityMetadata.clusterCount} clusters)`
     )
+  } else if (clusterVisibilityMetadata && typeof clusterVisibilityMetadata.warning === 'string') {
+    if (fs.existsSync(clusterVisibilityPath)) {
+      fs.unlinkSync(clusterVisibilityPath)
+    }
+    console.warn(clusterVisibilityMetadata.warning)
   }
 } catch (error) {
   console.warn(
@@ -2358,6 +2420,7 @@ const conversionMeta = {
     ? {
         chunkCount: clusterVisibilityMetadata.chunkCount,
         clusterCount: clusterVisibilityMetadata.clusterCount,
+        valid: clusterVisibilityMetadata.valid === true,
       }
     : null,
   keepVertexAttributes: Boolean(lightmapDataPath) && requestedKeepVertexAttributes,

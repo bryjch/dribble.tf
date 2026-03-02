@@ -132,13 +132,13 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 11: Improve Chunk-to-Cluster Sampling
 
-- [ ] Keep the existing 9 sample points per chunk: center plus 8 AABB corners.
-- [ ] If those produce no cluster, add 6 face-center samples for the chunk AABB.
-- [ ] Deduplicate resulting clusters per chunk.
-- [ ] Sort cluster lists numerically before serialization.
-- [ ] Count how many chunks got at least one cluster assignment.
-- [ ] If no chunks get clusters, fail metadata generation and mark visibility invalid in `conversion.json`.
-- [ ] If fewer than 80% of chunks get clusters on a map with BSP visibility data, skip writing `visibility.json`, mark visibility invalid, and emit a warning.
+- [x] Keep the existing 9 sample points per chunk: center plus 8 AABB corners.
+- [x] If those produce no cluster, add 6 face-center samples for the chunk AABB.
+- [x] Deduplicate resulting clusters per chunk.
+- [x] Sort cluster lists numerically before serialization.
+- [x] Count how many chunks got at least one cluster assignment.
+- [x] If no chunks get clusters, fail metadata generation and mark visibility invalid in `conversion.json`.
+- [x] If fewer than 80% of chunks get clusters on a map with BSP visibility data, skip writing `visibility.json`, mark visibility invalid, and emit a warning.
 
 ### Phase 12: Expand BSP PVS Offline
 
