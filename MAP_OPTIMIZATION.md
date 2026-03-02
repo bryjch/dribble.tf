@@ -193,11 +193,11 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 18: Index Chunk Roots at Runtime
 
-- [ ] After GLTF load in `World`, traverse the scene and collect chunk roots by exact name pattern `chunk_\\d+_\\d+`.
-- [ ] Store a stable map from chunk name to `THREE.Object3D`.
-- [ ] Validate that every `chunkNames[]` entry from metadata exists in the loaded GLB before enabling runtime culling.
-- [ ] If any named chunk root is missing, disable runtime visibility culling for that map load and fall back to showing all chunks.
-- [ ] Keep this validation local to `World`; do not throw globally.
+- [x] After GLTF load in `World`, traverse the scene and collect chunk roots by exact name pattern `chunk_\\d+_\\d+`.
+- [x] Store a stable map from chunk name to `THREE.Object3D`.
+- [x] Validate that every `chunkNames[]` entry from metadata exists in the loaded GLB before enabling runtime culling.
+- [x] If any named chunk root is missing, disable runtime visibility culling for that map load and fall back to showing all chunks.
+- [x] Keep this validation local to `World`; do not throw globally.
 
 ### Phase 19: Freeze Static Map Transforms
 

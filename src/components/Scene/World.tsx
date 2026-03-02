@@ -49,6 +49,8 @@ export interface WorldProps {
 
 export const World = (props: WorldProps) => {
   const ref = useRef<THREE.Group>(null)
+  const chunkRootsByNameRef = useRef<Map<string, THREE.Object3D>>(new Map())
+  const visibilityCullingEnabledRef = useRef(false)
   const [mapModel, setMapModel] = useState<THREE.Group | null>()
   const [mapOverlay, setMapOverlay] = useState<THREE.Group | null>()
   const [mapVisibility, setMapVisibility] = useState<MapVisibilityMetadata | null>(null)
@@ -60,6 +62,8 @@ export const World = (props: WorldProps) => {
   // to prevent lingering of the previous map
   useEffect(() => {
     setMapModel(null)
+    chunkRootsByNameRef.current = new Map()
+    visibilityCullingEnabledRef.current = false
     setMapVisibility(null)
   }, [map])
 
@@ -137,6 +141,38 @@ export const World = (props: WorldProps) => {
       console.error(error)
     }
   }, [map, mode])
+
+  useEffect(() => {
+    if (!mapModel) {
+      chunkRootsByNameRef.current = new Map()
+      visibilityCullingEnabledRef.current = false
+      return
+    }
+
+    const chunkRootsByName = collectChunkRoots(mapModel)
+    chunkRootsByNameRef.current = chunkRootsByName
+
+    if (!mapVisibility) {
+      visibilityCullingEnabledRef.current = false
+      setChunkRootVisibility(chunkRootsByName, true)
+      return
+    }
+
+    const missingChunkNames = mapVisibility.chunkNames.filter(
+      chunkName => !chunkRootsByName.has(chunkName)
+    )
+
+    if (missingChunkNames.length > 0) {
+      visibilityCullingEnabledRef.current = false
+      setChunkRootVisibility(chunkRootsByName, true)
+      console.warn(
+        `Visibility culling disabled for ${map}: missing chunk roots ${missingChunkNames.join(', ')}`
+      )
+      return
+    }
+
+    visibilityCullingEnabledRef.current = true
+  }, [map, mapModel, mapVisibility])
 
   // Update map overlay materials
   useEffect(() => {
@@ -227,6 +263,24 @@ function isMapVisibilityMetadata(data: unknown): data is MapVisibilityMetadata {
     Array.isArray(candidate.leafClusters) &&
     Array.isArray(candidate.visibleChunksByCluster)
   )
+}
+
+function collectChunkRoots(root: THREE.Object3D): Map<string, THREE.Object3D> {
+  const chunkRootsByName = new Map<string, THREE.Object3D>()
+
+  root.traverse(node => {
+    if (/^chunk_\d+_\d+$/.test(node.name)) {
+      chunkRootsByName.set(node.name, node)
+    }
+  })
+
+  return chunkRootsByName
+}
+
+function setChunkRootVisibility(chunkRootsByName: Map<string, THREE.Object3D>, visible: boolean) {
+  chunkRootsByName.forEach(chunkRoot => {
+    chunkRoot.visible = visible
+  })
 }
 
 //
