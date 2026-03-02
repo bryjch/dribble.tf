@@ -55,10 +55,10 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 2: Define Chunking Rules
 
-- [ ] In [scripts/chunk_map_glb.py](/Users/bryan/Github/dribble.tf/scripts/chunk_map_glb.py), define the exact static object categories to chunk: `worldspawn*`, `func_detail*`, `func_brush*`, `prop_static*`.
-- [ ] Explicitly define the categories to skip from chunking: `prop_dynamic*`, `prop_physics*`, non-mesh nodes, lights, and helper nodes.
-- [ ] Set the default map chunk grid in [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs) from `4` to `8`.
-- [ ] Add a short code comment beside the new default explaining that the grid is chosen to trade chunk count against draw-call reduction and PVS usefulness.
+- [x] In [scripts/chunk_map_glb.py](/Users/bryan/Github/dribble.tf/scripts/chunk_map_glb.py), define the exact static object categories to chunk: `worldspawn*`, `func_detail*`, `func_brush*`, `prop_static*`.
+- [x] Explicitly define the categories to skip from chunking: `prop_dynamic*`, `prop_physics*`, non-mesh nodes, lights, and helper nodes.
+- [x] Set the default map chunk grid in [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs) from `4` to `8`.
+- [x] Add a short code comment beside the new default explaining that the grid is chosen to trade chunk count against draw-call reduction and PVS usefulness.
 
 ### Phase 3: Rewrite the Blender Chunker
 

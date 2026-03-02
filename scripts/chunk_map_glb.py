@@ -6,12 +6,18 @@ import bpy
 import bmesh
 from mathutils import Vector
 
+CHUNKABLE_PREFIXES = ("worldspawn", "func_detail", "func_brush", "prop_static")
+# These categories remain outside static chunk roots so runtime culling does not
+# accidentally hide dynamic props, helpers, lights, or non-mesh scene content.
+SKIPPED_PREFIXES = ("prop_dynamic", "prop_physics")
+HELPER_TYPES = {"LIGHT", "CAMERA", "EMPTY", "ARMATURE", "LATTICE", "CURVE"}
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
     parser.add_argument("--out", required=True)
-    parser.add_argument("--grid", type=int, default=4)
+    parser.add_argument("--grid", type=int, default=8)
     parser.add_argument("--target", default="worldspawn")
 
     argv = sys.argv
@@ -23,8 +29,36 @@ def parse_args():
     return parser.parse_args(argv)
 
 
+def get_object_name(obj):
+    return str(getattr(obj, "name", "") or "").lower()
+
+
+def has_name_prefix(obj, prefixes):
+    return get_object_name(obj).startswith(prefixes)
+
+
+def is_chunkable_mesh_object(obj):
+    return obj.type == "MESH" and has_name_prefix(obj, CHUNKABLE_PREFIXES)
+
+
+def should_skip_chunking(obj):
+    if obj.type != "MESH":
+        return obj.type in HELPER_TYPES or obj.type != "MESH"
+    return has_name_prefix(obj, SKIPPED_PREFIXES)
+
+
 def get_mesh_objects():
     return [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
+
+
+def get_chunkable_mesh_objects():
+    objects = []
+    for obj in bpy.context.scene.objects:
+        if should_skip_chunking(obj):
+            continue
+        if is_chunkable_mesh_object(obj):
+            objects.append(obj)
+    return objects
 
 
 def get_world_bounds(objects):
@@ -46,7 +80,7 @@ def get_world_bounds(objects):
 
 def find_target_object(objects, target_name):
     if target_name:
-        matches = [obj for obj in objects if target_name.lower() in obj.name.lower()]
+        matches = [obj for obj in objects if target_name.lower() in get_object_name(obj)]
         if matches:
             return sorted(matches, key=lambda obj: len(obj.data.polygons), reverse=True)[0]
 
@@ -152,9 +186,16 @@ def main():
     if not mesh_objects:
         raise RuntimeError("No mesh objects found in GLB.")
 
-    bounds_min, bounds_max = get_world_bounds(mesh_objects)
+    chunkable_mesh_objects = get_chunkable_mesh_objects()
+    if not chunkable_mesh_objects:
+        raise RuntimeError(
+            "No chunkable mesh objects found. Expected prefixes: "
+            + ", ".join(CHUNKABLE_PREFIXES)
+        )
 
-    target_obj = find_target_object(mesh_objects, args.target)
+    bounds_min, bounds_max = get_world_bounds(chunkable_mesh_objects)
+
+    target_obj = find_target_object(chunkable_mesh_objects, args.target)
     if not target_obj:
         raise RuntimeError("Target mesh not found for chunking.")
 

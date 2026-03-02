@@ -1207,7 +1207,9 @@ const bspsrcDir = requireArg('bspsrc')
 const blenderPath = requireArg('blender')
 const gameDir = requireArg('game-dir')
 const gltfpackArg = getArg('gltfpack', null)
-const chunkGrid = Number(getArg('chunk-grid', '4'))
+// Default to an 8x8 chunk grid: dense enough to make BSP/PVS metadata useful,
+// but not so fine-grained that chunk count overwhelms draw-call reduction.
+const chunkGrid = Number(getArg('chunk-grid', '8'))
 const textureScale = getArg('texture-scale', null)
 const textureLimit = getArg('texture-limit', null)
 const textureFormat = getArg('texture-format', null)
