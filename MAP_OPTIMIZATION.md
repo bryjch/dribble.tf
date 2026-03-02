@@ -62,13 +62,13 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 3: Rewrite the Blender Chunker
 
-- [ ] Refactor [scripts/chunk_map_glb.py](/Users/bryan/Github/dribble.tf/scripts/chunk_map_glb.py) so it loads all mesh objects and classifies them as chunkable or non-chunkable.
-- [ ] Replace the single-target `find_target_object()` flow with a whole-scene chunking flow.
-- [ ] Preserve existing import and export entrypoints so [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs) does not need a large call-site rewrite.
-- [ ] Compute global static-map world bounds from chunkable objects only, not from every mesh in the scene.
-- [ ] Add a helper that maps a world-space point to `(ix, iy)` chunk coordinates using the configured grid.
-- [ ] Add a helper that creates or retrieves a Blender object for a chunk root named exactly `chunk_${ix}_${iy}`.
-- [ ] Ensure chunk roots are the only static nodes that keep stable names needed by runtime lookup.
+- [x] Refactor [scripts/chunk_map_glb.py](/Users/bryan/Github/dribble.tf/scripts/chunk_map_glb.py) so it loads all mesh objects and classifies them as chunkable or non-chunkable.
+- [x] Replace the single-target `find_target_object()` flow with a whole-scene chunking flow.
+- [x] Preserve existing import and export entrypoints so [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs) does not need a large call-site rewrite.
+- [x] Compute global static-map world bounds from chunkable objects only, not from every mesh in the scene.
+- [x] Add a helper that maps a world-space point to `(ix, iy)` chunk coordinates using the configured grid.
+- [x] Add a helper that creates or retrieves a Blender object for a chunk root named exactly `chunk_${ix}_${iy}`.
+- [x] Ensure chunk roots are the only static nodes that keep stable names needed by runtime lookup.
 
 ### Phase 4: Chunk Brush Geometry
 

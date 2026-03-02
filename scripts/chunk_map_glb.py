@@ -7,6 +7,8 @@ import bmesh
 from mathutils import Vector
 
 CHUNKABLE_PREFIXES = ("worldspawn", "func_detail", "func_brush", "prop_static")
+BRUSH_LIKE_PREFIXES = ("worldspawn", "func_detail", "func_brush")
+STATIC_PROP_PREFIXES = ("prop_static",)
 # These categories remain outside static chunk roots so runtime culling does not
 # accidentally hide dynamic props, helpers, lights, or non-mesh scene content.
 SKIPPED_PREFIXES = ("prop_dynamic", "prop_physics")
@@ -18,6 +20,8 @@ def parse_args():
     parser.add_argument("--input", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--grid", type=int, default=8)
+    # Kept for CLI compatibility with convert-map.mjs; chunking now runs on the
+    # whole scene instead of a single target object.
     parser.add_argument("--target", default="worldspawn")
 
     argv = sys.argv
@@ -42,23 +46,41 @@ def is_chunkable_mesh_object(obj):
 
 
 def should_skip_chunking(obj):
+    if obj.type in HELPER_TYPES:
+        return True
     if obj.type != "MESH":
-        return obj.type in HELPER_TYPES or obj.type != "MESH"
+        return True
     return has_name_prefix(obj, SKIPPED_PREFIXES)
 
 
-def get_mesh_objects():
-    return [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
+def classify_scene_objects():
+    mesh_objects = []
+    chunkable_mesh_objects = []
+    non_chunkable_objects = []
+    brush_like_objects = []
+    static_prop_objects = []
 
-
-def get_chunkable_mesh_objects():
-    objects = []
     for obj in bpy.context.scene.objects:
-        if should_skip_chunking(obj):
+        if obj.type == "MESH":
+            mesh_objects.append(obj)
+
+        if should_skip_chunking(obj) or not is_chunkable_mesh_object(obj):
+            non_chunkable_objects.append(obj)
             continue
-        if is_chunkable_mesh_object(obj):
-            objects.append(obj)
-    return objects
+
+        chunkable_mesh_objects.append(obj)
+        if has_name_prefix(obj, BRUSH_LIKE_PREFIXES):
+            brush_like_objects.append(obj)
+        elif has_name_prefix(obj, STATIC_PROP_PREFIXES):
+            static_prop_objects.append(obj)
+
+    return {
+        "mesh_objects": mesh_objects,
+        "chunkable_mesh_objects": chunkable_mesh_objects,
+        "non_chunkable_objects": non_chunkable_objects,
+        "brush_like_objects": brush_like_objects,
+        "static_prop_objects": static_prop_objects,
+    }
 
 
 def get_world_bounds(objects):
@@ -78,16 +100,31 @@ def get_world_bounds(objects):
     return min_v, max_v
 
 
-def find_target_object(objects, target_name):
-    if target_name:
-        matches = [obj for obj in objects if target_name.lower() in get_object_name(obj)]
-        if matches:
-            return sorted(matches, key=lambda obj: len(obj.data.polygons), reverse=True)[0]
+def world_point_to_chunk_coords(point, grid, bounds_min, bounds_max):
+    size_x = bounds_max.x - bounds_min.x
+    size_y = bounds_max.y - bounds_min.y
+    step_x = size_x / grid if grid > 0 else size_x
+    step_y = size_y / grid if grid > 0 else size_y
 
-    if not objects:
-        return None
+    ix = 0 if step_x == 0 else int((point.x - bounds_min.x) / step_x)
+    iy = 0 if step_y == 0 else int((point.y - bounds_min.y) / step_y)
 
-    return sorted(objects, key=lambda obj: len(obj.data.polygons), reverse=True)[0]
+    ix = min(max(ix, 0), grid - 1)
+    iy = min(max(iy, 0), grid - 1)
+
+    return ix, iy
+
+
+def get_or_create_chunk_root(chunk_roots, ix, iy):
+    chunk_key = (ix, iy)
+    chunk_root = chunk_roots.get(chunk_key)
+    if chunk_root:
+        return chunk_root
+
+    chunk_root = bpy.data.objects.new(f"chunk_{ix}_{iy}", None)
+    bpy.context.scene.collection.objects.link(chunk_root)
+    chunk_roots[chunk_key] = chunk_root
+    return chunk_root
 
 
 def build_chunk_faces(obj, grid, bounds_min, bounds_max):
@@ -98,28 +135,25 @@ def build_chunk_faces(obj, grid, bounds_min, bounds_max):
     # Collect ALL UV layers (TEXCOORD_0, TEXCOORD_1, ...) so lightmap UVs survive chunking.
     uv_layers = list(bm.loops.layers.uv.values())
 
-    size_x = bounds_max.x - bounds_min.x
-    size_y = bounds_max.y - bounds_min.y
-    step_x = size_x / grid if grid > 0 else size_x
-    step_y = size_y / grid if grid > 0 else size_y
-
     chunks = {}
     for face in bm.faces:
         center = obj.matrix_world @ face.calc_center_median()
-
-        ix = 0 if step_x == 0 else int((center.x - bounds_min.x) / step_x)
-        iy = 0 if step_y == 0 else int((center.y - bounds_min.y) / step_y)
-
-        ix = min(max(ix, 0), grid - 1)
-        iy = min(max(iy, 0), grid - 1)
+        ix, iy = world_point_to_chunk_coords(center, grid, bounds_min, bounds_max)
 
         chunks.setdefault((ix, iy), []).append(face)
 
     return bm, uv_layers, chunks
 
 
-def copy_faces_to_object(obj, faces, name, uv_layers, material_slots):
-    new_mesh = bpy.data.meshes.new(name)
+def parent_object_preserving_world_transform(obj, parent):
+    world_matrix = obj.matrix_world.copy()
+    obj.parent = parent
+    obj.matrix_world = world_matrix
+
+
+def copy_faces_to_object(obj, faces, chunk_root, uv_layers, material_slots):
+    object_name = "static_chunk_part"
+    new_mesh = bpy.data.meshes.new(object_name)
     new_bm = bmesh.new()
 
     # Create matching UV layers in the new bmesh (preserves TEXCOORD_0, TEXCOORD_1, etc.)
@@ -151,29 +185,39 @@ def copy_faces_to_object(obj, faces, name, uv_layers, material_slots):
     new_bm.to_mesh(new_mesh)
     new_bm.free()
 
-    new_obj = bpy.data.objects.new(name, new_mesh)
+    new_obj = bpy.data.objects.new(object_name, new_mesh)
     for material in material_slots:
         new_mesh.materials.append(material)
 
     new_obj.matrix_world = obj.matrix_world.copy()
     bpy.context.scene.collection.objects.link(new_obj)
+    parent_object_preserving_world_transform(new_obj, chunk_root)
 
     return new_obj
 
 
-def chunk_target_object(target_obj, grid, bounds_min, bounds_max):
-    bm, uv_layers, chunks = build_chunk_faces(target_obj, grid, bounds_min, bounds_max)
-    material_slots = list(target_obj.data.materials)
+def chunk_brush_object(obj, grid, bounds_min, bounds_max, chunk_roots):
+    bm, uv_layers, chunks = build_chunk_faces(obj, grid, bounds_min, bounds_max)
+    material_slots = list(obj.data.materials)
 
     for (ix, iy), faces in chunks.items():
         if not faces:
             continue
-        chunk_name = f"chunk_{ix}_{iy}"
-        copy_faces_to_object(target_obj, faces, chunk_name, uv_layers, material_slots)
+        chunk_root = get_or_create_chunk_root(chunk_roots, ix, iy)
+        copy_faces_to_object(obj, faces, chunk_root, uv_layers, material_slots)
 
     bm.free()
 
-    bpy.data.objects.remove(target_obj, do_unlink=True)
+    bpy.data.objects.remove(obj, do_unlink=True)
+
+
+def chunk_scene_objects(classified_objects, grid, bounds_min, bounds_max):
+    chunk_roots = {}
+
+    for obj in list(classified_objects["brush_like_objects"]):
+        chunk_brush_object(obj, grid, bounds_min, bounds_max, chunk_roots)
+
+    return chunk_roots
 
 
 def main():
@@ -182,11 +226,13 @@ def main():
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=args.input)
 
-    mesh_objects = get_mesh_objects()
+    classified_objects = classify_scene_objects()
+
+    mesh_objects = classified_objects["mesh_objects"]
     if not mesh_objects:
         raise RuntimeError("No mesh objects found in GLB.")
 
-    chunkable_mesh_objects = get_chunkable_mesh_objects()
+    chunkable_mesh_objects = classified_objects["chunkable_mesh_objects"]
     if not chunkable_mesh_objects:
         raise RuntimeError(
             "No chunkable mesh objects found. Expected prefixes: "
@@ -194,12 +240,7 @@ def main():
         )
 
     bounds_min, bounds_max = get_world_bounds(chunkable_mesh_objects)
-
-    target_obj = find_target_object(chunkable_mesh_objects, args.target)
-    if not target_obj:
-        raise RuntimeError("Target mesh not found for chunking.")
-
-    chunk_target_object(target_obj, args.grid, bounds_min, bounds_max)
+    chunk_scene_objects(classified_objects, args.grid, bounds_min, bounds_max)
 
     bpy.ops.export_scene.gltf(
         filepath=args.out,
