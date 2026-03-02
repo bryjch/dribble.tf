@@ -94,10 +94,10 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 6: Preserve Non-Chunked Scene Content
 
-- [ ] Leave non-static objects untouched in the scene graph so dynamic or special-case content is not accidentally culled with static chunks.
-- [ ] Ensure lights still export when present.
-- [ ] Ensure chunk root creation does not break scene export when there are no props in a chunk.
-- [ ] Ensure empty chunk roots are not exported.
+- [x] Leave non-static objects untouched in the scene graph so dynamic or special-case content is not accidentally culled with static chunks.
+- [x] Ensure lights still export when present.
+- [x] Ensure chunk root creation does not break scene export when there are no props in a chunk.
+- [x] Ensure empty chunk roots are not exported.
 
 ### Phase 7: Export-Side Naming Strategy
 

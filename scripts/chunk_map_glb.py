@@ -159,6 +159,12 @@ def parent_object_preserving_world_transform(obj, parent):
     obj.matrix_world = world_matrix
 
 
+def move_children_to_parent_preserving_world_transform(obj):
+    preserved_parent = obj.parent
+    for child in list(obj.children):
+        parent_object_preserving_world_transform(child, preserved_parent)
+
+
 def get_brush_category_name(obj):
     name = get_object_name(obj)
     for prefix in BRUSH_LIKE_PREFIXES:
@@ -271,6 +277,9 @@ def chunk_brush_objects(brush_like_objects, grid, bounds_min, bounds_max):
                 copy_brush_face_to_builder(obj, face, uv_layers, builder)
 
         bm.free()
+        # Hoist non-static and still-to-be-chunked children out of the source
+        # brush node before removing it, so they never inherit static chunk culling.
+        move_children_to_parent_preserving_world_transform(obj)
         bpy.data.objects.remove(obj, do_unlink=True)
 
     for builder in brush_chunk_builders.values():
@@ -306,6 +315,7 @@ def clear_static_prop_name(obj):
 
 def chunk_static_props(static_prop_objects, grid, bounds_min, bounds_max, chunk_roots):
     for obj in static_prop_objects:
+        move_children_to_parent_preserving_world_transform(obj)
         bounds_center = get_world_bounds_center(obj)
         ix, iy = world_point_to_chunk_coords(bounds_center, grid, bounds_min, bounds_max)
         chunk_root = get_or_create_chunk_root(chunk_roots, ix, iy)
@@ -323,11 +333,73 @@ def chunk_static_props(static_prop_objects, grid, bounds_min, bounds_max, chunk_
         )
 
 
+def prune_empty_chunk_roots(chunk_roots):
+    for chunk_key, chunk_root in list(chunk_roots.items()):
+        if chunk_root.children:
+            continue
+        bpy.data.objects.remove(chunk_root, do_unlink=True)
+        del chunk_roots[chunk_key]
+
+
+def validate_no_empty_chunk_roots(chunk_roots):
+    empty_chunk_roots = [chunk_root.name for chunk_root in chunk_roots.values() if not chunk_root.children]
+    if empty_chunk_roots:
+        raise RuntimeError(
+            "Empty chunk roots would be exported: " + ", ".join(sorted(empty_chunk_roots))
+        )
+
+
+def validate_non_chunkable_objects_preserved(non_chunkable_objects):
+    deleted_objects = []
+    chunk_parented_objects = []
+
+    for obj in non_chunkable_objects:
+        try:
+            name = obj.name_full
+            parent = obj.parent
+        except ReferenceError:
+            deleted_objects.append("<deleted>")
+            continue
+
+        if name not in bpy.data.objects:
+            deleted_objects.append(name)
+            continue
+
+        if parent and parent.name.startswith("chunk_"):
+            chunk_parented_objects.append(name)
+
+    if deleted_objects:
+        raise RuntimeError(
+            "Non-chunked scene objects were removed during chunking: "
+            + ", ".join(sorted(deleted_objects))
+        )
+
+    if chunk_parented_objects:
+        raise RuntimeError(
+            "Non-chunked scene objects were incorrectly parented under chunk roots: "
+            + ", ".join(sorted(chunk_parented_objects))
+        )
+
+
+def get_scene_light_count():
+    return sum(1 for obj in bpy.context.scene.objects if obj.type == "LIGHT")
+
+
+def validate_scene_lights_preserved(expected_light_count):
+    actual_light_count = get_scene_light_count()
+    if actual_light_count != expected_light_count:
+        raise RuntimeError(
+            f"Scene light count changed during chunking: expected {expected_light_count}, got {actual_light_count}."
+        )
+
+
 def chunk_scene_objects(classified_objects, grid, bounds_min, bounds_max):
     chunk_roots = chunk_brush_objects(classified_objects["brush_like_objects"], grid, bounds_min, bounds_max)
     chunk_static_props(
         classified_objects["static_prop_objects"], grid, bounds_min, bounds_max, chunk_roots
     )
+    prune_empty_chunk_roots(chunk_roots)
+    validate_no_empty_chunk_roots(chunk_roots)
     return chunk_roots
 
 
@@ -350,8 +422,11 @@ def main():
             + ", ".join(CHUNKABLE_PREFIXES)
         )
 
+    expected_light_count = get_scene_light_count()
     bounds_min, bounds_max = get_world_bounds(chunkable_mesh_objects)
     chunk_scene_objects(classified_objects, args.grid, bounds_min, bounds_max)
+    validate_non_chunkable_objects_preserved(classified_objects["non_chunkable_objects"])
+    validate_scene_lights_preserved(expected_light_count)
 
     bpy.ops.export_scene.gltf(
         filepath=args.out,
