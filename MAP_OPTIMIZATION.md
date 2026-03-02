@@ -230,10 +230,10 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 22: Runtime State Hygiene
 
-- [ ] Reset cached runtime cluster state when the map changes.
-- [ ] Reset cached chunk-root maps when the GLTF scene changes.
-- [ ] Prevent stale async fetches from older maps from overwriting current metadata state.
-- [ ] Ensure repeated toggling between textured and untextured modes does not leak old chunk visibility state.
+- [x] Reset cached runtime cluster state when the map changes.
+- [x] Reset cached chunk-root maps when the GLTF scene changes.
+- [x] Prevent stale async fetches from older maps from overwriting current metadata state.
+- [x] Ensure repeated toggling between textured and untextured modes does not leak old chunk visibility state.
 
 ### Phase 23: Clamp Canvas DPR
 

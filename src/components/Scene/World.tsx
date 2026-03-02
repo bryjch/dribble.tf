@@ -54,6 +54,8 @@ export const World = (props: WorldProps) => {
   const chunkRootsByNameRef = useRef<Map<string, THREE.Object3D>>(new Map())
   const visibilityCullingEnabledRef = useRef(false)
   const currentClusterRef = useRef<number | null>(null)
+  const mapLoadRequestIdRef = useRef(0)
+  const visibilityRequestIdRef = useRef(0)
   const [mapModel, setMapModel] = useState<THREE.Group | null>()
   const [mapOverlay, setMapOverlay] = useState<THREE.Group | null>()
   const [mapVisibility, setMapVisibility] = useState<MapVisibilityMetadata | null>(null)
@@ -65,8 +67,10 @@ export const World = (props: WorldProps) => {
   // to prevent lingering of the previous map
   useEffect(() => {
     setMapModel(null)
+    setMapOverlay(null)
     chunkRootsByNameRef.current = new Map()
     visibilityCullingEnabledRef.current = false
+    currentClusterRef.current = null
     setMapVisibility(null)
   }, [map])
 
@@ -77,7 +81,7 @@ export const World = (props: WorldProps) => {
       return
     }
 
-    let cancelled = false
+    const requestId = ++visibilityRequestIdRef.current
 
     fetch(visibilityUrl)
       .then(response => {
@@ -87,21 +91,25 @@ export const World = (props: WorldProps) => {
         return response.json()
       })
       .then(data => {
-        if (cancelled) return
+        if (requestId !== visibilityRequestIdRef.current) return
         setMapVisibility(isMapVisibilityMetadata(data) ? data : null)
       })
       .catch(() => {
-        if (!cancelled) {
+        if (requestId === visibilityRequestIdRef.current) {
           setMapVisibility(null)
         }
       })
 
     return () => {
-      cancelled = true
+      if (visibilityRequestIdRef.current === requestId) {
+        visibilityRequestIdRef.current += 1
+      }
     }
   }, [map])
 
   useEffect(() => {
+    const requestId = ++mapLoadRequestIdRef.current
+
     try {
       const mapModelFileUrls = getMapModelUrls(map)
 
@@ -112,7 +120,7 @@ export const World = (props: WorldProps) => {
 
       if (mode === 'textured') {
         loadGLTF(mapModelFileUrls.textured, `${map} (textured)`).then(gltf => {
-          if (gltf && gltf.scene) {
+          if (requestId === mapLoadRequestIdRef.current && gltf && gltf.scene) {
             setMapModel(gltf.scene)
           }
         })
@@ -131,7 +139,7 @@ export const World = (props: WorldProps) => {
 
       if (mode === 'untextured' || mode === 'wireframe') {
         loadGLTF(mapModelFileUrls.untextured, `${map} (untextured)`).then(gltf => {
-          if (gltf && gltf.scene) {
+          if (requestId === mapLoadRequestIdRef.current && gltf && gltf.scene) {
             setMapModel(gltf.scene)
             setMapOverlay(null)
           }
@@ -143,21 +151,29 @@ export const World = (props: WorldProps) => {
       )
       console.error(error)
     }
+
+    return () => {
+      if (mapLoadRequestIdRef.current === requestId) {
+        mapLoadRequestIdRef.current += 1
+      }
+    }
   }, [map, mode])
 
   useEffect(() => {
     if (!mapModel) {
       chunkRootsByNameRef.current = new Map()
       visibilityCullingEnabledRef.current = false
+      currentClusterRef.current = null
       return
     }
 
     const chunkRootsByName = collectChunkRoots(mapModel)
     chunkRootsByNameRef.current = chunkRootsByName
+    currentClusterRef.current = null
+    setChunkRootVisibility(chunkRootsByName, true)
 
     if (!mapVisibility) {
       visibilityCullingEnabledRef.current = false
-      setChunkRootVisibility(chunkRootsByName, true)
       return
     }
 
