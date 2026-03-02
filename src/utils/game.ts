@@ -45,6 +45,12 @@ export const getMapConversionUrl = (loadedMapName: string): string | undefined =
   return getAsset(`/models/maps/${foldername}/conversion.json`)
 }
 
+export const getMapVisibilityUrl = (loadedMapName: string): string | undefined => {
+  if (!loadedMapName) return undefined
+  const foldername = resolveMapFolderName(loadedMapName)
+  return getAsset(`/models/maps/${foldername}/visibility.json`)
+}
+
 interface MapSkyboxTypes {
   bk: string
   dn: string

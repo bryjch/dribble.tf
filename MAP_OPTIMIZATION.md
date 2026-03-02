@@ -171,10 +171,10 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 15: Add Frontend URL Helper
 
-- [ ] In [src/utils/game.ts](/Users/bryan/Github/dribble.tf/src/utils/game.ts), add `getMapVisibilityUrl(loadedMapName: string)`.
-- [ ] Make it resolve the map folder with the same folder-name logic used by `getMapConversionUrl()`.
-- [ ] Return `undefined` when the map name is missing.
-- [ ] Keep the function side-effect free.
+- [x] In [src/utils/game.ts](/Users/bryan/Github/dribble.tf/src/utils/game.ts), add `getMapVisibilityUrl(loadedMapName: string)`.
+- [x] Make it resolve the map folder with the same folder-name logic used by `getMapConversionUrl()`.
+- [x] Return `undefined` when the map name is missing.
+- [x] Keep the function side-effect free.
 
 ### Phase 16: Add Frontend Visibility Types
 
