@@ -956,7 +956,7 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
 
   if (assignedChunkCount === 0) {
     return {
-      version: 1,
+      version: 2,
       valid: false,
       transform: visibilityTransform,
       chunkCount: chunkAssignments.length,
@@ -971,7 +971,7 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
 
   if (hasBspVisibilityRows && assignedChunkRatio < minAssignedChunkRatio) {
     return {
-      version: 1,
+      version: 2,
       valid: false,
       transform: visibilityTransform,
       chunkCount: chunkAssignments.length,
@@ -981,6 +981,12 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
       warning: `Visibility metadata skipped: only ${assignedChunkCount}/${chunkAssignments.length} chunks resolved to BSP clusters.`,
     }
   }
+
+  const chunkNames = chunkAssignments.map(assignment => assignment.name)
+  const orderedChunkBounds = chunkBounds.map(bounds => ({
+    min: bounds.min,
+    max: bounds.max,
+  }))
 
   const chunkIndicesByCluster = new Map()
   chunkAssignments.forEach((assignment, chunkIndex) => {
@@ -1009,21 +1015,23 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
   })
 
   return {
-    version: 1,
+    version: 2,
     valid: true,
     transform: visibilityTransform,
     chunkCount: chunkAssignments.length,
     assignedChunkCount,
     clusterCount,
     emptyChunkCount,
-    planes,
-    nodes,
-    leafClusters,
-    clusterVisibilityOffsets,
-    clusterVisibilityData: visibilityLump.toString('base64'),
-    chunkBounds,
-    chunkAssignments,
-    visibleChunksByCluster,
+    metadata: {
+      version: 2,
+      transform: visibilityTransform,
+      chunkNames,
+      chunkBounds: orderedChunkBounds,
+      planes,
+      nodes,
+      leafClusters,
+      visibleChunksByCluster,
+    },
   }
 }
 
@@ -2419,7 +2427,7 @@ try {
     glbPath: chunkedOutput,
   })
   if (clusterVisibilityMetadata?.valid) {
-    fs.writeFileSync(clusterVisibilityPath, JSON.stringify(clusterVisibilityMetadata))
+    fs.writeFileSync(clusterVisibilityPath, JSON.stringify(clusterVisibilityMetadata.metadata))
     console.log(
       `Visibility metadata: ${clusterVisibilityPath} (${clusterVisibilityMetadata.assignedChunkCount}/${clusterVisibilityMetadata.chunkCount} chunks assigned, ${clusterVisibilityMetadata.clusterCount} clusters)`
     )

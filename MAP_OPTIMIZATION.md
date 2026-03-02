@@ -151,15 +151,15 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 13: Write `visibility.json` v2
 
-- [ ] Change the emitted visibility metadata shape to the new version-2 schema.
-- [ ] Include `version: 2`.
-- [ ] Include `transform: 'gltf-to-source:x,-z,y'`.
-- [ ] Include `chunkNames` ordered exactly as the runtime should use them.
-- [ ] Include `chunkBounds` in the same order as `chunkNames`.
-- [ ] Include `planes`, `nodes`, and `leafClusters`.
-- [ ] Include `visibleChunksByCluster`.
-- [ ] Remove the old `chunkAssignments` structure from the written file.
-- [ ] Keep serialization compact; no pretty-printing is necessary for this file.
+- [x] Change the emitted visibility metadata shape to the new version-2 schema.
+- [x] Include `version: 2`.
+- [x] Include `transform: 'gltf-to-source:x,-z,y'`.
+- [x] Include `chunkNames` ordered exactly as the runtime should use them.
+- [x] Include `chunkBounds` in the same order as `chunkNames`.
+- [x] Include `planes`, `nodes`, and `leafClusters`.
+- [x] Include `visibleChunksByCluster`.
+- [x] Remove the old `chunkAssignments` structure from the written file.
+- [x] Keep serialization compact; no pretty-printing is necessary for this file.
 
 ### Phase 14: Update `conversion.json`
 
