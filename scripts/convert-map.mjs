@@ -756,44 +756,32 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
   }
 
   const chunkAssignments = []
+  const chunkBounds = []
   const chunkNamePattern = /^chunk_\d+_\d+$/
   const samplePoint = new THREE.Vector3()
+  const worldBoundsSample = new THREE.Vector3()
 
-  for (let nodeIndex = 0; nodeIndex < (gltf.nodes || []).length; nodeIndex += 1) {
-    const node = gltf.nodes[nodeIndex]
-    if (typeof node?.name !== 'string' || !chunkNamePattern.test(node.name) || node.mesh == null)
-      continue
+  const createEmptyBounds = () => ({
+    min: [Infinity, Infinity, Infinity],
+    max: [-Infinity, -Infinity, -Infinity],
+  })
 
-    const mesh = gltf.meshes?.[node.mesh]
-    if (!mesh || !Array.isArray(mesh.primitives)) continue
+  const expandBoundsWithPoint = (bounds, point) => {
+    bounds.min[0] = Math.min(bounds.min[0], point.x)
+    bounds.min[1] = Math.min(bounds.min[1], point.y)
+    bounds.min[2] = Math.min(bounds.min[2], point.z)
+    bounds.max[0] = Math.max(bounds.max[0], point.x)
+    bounds.max[1] = Math.max(bounds.max[1], point.y)
+    bounds.max[2] = Math.max(bounds.max[2], point.z)
+  }
 
-    let minX = Infinity
-    let minY = Infinity
-    let minZ = Infinity
-    let maxX = -Infinity
-    let maxY = -Infinity
-    let maxZ = -Infinity
+  const expandBoundsWithAccessor = (bounds, accessorIndex, worldMatrix) => {
+    const accessorBounds = readAccessorBounds(accessorIndex)
+    if (!accessorBounds) return false
 
-    for (const primitive of mesh.primitives) {
-      const positionAccessor = primitive?.attributes?.POSITION
-      if (positionAccessor == null) continue
-      const bounds = readAccessorBounds(positionAccessor)
-      if (!bounds) continue
-      minX = Math.min(minX, bounds.min[0])
-      minY = Math.min(minY, bounds.min[1])
-      minZ = Math.min(minZ, bounds.min[2])
-      maxX = Math.max(maxX, bounds.max[0])
-      maxY = Math.max(maxY, bounds.max[1])
-      maxZ = Math.max(maxZ, bounds.max[2])
-    }
-
-    if (!Number.isFinite(minX) || !Number.isFinite(maxX)) continue
-
-    const centerX = (minX + maxX) * 0.5
-    const centerY = (minY + maxY) * 0.5
-    const centerZ = (minZ + maxZ) * 0.5
-    const localSamples = [
-      [centerX, centerY, centerZ],
+    const [minX, minY, minZ] = accessorBounds.min
+    const [maxX, maxY, maxZ] = accessorBounds.max
+    const corners = [
       [minX, minY, minZ],
       [minX, minY, maxZ],
       [minX, maxY, minZ],
@@ -804,10 +792,81 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
       [maxX, maxY, maxZ],
     ]
 
-    const worldMatrix = getNodeWorldMatrix(nodeIndex)
+    for (const corner of corners) {
+      worldBoundsSample.set(corner[0], corner[1], corner[2]).applyMatrix4(worldMatrix)
+      expandBoundsWithPoint(bounds, worldBoundsSample)
+    }
+
+    return true
+  }
+
+  const getChunkDescendantBounds = chunkRootIndex => {
+    const bounds = createEmptyBounds()
+    let foundGeometry = false
+
+    const visitNode = nodeIndex => {
+      const node = gltf.nodes?.[nodeIndex]
+      if (!node) return
+
+      if (node.mesh != null) {
+        const mesh = gltf.meshes?.[node.mesh]
+        const worldMatrix = getNodeWorldMatrix(nodeIndex)
+        if (mesh && Array.isArray(mesh.primitives)) {
+          for (const primitive of mesh.primitives) {
+            const positionAccessor = primitive?.attributes?.POSITION
+            if (positionAccessor == null) continue
+            if (expandBoundsWithAccessor(bounds, positionAccessor, worldMatrix)) {
+              foundGeometry = true
+            }
+          }
+        }
+      }
+
+      for (const childIndex of node.children || []) {
+        visitNode(childIndex)
+      }
+    }
+
+    visitNode(chunkRootIndex)
+    return foundGeometry ? bounds : null
+  }
+
+  let emptyChunkCount = 0
+
+  for (let nodeIndex = 0; nodeIndex < (gltf.nodes || []).length; nodeIndex += 1) {
+    const node = gltf.nodes[nodeIndex]
+    if (typeof node?.name !== 'string' || !chunkNamePattern.test(node.name)) continue
+
+    const bounds = getChunkDescendantBounds(nodeIndex)
+    if (!bounds) {
+      emptyChunkCount += 1
+      continue
+    }
+
+    chunkBounds.push({
+      name: node.name,
+      min: bounds.min,
+      max: bounds.max,
+    })
+
+    const centerX = (bounds.min[0] + bounds.max[0]) * 0.5
+    const centerY = (bounds.min[1] + bounds.max[1]) * 0.5
+    const centerZ = (bounds.min[2] + bounds.max[2]) * 0.5
+    const localSamples = [
+      [centerX, centerY, centerZ],
+      [bounds.min[0], bounds.min[1], bounds.min[2]],
+      [bounds.min[0], bounds.min[1], bounds.max[2]],
+      [bounds.min[0], bounds.max[1], bounds.min[2]],
+      [bounds.min[0], bounds.max[1], bounds.max[2]],
+      [bounds.max[0], bounds.min[1], bounds.min[2]],
+      [bounds.max[0], bounds.min[1], bounds.max[2]],
+      [bounds.max[0], bounds.max[1], bounds.min[2]],
+      [bounds.max[0], bounds.max[1], bounds.max[2]],
+    ]
+
     const clusterSet = new Set()
     for (const localSample of localSamples) {
-      samplePoint.set(localSample[0], localSample[1], localSample[2]).applyMatrix4(worldMatrix)
+      samplePoint.set(localSample[0], localSample[1], localSample[2])
       const leafIndex = locateLeafIndex([samplePoint.x, samplePoint.y, samplePoint.z])
       if (leafIndex < 0) continue
       const clusterIndex = leafClusters[leafIndex]
@@ -830,11 +889,13 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
     version: 1,
     chunkCount: chunkAssignments.length,
     clusterCount,
+    emptyChunkCount,
     planes,
     nodes,
     leafClusters,
     clusterVisibilityOffsets,
     clusterVisibilityData: visibilityLump.toString('base64'),
+    chunkBounds,
     chunkAssignments,
   }
 }

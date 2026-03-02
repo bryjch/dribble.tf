@@ -117,11 +117,11 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 9: Build Correct Chunk Bounds for Metadata
 
-- [ ] In [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs), update `parseChunkClusterVisibility()` so chunk bounds are computed from chunk root descendants recursively, not from the root mesh only.
-- [ ] Add a helper that accumulates all descendant primitive position bounds under a chunk root.
-- [ ] Make the helper respect node transforms all the way down the hierarchy.
-- [ ] Skip chunk roots that still resolve to no geometry bounds and count them separately for diagnostics.
-- [ ] Record per-chunk AABBs in the returned metadata.
+- [x] In [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs), update `parseChunkClusterVisibility()` so chunk bounds are computed from chunk root descendants recursively, not from the root mesh only.
+- [x] Add a helper that accumulates all descendant primitive position bounds under a chunk root.
+- [x] Make the helper respect node transforms all the way down the hierarchy.
+- [x] Skip chunk roots that still resolve to no geometry bounds and count them separately for diagnostics.
+- [x] Record per-chunk AABBs in the returned metadata.
 
 ### Phase 10: Fix Coordinate-Space Conversion
 
