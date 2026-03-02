@@ -1,5 +1,6 @@
 import argparse
 import math
+import re
 import sys
 
 import bpy
@@ -13,6 +14,7 @@ STATIC_PROP_PREFIXES = ("prop_static",)
 # accidentally hide dynamic props, helpers, lights, or non-mesh scene content.
 SKIPPED_PREFIXES = ("prop_dynamic", "prop_physics")
 HELPER_TYPES = {"LIGHT", "CAMERA", "EMPTY", "ARMATURE", "LATTICE", "CURVE"}
+CHUNK_ROOT_NAME_PATTERN = re.compile(r"^chunk_\d+_\d+$")
 
 
 def parse_args():
@@ -307,7 +309,7 @@ def get_world_bounds_center(obj):
     return (bounds_min + bounds_max) * 0.5
 
 
-def clear_static_prop_name(obj):
+def clear_static_node_name(obj):
     obj.name = ""
     if getattr(obj, "data", None) is not None:
         obj.data.name = ""
@@ -320,7 +322,7 @@ def chunk_static_props(static_prop_objects, grid, bounds_min, bounds_max, chunk_
         ix, iy = world_point_to_chunk_coords(bounds_center, grid, bounds_min, bounds_max)
         chunk_root = get_or_create_chunk_root(chunk_roots, ix, iy)
         parent_object_preserving_world_transform(obj, chunk_root)
-        clear_static_prop_name(obj)
+        clear_static_node_name(obj)
 
     reparented_prop_count = 0
     for obj in static_prop_objects:
@@ -347,6 +349,45 @@ def validate_no_empty_chunk_roots(chunk_roots):
         raise RuntimeError(
             "Empty chunk roots would be exported: " + ", ".join(sorted(empty_chunk_roots))
         )
+
+
+def validate_chunk_root_names(chunk_roots):
+    invalid_chunk_roots = []
+    duplicate_chunk_roots = []
+    seen_chunk_root_names = set()
+
+    for chunk_root in chunk_roots.values():
+        name = chunk_root.name_full
+        if not CHUNK_ROOT_NAME_PATTERN.match(name):
+            invalid_chunk_roots.append(name)
+        if name in seen_chunk_root_names:
+            duplicate_chunk_roots.append(name)
+        seen_chunk_root_names.add(name)
+
+    if invalid_chunk_roots:
+        raise RuntimeError(
+            "Chunk root names must stay stable for runtime lookup: "
+            + ", ".join(sorted(invalid_chunk_roots))
+        )
+
+    if duplicate_chunk_roots:
+        raise RuntimeError(
+            "Chunk root names must be unique: " + ", ".join(sorted(duplicate_chunk_roots))
+        )
+
+
+def iter_descendants(obj):
+    for child in obj.children:
+        yield child
+        yield from iter_descendants(child)
+
+
+def strip_static_child_names(chunk_roots):
+    for chunk_root in chunk_roots.values():
+        # Strip static child names so gltfpack can merge beneath the chunk root
+        # more aggressively; only chunk_* roots keep runtime-stable names.
+        for descendant in iter_descendants(chunk_root):
+            clear_static_node_name(descendant)
 
 
 def validate_non_chunkable_objects_preserved(non_chunkable_objects):
@@ -400,6 +441,7 @@ def chunk_scene_objects(classified_objects, grid, bounds_min, bounds_max):
     )
     prune_empty_chunk_roots(chunk_roots)
     validate_no_empty_chunk_roots(chunk_roots)
+    validate_chunk_root_names(chunk_roots)
     return chunk_roots
 
 
@@ -424,9 +466,10 @@ def main():
 
     expected_light_count = get_scene_light_count()
     bounds_min, bounds_max = get_world_bounds(chunkable_mesh_objects)
-    chunk_scene_objects(classified_objects, args.grid, bounds_min, bounds_max)
+    chunk_roots = chunk_scene_objects(classified_objects, args.grid, bounds_min, bounds_max)
     validate_non_chunkable_objects_preserved(classified_objects["non_chunkable_objects"])
     validate_scene_lights_preserved(expected_light_count)
+    strip_static_child_names(chunk_roots)
 
     bpy.ops.export_scene.gltf(
         filepath=args.out,

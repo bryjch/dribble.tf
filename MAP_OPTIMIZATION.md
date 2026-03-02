@@ -101,10 +101,10 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 7: Export-Side Naming Strategy
 
-- [ ] Add a pre-export cleanup pass in the Blender chunker that strips names from all static child nodes beneath chunk roots.
-- [ ] Keep chunk root names stable and unique.
-- [ ] Confirm no runtime code depends on `worldspawn_*`, `func_detail_*`, or `prop_static_*` node names before finalizing the cleanup behavior.
-- [ ] Add a brief code comment documenting that this name stripping exists to let `gltfpack` merge static nodes more aggressively.
+- [x] Add a pre-export cleanup pass in the Blender chunker that strips names from all static child nodes beneath chunk roots.
+- [x] Keep chunk root names stable and unique.
+- [x] Confirm no runtime code depends on `worldspawn_*`, `func_detail_*`, or `prop_static_*` node names before finalizing the cleanup behavior.
+- [x] Add a brief code comment documenting that this name stripping exists to let `gltfpack` merge static nodes more aggressively.
 
 ### Phase 8: Update `gltfpack` Invocation
 
