@@ -142,12 +142,12 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 12: Expand BSP PVS Offline
 
-- [ ] Add a helper in [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs) to decode the BSP visibility lump row for a cluster.
-- [ ] Expand raw BSP visibility into a set of visible source clusters per cluster.
-- [ ] Build a reverse mapping from source cluster to chunk indices using the sampled chunk cluster assignments.
-- [ ] Precompute `visibleChunksByCluster` so runtime does not have to decode BSP PVS bitfields every frame.
-- [ ] Deduplicate and sort each `visibleChunksByCluster[c]` array.
-- [ ] For invalid or missing cluster rows, default to an empty visible set at metadata build time and let runtime use its fallback behavior.
+- [x] Add a helper in [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs) to decode the BSP visibility lump row for a cluster.
+- [x] Expand raw BSP visibility into a set of visible source clusters per cluster.
+- [x] Build a reverse mapping from source cluster to chunk indices using the sampled chunk cluster assignments.
+- [x] Precompute `visibleChunksByCluster` so runtime does not have to decode BSP PVS bitfields every frame.
+- [x] Deduplicate and sort each `visibleChunksByCluster[c]` array.
+- [x] For invalid or missing cluster rows, default to an empty visible set at metadata build time and let runtime use its fallback behavior.
 
 ### Phase 13: Write `visibility.json` v2
 

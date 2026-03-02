@@ -613,6 +613,40 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
     clusterVisibilityOffsets.push(visibilityLump.readInt32LE(rowOffset))
   }
 
+  const decodeClusterVisibilityRow = clusterIndex => {
+    const rowOffset = clusterVisibilityOffsets[clusterIndex]
+    if (!Number.isInteger(rowOffset) || rowOffset < 0 || rowOffset >= visibilityLump.length) {
+      return []
+    }
+
+    const visibleClusters = new Set()
+    let decodedClusterIndex = 0
+    let cursor = rowOffset
+
+    while (decodedClusterIndex < clusterCount && cursor < visibilityLump.length) {
+      const visibilityByte = visibilityLump[cursor]
+      cursor += 1
+
+      if (visibilityByte === 0) {
+        if (cursor >= visibilityLump.length) {
+          return []
+        }
+        decodedClusterIndex += visibilityLump[cursor] * 8
+        cursor += 1
+        continue
+      }
+
+      for (let bitIndex = 0; bitIndex < 8 && decodedClusterIndex < clusterCount; bitIndex += 1) {
+        if ((visibilityByte & (1 << bitIndex)) !== 0) {
+          visibleClusters.add(decodedClusterIndex)
+        }
+        decodedClusterIndex += 1
+      }
+    }
+
+    return Array.from(visibleClusters).sort((a, b) => a - b)
+  }
+
   if (!fs.existsSync(glbPath)) {
     return null
   }
@@ -948,6 +982,32 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
     }
   }
 
+  const chunkIndicesByCluster = new Map()
+  chunkAssignments.forEach((assignment, chunkIndex) => {
+    for (const clusterIndex of assignment.clusters) {
+      const chunkIndices = chunkIndicesByCluster.get(clusterIndex)
+      if (chunkIndices) {
+        chunkIndices.push(chunkIndex)
+      } else {
+        chunkIndicesByCluster.set(clusterIndex, [chunkIndex])
+      }
+    }
+  })
+
+  const visibleChunksByCluster = Array.from({ length: clusterCount }, (_, clusterIndex) => {
+    const visibleChunkSet = new Set()
+
+    for (const visibleClusterIndex of decodeClusterVisibilityRow(clusterIndex)) {
+      const chunkIndices = chunkIndicesByCluster.get(visibleClusterIndex)
+      if (!chunkIndices) continue
+      for (const chunkIndex of chunkIndices) {
+        visibleChunkSet.add(chunkIndex)
+      }
+    }
+
+    return Array.from(visibleChunkSet).sort((a, b) => a - b)
+  })
+
   return {
     version: 1,
     valid: true,
@@ -963,6 +1023,7 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
     clusterVisibilityData: visibilityLump.toString('base64'),
     chunkBounds,
     chunkAssignments,
+    visibleChunksByCluster,
   }
 }
 
