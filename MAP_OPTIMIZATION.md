@@ -125,10 +125,10 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 10: Fix Coordinate-Space Conversion
 
-- [ ] Add a small helper inside `parseChunkClusterVisibility()` that converts GLTF coordinates to Source BSP coordinates as `[x, -z, y]`.
-- [ ] Apply that transform to every sampled chunk point before BSP leaf lookup.
-- [ ] Add a short code comment explaining why the transform is needed.
-- [ ] Ensure the same transform string is written into `visibility.json` as metadata version information.
+- [x] Add a small helper inside `parseChunkClusterVisibility()` that converts GLTF coordinates to Source BSP coordinates as `[x, -z, y]`.
+- [x] Apply that transform to every sampled chunk point before BSP leaf lookup.
+- [x] Add a short code comment explaining why the transform is needed.
+- [x] Ensure the same transform string is written into `visibility.json` as metadata version information.
 
 ### Phase 11: Improve Chunk-to-Cluster Sampling
 

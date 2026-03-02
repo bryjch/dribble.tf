@@ -760,6 +760,12 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
   const chunkNamePattern = /^chunk_\d+_\d+$/
   const samplePoint = new THREE.Vector3()
   const worldBoundsSample = new THREE.Vector3()
+  const visibilityTransform = 'gltf-to-source:x,-z,y'
+
+  const convertGltfPointToSource = point => {
+    // GLTF world space is Y-up, while Source BSP space is Z-up with inverted Y.
+    return [point[0], -point[2], point[1]]
+  }
 
   const createEmptyBounds = () => ({
     min: [Infinity, Infinity, Infinity],
@@ -867,7 +873,9 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
     const clusterSet = new Set()
     for (const localSample of localSamples) {
       samplePoint.set(localSample[0], localSample[1], localSample[2])
-      const leafIndex = locateLeafIndex([samplePoint.x, samplePoint.y, samplePoint.z])
+      const leafIndex = locateLeafIndex(
+        convertGltfPointToSource([samplePoint.x, samplePoint.y, samplePoint.z])
+      )
       if (leafIndex < 0) continue
       const clusterIndex = leafClusters[leafIndex]
       if (Number.isInteger(clusterIndex) && clusterIndex >= 0) {
@@ -887,6 +895,7 @@ const parseChunkClusterVisibility = ({ bspPath, glbPath }) => {
 
   return {
     version: 1,
+    transform: visibilityTransform,
     chunkCount: chunkAssignments.length,
     clusterCount,
     emptyChunkCount,
