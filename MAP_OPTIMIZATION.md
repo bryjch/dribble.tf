@@ -163,11 +163,11 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 14: Update `conversion.json`
 
-- [ ] In [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs), extend `conversion.json.visibility` to include `version`.
-- [ ] Add `valid: true` when `visibility.json` was successfully produced with usable chunk data.
-- [ ] Add `valid: false` when metadata generation is skipped or invalid.
-- [ ] Keep `chunkCount` and `clusterCount` when available.
-- [ ] Ensure `conversion.json` still writes successfully even when visibility generation fails.
+- [x] In [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs), extend `conversion.json.visibility` to include `version`.
+- [x] Add `valid: true` when `visibility.json` was successfully produced with usable chunk data.
+- [x] Add `valid: false` when metadata generation is skipped or invalid.
+- [x] Keep `chunkCount` and `clusterCount` when available.
+- [x] Ensure `conversion.json` still writes successfully even when visibility generation fails.
 
 ### Phase 15: Add Frontend URL Helper
 

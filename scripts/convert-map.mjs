@@ -2485,13 +2485,12 @@ const conversionMeta = {
         missingDestinationCount: teleportsMetadata.missingDestinationCount,
       }
     : null,
-  visibility: clusterVisibilityMetadata
-    ? {
-        chunkCount: clusterVisibilityMetadata.chunkCount,
-        clusterCount: clusterVisibilityMetadata.clusterCount,
-        valid: clusterVisibilityMetadata.valid === true,
-      }
-    : null,
+  visibility: {
+    version: clusterVisibilityMetadata?.version ?? null,
+    chunkCount: clusterVisibilityMetadata?.chunkCount ?? null,
+    clusterCount: clusterVisibilityMetadata?.clusterCount ?? null,
+    valid: clusterVisibilityMetadata?.valid === true,
+  },
   keepVertexAttributes: Boolean(lightmapDataPath) && requestedKeepVertexAttributes,
   gltfpack: gltfpackPath ?? null,
   success: true,
