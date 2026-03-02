@@ -1421,6 +1421,8 @@ const allowMissingMaterials = strictMaterials
     ? true
     : toBool(allowMissingMaterialsArg, true)
 const allowSkyboxFallback = toBool(getArg('allow-skybox-fallback', 'true'), true)
+const skipMaterialTruth = toBool(getArg('skip-material-truth', 'false'), false)
+const metadataOnly = toBool(getArg('metadata-only', 'false'), false)
 
 if (!['png', 'webp'].includes(skyboxImageFormat)) {
   throw new Error(`Invalid --skybox-image-format: ${skyboxImageFormat}. Expected 'png' or 'webp'.`)
@@ -1489,7 +1491,6 @@ if (isLikelyBzip2File(sourceBspPath)) {
   console.log(`Using local BSP: ${sourceBspPath}`)
 }
 
-console.log('Decompiling BSP...')
 const vmfOutputPath = path.join(decompileDir, `${mapName}.vmf`)
 const bspsrcArgs = [
   '--output',
@@ -1499,32 +1500,43 @@ const bspsrcArgs = [
   bspPath,
 ]
 
-// Resolve bspsrc — the config value may point to a directory, a .jar, or a .sh
-const bspsrcResolved = path.resolve(bspsrcDir)
-const bspsrcIsFile = fs.existsSync(bspsrcResolved) && fs.statSync(bspsrcResolved).isFile()
-const bspsrcBaseDir = bspsrcIsFile ? path.dirname(bspsrcResolved) : bspsrcResolved
+let vmfPath = metadataOnly
+  ? findFirstFile(decompileDir, filePath => filePath.toLowerCase().endsWith('.vmf'))
+  : null
 
-const bspsrcJar = bspsrcIsFile && bspsrcResolved.endsWith('.jar')
-  ? bspsrcResolved
-  : path.join(bspsrcBaseDir, 'bspsrc.jar')
-const bspsrcSh = bspsrcIsFile && bspsrcResolved.endsWith('.sh')
-  ? bspsrcResolved
-  : path.join(bspsrcBaseDir, 'bspsrc.sh')
-const bundledJava = path.join(bspsrcBaseDir, 'bin', 'java')
-const javaExe = fs.existsSync(bundledJava) ? bundledJava : 'java'
-
-if (fs.existsSync(bspsrcJar)) {
-  runCommand(javaExe, ['-jar', bspsrcJar, ...bspsrcArgs])
-} else if (fs.existsSync(bspsrcSh)) {
-  runCommand('bash', [bspsrcSh, ...bspsrcArgs], { cwd: bspsrcBaseDir })
+if (vmfPath) {
+  console.log(`Metadata-only mode: reusing existing VMF ${vmfPath}`)
 } else {
-  throw new Error(
-    `BSPSource not found in ${bspsrcBaseDir}. Expected bspsrc.jar or bspsrc.sh. ` +
-    `Set --bspsrc to the BSPSource directory or directly to bspsrc.jar/bspsrc.sh.`
-  )
+  console.log('Decompiling BSP...')
+
+  // Resolve bspsrc — the config value may point to a directory, a .jar, or a .sh
+  const bspsrcResolved = path.resolve(bspsrcDir)
+  const bspsrcIsFile = fs.existsSync(bspsrcResolved) && fs.statSync(bspsrcResolved).isFile()
+  const bspsrcBaseDir = bspsrcIsFile ? path.dirname(bspsrcResolved) : bspsrcResolved
+
+  const bspsrcJar = bspsrcIsFile && bspsrcResolved.endsWith('.jar')
+    ? bspsrcResolved
+    : path.join(bspsrcBaseDir, 'bspsrc.jar')
+  const bspsrcSh = bspsrcIsFile && bspsrcResolved.endsWith('.sh')
+    ? bspsrcResolved
+    : path.join(bspsrcBaseDir, 'bspsrc.sh')
+  const bundledJava = path.join(bspsrcBaseDir, 'bin', 'java')
+  const javaExe = fs.existsSync(bundledJava) ? bundledJava : 'java'
+
+  if (fs.existsSync(bspsrcJar)) {
+    runCommand(javaExe, ['-jar', bspsrcJar, ...bspsrcArgs])
+  } else if (fs.existsSync(bspsrcSh)) {
+    runCommand('bash', [bspsrcSh, ...bspsrcArgs], { cwd: bspsrcBaseDir })
+  } else {
+    throw new Error(
+      `BSPSource not found in ${bspsrcBaseDir}. Expected bspsrc.jar or bspsrc.sh. ` +
+      `Set --bspsrc to the BSPSource directory or directly to bspsrc.jar/bspsrc.sh.`
+    )
+  }
+
+  vmfPath = findFirstFile(decompileDir, filePath => filePath.toLowerCase().endsWith('.vmf'))
 }
 
-const vmfPath = findFirstFile(decompileDir, filePath => filePath.toLowerCase().endsWith('.vmf'))
 if (!vmfPath) {
   throw new Error('VMF file not found after decompile.')
 }
@@ -1700,33 +1712,50 @@ const buildMaterialTruthMetadata = () => {
   }
 }
 
-const materialTruth = buildMaterialTruthMetadata()
-console.log(
-  `Material truth: resolved ${materialTruth.resolved}/${materialTruth.scanned} VMF materials (${materialTruth.unresolved} unresolved)`
-)
-if (materialTruth.shaderCounts && Object.keys(materialTruth.shaderCounts).length > 0) {
-  console.log('[Material truth] Shader counts:', materialTruth.shaderCounts)
+const materialTruth = skipMaterialTruth
+  ? {
+      scanned: 0,
+      resolved: 0,
+      unresolved: 0,
+      shaderCounts: {},
+      unresolvedSamples: [],
+      materials: {},
+    }
+  : buildMaterialTruthMetadata()
+if (skipMaterialTruth) {
+  console.log('Material truth scan skipped by --skip-material-truth.')
+} else {
+  console.log(
+    `Material truth: resolved ${materialTruth.resolved}/${materialTruth.scanned} VMF materials (${materialTruth.unresolved} unresolved)`
+  )
+  if (materialTruth.shaderCounts && Object.keys(materialTruth.shaderCounts).length > 0) {
+    console.log('[Material truth] Shader counts:', materialTruth.shaderCounts)
+  }
 }
 
 // ── Extract BSP lightmaps (before Plumber import so the data is ready) ──
 const lightmapScript = path.join(repoRoot, 'scripts', 'extract-bsp-lightmaps.mjs')
 const lightmapDir = path.join(tempDir, 'lightmaps')
 let lightmapDataPath = null
+const existingLightmapDataPath = path.join(lightmapDir, 'lightmap_data.json')
 
-try {
-  console.log('Extracting lightmaps from BSP...')
-  runCommand(process.execPath, [lightmapScript, '--bsp', bspPath, '--out', lightmapDir])
-  const candidate = path.join(lightmapDir, 'lightmap_data.json')
-  if (fs.existsSync(candidate)) {
-    lightmapDataPath = lightmapDir
-    console.log('Lightmap data ready for Blender import.')
+if (metadataOnly && fs.existsSync(existingLightmapDataPath)) {
+  lightmapDataPath = lightmapDir
+  console.log(`Metadata-only mode: reusing existing lightmap data ${existingLightmapDataPath}`)
+} else {
+  try {
+    console.log('Extracting lightmaps from BSP...')
+    runCommand(process.execPath, [lightmapScript, '--bsp', bspPath, '--out', lightmapDir])
+    if (fs.existsSync(existingLightmapDataPath)) {
+      lightmapDataPath = lightmapDir
+      console.log('Lightmap data ready for Blender import.')
+    }
+  } catch (lmError) {
+    console.warn('Lightmap extraction failed (non-fatal):')
+    console.warn(lmError instanceof Error ? lmError.message : String(lmError))
   }
-} catch (lmError) {
-  console.warn('Lightmap extraction failed (non-fatal):')
-  console.warn(lmError instanceof Error ? lmError.message : String(lmError))
 }
 
-console.log('Importing VMF with Blender + Plumber...')
 const blenderBaseArgs = [
   '-b',
   '-noaudio',
@@ -1847,184 +1876,211 @@ const fallbackImportStages = [
   },
 ]
 
-try {
-  runBlenderImport(primaryImportOptions, 'full')
-  if (!hasValidRawOutput()) {
-    throw new Error(`GLB export missing after full import: ${rawOutput}`)
-  }
-} catch (primaryError) {
-  const canFallback =
-    primaryImportOptions.includeProps ||
-    primaryImportOptions.includeLights ||
-    primaryImportOptions.includeEntities ||
-    primaryImportOptions.includeOverlays
+let importedLightCount = 0
 
-  if (!canFallback) {
-    throw primaryError
+if (metadataOnly) {
+  console.log('Metadata-only mode: reusing existing raw/chunked/packed outputs.')
+
+  if (hasValidRawOutput()) {
+    importedLightCount = readGlbPunctualLightCount(rawOutput)
+    console.log(`Imported punctual lights: ${importedLightCount}`)
+  } else {
+    console.warn(`Raw GLB missing in metadata-only mode: ${rawOutput}`)
   }
 
-  importFallbackUsed = true
-  importFallbackReason = primaryError instanceof Error ? primaryError.message : String(primaryError)
-  console.warn('Primary Blender import failed; retrying with safer fallback import modes.')
-  console.warn(importFallbackReason)
-
-  let lastFallbackReason = null
-  for (const fallbackStage of fallbackImportStages) {
-    try {
-      runBlenderImport(fallbackStage.options, fallbackStage.modeLabel)
-      if (!hasValidRawOutput()) {
-        throw new Error(`GLB export missing after ${fallbackStage.modeLabel}: ${rawOutput}`)
-      }
-      importFallbackMode = fallbackStage.modeLabel
-      effectiveImportOptions = fallbackStage.options
-      break
-    } catch (fallbackError) {
-      lastFallbackReason =
-        fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
-      console.warn(`Fallback Blender import failed in mode ${fallbackStage.modeLabel}.`)
-      console.warn(lastFallbackReason)
-    }
+  if (!fs.existsSync(chunkedOutput) || fs.statSync(chunkedOutput).size === 0) {
+    throw new Error(`Metadata-only mode requires an existing chunked GLB at ${chunkedOutput}`)
   }
-
-  if (!importFallbackMode) {
+  if (!fs.existsSync(texturedOutput) || fs.statSync(texturedOutput).size === 0) {
+    throw new Error(`Metadata-only mode requires an existing packed GLB at ${texturedOutput}`)
+  }
+  if (!fs.existsSync(untexturedOutput) || fs.statSync(untexturedOutput).size === 0) {
     throw new Error(
-      `Blender import failed in all modes. primary=${importFallbackReason}; fallback=${lastFallbackReason}`
+      `Metadata-only mode requires an existing untextured GLB at ${untexturedOutput}`
     )
   }
-}
-
-if (fs.existsSync(missingMaterialsPath)) {
-  const missingMaterials = fs.readFileSync(missingMaterialsPath, 'utf8').trim()
-  if (missingMaterials.length > 0) {
-    if (!allowMissingMaterials) {
-      throw new Error(`Missing materials detected. See ${missingMaterialsPath}`)
-    }
-  }
-}
-
-if (!fs.existsSync(rawOutput) || fs.statSync(rawOutput).size === 0) {
-  throw new Error(`GLB export failed. Missing output at ${rawOutput}`)
-}
-
-const importedLightCount = readGlbPunctualLightCount(rawOutput)
-console.log(`Imported punctual lights: ${importedLightCount}`)
-
-// Inject after chunking, not before. Blender chunking can drop/simplify triangles
-// when fed an already lightmap-split GLB, which creates visible holes.
-const injectLightmapScript = path.join(repoRoot, 'scripts', 'inject-glb-lightmaps.mjs')
-
-if (Number.isNaN(chunkGrid) || chunkGrid < 1) {
-  throw new Error(`Invalid --chunk-grid value: ${chunkGrid}`)
-}
-
-console.log(`Chunking GLB with Blender (grid ${chunkGrid}x${chunkGrid})...`)
-runCommand(blenderPath, [
-  '-b',
-  '-noaudio',
-  '--python',
-  chunkScript,
-  '--',
-  '--input',
-  rawOutput,
-  '--out',
-  chunkedOutput,
-  '--grid',
-  String(chunkGrid),
-  '--target',
-  'worldspawn',
-])
-
-// Preserve a pre-lightmap-injection chunked GLB for fast reinject iteration.
-const chunkedPreLmOutput = path.join(tempDir, `${mapName}_chunked_pre_lm.glb`)
-if (fs.existsSync(chunkedOutput) && fs.statSync(chunkedOutput).size > 0) {
-  fs.copyFileSync(chunkedOutput, chunkedPreLmOutput)
-}
-
-/*
- * Static-map output pipeline order matters here:
- * import -> chunk -> lightmap inject -> gltfpack -> metadata export.
- * The later optimization and metadata steps assume they are operating on the
- * chunked GLB, and the exported metadata should describe the packed map output.
- */
-// ── Inject BSP lightmaps into the chunked GLB ──
-if (lightmapDataPath && fs.existsSync(chunkedOutput) && fs.statSync(chunkedOutput).size > 200) {
-  try {
-    console.log('Injecting lightmap UVs + atlas into chunked GLB...')
-    // Use a unique temporary output file so stale *_chunked_lm.glb caches can
-    // never be reused accidentally across reconvert runs.
-    const lmOutput = path.join(
-      tempDir,
-      `${path.basename(chunkedOutput, '.glb')}_lm_tmp_${Date.now()}_${process.pid}.glb`
-    )
-    const chunkedSizeBefore = fs.statSync(chunkedOutput).size
-
-    try {
-      runCommand(process.execPath, [
-        injectLightmapScript,
-        '--glb',
-        chunkedOutput,
-        '--out',
-        lmOutput,
-        '--lightmap-dir',
-        lightmapDataPath,
-      ])
-
-      if (!fs.existsSync(lmOutput)) {
-        console.warn('Lightmap injector did not produce output; skipping.')
-      } else if (fs.statSync(lmOutput).size > chunkedSizeBefore) {
-        fs.copyFileSync(lmOutput, chunkedOutput)
-        // Copy atlas PNG to output dir (separate file - Three.js loads it independently)
-        const atlasSrc = path.join(lightmapDataPath, 'lightmap_atlas.png')
-        const atlasDst = path.join(outDir, 'lightmap_atlas.png')
-        if (fs.existsSync(atlasSrc)) {
-          fs.copyFileSync(atlasSrc, atlasDst)
-          console.log(`Lightmap atlas: ${atlasDst}`)
-        }
-        console.log('Lightmap injection complete.')
-      } else {
-        console.warn('Lightmap GLB was not larger than chunked source; skipping.')
-      }
-    } finally {
-      if (fs.existsSync(lmOutput)) {
-        fs.unlinkSync(lmOutput)
-      }
-    }
-  } catch (lmError) {
-    console.warn('Lightmap injection failed (non-fatal):')
-    console.warn(lmError instanceof Error ? lmError.message : String(lmError))
-  }
-}
-
-if (gltfpackPath) {
-  console.log(`Optimizing GLB with gltfpack: ${gltfpackPath}`)
-  const keepVertexAttributes = Boolean(lightmapDataPath) && requestedKeepVertexAttributes
-  // Keep named chunk roots for runtime lookup and allow instancing/merging wins
-  // before adding simplification defaults; we want draw-call reductions validated first.
-  const gltfpackArgs = ['-i', chunkedOutput, '-o', texturedOutput, '-kn', '-mi']
-  if (textureFormat === 'ktx2') gltfpackArgs.push('-tc')
-  if (textureFormat === 'uastc') gltfpackArgs.push('-tu')
-  if (textureFormat === 'webp') gltfpackArgs.push('-tw')
-  if ((textureScale || textureLimit) && !textureFormat) {
-    gltfpackArgs.push('-tw')
-  }
-  if (textureScale) gltfpackArgs.push('-ts', textureScale)
-  if (textureLimit) gltfpackArgs.push('-tl', textureLimit)
-
-  // Preserve TEXCOORD_1 (lightmap UVs) when lightmap data was injected.
-  // -kv: keep vertex attributes even if gltfpack considers them unused.
-  // -vtf: keep texcoords as float to avoid KHR_texture_transform remapping,
-  //       which can collapse lightmap UV range and break atlas sampling.
-  if (keepVertexAttributes) {
-    gltfpackArgs.push('-kv', '-vtf')
-  }
-
-  runCommand(gltfpackPath, gltfpackArgs)
 } else {
-  console.warn('gltfpack not found; copying raw GLB to output.')
-  fs.copyFileSync(chunkedOutput, texturedOutput)
-}
+  console.log('Importing VMF with Blender + Plumber...')
 
-fs.copyFileSync(texturedOutput, untexturedOutput)
+  try {
+    runBlenderImport(primaryImportOptions, 'full')
+    if (!hasValidRawOutput()) {
+      throw new Error(`GLB export missing after full import: ${rawOutput}`)
+    }
+  } catch (primaryError) {
+    const canFallback =
+      primaryImportOptions.includeProps ||
+      primaryImportOptions.includeLights ||
+      primaryImportOptions.includeEntities ||
+      primaryImportOptions.includeOverlays
+
+    if (!canFallback) {
+      throw primaryError
+    }
+
+    importFallbackUsed = true
+    importFallbackReason = primaryError instanceof Error ? primaryError.message : String(primaryError)
+    console.warn('Primary Blender import failed; retrying with safer fallback import modes.')
+    console.warn(importFallbackReason)
+
+    let lastFallbackReason = null
+    for (const fallbackStage of fallbackImportStages) {
+      try {
+        runBlenderImport(fallbackStage.options, fallbackStage.modeLabel)
+        if (!hasValidRawOutput()) {
+          throw new Error(`GLB export missing after ${fallbackStage.modeLabel}: ${rawOutput}`)
+        }
+        importFallbackMode = fallbackStage.modeLabel
+        effectiveImportOptions = fallbackStage.options
+        break
+      } catch (fallbackError) {
+        lastFallbackReason =
+          fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+        console.warn(`Fallback Blender import failed in mode ${fallbackStage.modeLabel}.`)
+        console.warn(lastFallbackReason)
+      }
+    }
+
+    if (!importFallbackMode) {
+      throw new Error(
+        `Blender import failed in all modes. primary=${importFallbackReason}; fallback=${lastFallbackReason}`
+      )
+    }
+  }
+
+  if (fs.existsSync(missingMaterialsPath)) {
+    const missingMaterials = fs.readFileSync(missingMaterialsPath, 'utf8').trim()
+    if (missingMaterials.length > 0) {
+      if (!allowMissingMaterials) {
+        throw new Error(`Missing materials detected. See ${missingMaterialsPath}`)
+      }
+    }
+  }
+
+  if (!fs.existsSync(rawOutput) || fs.statSync(rawOutput).size === 0) {
+    throw new Error(`GLB export failed. Missing output at ${rawOutput}`)
+  }
+
+  importedLightCount = readGlbPunctualLightCount(rawOutput)
+  console.log(`Imported punctual lights: ${importedLightCount}`)
+
+  // Inject after chunking, not before. Blender chunking can drop/simplify triangles
+  // when fed an already lightmap-split GLB, which creates visible holes.
+  const injectLightmapScript = path.join(repoRoot, 'scripts', 'inject-glb-lightmaps.mjs')
+
+  if (Number.isNaN(chunkGrid) || chunkGrid < 1) {
+    throw new Error(`Invalid --chunk-grid value: ${chunkGrid}`)
+  }
+
+  console.log(`Chunking GLB with Blender (grid ${chunkGrid}x${chunkGrid})...`)
+  runCommand(blenderPath, [
+    '-b',
+    '-noaudio',
+    '--python',
+    chunkScript,
+    '--',
+    '--input',
+    rawOutput,
+    '--out',
+    chunkedOutput,
+    '--grid',
+    String(chunkGrid),
+    '--target',
+    'worldspawn',
+  ])
+
+  // Preserve a pre-lightmap-injection chunked GLB for fast reinject iteration.
+  const chunkedPreLmOutput = path.join(tempDir, `${mapName}_chunked_pre_lm.glb`)
+  if (fs.existsSync(chunkedOutput) && fs.statSync(chunkedOutput).size > 0) {
+    fs.copyFileSync(chunkedOutput, chunkedPreLmOutput)
+  }
+
+  /*
+   * Static-map output pipeline order matters here:
+   * import -> chunk -> lightmap inject -> gltfpack -> metadata export.
+   * The later optimization and metadata steps assume they are operating on the
+   * chunked GLB, and the exported metadata should describe the packed map output.
+   */
+  // ── Inject BSP lightmaps into the chunked GLB ──
+  if (lightmapDataPath && fs.existsSync(chunkedOutput) && fs.statSync(chunkedOutput).size > 200) {
+    try {
+      console.log('Injecting lightmap UVs + atlas into chunked GLB...')
+      // Use a unique temporary output file so stale *_chunked_lm.glb caches can
+      // never be reused accidentally across reconvert runs.
+      const lmOutput = path.join(
+        tempDir,
+        `${path.basename(chunkedOutput, '.glb')}_lm_tmp_${Date.now()}_${process.pid}.glb`
+      )
+      const chunkedSizeBefore = fs.statSync(chunkedOutput).size
+
+      try {
+        runCommand(process.execPath, [
+          injectLightmapScript,
+          '--glb',
+          chunkedOutput,
+          '--out',
+          lmOutput,
+          '--lightmap-dir',
+          lightmapDataPath,
+        ])
+
+        if (!fs.existsSync(lmOutput)) {
+          console.warn('Lightmap injector did not produce output; skipping.')
+        } else if (fs.statSync(lmOutput).size > chunkedSizeBefore) {
+          fs.copyFileSync(lmOutput, chunkedOutput)
+          // Copy atlas PNG to output dir (separate file - Three.js loads it independently)
+          const atlasSrc = path.join(lightmapDataPath, 'lightmap_atlas.png')
+          const atlasDst = path.join(outDir, 'lightmap_atlas.png')
+          if (fs.existsSync(atlasSrc)) {
+            fs.copyFileSync(atlasSrc, atlasDst)
+            console.log(`Lightmap atlas: ${atlasDst}`)
+          }
+          console.log('Lightmap injection complete.')
+        } else {
+          console.warn('Lightmap GLB was not larger than chunked source; skipping.')
+        }
+      } finally {
+        if (fs.existsSync(lmOutput)) {
+          fs.unlinkSync(lmOutput)
+        }
+      }
+    } catch (lmError) {
+      console.warn('Lightmap injection failed (non-fatal):')
+      console.warn(lmError instanceof Error ? lmError.message : String(lmError))
+    }
+  }
+
+  if (gltfpackPath) {
+    console.log(`Optimizing GLB with gltfpack: ${gltfpackPath}`)
+    const keepVertexAttributes = Boolean(lightmapDataPath) && requestedKeepVertexAttributes
+    // Keep named chunk roots for runtime lookup and allow instancing/merging wins
+    // before adding simplification defaults; we want draw-call reductions validated first.
+    const gltfpackArgs = ['-i', chunkedOutput, '-o', texturedOutput, '-kn', '-mi']
+    if (textureFormat === 'ktx2') gltfpackArgs.push('-tc')
+    if (textureFormat === 'uastc') gltfpackArgs.push('-tu')
+    if (textureFormat === 'webp') gltfpackArgs.push('-tw')
+    if ((textureScale || textureLimit) && !textureFormat) {
+      gltfpackArgs.push('-tw')
+    }
+    if (textureScale) gltfpackArgs.push('-ts', textureScale)
+    if (textureLimit) gltfpackArgs.push('-tl', textureLimit)
+
+    // Preserve TEXCOORD_1 (lightmap UVs) when lightmap data was injected.
+    // -kv: keep vertex attributes even if gltfpack considers them unused.
+    // -vtf: keep texcoords as float to avoid KHR_texture_transform remapping,
+    //       which can collapse lightmap UV range and break atlas sampling.
+    if (keepVertexAttributes) {
+      gltfpackArgs.push('-kv', '-vtf')
+    }
+
+    runCommand(gltfpackPath, gltfpackArgs)
+  } else {
+    console.warn('gltfpack not found; copying raw GLB to output.')
+    fs.copyFileSync(chunkedOutput, texturedOutput)
+  }
+
+  fs.copyFileSync(texturedOutput, untexturedOutput)
+}
 
 let skyboxOutputDir = null
 let skyboxName = null

@@ -43,10 +43,16 @@ def main():
     basename = os.path.splitext(os.path.basename(vtf_path))[0]
     output_path = os.path.join(output_dir, f'{basename}.{args.format}')
 
-    with open(vtf_path, 'rb') as f:
-        vtf = Parser(f.read())
+    try:
+        vtf = Parser(vtf_path)
+    except Exception:
+        with open(vtf_path, 'rb') as f:
+            vtf = Parser(f.read())
 
-    image = vtf.to_image()
+    if hasattr(vtf, 'to_image'):
+        image = vtf.to_image()
+    else:
+        image = vtf.get_image()
 
     if args.format == 'tga':
         # TGA doesn't support RGBA well in all pipelines; convert to RGB if no alpha needed

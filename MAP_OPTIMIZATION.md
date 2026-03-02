@@ -252,13 +252,13 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 25: Converter Validation Tasks
 
-- [ ] Re-run Snakewater conversion with the updated chunker and `chunk-grid=8`.
-- [ ] Confirm the chunk-root count is materially larger than 2.
-- [ ] Confirm `visibility.json.version === 2`.
-- [ ] Confirm most chunks have valid sampled source clusters before PVS expansion.
-- [ ] Confirm `conversion.json.visibility.valid === true`.
-- [ ] Confirm `gltfpack` output node and primitive counts drop materially relative to the current baseline.
-- [ ] Confirm lightmap atlas output still exists and the final GLB still renders.
+- [x] Re-run Snakewater conversion with the updated chunker and `chunk-grid=8`.
+- [x] Confirm the chunk-root count is materially larger than 2.
+- [x] Confirm `visibility.json.version === 2`.
+- [x] Confirm most chunks have valid sampled source clusters before PVS expansion.
+- [x] Confirm `conversion.json.visibility.valid === true`.
+- [x] Confirm `gltfpack` output node and primitive counts drop materially relative to the current baseline.
+- [x] Confirm lightmap atlas output still exists and the final GLB still renders.
 
 ### Phase 26: Runtime Validation Tasks
 

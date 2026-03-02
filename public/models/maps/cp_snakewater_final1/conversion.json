@@ -1,0 +1,77 @@
+{
+  "mapName": "cp_snakewater_final1",
+  "timestamp": "2026-03-02T17:50:19.059Z",
+  "chunkGrid": 8,
+  "textureScale": "0.5",
+  "textureLimit": "1024",
+  "textureFormat": "webp",
+  "requireSkybox": true,
+  "importProps": true,
+  "importLights": true,
+  "importEntitiesRequested": false,
+  "importEntities": false,
+  "importOverlays": false,
+  "importInvisibleSolids": false,
+  "strictMaterials": false,
+  "allowMissingMaterials": true,
+  "missingMaterialsCount": 0,
+  "vmfLightEntityCount": 163,
+  "lightEnvironment": {
+    "ambient": {
+      "color": [
+        142,
+        152,
+        166
+      ],
+      "brightness": 200
+    },
+    "sun": {
+      "color": [
+        231,
+        194,
+        151
+      ],
+      "brightness": 700
+    },
+    "pitch": -30,
+    "yaw": 10,
+    "sunSpreadAngle": null
+  },
+  "fog": null,
+  "materialTruth": {
+    "scanned": 0,
+    "resolved": 0,
+    "unresolved": 0,
+    "shaderCounts": {},
+    "unresolvedSamples": [],
+    "materials": {}
+  },
+  "importedLightCount": 0,
+  "detectedFullbright": true,
+  "importFallbackUsed": false,
+  "importFallbackReason": null,
+  "importFallbackMode": null,
+  "effectiveImportProps": true,
+  "effectiveImportLights": true,
+  "effectiveImportEntities": false,
+  "effectiveImportOverlays": false,
+  "skyboxName": "sky_dawn_01",
+  "skyboxImageFormat": "webp",
+  "allowSkyboxFallback": true,
+  "teleports": {
+    "triggerCount": 0,
+    "spawnCount": 93,
+    "hasDefaultSpawn": true,
+    "missingModelCount": 0,
+    "missingDestinationCount": 0
+  },
+  "visibility": {
+    "version": 2,
+    "chunkCount": 31,
+    "clusterCount": 1916,
+    "valid": true
+  },
+  "keepVertexAttributes": true,
+  "gltfpack": "./scripts/tools/gltfpack/gltfpack",
+  "success": true
+}
