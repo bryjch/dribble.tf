@@ -5,9 +5,10 @@ import { GLTF, GLTFLoader } from 'three/examples/jsm/Addons.js'
 
 import { ActorDimensions } from '@components/Scene/Actors'
 
+import { MapVisibilityMetadata } from '@constants/types'
 import { addDownloadAction, updateDownloadAction } from '@zus/actions'
 import { getState, useStore } from '@zus/store'
-import { getMapModelUrls } from '@utils/game'
+import { getMapModelUrls, getMapVisibilityUrl } from '@utils/game'
 
 const INVISIBLE_TOOL_MATERIALS = new Set([
   'toolsnodraw',
@@ -50,6 +51,7 @@ export const World = (props: WorldProps) => {
   const ref = useRef<THREE.Group>(null)
   const [mapModel, setMapModel] = useState<THREE.Group | null>()
   const [mapOverlay, setMapOverlay] = useState<THREE.Group | null>()
+  const [mapVisibility, setMapVisibility] = useState<MapVisibilityMetadata | null>(null)
   const { map, mode } = props
 
   const bounds = useStore(state => state.scene.bounds)
@@ -58,6 +60,38 @@ export const World = (props: WorldProps) => {
   // to prevent lingering of the previous map
   useEffect(() => {
     setMapModel(null)
+    setMapVisibility(null)
+  }, [map])
+
+  useEffect(() => {
+    const visibilityUrl = getMapVisibilityUrl(map)
+    if (!visibilityUrl) {
+      setMapVisibility(null)
+      return
+    }
+
+    let cancelled = false
+
+    fetch(visibilityUrl)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Failed to load visibility metadata: ${response.status}`)
+        }
+        return response.json()
+      })
+      .then(data => {
+        if (cancelled) return
+        setMapVisibility(isMapVisibilityMetadata(data) ? data : null)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setMapVisibility(null)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [map])
 
   useEffect(() => {
@@ -176,6 +210,22 @@ export const World = (props: WorldProps) => {
       {mapModel ? <primitive object={mapModel} /> : null}
       {mapOverlay ? <primitive object={mapOverlay} /> : null}
     </group>
+  )
+}
+
+function isMapVisibilityMetadata(data: unknown): data is MapVisibilityMetadata {
+  if (!data || typeof data !== 'object') return false
+
+  const candidate = data as Record<string, unknown>
+  return (
+    candidate.version === 2 &&
+    candidate.transform === 'gltf-to-source:x,-z,y' &&
+    Array.isArray(candidate.chunkNames) &&
+    Array.isArray(candidate.chunkBounds) &&
+    Array.isArray(candidate.planes) &&
+    Array.isArray(candidate.nodes) &&
+    Array.isArray(candidate.leafClusters) &&
+    Array.isArray(candidate.visibleChunksByCluster)
   )
 }
 

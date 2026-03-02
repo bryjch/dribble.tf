@@ -185,11 +185,11 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 17: Load Visibility Metadata in `World`
 
-- [ ] In [src/components/Scene/World.tsx](/Users/bryan/Github/dribble.tf/src/components/Scene/World.tsx), add local state for loaded `MapVisibilityMetadata | null`.
-- [ ] Reset visibility metadata state to `null` when the map changes.
-- [ ] Fetch `visibility.json` using `getMapVisibilityUrl()` when the map GLB is requested.
-- [ ] If the fetch fails, keep metadata state as `null` and allow the map to render fully.
-- [ ] Do not block GLB rendering on visibility metadata fetch success.
+- [x] In [src/components/Scene/World.tsx](/Users/bryan/Github/dribble.tf/src/components/Scene/World.tsx), add local state for loaded `MapVisibilityMetadata | null`.
+- [x] Reset visibility metadata state to `null` when the map changes.
+- [x] Fetch `visibility.json` using `getMapVisibilityUrl()` when the map GLB is requested.
+- [x] If the fetch fails, keep metadata state as `null` and allow the map to render fully.
+- [x] Do not block GLB rendering on visibility metadata fetch success.
 
 ### Phase 18: Index Chunk Roots at Runtime
 
