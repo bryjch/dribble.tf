@@ -108,12 +108,12 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 8: Update `gltfpack` Invocation
 
-- [ ] In [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs), change the default `gltfpack` arguments to include `-mi`.
-- [ ] Keep `-kn` because chunk roots remain named and need to survive export.
-- [ ] Keep `-kv -vtf` only when lightmap UV injection is enabled.
-- [ ] Keep existing texture format and texture scale/limit behavior unchanged in this pass.
-- [ ] Do not add simplification flags by default in this pass.
-- [ ] Add a code comment explaining why simplification is deferred until after draw-call reduction is validated.
+- [x] In [scripts/convert-map.mjs](/Users/bryan/Github/dribble.tf/scripts/convert-map.mjs), change the default `gltfpack` arguments to include `-mi`.
+- [x] Keep `-kn` because chunk roots remain named and need to survive export.
+- [x] Keep `-kv -vtf` only when lightmap UV injection is enabled.
+- [x] Keep existing texture format and texture scale/limit behavior unchanged in this pass.
+- [x] Do not add simplification flags by default in this pass.
+- [x] Add a code comment explaining why simplification is deferred until after draw-call reduction is validated.
 
 ### Phase 9: Build Correct Chunk Bounds for Metadata
 

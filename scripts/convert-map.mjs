@@ -1214,7 +1214,7 @@ const textureScale = getArg('texture-scale', null)
 const textureLimit = getArg('texture-limit', null)
 const textureFormat = getArg('texture-format', null)
 const skyboxImageFormat = String(getArg('skybox-image-format', 'webp')).toLowerCase()
-const keepVertexAttributes = toBool(getArg('keep-vertex-attributes', 'true'), true)
+const requestedKeepVertexAttributes = toBool(getArg('keep-vertex-attributes', 'true'), true)
 const skipSkybox = toBool(getArg('skip-skybox', 'false'), false)
 const requireSkybox = toBool(getArg('require-skybox', 'true'), true)
 const strictMaterials = toBool(getArg('strict-materials', 'false'), false)
@@ -1801,7 +1801,10 @@ if (lightmapDataPath && fs.existsSync(chunkedOutput) && fs.statSync(chunkedOutpu
 
 if (gltfpackPath) {
   console.log(`Optimizing GLB with gltfpack: ${gltfpackPath}`)
-  const gltfpackArgs = ['-i', chunkedOutput, '-o', texturedOutput, '-kn']
+  const keepVertexAttributes = Boolean(lightmapDataPath) && requestedKeepVertexAttributes
+  // Keep named chunk roots for runtime lookup and allow instancing/merging wins
+  // before adding simplification defaults; we want draw-call reductions validated first.
+  const gltfpackArgs = ['-i', chunkedOutput, '-o', texturedOutput, '-kn', '-mi']
   if (textureFormat === 'ktx2') gltfpackArgs.push('-tc')
   if (textureFormat === 'uastc') gltfpackArgs.push('-tu')
   if (textureFormat === 'webp') gltfpackArgs.push('-tw')
@@ -1810,13 +1813,12 @@ if (gltfpackPath) {
   }
   if (textureScale) gltfpackArgs.push('-ts', textureScale)
   if (textureLimit) gltfpackArgs.push('-tl', textureLimit)
-  if (keepVertexAttributes) gltfpackArgs.push('-kv')
 
   // Preserve TEXCOORD_1 (lightmap UVs) when lightmap data was injected.
   // -kv: keep vertex attributes even if gltfpack considers them unused.
   // -vtf: keep texcoords as float to avoid KHR_texture_transform remapping,
   //       which can collapse lightmap UV range and break atlas sampling.
-  if (lightmapDataPath) {
+  if (keepVertexAttributes) {
     gltfpackArgs.push('-kv', '-vtf')
   }
 
@@ -2288,7 +2290,7 @@ const conversionMeta = {
         clusterCount: clusterVisibilityMetadata.clusterCount,
       }
     : null,
-  keepVertexAttributes,
+  keepVertexAttributes: Boolean(lightmapDataPath) && requestedKeepVertexAttributes,
   gltfpack: gltfpackPath ?? null,
   success: true,
 }
