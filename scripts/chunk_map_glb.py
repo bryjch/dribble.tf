@@ -45,6 +45,10 @@ def is_brush_like_object(obj):
     return obj.type == "MESH" and has_name_prefix(obj, BRUSH_LIKE_PREFIXES)
 
 
+def is_static_prop_object(obj):
+    return obj.type == "MESH" and has_name_prefix(obj, STATIC_PROP_PREFIXES)
+
+
 def is_chunkable_mesh_object(obj):
     return obj.type == "MESH" and has_name_prefix(obj, CHUNKABLE_PREFIXES)
 
@@ -75,7 +79,7 @@ def classify_scene_objects():
         chunkable_mesh_objects.append(obj)
         if is_brush_like_object(obj):
             brush_like_objects.append(obj)
-        elif has_name_prefix(obj, STATIC_PROP_PREFIXES):
+        elif is_static_prop_object(obj):
             static_prop_objects.append(obj)
 
     return {
@@ -278,8 +282,53 @@ def chunk_brush_objects(brush_like_objects, grid, bounds_min, bounds_max):
     return chunk_roots
 
 
+def get_world_bounds_center(obj):
+    bounds_min = Vector((math.inf, math.inf, math.inf))
+    bounds_max = Vector((-math.inf, -math.inf, -math.inf))
+
+    for corner in obj.bound_box:
+        world_corner = obj.matrix_world @ Vector(corner)
+        bounds_min.x = min(bounds_min.x, world_corner.x)
+        bounds_min.y = min(bounds_min.y, world_corner.y)
+        bounds_min.z = min(bounds_min.z, world_corner.z)
+        bounds_max.x = max(bounds_max.x, world_corner.x)
+        bounds_max.y = max(bounds_max.y, world_corner.y)
+        bounds_max.z = max(bounds_max.z, world_corner.z)
+
+    return (bounds_min + bounds_max) * 0.5
+
+
+def clear_static_prop_name(obj):
+    obj.name = ""
+    if getattr(obj, "data", None) is not None:
+        obj.data.name = ""
+
+
+def chunk_static_props(static_prop_objects, grid, bounds_min, bounds_max, chunk_roots):
+    for obj in static_prop_objects:
+        bounds_center = get_world_bounds_center(obj)
+        ix, iy = world_point_to_chunk_coords(bounds_center, grid, bounds_min, bounds_max)
+        chunk_root = get_or_create_chunk_root(chunk_roots, ix, iy)
+        parent_object_preserving_world_transform(obj, chunk_root)
+        clear_static_prop_name(obj)
+
+    reparented_prop_count = 0
+    for obj in static_prop_objects:
+        if obj.parent and obj.parent.name.startswith("chunk_") and obj.name in bpy.data.objects:
+            reparented_prop_count += 1
+
+    if reparented_prop_count != len(static_prop_objects):
+        raise RuntimeError(
+            f"Chunked prop validation failed: expected {len(static_prop_objects)} props, got {reparented_prop_count}."
+        )
+
+
 def chunk_scene_objects(classified_objects, grid, bounds_min, bounds_max):
-    return chunk_brush_objects(classified_objects["brush_like_objects"], grid, bounds_min, bounds_max)
+    chunk_roots = chunk_brush_objects(classified_objects["brush_like_objects"], grid, bounds_min, bounds_max)
+    chunk_static_props(
+        classified_objects["static_prop_objects"], grid, bounds_min, bounds_max, chunk_roots
+    )
+    return chunk_roots
 
 
 def main():

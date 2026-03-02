@@ -83,14 +83,14 @@ getMapVisibilityUrl(loadedMapName: string): string | undefined
 
 ### Phase 5: Chunk Static Props
 
-- [ ] Add a helper that identifies `prop_static*` objects.
-- [ ] Compute each static prop’s chunk assignment from its world-space bounding-box center.
-- [ ] Parent each static prop under the corresponding chunk root.
-- [ ] Clear the prop node name before export so `gltfpack` is free to merge and instance aggressively.
-- [ ] Keep transforms intact after reparenting.
-- [ ] Keep materials intact after reparenting.
-- [ ] Do not merge props in Blender; leave merging and instancing opportunities to `gltfpack`.
-- [ ] Add a validation step that chunked props still exist in the scene after reparenting.
+- [x] Add a helper that identifies `prop_static*` objects.
+- [x] Compute each static prop’s chunk assignment from its world-space bounding-box center.
+- [x] Parent each static prop under the corresponding chunk root.
+- [x] Clear the prop node name before export so `gltfpack` is free to merge and instance aggressively.
+- [x] Keep transforms intact after reparenting.
+- [x] Keep materials intact after reparenting.
+- [x] Do not merge props in Blender; leave merging and instancing opportunities to `gltfpack`.
+- [x] Add a validation step that chunked props still exist in the scene after reparenting.
 
 ### Phase 6: Preserve Non-Chunked Scene Content
 
