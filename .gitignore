@@ -12,6 +12,8 @@
 /build
 /dist
 
+/scripts/temp
+
 # misc
 /blender
 .DS_Store

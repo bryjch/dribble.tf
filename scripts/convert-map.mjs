@@ -2140,6 +2140,30 @@ if (metadataOnly) {
     keepVertexAttributes,
   })
 
+  // ── Post-process with gltf-transform ──
+  const gltfTransformBin = path.join(repoRoot, 'node_modules', '.bin', 'gltf-transform')
+  {
+    const step1 = path.join(tempDir, `${mapName}_gt_instance.glb`)
+    const step2 = path.join(tempDir, `${mapName}_gt_joined.glb`)
+    const step3 = path.join(tempDir, `${mapName}_gt_resized.glb`)
+
+    console.log('gltf-transform: flattening instances...')
+    runCommand(gltfTransformBin, ['instance', texturedOutput, step1])
+
+    console.log('gltf-transform: joining meshes...')
+    runCommand(gltfTransformBin, ['join', step1, step2])
+
+    console.log('gltf-transform: resizing textures to 128x128...')
+    runCommand(gltfTransformBin, ['resize', step2, step3, '--width', '128', '--height', '128'])
+
+    fs.copyFileSync(step3, texturedOutput)
+    console.log('gltf-transform post-processing complete.')
+
+    for (const f of [step1, step2, step3]) {
+      if (fs.existsSync(f)) fs.unlinkSync(f)
+    }
+  }
+
   if (downscaledTexturedOutput) {
     console.log(
       `Generating downscaled textured GLB (${downscaledTextureScale}x textures): ${path.basename(downscaledTexturedOutput)}`
