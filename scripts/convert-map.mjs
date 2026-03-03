@@ -82,6 +82,30 @@ const ensureDir = dir => {
   fs.mkdirSync(dir, { recursive: true })
 }
 
+const hasNonEmptyFile = filePath => {
+  return fs.existsSync(filePath) && fs.statSync(filePath).size > 0
+}
+
+const statOutputFile = filePath => {
+  return {
+    file: path.basename(filePath),
+    bytes: fs.statSync(filePath).size,
+  }
+}
+
+const parseNormalizedScaleArg = (value, argName) => {
+  if (value == null || value === '') return null
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 1) {
+    throw new Error(`Invalid --${argName}: ${value}. Expected a number greater than 0 and at most 1.`)
+  }
+  return String(parsed)
+}
+
+const formatScaleForFileName = value => {
+  return String(value).replace(/\./g, 'p')
+}
+
 const findFirstFile = (dir, predicate) => {
   const entries = fs.readdirSync(dir, { withFileTypes: true })
   for (const entry of entries) {
@@ -1412,6 +1436,10 @@ const chunkGrid = Number(getArg('chunk-grid', '8'))
 const textureScale = getArg('texture-scale', null)
 const textureLimit = getArg('texture-limit', null)
 const textureFormat = getArg('texture-format', null)
+const downscaledTextureScale = parseNormalizedScaleArg(
+  getArg('downscaled-texture-scale', null),
+  'downscaled-texture-scale'
+)
 const skyboxImageFormat = String(getArg('skybox-image-format', 'webp')).toLowerCase()
 const requestedKeepVertexAttributes = toBool(getArg('keep-vertex-attributes', 'true'), true)
 const skipSkybox = toBool(getArg('skip-skybox', 'false'), false)
@@ -1568,6 +1596,12 @@ const rawOutput = path.join(tempDir, `${mapName}.glb`)
 const chunkedOutput = path.join(tempDir, `${mapName}_chunked.glb`)
 const missingMaterialsPath = path.join(tempDir, 'missing_materials.txt')
 const texturedOutput = path.join(outDir, 'textured_compressed.glb')
+const downscaledTexturedOutput = downscaledTextureScale
+  ? path.join(
+      outDir,
+      `textured_downscaled_${formatScaleForFileName(downscaledTextureScale)}_compressed.glb`
+    )
+  : null
 const untexturedOutput = path.join(outDir, 'untextured_compressed.glb')
 const conversionMetaPath = path.join(outDir, 'conversion.json')
 
@@ -1713,6 +1747,37 @@ const buildMaterialTruthMetadata = () => {
     unresolvedSamples: unresolvedMaterials.slice(0, 32),
     materials,
   }
+}
+
+const runPackedGlb = ({
+  input,
+  output,
+  targetTextureFormat = textureFormat,
+  targetTextureScale = textureScale,
+  targetTextureLimit = textureLimit,
+  keepVertexAttributes = false,
+}) => {
+  if (gltfpackPath) {
+    const gltfpackArgs = ['-i', input, '-o', output, '-kn', '-mi']
+    if (targetTextureFormat === 'ktx2') gltfpackArgs.push('-tc')
+    if (targetTextureFormat === 'uastc') gltfpackArgs.push('-tu')
+    if (targetTextureFormat === 'webp') gltfpackArgs.push('-tw')
+    if ((targetTextureScale || targetTextureLimit) && !targetTextureFormat) {
+      gltfpackArgs.push('-tw')
+    }
+    if (targetTextureScale) gltfpackArgs.push('-ts', targetTextureScale)
+    if (targetTextureLimit) gltfpackArgs.push('-tl', targetTextureLimit)
+
+    if (keepVertexAttributes) {
+      gltfpackArgs.push('-kv', '-vtf')
+    }
+
+    runCommand(gltfpackPath, gltfpackArgs)
+    return
+  }
+
+  console.warn(`gltfpack not found; copying ${path.basename(input)} to ${path.basename(output)}.`)
+  fs.copyFileSync(input, output)
 }
 
 const materialTruth = skipMaterialTruth
@@ -1901,6 +1966,11 @@ if (metadataOnly) {
   if (!fs.existsSync(texturedOutput) || fs.statSync(texturedOutput).size === 0) {
     throw new Error(`Metadata-only mode requires an existing packed GLB at ${texturedOutput}`)
   }
+  if (downscaledTexturedOutput && !hasNonEmptyFile(downscaledTexturedOutput)) {
+    throw new Error(
+      `Metadata-only mode requires an existing downscaled GLB at ${downscaledTexturedOutput}`
+    )
+  }
   if (!fs.existsSync(untexturedOutput) || fs.statSync(untexturedOutput).size === 0) {
     throw new Error(
       `Metadata-only mode requires an existing untextured GLB at ${untexturedOutput}`
@@ -2062,33 +2132,24 @@ if (metadataOnly) {
     }
   }
 
-  if (gltfpackPath) {
-    console.log(`Optimizing GLB with gltfpack: ${gltfpackPath}`)
-    const keepVertexAttributes = Boolean(lightmapDataPath) && requestedKeepVertexAttributes
-    // Keep named chunk roots for runtime lookup and allow instancing/merging wins
-    // before adding simplification defaults; we want draw-call reductions validated first.
-    const gltfpackArgs = ['-i', chunkedOutput, '-o', texturedOutput, '-kn', '-mi']
-    if (textureFormat === 'ktx2') gltfpackArgs.push('-tc')
-    if (textureFormat === 'uastc') gltfpackArgs.push('-tu')
-    if (textureFormat === 'webp') gltfpackArgs.push('-tw')
-    if ((textureScale || textureLimit) && !textureFormat) {
-      gltfpackArgs.push('-tw')
-    }
-    if (textureScale) gltfpackArgs.push('-ts', textureScale)
-    if (textureLimit) gltfpackArgs.push('-tl', textureLimit)
+  const keepVertexAttributes = Boolean(lightmapDataPath) && requestedKeepVertexAttributes
+  console.log(`Optimizing GLB with gltfpack: ${gltfpackPath ?? '(copy fallback)'}`)
+  runPackedGlb({
+    input: chunkedOutput,
+    output: texturedOutput,
+    keepVertexAttributes,
+  })
 
-    // Preserve TEXCOORD_1 (lightmap UVs) when lightmap data was injected.
-    // -kv: keep vertex attributes even if gltfpack considers them unused.
-    // -vtf: keep texcoords as float to avoid KHR_texture_transform remapping,
-    //       which can collapse lightmap UV range and break atlas sampling.
-    if (keepVertexAttributes) {
-      gltfpackArgs.push('-kv', '-vtf')
-    }
-
-    runCommand(gltfpackPath, gltfpackArgs)
-  } else {
-    console.warn('gltfpack not found; copying raw GLB to output.')
-    fs.copyFileSync(chunkedOutput, texturedOutput)
+  if (downscaledTexturedOutput) {
+    console.log(
+      `Generating downscaled textured GLB (${downscaledTextureScale}x textures): ${path.basename(downscaledTexturedOutput)}`
+    )
+    runPackedGlb({
+      input: chunkedOutput,
+      output: downscaledTexturedOutput,
+      targetTextureScale: downscaledTextureScale,
+      keepVertexAttributes,
+    })
   }
 
   fs.copyFileSync(texturedOutput, untexturedOutput)
@@ -2526,6 +2587,11 @@ const conversionMeta = {
   textureScale: textureScale ?? null,
   textureLimit: textureLimit ?? null,
   textureFormat: textureFormat ?? null,
+  downscaledTextureScale: downscaledTextureScale ?? null,
+  downscaledTexturedOutput:
+    downscaledTexturedOutput && hasNonEmptyFile(downscaledTexturedOutput)
+      ? statOutputFile(downscaledTexturedOutput)
+      : null,
   requireSkybox,
   importProps,
   importLights,

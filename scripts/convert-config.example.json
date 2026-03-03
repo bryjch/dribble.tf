@@ -8,6 +8,7 @@
   "texture-scale": "0.5",
   "texture-limit": "1024",
   "texture-format": "webp",
+  "downscaled-texture-scale": null,
   "skybox-image-format": "webp",
   "keep-vertex-attributes": "true",
   "strict-materials": "false",
