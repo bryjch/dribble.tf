@@ -6,6 +6,9 @@ import * as THREE from 'three'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '..')
+const mapChunkingConfigPath = path.join(repoRoot, 'src', 'constants', 'mapChunking.json')
+const mapChunkingConfig = JSON.parse(fs.readFileSync(mapChunkingConfigPath, 'utf8'))
+const MAP_CHUNKING_ENABLED = mapChunkingConfig.enabled === true
 
 const parseArgs = argv => {
   const args = new Map()
@@ -1889,7 +1892,11 @@ if (metadataOnly) {
   }
 
   if (!fs.existsSync(chunkedOutput) || fs.statSync(chunkedOutput).size === 0) {
-    throw new Error(`Metadata-only mode requires an existing chunked GLB at ${chunkedOutput}`)
+    if (!MAP_CHUNKING_ENABLED && hasValidRawOutput()) {
+      fs.copyFileSync(rawOutput, chunkedOutput)
+    } else {
+      throw new Error(`Metadata-only mode requires an existing chunked GLB at ${chunkedOutput}`)
+    }
   }
   if (!fs.existsSync(texturedOutput) || fs.statSync(texturedOutput).size === 0) {
     throw new Error(`Metadata-only mode requires an existing packed GLB at ${texturedOutput}`)
@@ -1968,26 +1975,31 @@ if (metadataOnly) {
   // when fed an already lightmap-split GLB, which creates visible holes.
   const injectLightmapScript = path.join(repoRoot, 'scripts', 'inject-glb-lightmaps.mjs')
 
-  if (Number.isNaN(chunkGrid) || chunkGrid < 1) {
-    throw new Error(`Invalid --chunk-grid value: ${chunkGrid}`)
-  }
+  if (MAP_CHUNKING_ENABLED) {
+    if (Number.isNaN(chunkGrid) || chunkGrid < 1) {
+      throw new Error(`Invalid --chunk-grid value: ${chunkGrid}`)
+    }
 
-  console.log(`Chunking GLB with Blender (grid ${chunkGrid}x${chunkGrid})...`)
-  runCommand(blenderPath, [
-    '-b',
-    '-noaudio',
-    '--python',
-    chunkScript,
-    '--',
-    '--input',
-    rawOutput,
-    '--out',
-    chunkedOutput,
-    '--grid',
-    String(chunkGrid),
-    '--target',
-    'worldspawn',
-  ])
+    console.log(`Chunking GLB with Blender (grid ${chunkGrid}x${chunkGrid})...`)
+    runCommand(blenderPath, [
+      '-b',
+      '-noaudio',
+      '--python',
+      chunkScript,
+      '--',
+      '--input',
+      rawOutput,
+      '--out',
+      chunkedOutput,
+      '--grid',
+      String(chunkGrid),
+      '--target',
+      'worldspawn',
+    ])
+  } else {
+    console.log('Map chunking disabled by MAP_CHUNKING_ENABLED; copying raw GLB through.')
+    fs.copyFileSync(rawOutput, chunkedOutput)
+  }
 
   // Preserve a pre-lightmap-injection chunked GLB for fast reinject iteration.
   const chunkedPreLmOutput = path.join(tempDir, `${mapName}_chunked_pre_lm.glb`)
@@ -2477,32 +2489,40 @@ try {
 
 let clusterVisibilityMetadata = null
 const clusterVisibilityPath = path.join(outDir, 'visibility.json')
-try {
-  clusterVisibilityMetadata = parseChunkClusterVisibility({
-    bspPath,
-    glbPath: chunkedOutput,
-  })
-  if (clusterVisibilityMetadata?.valid) {
-    fs.writeFileSync(clusterVisibilityPath, JSON.stringify(clusterVisibilityMetadata.metadata))
-    console.log(
-      `Visibility metadata: ${clusterVisibilityPath} (${clusterVisibilityMetadata.assignedChunkCount}/${clusterVisibilityMetadata.chunkCount} chunks assigned, ${clusterVisibilityMetadata.clusterCount} clusters)`
-    )
-  } else if (clusterVisibilityMetadata && typeof clusterVisibilityMetadata.warning === 'string') {
-    if (fs.existsSync(clusterVisibilityPath)) {
-      fs.unlinkSync(clusterVisibilityPath)
+if (MAP_CHUNKING_ENABLED) {
+  try {
+    clusterVisibilityMetadata = parseChunkClusterVisibility({
+      bspPath,
+      glbPath: chunkedOutput,
+    })
+    if (clusterVisibilityMetadata?.valid) {
+      fs.writeFileSync(clusterVisibilityPath, JSON.stringify(clusterVisibilityMetadata.metadata))
+      console.log(
+        `Visibility metadata: ${clusterVisibilityPath} (${clusterVisibilityMetadata.assignedChunkCount}/${clusterVisibilityMetadata.chunkCount} chunks assigned, ${clusterVisibilityMetadata.clusterCount} clusters)`
+      )
+    } else if (clusterVisibilityMetadata && typeof clusterVisibilityMetadata.warning === 'string') {
+      if (fs.existsSync(clusterVisibilityPath)) {
+        fs.unlinkSync(clusterVisibilityPath)
+      }
+      console.warn(clusterVisibilityMetadata.warning)
     }
-    console.warn(clusterVisibilityMetadata.warning)
+  } catch (error) {
+    console.warn(
+      `Visibility metadata extraction failed: ${error instanceof Error ? error.message : error}`
+    )
   }
-} catch (error) {
-  console.warn(
-    `Visibility metadata extraction failed: ${error instanceof Error ? error.message : error}`
-  )
+} else {
+  if (fs.existsSync(clusterVisibilityPath)) {
+    fs.unlinkSync(clusterVisibilityPath)
+  }
+  console.log('Visibility metadata skipped because map chunking is disabled.')
 }
 
 const conversionMeta = {
   mapName,
   timestamp: new Date().toISOString(),
-  chunkGrid,
+  chunkingEnabled: MAP_CHUNKING_ENABLED,
+  chunkGrid: MAP_CHUNKING_ENABLED ? chunkGrid : null,
   textureScale: textureScale ?? null,
   textureLimit: textureLimit ?? null,
   textureFormat: textureFormat ?? null,

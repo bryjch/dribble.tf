@@ -6,6 +6,7 @@ import { GLTF, GLTFLoader } from 'three/examples/jsm/Addons.js'
 
 import { ActorDimensions } from '@components/Scene/Actors'
 
+import mapChunkingConfig from '@constants/mapChunking.json'
 import { MapVisibilityMetadata } from '@constants/types'
 import { addDownloadAction, updateDownloadAction } from '@zus/actions'
 import { getState, useInstance, useStore } from '@zus/store'
@@ -42,6 +43,7 @@ const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
 const MAP_UNTEXTURED_MATERIAL = new THREE.MeshStandardMaterial({
   color: 'white',
 })
+const MAP_CHUNKING_ENABLED = mapChunkingConfig.enabled
 
 export interface WorldProps {
   map: string
@@ -79,6 +81,11 @@ export const World = (props: WorldProps) => {
   }, [map])
 
   useEffect(() => {
+    if (!MAP_CHUNKING_ENABLED) {
+      setMapVisibility(null)
+      return
+    }
+
     const visibilityUrl = getMapVisibilityUrl(map)
     if (!visibilityUrl) {
       setMapVisibility(null)
@@ -164,7 +171,7 @@ export const World = (props: WorldProps) => {
   }, [map, mode])
 
   useEffect(() => {
-    if (!mapModel) {
+    if (!mapModel || !MAP_CHUNKING_ENABLED) {
       chunkRootsByNameRef.current = new Map()
       visibilityCullingEnabledRef.current = false
       currentClusterRef.current = null
