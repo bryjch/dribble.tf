@@ -1,0 +1,171 @@
+{
+  "mapName": "koth_product_final",
+  "timestamp": "2026-03-05T13:16:29.727Z",
+  "chunkingEnabled": false,
+  "chunkGrid": null,
+  "textureScale": "0.5",
+  "textureLimit": "1024",
+  "textureFormat": "webp",
+  "downscaledTextureScale": null,
+  "downscaledTexturedOutput": null,
+  "requireSkybox": true,
+  "importProps": true,
+  "importLights": true,
+  "importEntitiesRequested": false,
+  "importEntities": false,
+  "importOverlays": false,
+  "importInvisibleSolids": false,
+  "strictMaterials": false,
+  "allowMissingMaterials": true,
+  "missingMaterialsCount": 0,
+  "vmfLightEntityCount": 99,
+  "lightEnvironment": {
+    "ambient": {
+      "color": [
+        126,
+        132,
+        199
+      ],
+      "brightness": 500
+    },
+    "sun": {
+      "color": [
+        253,
+        243,
+        208
+      ],
+      "brightness": 600
+    },
+    "pitch": -35,
+    "yaw": 300,
+    "sunSpreadAngle": 5
+  },
+  "fog": null,
+  "materialTruth": {
+    "scanned": 111,
+    "resolved": 4,
+    "unresolved": 107,
+    "shaderCounts": {
+      "worldvertextransition": 1,
+      "patch": 1,
+      "unlitgeneric": 1,
+      "lightmappedgeneric": 1
+    },
+    "unresolvedSamples": [
+      "materials/brick/cobblewall001.vmt",
+      "materials/brick/wall028.vmt",
+      "materials/coalmines/blue_wall1_middle.vmt",
+      "materials/concrete/computerwall_red_stained.vmt",
+      "materials/concrete/concretefloor003.vmt",
+      "materials/concrete/concretefloor007.vmt",
+      "materials/concrete/concretewall009.vmt",
+      "materials/concrete/concretewall012.vmt",
+      "materials/concrete/concretewall012b.vmt",
+      "materials/concrete/concretewall014a.vmt",
+      "materials/concrete/concretewall014b.vmt",
+      "materials/dev/reflectivity_90.vmt",
+      "materials/glass/glasswindow001c.vmt",
+      "materials/lights/white001.vmt",
+      "materials/metal/chicken_wire001.vmt",
+      "materials/metal/ibeam001.vmt",
+      "materials/metal/ibeam001b.vmt",
+      "materials/metal/ibeam002.vmt",
+      "materials/metal/ibeam003b.vmt",
+      "materials/metal/metaldoor001.vmt",
+      "materials/metal/metalrail003a.vmt",
+      "materials/metal/metaltrack001.vmt",
+      "materials/metal/steeldoor001.vmt",
+      "materials/metal/wall011.vmt",
+      "materials/metal/wall011d.vmt",
+      "materials/metal/wall011e.vmt",
+      "materials/metal/wall011f.vmt",
+      "materials/metal/wall011g.vmt",
+      "materials/metal/wall016.vmt",
+      "materials/metal/wall016a.vmt",
+      "materials/metal/wall016b.vmt",
+      "materials/metal/wall019.vmt"
+    ],
+    "materials": {
+      "materials/nature/blendrockgroundwallforestviaduct.vmt": {
+        "shader": "worldvertextransition",
+        "baseTexture": "Nature/rockwall001forest",
+        "bumpMap": "Nature/rockwall001_normal",
+        "surfaceProp": "dirt",
+        "translucent": false,
+        "additive": false,
+        "selfIllum": false,
+        "alphaTest": false,
+        "noCull": false,
+        "hasEnvMap": false,
+        "sourcePath": "materials/nature/blendrockgroundwallforestviaduct.vmt"
+      },
+      "materials/nosplash/wood_bridge001.vmt": {
+        "shader": "patch",
+        "baseTexture": null,
+        "bumpMap": null,
+        "surfaceProp": null,
+        "translucent": false,
+        "additive": false,
+        "selfIllum": false,
+        "alphaTest": false,
+        "noCull": false,
+        "hasEnvMap": false,
+        "sourcePath": "materials/nosplash/wood_bridge001.vmt"
+      },
+      "materials/overlays/no_entry_sort.vmt": {
+        "shader": "unlitgeneric",
+        "baseTexture": "overlays/no_entry",
+        "bumpMap": null,
+        "surfaceProp": null,
+        "translucent": false,
+        "additive": false,
+        "selfIllum": false,
+        "alphaTest": false,
+        "noCull": false,
+        "hasEnvMap": false,
+        "sourcePath": "materials/overlays/no_entry_sort.vmt"
+      },
+      "materials/signs/bubblebobbler.vmt": {
+        "shader": "lightmappedgeneric",
+        "baseTexture": "signs/bubblebobbler",
+        "bumpMap": null,
+        "surfaceProp": null,
+        "translucent": false,
+        "additive": false,
+        "selfIllum": false,
+        "alphaTest": false,
+        "noCull": false,
+        "hasEnvMap": false,
+        "sourcePath": "materials/signs/bubblebobbler.vmt"
+      }
+    }
+  },
+  "importedLightCount": 0,
+  "detectedFullbright": true,
+  "importFallbackUsed": false,
+  "importFallbackReason": null,
+  "importFallbackMode": null,
+  "effectiveImportProps": true,
+  "effectiveImportLights": true,
+  "effectiveImportEntities": false,
+  "effectiveImportOverlays": false,
+  "skyboxName": null,
+  "skyboxImageFormat": "webp",
+  "allowSkyboxFallback": true,
+  "teleports": {
+    "triggerCount": 0,
+    "spawnCount": 33,
+    "hasDefaultSpawn": true,
+    "missingModelCount": 0,
+    "missingDestinationCount": 0
+  },
+  "visibility": {
+    "version": null,
+    "chunkCount": null,
+    "clusterCount": null,
+    "valid": false
+  },
+  "keepVertexAttributes": false,
+  "gltfpack": "./scripts/tools/gltfpack/gltfpack",
+  "success": true
+}

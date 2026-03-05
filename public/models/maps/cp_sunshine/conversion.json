@@ -1,0 +1,113 @@
+{
+  "mapName": "cp_sunshine",
+  "timestamp": "2026-03-05T13:21:29.610Z",
+  "chunkingEnabled": false,
+  "chunkGrid": null,
+  "textureScale": "0.5",
+  "textureLimit": "1024",
+  "textureFormat": "webp",
+  "downscaledTextureScale": null,
+  "downscaledTexturedOutput": null,
+  "requireSkybox": true,
+  "importProps": true,
+  "importLights": true,
+  "importEntitiesRequested": false,
+  "importEntities": false,
+  "importOverlays": false,
+  "importInvisibleSolids": false,
+  "strictMaterials": false,
+  "allowMissingMaterials": true,
+  "missingMaterialsCount": 0,
+  "vmfLightEntityCount": 287,
+  "lightEnvironment": {
+    "ambient": {
+      "color": [
+        124,
+        138,
+        203
+      ],
+      "brightness": 400
+    },
+    "sun": {
+      "color": [
+        253,
+        243,
+        208
+      ],
+      "brightness": 500
+    },
+    "pitch": -55,
+    "yaw": 325,
+    "sunSpreadAngle": 0
+  },
+  "fog": null,
+  "materialTruth": {
+    "scanned": 155,
+    "resolved": 0,
+    "unresolved": 155,
+    "shaderCounts": {},
+    "unresolvedSamples": [
+      "materials/brick/brickwall001.vmt",
+      "materials/brick/brickwall002.vmt",
+      "materials/brick/brickwall002c.vmt",
+      "materials/brick/brickwall002d.vmt",
+      "materials/brick/brickwall002e.vmt",
+      "materials/brick/brickwall002f.vmt",
+      "materials/brick/brickwall003.vmt",
+      "materials/brick/brickwall003a.vmt",
+      "materials/brick/brickwall005.vmt",
+      "materials/brick/brickwall005c.vmt",
+      "materials/brick/brickwall006.vmt",
+      "materials/brick/brickwall006b.vmt",
+      "materials/brick/brickwall006c.vmt",
+      "materials/brick/shalewall001a.vmt",
+      "materials/brick/shalewall001b.vmt",
+      "materials/brick/shalewall001c.vmt",
+      "materials/brick/shalewall002b.vmt",
+      "materials/brick/shalewall002c.vmt",
+      "materials/brick/wall028.vmt",
+      "materials/brick/wall029.vmt",
+      "materials/coastal/ocean_fade.vmt",
+      "materials/concrete/computerwall001.vmt",
+      "materials/concrete/computerwall003.vmt",
+      "materials/concrete/computerwall004.vmt",
+      "materials/concrete/computerwall007.vmt",
+      "materials/concrete/concretefloor002.vmt",
+      "materials/concrete/concretefloor003.vmt",
+      "materials/concrete/concretefloor004.vmt",
+      "materials/concrete/concretefloor005.vmt",
+      "materials/concrete/concretefloor006a.vmt",
+      "materials/concrete/concretefloor007.vmt",
+      "materials/concrete/concretewall008.vmt"
+    ],
+    "materials": {}
+  },
+  "importedLightCount": 0,
+  "detectedFullbright": true,
+  "importFallbackUsed": false,
+  "importFallbackReason": null,
+  "importFallbackMode": null,
+  "effectiveImportProps": true,
+  "effectiveImportLights": true,
+  "effectiveImportEntities": false,
+  "effectiveImportOverlays": false,
+  "skyboxName": null,
+  "skyboxImageFormat": "webp",
+  "allowSkyboxFallback": true,
+  "teleports": {
+    "triggerCount": 0,
+    "spawnCount": 79,
+    "hasDefaultSpawn": true,
+    "missingModelCount": 0,
+    "missingDestinationCount": 0
+  },
+  "visibility": {
+    "version": null,
+    "chunkCount": null,
+    "clusterCount": null,
+    "valid": false
+  },
+  "keepVertexAttributes": false,
+  "gltfpack": "./scripts/tools/gltfpack/gltfpack",
+  "success": true
+}

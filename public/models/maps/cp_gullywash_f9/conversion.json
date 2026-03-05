@@ -1,0 +1,113 @@
+{
+  "mapName": "cp_gullywash_f9",
+  "timestamp": "2026-03-05T12:16:47.147Z",
+  "chunkingEnabled": false,
+  "chunkGrid": null,
+  "textureScale": "0.5",
+  "textureLimit": "1024",
+  "textureFormat": "webp",
+  "downscaledTextureScale": null,
+  "downscaledTexturedOutput": null,
+  "requireSkybox": true,
+  "importProps": true,
+  "importLights": true,
+  "importEntitiesRequested": false,
+  "importEntities": false,
+  "importOverlays": false,
+  "importInvisibleSolids": false,
+  "strictMaterials": false,
+  "allowMissingMaterials": true,
+  "missingMaterialsCount": 0,
+  "vmfLightEntityCount": 308,
+  "lightEnvironment": {
+    "ambient": {
+      "color": [
+        151,
+        135,
+        180
+      ],
+      "brightness": 600
+    },
+    "sun": {
+      "color": [
+        254,
+        210,
+        152
+      ],
+      "brightness": 650
+    },
+    "pitch": -48,
+    "yaw": 45,
+    "sunSpreadAngle": 1
+  },
+  "fog": null,
+  "materialTruth": {
+    "scanned": 116,
+    "resolved": 0,
+    "unresolved": 116,
+    "shaderCounts": {},
+    "unresolvedSamples": [
+      "materials/brick/wall028.vmt",
+      "materials/brick/wall029.vmt",
+      "materials/concrete/computerwall001.vmt",
+      "materials/concrete/computerwall003e.vmt",
+      "materials/concrete/concrete_track002.vmt",
+      "materials/concrete/concretefloor003.vmt",
+      "materials/concrete/concretefloor007.vmt",
+      "materials/concrete/concretewall001e.vmt",
+      "materials/concrete/concretewall009.vmt",
+      "materials/concrete/concretewall011.vmt",
+      "materials/concrete/concretewall011a.vmt",
+      "materials/concrete/concretewall011b.vmt",
+      "materials/concrete/concretewall011c.vmt",
+      "materials/concrete/concretewall013a.vmt",
+      "materials/cp_gullywash/employeemonth2.vmt",
+      "materials/glass/glasswindow001a.vmt",
+      "materials/glass/glasswindow002c.vmt",
+      "materials/metal/chicken_wire001.vmt",
+      "materials/metal/floorplate01.vmt",
+      "materials/metal/ibeam001.vmt",
+      "materials/metal/ibeam001b.vmt",
+      "materials/metal/ibeam002.vmt",
+      "materials/metal/ibeam003b.vmt",
+      "materials/metal/imetal001b.vmt",
+      "materials/metal/imetal005.vmt",
+      "materials/metal/metalchrome002.vmt",
+      "materials/metal/metaldoor001.vmt",
+      "materials/metal/metalgrate011a.vmt",
+      "materials/metal/metalstair001a.vmt",
+      "materials/metal/metaltrim01.vmt",
+      "materials/metal/steeldoor001.vmt",
+      "materials/metal/wall011g.vmt"
+    ],
+    "materials": {}
+  },
+  "importedLightCount": 0,
+  "detectedFullbright": true,
+  "importFallbackUsed": false,
+  "importFallbackReason": null,
+  "importFallbackMode": null,
+  "effectiveImportProps": true,
+  "effectiveImportLights": true,
+  "effectiveImportEntities": false,
+  "effectiveImportOverlays": false,
+  "skyboxName": null,
+  "skyboxImageFormat": "webp",
+  "allowSkyboxFallback": true,
+  "teleports": {
+    "triggerCount": 0,
+    "spawnCount": 44,
+    "hasDefaultSpawn": true,
+    "missingModelCount": 0,
+    "missingDestinationCount": 0
+  },
+  "visibility": {
+    "version": null,
+    "chunkCount": null,
+    "clusterCount": null,
+    "valid": false
+  },
+  "keepVertexAttributes": false,
+  "gltfpack": "./scripts/tools/gltfpack/gltfpack",
+  "success": true
+}
