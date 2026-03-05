@@ -20,7 +20,6 @@ export const resolveMapFolderName = (loadedMapName: string): string => {
 interface MapModelTypes {
   overlay: string
   textured: string
-  untextured: string
 }
 
 export const getMapModelUrls = (loadedMapName: string): MapModelTypes | undefined => {
@@ -31,7 +30,6 @@ export const getMapModelUrls = (loadedMapName: string): MapModelTypes | undefine
       urls = {
         overlay: getAsset(`/models/maps/${foldername}/overlay_compressed.glb`),
         textured: getAsset(`/models/maps/${foldername}/textured_compressed.glb`),
-        untextured: getAsset(`/models/maps/${foldername}/untextured_compressed.glb`),
       } as MapModelTypes
     }
   })

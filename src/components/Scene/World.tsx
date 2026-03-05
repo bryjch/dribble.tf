@@ -129,33 +129,11 @@ export const World = (props: WorldProps) => {
         return
       }
 
-      if (mode === 'textured') {
-        loadGLTF(mapModelFileUrls.textured, `${map} (textured)`).then(gltf => {
-          if (requestId === mapLoadRequestIdRef.current && gltf && gltf.scene) {
-            setMapModel(gltf.scene)
-          }
-        })
-
-        // Note: map overlays don't currently exist - they were an attempt to have certain
-        // textures/models as a separate "layer" so we could toggle them for better performance
-        // or visibility (e.g. removing roofs so we can see inside buildings). Instead, we just
-        // render everything as singular .gltf models
-
-        // loadGLTF(mapModelFileUrls.overlay).then((gltf: any) => {
-        //   if (gltf && gltf.scene) {
-        //     setMapOverlay(gltf.scene)
-        //   }
-        // })
-      }
-
-      if (mode === 'untextured' || mode === 'wireframe') {
-        loadGLTF(mapModelFileUrls.untextured, `${map} (untextured)`).then(gltf => {
-          if (requestId === mapLoadRequestIdRef.current && gltf && gltf.scene) {
-            setMapModel(gltf.scene)
-            setMapOverlay(null)
-          }
-        })
-      }
+      loadGLTF(mapModelFileUrls.textured, `${map} (textured)`).then(gltf => {
+        if (requestId === mapLoadRequestIdRef.current && gltf && gltf.scene) {
+          setMapModel(gltf.scene)
+        }
+      })
     } catch (error) {
       alert(
         `Unable to load map: ${map} (${mode})\nThe project is probably missing the necessary files.`

@@ -1602,7 +1602,6 @@ const downscaledTexturedOutput = downscaledTextureScale
       `textured_downscaled_${formatScaleForFileName(downscaledTextureScale)}_compressed.glb`
     )
   : null
-const untexturedOutput = path.join(outDir, 'untextured_compressed.glb')
 const conversionMetaPath = path.join(outDir, 'conversion.json')
 
 const mapAssetRoot = path.join(decompileDir, mapName)
@@ -1971,11 +1970,6 @@ if (metadataOnly) {
       `Metadata-only mode requires an existing downscaled GLB at ${downscaledTexturedOutput}`
     )
   }
-  if (!fs.existsSync(untexturedOutput) || fs.statSync(untexturedOutput).size === 0) {
-    throw new Error(
-      `Metadata-only mode requires an existing untextured GLB at ${untexturedOutput}`
-    )
-  }
 } else {
   console.log('Importing VMF with Blender + Plumber...')
 
@@ -2176,7 +2170,6 @@ if (metadataOnly) {
     })
   }
 
-  fs.copyFileSync(texturedOutput, untexturedOutput)
 }
 
 let skyboxOutputDir = null
