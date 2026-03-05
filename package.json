@@ -25,6 +25,7 @@
     "zustand": "^4.5.2"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.3.0",
     "@react-three/drei": "^9.103.0",
     "@types/humanize-duration": "^3.18.0",
     "@types/lodash": "^4.14.156",

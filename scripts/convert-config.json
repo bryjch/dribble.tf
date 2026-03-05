@@ -1,0 +1,17 @@
+{
+  "bspsrc": "./scripts/tools/bspsrc/bspsrc.sh",
+  "blender": "/Applications/Blender.app/Contents/MacOS/Blender",
+  "game-dir": "/Users/bryan/Library/Application Support/Steam/steamapps/common/Team Fortress 2/tf",
+  "gltfpack": "./scripts/tools/gltfpack/gltfpack",
+  "hl2-dir": "/Users/bryan/Library/Application Support/Steam/steamapps/common/Team Fortress 2/hl2",
+  "chunk-grid": "4",
+  "texture-scale": "0.5",
+  "texture-limit": "1024",
+  "texture-format": "webp",
+  "skybox-image-format": "webp",
+  "keep-vertex-attributes": "true",
+  "strict-materials": "false",
+  "import-lights": "true",
+  "import-props": "true",
+  "import-invisible-solids": "false"
+}

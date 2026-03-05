@@ -36,12 +36,26 @@ export type InstanceState = {
   lastFocusedPOV?: THREE.Object3D
   drawingCanvas?: CanvasDraw
   frameProgress: number
+  runtimePerf: {
+    renderCalls: number
+    renderTriangles: number
+    visibleChunkCount: number
+    currentCluster: number | null
+  }
   setThreeScene: (threeScene: THREE.Scene) => void
   setParsedDemo: (parsedDemo: AsyncParser | undefined) => void
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => void
   setFocusedObject: (focusedObject?: THREE.Object3D) => void
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => void
   setFrameProgress: (frameProgress: number) => void
+  setRuntimePerf: (
+    runtimePerf: Partial<{
+      renderCalls: number
+      renderTriangles: number
+      visibleChunkCount: number
+      currentCluster: number | null
+    }>
+  ) => void
 }
 
 const useInstance = create<InstanceState>()(set => ({
@@ -51,12 +65,25 @@ const useInstance = create<InstanceState>()(set => ({
   lastFocusedPOV: undefined,
   drawingCanvas: undefined,
   frameProgress: 0,
+  runtimePerf: {
+    renderCalls: 0,
+    renderTriangles: 0,
+    visibleChunkCount: 0,
+    currentCluster: null,
+  },
   setThreeScene: (threeScene: THREE.Scene) => set({ threeScene }),
   setParsedDemo: (parsedDemo: AsyncParser | undefined) => set({ parsedDemo }),
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => set({ drawingCanvas }),
   setFocusedObject: (focusedObject?: THREE.Object3D) => set({ focusedObject }),
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => set({ lastFocusedPOV }),
   setFrameProgress: (frameProgress: number) => set({ frameProgress }),
+  setRuntimePerf: runtimePerf =>
+    set(state => ({
+      runtimePerf: {
+        ...state.runtimePerf,
+        ...runtimePerf,
+      },
+    })),
 }))
 
 // This "Standard Store" is pretty much just a typical Redux store. Note that we are using

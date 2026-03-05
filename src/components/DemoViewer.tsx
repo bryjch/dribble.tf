@@ -170,6 +170,21 @@ const Controls = () => {
   )
 }
 
+const PerfProbe = ({ enabled }: { enabled: boolean }) => {
+  const { gl } = useThree()
+
+  useFrame(() => {
+    if (!enabled) return
+
+    useInstance.getState().setRuntimePerf({
+      renderCalls: gl.info.render.calls,
+      renderTriangles: gl.info.render.triangles,
+    })
+  })
+
+  return null
+}
+
 // Double-tap seek overlay for mobile (YouTube-style)
 const DOUBLE_TAP_SEEK_TICKS = 50
 const DOUBLE_TAP_TIMEOUT = 300
@@ -380,8 +395,13 @@ class DemoViewer extends Component<DemoViewerProps> {
       if (this.perfLogTimer >= 5000) {
         this.perfLogTimer = 0
         const heapMb = readJsHeapMemoryMb()
+        const { runtimePerf } = useInstance.getState()
         console.log(
           `[Perf] tick=${playback.tick}` +
+            ` calls=${runtimePerf.renderCalls}` +
+            ` triangles=${runtimePerf.renderTriangles}` +
+            ` visibleChunks=${runtimePerf.visibleChunkCount}` +
+            ` cluster=${runtimePerf.currentCluster ?? 'all'}` +
             (heapMb !== undefined ? ` heap=${heapMb.toFixed(1)}MB` : '')
         )
       }
@@ -415,6 +435,8 @@ class DemoViewer extends Component<DemoViewerProps> {
     const INTERP_DELAY_TICKS = 2
     const renderTick = Math.max(1, playback.tick - INTERP_DELAY_TICKS)
     const MAX_PROJECTILES_FOR_HIGH_QUALITY_INTERPOLATION = 16
+    // Cap Retina/high-density DPR so fill-rate does not erase later draw-call wins.
+    const canvasDpr = typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio || 1, 1.25)
 
     let playersThisTick: CachedPlayer[] = []
     let playersNextTick: CachedPlayer[] = []
@@ -482,6 +504,7 @@ class DemoViewer extends Component<DemoViewerProps> {
           ref={this.canvasRef}
           id="main-canvas"
           gl={{ alpha: true }}
+          dpr={canvasDpr}
           onContextMenu={e => e.preventDefault()}
           onPointerDown={this.onPointerDown}
           onPointerUp={this.onPointerUp}
@@ -490,6 +513,7 @@ class DemoViewer extends Component<DemoViewerProps> {
 
           <Lights map={map} />
           <Controls />
+          <PerfProbe enabled={this.perfLoggingEnabled} />
           <CanvasKeyHandler />
 
 

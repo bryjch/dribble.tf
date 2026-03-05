@@ -1,0 +1,18 @@
+{
+  "bspsrc": "/path/to/bspsrc",
+  "blender": "/Applications/Blender.app/Contents/MacOS/Blender",
+  "game-dir": "/path/to/tf2-assets/tf",
+  "gltfpack": "./scripts/tools/gltfpack/gltfpack",
+  "hl2-dir": "/path/to/tf2-assets/hl2",
+  "chunk-grid": "4",
+  "texture-scale": "0.5",
+  "texture-limit": "1024",
+  "texture-format": "webp",
+  "downscaled-texture-scale": null,
+  "skybox-image-format": "webp",
+  "keep-vertex-attributes": "true",
+  "strict-materials": "false",
+  "import-lights": "true",
+  "import-props": "true",
+  "import-invisible-solids": "false"
+}
