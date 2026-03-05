@@ -1442,7 +1442,7 @@ const downscaledTextureScale = parseNormalizedScaleArg(
 )
 const skyboxImageFormat = String(getArg('skybox-image-format', 'webp')).toLowerCase()
 const requestedKeepVertexAttributes = toBool(getArg('keep-vertex-attributes', 'true'), true)
-const skipSkybox = toBool(getArg('skip-skybox', 'false'), false)
+const skipSkybox = toBool(getArg('skip-skybox', 'true'), true)
 const requireSkybox = toBool(getArg('require-skybox', 'true'), true)
 const strictMaterials = toBool(getArg('strict-materials', 'false'), false)
 const allowMissingMaterialsArg = getArg('allow-missing-materials', undefined)
