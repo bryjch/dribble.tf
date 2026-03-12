@@ -27,10 +27,20 @@ const INVISIBLE_TOOL_MATERIALS = new Set([
   'toolsskybox',
 ])
 
+// Entity prefixes that are game-logic helpers and should never be rendered.
+// These may appear in older GLB files that were exported before the VMF filter
+// was updated to strip them.
+const INVISIBLE_NODE_PREFIXES = ['team_control_point']
+
 function isInvisibleToolMaterial(materialName: string): boolean {
   const name = materialName.toLowerCase()
   const baseName = name.includes('/') ? name.split('/').pop()! : name
   return INVISIBLE_TOOL_MATERIALS.has(baseName)
+}
+
+function isInvisibleEntityNode(nodeName: string): boolean {
+  const name = nodeName.toLowerCase()
+  return INVISIBLE_NODE_PREFIXES.some(prefix => name.startsWith(prefix))
 }
 
 const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
@@ -285,6 +295,12 @@ export const World = (props: WorldProps) => {
   useEffect(() => {
     if (mapModel) {
       mapModel.traverse((child: THREE.Object3D) => {
+        // Hide invisible game-logic entity nodes (e.g. team_control_point brushes)
+        if (isInvisibleEntityNode(child.name)) {
+          child.visible = false
+          return
+        }
+
         traverseMaterials(child, (material: any, node: any) => {
           // Hide invisible tool materials (nodraw, clip, trigger, etc.)
           if (isInvisibleToolMaterial(material.name)) {

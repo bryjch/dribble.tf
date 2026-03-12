@@ -260,6 +260,15 @@ const filterVmfInvisibleEntities = vmfPath => {
       continue
     }
 
+    // team_control_point* entities reference BSP brush models that BSPSrc
+    // embeds as solids.  They are invisible game-logic helpers, not geometry.
+    if (cn.startsWith('team_control_point')) {
+      keep[i] = 0
+      removed++
+      removedClassnames[cn] = (removedClassnames[cn] || 0) + 1
+      continue
+    }
+
     // func_occluder is a visibility optimisation brush, not rendered
     if (cn === 'func_occluder') {
       keep[i] = 0
