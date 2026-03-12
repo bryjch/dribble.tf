@@ -109,5 +109,17 @@
   },
   "keepVertexAttributes": false,
   "gltfpack": "./scripts/tools/gltfpack/gltfpack",
-  "success": true
+  "success": true,
+  "worldBounds": {
+    "boundaryMin": {
+      "x": -5202,
+      "y": -3990,
+      "z": -529
+    },
+    "boundaryMax": {
+      "x": 5202,
+      "y": 3990,
+      "z": 1311
+    }
+  }
 }
