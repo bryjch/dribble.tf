@@ -12,9 +12,13 @@ const MAP_CHUNKING_ENABLED = mapChunkingConfig.enabled === true
 
 const parseArgs = argv => {
   const args = new Map()
+  const positional = []
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
-    if (!arg.startsWith('--')) continue
+    if (!arg.startsWith('--')) {
+      positional.push(arg)
+      continue
+    }
     const key = arg.slice(2)
     const next = argv[i + 1]
     if (next && !next.startsWith('--')) {
@@ -24,10 +28,10 @@ const parseArgs = argv => {
       args.set(key, 'true')
     }
   }
-  return args
+  return { args, positional }
 }
 
-const args = parseArgs(process.argv.slice(2))
+const { args, positional } = parseArgs(process.argv.slice(2))
 
 // ── Config file loading ──
 // Config values are used as fallbacks when CLI args are not provided.
@@ -1091,10 +1095,43 @@ const convertVtf = (vtfPath, outputDir, format = 'tga') => {
 }
 
 // ── CLI arguments ──
-const mapName = requireArg('map')
-const bspPathArg = getArg('bsp-path', null)
+// Resolve map name and BSP path.  Supports two modes:
+//   1. Positional:  bun convert:map ./path/to/cp_granary
+//      - If path is a .bsp file, use it directly.
+//      - If path is a directory, find the first .bsp inside it.
+//      - Map name is derived from the .bsp filename (without extension).
+//   2. Legacy flags: --map <name> --bsp-path <path>
+let mapName = getArg('map', null)
+let bspPathArg = getArg('bsp-path', null)
+
+if (!mapName && !bspPathArg && positional.length > 0) {
+  const input = path.resolve(positional[0])
+  if (!fs.existsSync(input)) {
+    throw new Error(`Path not found: ${input}`)
+  }
+  const stat = fs.statSync(input)
+  if (stat.isFile() && input.toLowerCase().endsWith('.bsp')) {
+    bspPathArg = input
+    mapName = path.basename(input, '.bsp')
+  } else if (stat.isDirectory()) {
+    const bspFile = findFirstFile(input, fp => fp.toLowerCase().endsWith('.bsp'))
+    if (!bspFile) {
+      throw new Error(`No .bsp file found in directory: ${input}`)
+    }
+    bspPathArg = bspFile
+    mapName = path.basename(bspFile, path.extname(bspFile))
+  } else {
+    throw new Error(`Expected a .bsp file or a directory containing one: ${input}`)
+  }
+  console.log(`Resolved map: ${mapName}`)
+  console.log(`Resolved BSP: ${bspPathArg}`)
+}
+
+if (!mapName) {
+  throw new Error('Missing map name. Usage: bun convert:map ./path/to/map_dir  (or --map <name> --bsp-path <path>)')
+}
 if (!bspPathArg) {
-  throw new Error('Missing required argument: --bsp-path')
+  throw new Error('Missing BSP path. Usage: bun convert:map ./path/to/map_dir  (or --map <name> --bsp-path <path>)')
 }
 const bspsrcDir = requireArg('bspsrc')
 const blenderPath = requireArg('blender')
