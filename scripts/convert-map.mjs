@@ -563,6 +563,47 @@ const createBspLumpReader = data => {
   return { readLump }
 }
 
+/**
+ * Read world bounds from the BSP entity lump (lump 0).
+ * The worldspawn entity (always the first entity) contains "world_mins" and
+ * "world_maxs" keyvalues — these are the same values the Source engine
+ * transmits as DT_WORLD.m_WorldMins / m_WorldMaxs in demo files.
+ */
+const readBspWorldBounds = bspPath => {
+  const data = readBspData(bspPath)
+  const { readLump } = createBspLumpReader(data)
+  const entityLump = readLump(0)
+  const text = entityLump.toString('utf8')
+
+  const firstEntity = text.match(/\{([\s\S]*?)\}/)
+  if (!firstEntity) {
+    console.warn('BSP entity lump: could not find worldspawn entity')
+    return null
+  }
+
+  const body = firstEntity[1]
+  const minsMatch = body.match(/"world_mins"\s+"([^"]+)"/)
+  const maxsMatch = body.match(/"world_maxs"\s+"([^"]+)"/)
+
+  if (!minsMatch || !maxsMatch) {
+    console.warn('BSP worldspawn entity missing world_mins/world_maxs')
+    return null
+  }
+
+  const mins = minsMatch[1].split(/\s+/).map(Number)
+  const maxs = maxsMatch[1].split(/\s+/).map(Number)
+
+  if (mins.length < 3 || maxs.length < 3 || mins.some(isNaN) || maxs.some(isNaN)) {
+    console.warn('BSP world_mins/world_maxs: failed to parse coordinates')
+    return null
+  }
+
+  return {
+    boundaryMin: { x: mins[0], y: mins[1], z: mins[2] },
+    boundaryMax: { x: maxs[0], y: maxs[1], z: maxs[2] },
+  }
+}
+
 const GLTF_COMPONENT_BYTE_SIZES = {
   5120: 1,
   5121: 1,
@@ -2285,9 +2326,15 @@ if (MAP_CHUNKING_ENABLED) {
   console.log('Visibility metadata skipped because map chunking is disabled.')
 }
 
+const worldBounds = readBspWorldBounds(bspPath)
+if (worldBounds) {
+  console.log(`World bounds: min=(${worldBounds.boundaryMin.x}, ${worldBounds.boundaryMin.y}, ${worldBounds.boundaryMin.z}) max=(${worldBounds.boundaryMax.x}, ${worldBounds.boundaryMax.y}, ${worldBounds.boundaryMax.z})`)
+}
+
 const conversionMeta = {
   mapName,
   timestamp: new Date().toISOString(),
+  worldBounds: worldBounds ?? null,
   chunkingEnabled: MAP_CHUNKING_ENABLED,
   chunkGrid: MAP_CHUNKING_ENABLED ? chunkGrid : null,
   textureScale: textureScale ?? null,

@@ -53,7 +53,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "convert:map": "node scripts/convert-map.mjs"
+    "convert:map": "node scripts/convert-map.mjs",
+    "update:map-bounds": "node scripts/update-map-bounds.mjs"
   },
   "browserslist": {
     "production": [
