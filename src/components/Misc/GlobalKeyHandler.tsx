@@ -2,7 +2,16 @@ import { useRef, useCallback } from 'react'
 import keycode from 'keycode'
 
 import { useStore, useInstance } from '@zus/store'
-import { popUIPanelAction, toggleUIDrawingAction } from '@zus/actions'
+import {
+  clearStickersAction,
+  deleteSelectedStickerAction,
+  popUIPanelAction,
+  redoStickersAction,
+  setStickersPanelOpenAction,
+  toggleUIDrawingAction,
+  undoStickersAction,
+} from '@zus/actions'
+import { DrawingTool } from '@constants/types'
 
 import { useEventListener } from '@utils/hooks'
 
@@ -14,6 +23,7 @@ export const GlobalKeyHandler = () => {
   const keysHeld = useRef(new Map())
 
   const settings = useStore(state => state.settings)
+  const drawing = useStore(state => state.drawing)
   const drawingCanvas = useInstance(state => state.drawingCanvas)
   const activePanels = useStore(state => state.ui.activePanels)
 
@@ -22,10 +32,13 @@ export const GlobalKeyHandler = () => {
       try {
         switch (keycode(event)) {
           case 'esc':
-            popUIPanelAction()
-            if (activePanels.length === 0) {
+            if (activePanels.length > 0) {
+              popUIPanelAction()
+            } else if (drawing.enabled) {
               // Also support dismissing the drawing UI by using Esc key
               toggleUIDrawingAction(false)
+            } else if (drawing.stickersPanelOpen) {
+              setStickersPanelOpenAction(false)
             }
             break
 
@@ -36,19 +49,42 @@ export const GlobalKeyHandler = () => {
             toggleUIDrawingAction()
             break
 
+          case 'g':
+            if (keysHeld.current.has('g')) return null
+            keysHeld.current.set('g', true)
+            setStickersPanelOpenAction(!drawing.stickersPanelOpen)
+            break
+
           case 'c':
-            if (drawingCanvas) drawingCanvas.clear()
+            if (drawing.enabled && drawing.tool === DrawingTool.BRUSH) {
+              drawingCanvas?.clear()
+            } else if (drawing.stickersPanelOpen) {
+              clearStickersAction()
+            }
             break
 
           case 'z':
-            if (drawingCanvas) drawingCanvas.undo()
+            if (drawing.enabled && drawing.tool === DrawingTool.BRUSH) {
+              drawingCanvas?.undo()
+            } else if (drawing.stickersPanelOpen && event.shiftKey) {
+              redoStickersAction()
+            } else if (drawing.stickersPanelOpen) {
+              undoStickersAction()
+            }
+            break
+
+          case 'backspace':
+          case 'delete':
+            if (drawing.selectedStickerId) {
+              deleteSelectedStickerAction()
+            }
             break
         }
       } catch (error) {
         console.error(error)
       }
     },
-    [drawingCanvas, activePanels] // eslint-disable-line react-hooks/exhaustive-deps
+    [activePanels, drawing, drawingCanvas] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const canvasKeyUp = useCallback(
@@ -59,6 +95,10 @@ export const GlobalKeyHandler = () => {
           if (settings.drawing.activation === 'hold') {
             toggleUIDrawingAction(false)
           }
+          break
+
+        case 'g':
+          keysHeld.current.delete('g')
           break
       }
     },

@@ -10,7 +10,7 @@ import {
   DotStyleIcon,
 } from '@components/Misc/Icons'
 import { CrosshairStyle } from '@constants/types'
-import { BRUSH_COLOR_OPTIONS } from '@components/Misc/DemoDrawing'
+import { BRUSH_COLOR_OPTIONS } from '@constants/drawing'
 
 import { useStore } from '@zus/store'
 import { toggleUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
@@ -409,8 +409,10 @@ export const SettingsPanel = () => {
           <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Drawing</div>
 
           <Option label="Activate" keyCode="F" />
-          <Option label="Clear" keyCode="C" />
-          <Option label="Undo" keyCode="Z" />
+          <Option label="Clear active tool" keyCode="C" />
+          <Option label="Undo active tool" keyCode="Z" />
+          <Option label="Redo stickers" keyCode="Shift + Z" />
+          <Option label="Delete selected sticker" keyCode="Delete" />
 
           <Option label="Activation method" rightClass="col-auto">
             <div className="flex gap-1">

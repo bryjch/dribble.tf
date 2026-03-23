@@ -146,6 +146,64 @@ export const FaUndoIcon = (props: SVGProps<SVGSVGElement>) => {
   )
 }
 
+export const FaRedoIcon = (props: SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      stroke="currentColor"
+      fill="currentColor"
+      strokeWidth="0"
+      viewBox="0 0 512 512"
+      height="1rem"
+      width="1rem"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path d="M299.667 224.333H500c6.627 0 12-5.373 12-12V12c0-6.627-5.373-12-12-12h-48c-6.627 0-12 5.373-12 12v78.112C394.227 39.279 327.74 7.47 253.825 8.007 116.919 9.001 7.377 119.63 7.668 256.539 7.959 393.258 118.88 504 255.667 504c64.089 0 122.496-24.313 166.51-64.215 5.099-4.622 5.334-12.554.467-17.42l-33.967-33.967c-4.474-4.474-11.662-4.717-16.401-.525C341.24 415.336 300.42 432 255.667 432c-97.268 0-176-78.716-176-176 0-97.267 78.716-176 176-176 58.496 0 110.28 28.476 142.274 72.333h-98.274c-6.627 0-12 5.373-12 12v48c0 6.627 5.373 12 12 12z"></path>
+    </svg>
+  )
+}
+
+export const BrushToolIcon = (props: SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      stroke="currentColor"
+      fill="none"
+      strokeWidth="1.8"
+      viewBox="0 0 24 24"
+      height="1rem"
+      width="1rem"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M14.5 4.5 19.5 9.5M8.5 20.5c-1.933 0-3.5-1.567-3.5-3.5 0-1.2.6-2.1 1.8-2.7.9-.4 1.6-1.1 2-2l6.4-6.4a1.414 1.414 0 0 1 2 0l2.9 2.9a1.414 1.414 0 0 1 0 2l-6.4 6.4c-.9.4-1.6 1.1-2 2-.6 1.2-1.5 1.8-2.7 1.8Z"
+      />
+    </svg>
+  )
+}
+
+export const StickerToolIcon = (props: SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      stroke="currentColor"
+      fill="none"
+      viewBox="0 0 24 24"
+      height="1rem"
+      width="1rem"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path d="M2 12C2 17.5228 6.47715 22 12 22C12.6477 22 13.2503 21.7004 13.7083 21.2424L21.2424 13.7083C21.7004 13.2503 22 12.6477 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12Z" />
+      <path d="M12 17C10.8846 17 9.85038 16.6303 9 16" strokeLinecap="round" />
+      <ellipse cx="15" cy="10.5" rx="1" ry="1.5" fill="currentColor" />
+      <ellipse cx="9" cy="10.5" rx="1" ry="1.5" fill="currentColor" />
+      <path d="M12 22C12 19.2071 12 17.8107 12.3928 16.688C13.0964 14.6773 14.6773 13.0964 16.688 12.3928C17.8107 12 19.2071 12 22 12" />
+    </svg>
+  )
+}
+
 export const HiListBulletIcon = (props: SVGProps<SVGSVGElement>) => {
   return (
     <svg
@@ -270,7 +328,10 @@ export const BsBookmarkFillIcon = (props: SVGProps<SVGSVGElement>) => {
       xmlns="http://www.w3.org/2000/svg"
       {...props}
     >
-      <path fillRule="evenodd" d="M2 15.5V2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.74.439L8 13.069l-5.26 2.87A.5.5 0 0 1 2 15.5"></path>
+      <path
+        fillRule="evenodd"
+        d="M2 15.5V2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v13.5a.5.5 0 0 1-.74.439L8 13.069l-5.26 2.87A.5.5 0 0 1 2 15.5"
+      ></path>
     </svg>
   )
 }

@@ -8,7 +8,16 @@ import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { getSceneActors, parseMapBoundaries } from '@utils/scene'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
-import { ControlsMode, Download, SceneMode, UIPanelType } from '@constants/types'
+import {
+  ControlsMode,
+  Download,
+  DrawingTool,
+  SceneMode,
+  StickerAnnotation,
+  StickerTeam,
+  UIPanelType,
+} from '@constants/types'
+import { StickerDragKind } from './drawing'
 
 import { dispatch, getState, initialState, StoreState, useInstance } from './store'
 import { isMobile } from 'react-device-detect'
@@ -473,7 +482,7 @@ export const toggleUIDrawingAction = async (active?: boolean) => {
     const isActive = active !== undefined ? active : !getState().drawing.enabled
 
     if (isActive) {
-      if (document.pointerLockElement) {
+      if (document.pointerLockElement && getState().drawing.tool === DrawingTool.STICKERS) {
         document.exitPointerLock()
       }
 
@@ -488,6 +497,138 @@ export const toggleUIDrawingAction = async (active?: boolean) => {
         drawingCanvas?.clear()
       }
     }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const setDrawingToolAction = async (tool: DrawingTool) => {
+  try {
+    if (tool === DrawingTool.STICKERS && document.pointerLockElement) {
+      document.exitPointerLock()
+    }
+
+    dispatch({ type: 'SET_DRAWING_TOOL', payload: tool })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const setDrawingBrushColorAction = async (color: string) => {
+  try {
+    dispatch({ type: 'SET_DRAWING_BRUSH_COLOR', payload: color })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const setDrawingBrushRadiusAction = async (radius: number) => {
+  try {
+    dispatch({ type: 'SET_DRAWING_BRUSH_RADIUS', payload: radius })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const setStickersPanelOpenAction = async (open: boolean) => {
+  try {
+    if (open && document.pointerLockElement) {
+      document.exitPointerLock()
+    }
+
+    dispatch({ type: 'SET_STICKERS_PANEL_OPEN', payload: open })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const selectStickerAction = async (stickerId?: string) => {
+  try {
+    dispatch({ type: 'SET_SELECTED_STICKER', payload: stickerId })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const startStickerDragAction = async (payload: {
+  kind: StickerDragKind
+  stickerId?: string
+  stickerClassId?: number
+  stickerTeam?: StickerTeam
+  screenX: number
+  screenY: number
+}) => {
+  try {
+    dispatch({ type: 'START_STICKER_DRAG', payload })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const cancelStickerDragAction = async () => {
+  try {
+    dispatch({ type: 'CANCEL_STICKER_DRAG' })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const addStickerAction = async (sticker: StickerAnnotation) => {
+  try {
+    dispatch({ type: 'ADD_STICKER', payload: sticker })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const moveStickerAction = async (id: string, position: [number, number, number]) => {
+  try {
+    dispatch({ type: 'MOVE_STICKER', payload: { id, position } })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const deleteStickerAction = async (id: string) => {
+  try {
+    dispatch({ type: 'DELETE_STICKER', payload: id })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const deleteSelectedStickerAction = async () => {
+  try {
+    const selectedStickerId = getState().drawing.selectedStickerId
+    if (!selectedStickerId) return
+    dispatch({ type: 'DELETE_STICKER', payload: selectedStickerId })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const clearStickersAction = async () => {
+  try {
+    if (getState().drawing.stickerHistory.present.length === 0) return
+    dispatch({ type: 'CLEAR_STICKERS' })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const undoStickersAction = async () => {
+  try {
+    if (getState().drawing.stickerHistory.past.length === 0) return
+    dispatch({ type: 'UNDO_STICKERS' })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const redoStickersAction = async () => {
+  try {
+    if (getState().drawing.stickerHistory.future.length === 0) return
+    dispatch({ type: 'REDO_STICKERS' })
   } catch (error) {
     console.error(error)
   }

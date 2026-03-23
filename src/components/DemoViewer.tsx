@@ -18,6 +18,7 @@ import { Actors } from '@components/Scene/Actors'
 import { Projectiles } from '@components/Scene/Projectiles'
 import { World } from '@components/Scene/World'
 import { Skybox } from '@components/Scene/Skybox'
+import { Stickers } from '@components/Scene/Stickers'
 import { AsyncParser } from './Analyse/Data/AsyncParser'
 import { CachedPlayer } from './Analyse/Data/PlayerCache'
 import { InterpolatedProjectile } from './Scene/Projectiles'
@@ -45,6 +46,7 @@ import { ActorProps } from './Scene/Actors'
 import { isPerfLoggingEnabled, readJsHeapMemoryMb } from '@utils/misc'
 import { useIsMobile } from '@utils/hooks'
 import { cn } from '@utils/styling'
+import { DrawingTool } from '@constants/types'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -68,8 +70,12 @@ const Controls = () => {
   const settings = useStore(state => state.settings)
   const controlsMode = useStore(state => state.scene.controls.mode)
   const bounds = useStore(state => state.scene.bounds)
+  const drawingEnabled = useStore(state => state.drawing.enabled)
+  const drawingTool = useStore(state => state.drawing.tool)
+  const stickerDragActive = useStore(state => state.drawing.stickerDrag.active)
   const focusedObject = useInstance(state => state.focusedObject)
   const lastFocusedPOV = useInstance(state => state.lastFocusedPOV)
+  const isStickersToolActive = drawingEnabled && drawingTool === DrawingTool.STICKERS
 
   // Keep a reference of our scene in the store's instances for easy access
   useEffect(() => {
@@ -129,6 +135,21 @@ const Controls = () => {
     cameraRef.current.far = settings.ui.viewDistance || 15000
     cameraRef.current.updateProjectionMatrix()
   }, [settings.ui.viewDistance])
+
+  useEffect(() => {
+    if (!controlsRef.current) return
+    controlsRef.current.enabled = !stickerDragActive
+  }, [stickerDragActive, controlsMode])
+
+  useEffect(() => {
+    if (!spectatorRef.current) return
+
+    spectatorRef.current.allowPointerLock = !isStickersToolActive
+
+    if (isStickersToolActive && spectatorRef.current.isEnabled()) {
+      spectatorRef.current.disable()
+    }
+  }, [controlsMode, isStickersToolActive])
 
   useFrame(() => {
     if (controlsRef.current) controlsRef.current.update()
@@ -417,6 +438,14 @@ class DemoViewer extends Component<DemoViewerProps> {
   }
 
   onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (getState().drawing.stickerDrag.active) {
+      return
+    }
+
+    if (getState().drawing.enabled && getState().drawing.tool === DrawingTool.STICKERS) {
+      return
+    }
+
     if (
       Math.abs(event.clientX - this.lastTouchPos.x) < 10 &&
       Math.abs(event.clientY - this.lastTouchPos.y) < 10
@@ -522,6 +551,8 @@ class DemoViewer extends Component<DemoViewerProps> {
           <Suspense fallback={null}>
             <World map={map} mode={settings.scene.mode} />
           </Suspense>
+
+          <Stickers />
 
           {/* Skybox */}
 
