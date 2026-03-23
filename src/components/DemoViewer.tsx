@@ -59,6 +59,31 @@ THREE.Cache.enabled = true
 // Basic controls for our scene
 extend({ RtsControls, SpectatorControls })
 
+const SPECTATOR_CAMERA_OFFSET = new THREE.Vector3(0, 45, 150)
+const RTS_CAMERA_OFFSET = new THREE.Vector3(0, 250, 1000)
+const RTS_TARGET_DISTANCE = 1500
+
+const getFocusedViewTransform = (focusedObject?: THREE.Object3D) => {
+  if (!focusedObject) return null
+
+  const focusAnchor =
+    focusedObject.getObjectByName('povCamera') ?? focusedObject.getObjectByName('playerAim')
+
+  if (!focusAnchor) return null
+
+  focusAnchor.updateWorldMatrix(true, false)
+
+  const position = new THREE.Vector3()
+  const quaternion = new THREE.Quaternion()
+  const direction = new THREE.Vector3()
+
+  focusAnchor.getWorldPosition(position)
+  focusAnchor.getWorldQuaternion(quaternion)
+  direction.set(0, 0, -1).applyQuaternion(quaternion).normalize()
+
+  return { position, quaternion, direction }
+}
+
 // This component is messy af but whatever yolo
 const Controls = () => {
   const cameraRef = useRef<THREE.PerspectiveCamera>(null)
@@ -98,18 +123,19 @@ const Controls = () => {
     // Depending on whether there was a previous focused object, we either:
     // - reposition our Controls where that object was
     // - reposition our Controls to the center of the scene
-    const newPos = lastFocusedPOV ? lastFocusedPOV.position : bounds.center
+    const focusedView = getFocusedViewTransform(lastFocusedPOV)
+    const newPos = focusedView?.position ?? bounds.center
     let cameraOffset = bounds.defaultCameraOffset
     let controlsOffset = bounds.defaultControlOffset
 
-    if (lastFocusedPOV) {
+    if (focusedView) {
       if (controlsMode === 'rts') {
-        cameraOffset = new THREE.Vector3(-500, 0, 1000).applyQuaternion(lastFocusedPOV.quaternion)
+        cameraOffset = RTS_CAMERA_OFFSET.clone().applyQuaternion(focusedView.quaternion)
         controlsOffset = new THREE.Vector3(0, 0, 100)
       }
 
       if (controlsMode === 'spectator') {
-        cameraOffset = new THREE.Vector3(-70, 0, 120).applyQuaternion(lastFocusedPOV.quaternion)
+        cameraOffset = SPECTATOR_CAMERA_OFFSET.clone().applyQuaternion(focusedView.quaternion)
         controlsOffset = new THREE.Vector3(0, 0, 100)
       }
     }
@@ -119,12 +145,25 @@ const Controls = () => {
     cameraRef.current.far = settings.ui.viewDistance || 15000
 
     if (controlsMode === 'rts' && controlsRef.current) {
-      controlsRef.current.target.copy(newPos).add(controlsOffset)
+      const nextTarget = focusedView
+        ? cameraRef.current.position
+            .clone()
+            .add(focusedView.direction.clone().multiplyScalar(RTS_TARGET_DISTANCE))
+        : new THREE.Vector3().copy(newPos).add(controlsOffset)
+
+      controlsRef.current.target.copy(nextTarget)
+      cameraRef.current.lookAt(nextTarget)
+      controlsRef.current.update()
       controlsRef.current.saveState()
     }
 
     if (controlsMode === 'spectator' && spectatorRef.current) {
-      cameraRef.current.lookAt(new THREE.Vector3().copy(newPos).add(controlsOffset))
+      if (focusedView) {
+        cameraRef.current.quaternion.copy(focusedView.quaternion)
+      } else {
+        cameraRef.current.lookAt(new THREE.Vector3().copy(newPos).add(controlsOffset))
+      }
+
       spectatorRef.current.listen()
       spectatorRef.current.enable()
     }
@@ -252,7 +291,12 @@ const DoubleTapSeek = () => {
     >
       {/* Ripple feedback */}
       {ripple && (
-        <div className={cn('absolute inset-y-0 flex items-center justify-center', ripple.side === 'left' ? 'left-0 w-1/2' : 'right-0 w-1/2')}>
+        <div
+          className={cn(
+            'absolute inset-y-0 flex items-center justify-center',
+            ripple.side === 'left' ? 'left-0 w-1/2' : 'right-0 w-1/2'
+          )}
+        >
           <motion.div
             key={ripple.key}
             className="flex flex-col items-center gap-1 rounded-full bg-black/30 px-6 py-4"
@@ -266,7 +310,8 @@ const DoubleTapSeek = () => {
               className={ripple.side === 'left' ? 'rotate-180' : ''}
             />
             <span className="text-sm font-bold">
-              {ripple.side === 'left' ? '-' : '+'}{DOUBLE_TAP_SEEK_TICKS} ticks
+              {ripple.side === 'left' ? '-' : '+'}
+              {DOUBLE_TAP_SEEK_TICKS} ticks
             </span>
           </motion.div>
         </div>
@@ -276,10 +321,19 @@ const DoubleTapSeek = () => {
 }
 
 // FocusedPlayer wrapper - adjusts positioning for mobile
-const FocusedPlayerLayer = (props: { players: CachedPlayer[]; tick: number; intervalPerTick: number }) => {
+const FocusedPlayerLayer = (props: {
+  players: CachedPlayer[]
+  tick: number
+  intervalPerTick: number
+}) => {
   const isMobile = useIsMobile()
   return (
-    <div className={cn('ui-layer items-end justify-center', isMobile ? 'bottom-[12vh]' : 'bottom-[20vh]')}>
+    <div
+      className={cn(
+        'ui-layer items-end justify-center',
+        isMobile ? 'bottom-[12vh]' : 'bottom-[20vh]'
+      )}
+    >
       <FocusedPlayer {...props} />
     </div>
   )
@@ -465,7 +519,8 @@ class DemoViewer extends Component<DemoViewerProps> {
     const renderTick = Math.max(1, playback.tick - INTERP_DELAY_TICKS)
     const MAX_PROJECTILES_FOR_HIGH_QUALITY_INTERPOLATION = 16
     // Cap Retina/high-density DPR so fill-rate does not erase later draw-call wins.
-    const canvasDpr = typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio || 1, 1.25)
+    const canvasDpr =
+      typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio || 1, 1.25)
 
     let playersThisTick: CachedPlayer[] = []
     let playersNextTick: CachedPlayer[] = []
@@ -483,7 +538,7 @@ class DemoViewer extends Component<DemoViewerProps> {
 
       const nextTickMap = new Map(playersNextTick.map(p => [p.user.entityId, p]))
 
-      actorsThisTick = playersThisTick.map((player) => {
+      actorsThisTick = playersThisTick.map(player => {
         const next = nextTickMap.get(player.user.entityId)
         return {
           ...player,
@@ -494,9 +549,7 @@ class DemoViewer extends Component<DemoViewerProps> {
 
       const projectilesCurrentTick = demo.getProjectilesAtTick(renderTick)
       const projectilesNextTick = demo.getProjectilesAtTick(renderTick + 1)
-      const projectilesNextById = new Map(
-        projectilesNextTick.map(p => [p.entityId, p])
-      )
+      const projectilesNextById = new Map(projectilesNextTick.map(p => [p.entityId, p]))
 
       const useHighQualityProjectileInterpolation =
         projectilesCurrentTick.length <= MAX_PROJECTILES_FOR_HIGH_QUALITY_INTERPOLATION
@@ -506,12 +559,8 @@ class DemoViewer extends Component<DemoViewerProps> {
       const projectilesNext2Tick = useHighQualityProjectileInterpolation
         ? demo.getProjectilesAtTick(renderTick + 2)
         : []
-      const projectilesPrevById = new Map(
-        projectilesPrevTick.map(p => [p.entityId, p])
-      )
-      const projectilesNext2ById = new Map(
-        projectilesNext2Tick.map(p => [p.entityId, p])
-      )
+      const projectilesPrevById = new Map(projectilesPrevTick.map(p => [p.entityId, p]))
+      const projectilesNext2ById = new Map(projectilesNext2Tick.map(p => [p.entityId, p]))
 
       projectilesThisTick = projectilesCurrentTick.map(projectile => {
         const nextProjectile = projectilesNextById.get(projectile.entityId)
@@ -521,7 +570,8 @@ class DemoViewer extends Component<DemoViewerProps> {
           ...projectile,
           positionPrev: prevProjectile?.position ?? projectile.position,
           positionNext: nextProjectile?.position ?? projectile.position,
-          positionNext2: next2Projectile?.position ?? nextProjectile?.position ?? projectile.position,
+          positionNext2:
+            next2Projectile?.position ?? nextProjectile?.position ?? projectile.position,
           rotationNext: nextProjectile?.rotation ?? projectile.rotation,
         }
       })
@@ -544,7 +594,6 @@ class DemoViewer extends Component<DemoViewerProps> {
           <Controls />
           <PerfProbe enabled={this.perfLoggingEnabled} />
           <CanvasKeyHandler />
-
 
           {/* World Map */}
 
@@ -588,7 +637,7 @@ class DemoViewer extends Component<DemoViewerProps> {
 
         {settings.ui.showStats && <FpsCounter />}
 
-        <div className="ui-layer items-center justify-center pointer-events-none">
+        <div className="ui-layer pointer-events-none items-center justify-center">
           <Crosshair />
         </div>
 
@@ -613,12 +662,20 @@ class DemoViewer extends Component<DemoViewerProps> {
 
           {playersThisTick.length > 0 && (
             <div className="ui-layer items-center justify-stretch">
-              <PlayerStatuses players={playersThisTick} tick={playback.tick} intervalPerTick={demo?.intervalPerTick ?? 0.015} />
+              <PlayerStatuses
+                players={playersThisTick}
+                tick={playback.tick}
+                intervalPerTick={demo?.intervalPerTick ?? 0.015}
+              />
             </div>
           )}
 
           {playersThisTick.length > 0 && (
-            <FocusedPlayerLayer players={playersThisTick} tick={playback.tick} intervalPerTick={demo?.intervalPerTick ?? 0.015} />
+            <FocusedPlayerLayer
+              players={playersThisTick}
+              tick={playback.tick}
+              intervalPerTick={demo?.intervalPerTick ?? 0.015}
+            />
           )}
 
           <PanelToolbar hasDemoLoaded={!!demo} />
