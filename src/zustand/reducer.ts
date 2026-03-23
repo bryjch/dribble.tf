@@ -2,6 +2,9 @@ import localForage from 'localforage'
 import { set, clone, clamp, uniq, without, sortedUniq, sortBy } from 'lodash'
 
 import { StoreState, StoreAction, useInstance } from './store'
+import { StickerAnnotation } from '@constants/types'
+import { redoHistoryState, pushHistoryState, undoHistoryState } from '@utils/history'
+import { createInitialStickerDragState } from './drawing'
 
 const reducers = (state: StoreState, action: StoreAction) => {
   switch (action.type) {
@@ -42,6 +45,7 @@ const reducers = (state: StoreState, action: StoreAction) => {
         ...state,
         scene: action.payload.scene,
         playback: action.payload.playback,
+        drawing: resetDrawingStickers(state.drawing),
         bookmarks: [],
       }
 
@@ -142,8 +146,193 @@ const reducers = (state: StoreState, action: StoreAction) => {
     case 'SET_DRAWING_INACTIVE':
       return {
         ...state,
-        drawing: { ...state.drawing, enabled: false },
+        drawing: {
+          ...state.drawing,
+          enabled: false,
+          stickerDrag: createInitialStickerDragState(),
+        },
       }
+
+    case 'SET_DRAWING_TOOL':
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          tool: action.payload,
+          stickerDrag: createInitialStickerDragState(),
+        },
+      }
+
+    case 'SET_DRAWING_BRUSH_COLOR':
+      return {
+        ...state,
+        drawing: { ...state.drawing, brushColor: action.payload },
+      }
+
+    case 'SET_DRAWING_BRUSH_RADIUS':
+      return {
+        ...state,
+        drawing: { ...state.drawing, brushRadius: action.payload },
+      }
+
+    case 'SET_STICKERS_PANEL_OPEN':
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          stickersPanelOpen: action.payload,
+        },
+      }
+
+    case 'SET_SELECTED_STICKER':
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          selectedStickerId: action.payload,
+        },
+      }
+
+    case 'START_STICKER_DRAG':
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          selectedStickerId:
+            action.payload.kind === 'create'
+              ? undefined
+              : action.payload.stickerId ?? state.drawing.selectedStickerId,
+          stickerDrag: {
+            active: true,
+            kind: action.payload.kind,
+            stickerId: action.payload.stickerId,
+            stickerClassId: action.payload.stickerClassId,
+            stickerTeam: action.payload.stickerTeam,
+            screenX: action.payload.screenX,
+            screenY: action.payload.screenY,
+          },
+        },
+      }
+
+    case 'CANCEL_STICKER_DRAG':
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          stickerDrag: createInitialStickerDragState(),
+        },
+      }
+
+    case 'ADD_STICKER': {
+      const nextStickers = [...state.drawing.stickerHistory.present, action.payload]
+
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          selectedStickerId: action.payload.id,
+          stickerDrag: createInitialStickerDragState(),
+          stickerHistory: pushHistoryState(state.drawing.stickerHistory, nextStickers),
+        },
+      }
+    }
+
+    case 'MOVE_STICKER': {
+      let changed = false
+      const nextStickers = state.drawing.stickerHistory.present.map(sticker => {
+        if (sticker.id !== action.payload.id) return sticker
+        if (sameStickerPosition(sticker.position, action.payload.position)) return sticker
+        changed = true
+        return {
+          ...sticker,
+          position: action.payload.position,
+        }
+      })
+
+      if (!changed) {
+        return {
+          ...state,
+          drawing: {
+            ...state.drawing,
+            stickerDrag: createInitialStickerDragState(),
+          },
+        }
+      }
+
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          selectedStickerId: action.payload.id,
+          stickerDrag: createInitialStickerDragState(),
+          stickerHistory: pushHistoryState(state.drawing.stickerHistory, nextStickers),
+        },
+      }
+    }
+
+    case 'DELETE_STICKER': {
+      const nextStickers = state.drawing.stickerHistory.present.filter(
+        sticker => sticker.id !== action.payload
+      )
+
+      if (nextStickers.length === state.drawing.stickerHistory.present.length) return state
+
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          selectedStickerId:
+            state.drawing.selectedStickerId === action.payload
+              ? undefined
+              : state.drawing.selectedStickerId,
+          stickerHistory: pushHistoryState(state.drawing.stickerHistory, nextStickers),
+        },
+      }
+    }
+
+    case 'CLEAR_STICKERS':
+      if (state.drawing.stickerHistory.present.length === 0) return state
+
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          selectedStickerId: undefined,
+          stickerHistory: pushHistoryState(state.drawing.stickerHistory, []),
+        },
+      }
+
+    case 'UNDO_STICKERS': {
+      const stickerHistory = undoHistoryState(state.drawing.stickerHistory)
+
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          stickerHistory,
+          selectedStickerId: resolveSelectedStickerId(
+            stickerHistory.present,
+            state.drawing.selectedStickerId
+          ),
+        },
+      }
+    }
+
+    case 'REDO_STICKERS': {
+      const stickerHistory = redoHistoryState(state.drawing.stickerHistory)
+
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          stickerHistory,
+          selectedStickerId: resolveSelectedStickerId(
+            stickerHistory.present,
+            state.drawing.selectedStickerId
+          ),
+        },
+      }
+    }
 
     //
     // ─── EVENT HISTORY ───────────────────────────────────────────────
@@ -211,6 +400,35 @@ const reducers = (state: StoreState, action: StoreAction) => {
     default:
       return state
   }
+}
+
+function resetDrawingStickers(drawing: StoreState['drawing']): StoreState['drawing'] {
+  return {
+    ...drawing,
+    stickersPanelOpen: false,
+    selectedStickerId: undefined,
+    stickerHistory: {
+      past: [],
+      present: [],
+      future: [],
+    },
+    stickerDrag: createInitialStickerDragState(),
+  }
+}
+
+function sameStickerPosition(
+  left: [number, number, number],
+  right: [number, number, number]
+): boolean {
+  return left[0] === right[0] && left[1] === right[1] && left[2] === right[2]
+}
+
+function resolveSelectedStickerId(
+  stickers: StickerAnnotation[],
+  selectedStickerId?: string
+): string | undefined {
+  if (!selectedStickerId) return undefined
+  return stickers.some(sticker => sticker.id === selectedStickerId) ? selectedStickerId : undefined
 }
 
 export default reducers

@@ -29,6 +29,22 @@ export const DrawingActivation = {
 
 export type DrawingActivation = (typeof DrawingActivation)[keyof typeof DrawingActivation]
 
+export const DrawingTool = {
+  BRUSH: 'brush',
+  STICKERS: 'stickers',
+} as const
+
+export type DrawingTool = (typeof DrawingTool)[keyof typeof DrawingTool]
+
+export type StickerTeam = 'red' | 'blue'
+
+export type StickerAnnotation = {
+  id: string
+  position: [number, number, number]
+  classId: number
+  team: StickerTeam
+}
+
 export const UIPanelType = {
   ABOUT: 'About',
   SETTINGS: 'Settings',

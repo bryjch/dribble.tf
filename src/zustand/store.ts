@@ -18,6 +18,7 @@ import {
   SceneMode,
   UIPanelType,
 } from '@constants/types'
+import { DrawingState, createInitialDrawingState } from './drawing'
 import rootReducer from './reducer'
 
 // This "Instance Store" is meant to be used for larger objects that are problematic
@@ -122,9 +123,7 @@ export type StoreState = {
     forceShowPanel: boolean
     intervalPerTick: number
   }
-  drawing: {
-    enabled: boolean
-  }
+  drawing: DrawingState
   settings: {
     scene: {
       mode: SceneMode
@@ -205,9 +204,7 @@ export const initialState: StoreState = {
     intervalPerTick: 0.015,
   },
 
-  drawing: {
-    enabled: false,
-  },
+  drawing: createInitialDrawingState(),
 
   settings: {
     scene: {
@@ -249,7 +246,7 @@ export const initialState: StoreState = {
         color: '#ffffff',
       },
       playerOutlines: false,
-      showStats: false,
+      showStats: true,
       showSkybox: true,
       viewDistance: 15000,
       killfeedSeekBuffer: 2,

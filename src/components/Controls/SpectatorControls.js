@@ -47,6 +47,7 @@ export class SpectatorControls {
     this.sprintMultiplier = SPRINTMULT
     this.keyMapping = Object.assign({}, KEYMAPPING, KEYMAPPING)
     this.enabled = false
+    this.allowPointerLock = true
     this.lastEscFromPointerLock = 0
     this._mouseState = { x: 0, y: 0 }
     this._keyState = { press: 0, prevPress: 0 }
@@ -73,6 +74,7 @@ export class SpectatorControls {
   }
   _processMouseDownEvent(event) {
     if (event.button === MOUSEMAPPING.LEFT) {
+      if (!this.allowPointerLock) return null
       const timeSinceLastEsc = performance.now() - this.lastEscFromPointerLock
       if (timeSinceLastEsc <= ESCLOCKDELAY) return null
       this.enable()
@@ -139,6 +141,7 @@ export class SpectatorControls {
     document.removeEventListener('pointerlockchange', this._processPointerLockChangeEvent)
   }
   enable() {
+    if (!this.allowPointerLock) return null
     if (this.isEnabled()) return null
     document.addEventListener('mousemove', this._processMouseMoveEvent)
     document.addEventListener('keydown', this._processKeyEvent)
