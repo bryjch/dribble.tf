@@ -8,6 +8,7 @@ import {
   popUIPanelAction,
   redoStickersAction,
   setStickersPanelOpenAction,
+  toggleMapCenterPickerAction,
   toggleUIDrawingAction,
   undoStickersAction,
 } from '@zus/actions'
@@ -26,13 +27,16 @@ export const GlobalKeyHandler = () => {
   const drawing = useStore(state => state.drawing)
   const drawingCanvas = useInstance(state => state.drawingCanvas)
   const activePanels = useStore(state => state.ui.activePanels)
+  const mapCenterPickerActive = useInstance(state => state.mapCenterPickerActive)
 
   const canvasKeyDown = useCallback(
     (event: KeyboardEvent) => {
       try {
         switch (keycode(event)) {
           case 'esc':
-            if (activePanels.length > 0) {
+            if (mapCenterPickerActive) {
+              toggleMapCenterPickerAction(false)
+            } else if (activePanels.length > 0) {
               popUIPanelAction()
             } else if (drawing.enabled) {
               // Also support dismissing the drawing UI by using Esc key
@@ -84,7 +88,7 @@ export const GlobalKeyHandler = () => {
         console.error(error)
       }
     },
-    [activePanels, drawing, drawingCanvas] // eslint-disable-line react-hooks/exhaustive-deps
+    [activePanels, drawing, drawingCanvas, mapCenterPickerActive] // eslint-disable-line react-hooks/exhaustive-deps
   )
 
   const canvasKeyUp = useCallback(

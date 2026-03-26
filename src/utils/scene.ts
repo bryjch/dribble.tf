@@ -6,6 +6,8 @@ import { MapBoundaries } from '@components/Analyse/Data/PositionCache'
 
 import { objCoordsToVector3 } from './geometry'
 
+const DEFAULT_RTS_CAMERA_OFFSET = new THREE.Vector3(0, 250, 1000)
+
 /**
  * Get all Actors in the scene
  */
@@ -62,24 +64,19 @@ export function getSceneProjectiles(scene: THREE.Scene, name: string): THREE.Obj
 }
 
 export function parseMapBoundaries(boundaries: MapBoundaries) {
-  const defaultCameraOffset = boundaries.cameraOffset
-    ? objCoordsToVector3(boundaries.cameraOffset)
-    : new THREE.Vector3(0, 0, 0)
-  const defaultControlOffset = boundaries.controlOffset
-    ? objCoordsToVector3(boundaries.controlOffset)
-    : new THREE.Vector3(0, 0, 100)
+  const center = new THREE.Vector3(
+    0.5 * (boundaries.boundaryMax.x - boundaries.boundaryMin.x),
+    0.5 * (boundaries.boundaryMax.y - boundaries.boundaryMin.y),
+    -boundaries.boundaryMin.z - 0.5 * ActorDimensions.z
+  )
 
   return {
     min: objCoordsToVector3(boundaries.boundaryMin),
     max: objCoordsToVector3(boundaries.boundaryMax),
-    center: new THREE.Vector3(
-      0.5 * (boundaries.boundaryMax.x - boundaries.boundaryMin.x),
-      0.5 * (boundaries.boundaryMax.y - boundaries.boundaryMin.y),
-      -boundaries.boundaryMin.z - 0.5 * ActorDimensions.z
-    ),
-    defaultCameraOffset,
-    defaultControlOffset,
-    initialCameraOffset: defaultCameraOffset.clone(),
-    initialControlOffset: defaultControlOffset.clone(),
+    center,
+    defaultCameraOffset: boundaries.cameraOffset
+      ? objCoordsToVector3(boundaries.cameraOffset)
+      : DEFAULT_RTS_CAMERA_OFFSET.clone(),
+    defaultRtsCenter: boundaries.rtsCenter ? objCoordsToVector3(boundaries.rtsCenter) : center,
   }
 }

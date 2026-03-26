@@ -31,6 +31,10 @@ import rootReducer from './reducer'
 // restrictive (hard to pass values/references around).
 
 export type InstanceState = {
+  mapOffsetDebug: {
+    cameraOffset: { x: number; y: number; z: number }
+  }
+  mapCenterPickerActive: boolean
   threeScene: THREE.Scene
   parsedDemo?: AsyncParser
   focusedObject?: THREE.Object3D
@@ -49,6 +53,8 @@ export type InstanceState = {
   setFocusedObject: (focusedObject?: THREE.Object3D) => void
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => void
   setFrameProgress: (frameProgress: number) => void
+  setMapCenterPickerActive: (mapCenterPickerActive: boolean) => void
+  setMapOffsetDebug: (mapOffsetDebug: { cameraOffset: { x: number; y: number; z: number } }) => void
   setRuntimePerf: (
     runtimePerf: Partial<{
       renderCalls: number
@@ -59,7 +65,16 @@ export type InstanceState = {
   ) => void
 }
 
+const sameOffsetVector = (
+  a: { x: number; y: number; z: number },
+  b: { x: number; y: number; z: number }
+) => a.x === b.x && a.y === b.y && a.z === b.z
+
 const useInstance = create<InstanceState>()(set => ({
+  mapOffsetDebug: {
+    cameraOffset: { x: 0, y: 0, z: 0 },
+  },
+  mapCenterPickerActive: false,
   threeScene: new THREE.Scene(),
   parsedDemo: undefined,
   focusedObject: undefined,
@@ -78,6 +93,15 @@ const useInstance = create<InstanceState>()(set => ({
   setFocusedObject: (focusedObject?: THREE.Object3D) => set({ focusedObject }),
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => set({ lastFocusedPOV }),
   setFrameProgress: (frameProgress: number) => set({ frameProgress }),
+  setMapCenterPickerActive: (mapCenterPickerActive: boolean) => set({ mapCenterPickerActive }),
+  setMapOffsetDebug: mapOffsetDebug =>
+    set(state => {
+      if (sameOffsetVector(state.mapOffsetDebug.cameraOffset, mapOffsetDebug.cameraOffset)) {
+        return state
+      }
+
+      return { mapOffsetDebug }
+    }),
   setRuntimePerf: runtimePerf =>
     set(state => ({
       runtimePerf: {
@@ -109,9 +133,7 @@ export type StoreState = {
       max: THREE.Vector3
       center: THREE.Vector3
       defaultCameraOffset: THREE.Vector3
-      defaultControlOffset: THREE.Vector3
-      initialCameraOffset: THREE.Vector3
-      initialControlOffset: THREE.Vector3
+      defaultRtsCenter: THREE.Vector3
     }
     controls: {
       mode: ControlsMode
@@ -130,6 +152,7 @@ export type StoreState = {
     scene: {
       mode: SceneMode
       interpolateFrames: boolean
+      rtsCenters: Record<string, { x: number; y: number; z: number }>
     }
     camera: {
       position: [number, number, number]
@@ -212,6 +235,7 @@ export const initialState: StoreState = {
     scene: {
       mode: isMobile ? SceneMode.UNTEXTURED : SceneMode.TEXTURED,
       interpolateFrames: true,
+      rtsCenters: {},
     },
     camera: {
       position: [0, -400, 200] as [number, number, number],

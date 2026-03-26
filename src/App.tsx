@@ -1,7 +1,8 @@
 import React from 'react'
 
 import { ViewerPage } from '@pages/ViewerPage'
-import { loadSettingsAction } from '@zus/actions'
+import { loadEmptySceneMapAction, loadSettingsAction } from '@zus/actions'
+import { getState } from '@zus/store'
 
 class App extends React.Component {
   state = {
@@ -14,6 +15,7 @@ class App extends React.Component {
 
   async componentDidMount() {
     await loadSettingsAction()
+    await loadEmptySceneMapAction(getState().scene.map)
 
     this.setState({ isReady: true })
 

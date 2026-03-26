@@ -35,18 +35,25 @@ import { MatchKillfeedPanel } from '@components/UI/MatchKillfeedPanel'
 import { BookmarksPanel } from '@components/UI/BookmarksPanel'
 import { FpsCounter } from '@components/UI/FpsCounter'
 import { Crosshair } from '@components/UI/Crosshair'
+import { MapOffsetDebugPanel } from '@components/UI/MapOffsetDebugPanel'
 
 import { motion } from 'framer-motion'
 import { AiFillFastForwardIcon } from '@components/Misc/Icons'
 
 // Actions & utils
 import { useStore, getState, useInstance } from '@zus/store'
-import { forceShowPanelAction, goToTickAction, playbackJumpAction } from '@zus/actions'
+import {
+  forceShowPanelAction,
+  goToTickAction,
+  playbackJumpAction,
+  setSceneRtsCenterAction,
+} from '@zus/actions'
 import { ActorProps } from './Scene/Actors'
 import { isPerfLoggingEnabled, readJsHeapMemoryMb } from '@utils/misc'
 import { useIsMobile } from '@utils/hooks'
 import { cn } from '@utils/styling'
 import { DrawingTool } from '@constants/types'
+import { getWorldIntersectionFromScreen } from '@utils/raycast'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -62,6 +69,14 @@ extend({ RtsControls, SpectatorControls })
 const SPECTATOR_CAMERA_OFFSET = new THREE.Vector3(0, 45, 150)
 const RTS_CAMERA_OFFSET = new THREE.Vector3(0, 250, 1000)
 const RTS_TARGET_DISTANCE = 1500
+const ENABLE_DEBUG_MAP_OFFSET = false
+const MARKER_COLOR = '#37ff5f'
+
+const roundOffset = (x: number, y: number, z: number) => ({
+  x: Math.round(x),
+  y: Math.round(y),
+  z: Math.round(z),
+})
 
 const getFocusedViewTransform = (focusedObject?: THREE.Object3D) => {
   if (!focusedObject) return null
@@ -124,19 +139,16 @@ const Controls = () => {
     // - reposition our Controls where that object was
     // - reposition our Controls to the center of the scene
     const focusedView = getFocusedViewTransform(lastFocusedPOV)
-    const newPos = focusedView?.position ?? bounds.center
+    const newPos = focusedView?.position ?? bounds.defaultRtsCenter
     let cameraOffset = bounds.defaultCameraOffset
-    let controlsOffset = bounds.defaultControlOffset
 
     if (focusedView) {
       if (controlsMode === 'rts') {
         cameraOffset = RTS_CAMERA_OFFSET.clone().applyQuaternion(focusedView.quaternion)
-        controlsOffset = new THREE.Vector3(0, 0, 100)
       }
 
       if (controlsMode === 'spectator') {
         cameraOffset = SPECTATOR_CAMERA_OFFSET.clone().applyQuaternion(focusedView.quaternion)
-        controlsOffset = new THREE.Vector3(0, 0, 100)
       }
     }
 
@@ -149,7 +161,7 @@ const Controls = () => {
         ? cameraRef.current.position
             .clone()
             .add(focusedView.direction.clone().multiplyScalar(RTS_TARGET_DISTANCE))
-        : new THREE.Vector3().copy(newPos).add(controlsOffset)
+        : bounds.defaultRtsCenter.clone()
 
       controlsRef.current.target.copy(nextTarget)
       cameraRef.current.lookAt(nextTarget)
@@ -161,7 +173,7 @@ const Controls = () => {
       if (focusedView) {
         cameraRef.current.quaternion.copy(focusedView.quaternion)
       } else {
-        cameraRef.current.lookAt(new THREE.Vector3().copy(newPos).add(controlsOffset))
+        cameraRef.current.lookAt(bounds.defaultRtsCenter)
       }
 
       spectatorRef.current.listen()
@@ -193,6 +205,21 @@ const Controls = () => {
   useFrame(() => {
     if (controlsRef.current) controlsRef.current.update()
     if (spectatorRef.current) spectatorRef.current.update()
+
+    if (
+      ENABLE_DEBUG_MAP_OFFSET &&
+      controlsMode === 'rts' &&
+      controlsRef.current &&
+      cameraRef.current
+    ) {
+      useInstance.getState().setMapOffsetDebug({
+        cameraOffset: roundOffset(
+          cameraRef.current.position.x - bounds.defaultRtsCenter.x,
+          cameraRef.current.position.y - bounds.defaultRtsCenter.y,
+          cameraRef.current.position.z - bounds.defaultRtsCenter.z
+        ),
+      })
+    }
   })
 
   return (
@@ -243,6 +270,48 @@ const PerfProbe = ({ enabled }: { enabled: boolean }) => {
   })
 
   return null
+}
+
+const MapCenterMarker = () => {
+  const center = useStore(state => state.scene.bounds.defaultRtsCenter)
+  const pickerActive = useInstance(state => state.mapCenterPickerActive)
+
+  return (
+    <group position={[center.x, center.y, center.z + 3]}>
+      <mesh rotation={[Math.PI / 2, 0, 0]} renderOrder={20}>
+        <torusGeometry args={[44, 5, 16, 64]} />
+        <meshBasicMaterial
+          color={MARKER_COLOR}
+          transparent
+          opacity={pickerActive ? 1 : 0.85}
+          depthTest={false}
+          depthWrite={false}
+        />
+      </mesh>
+
+      <mesh renderOrder={20}>
+        <boxGeometry args={[54, 8, 4]} />
+        <meshBasicMaterial
+          color={MARKER_COLOR}
+          transparent
+          opacity={pickerActive ? 1 : 0.85}
+          depthTest={false}
+          depthWrite={false}
+        />
+      </mesh>
+
+      <mesh rotation={[0, 0, Math.PI / 2]} renderOrder={20}>
+        <boxGeometry args={[54, 8, 4]} />
+        <meshBasicMaterial
+          color={MARKER_COLOR}
+          transparent
+          opacity={pickerActive ? 1 : 0.85}
+          depthTest={false}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  )
 }
 
 // Double-tap seek overlay for mobile (YouTube-style)
@@ -492,6 +561,38 @@ class DemoViewer extends Component<DemoViewerProps> {
   }
 
   onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const pointerMoved =
+      Math.abs(event.clientX - this.lastTouchPos.x) >= 10 ||
+      Math.abs(event.clientY - this.lastTouchPos.y) >= 10
+
+    if (useInstance.getState().mapCenterPickerActive) {
+      if (pointerMoved) {
+        return
+      }
+
+      const scene = useInstance.getState().threeScene
+      const camera = (scene as THREE.Scene & { camera?: THREE.Camera }).camera
+      const domElement = event.currentTarget.querySelector('canvas')
+
+      if (!camera || !domElement) {
+        return
+      }
+
+      const point = getWorldIntersectionFromScreen({
+        camera,
+        domElement,
+        scene,
+        screenX: event.clientX,
+        screenY: event.clientY,
+      })
+
+      if (point) {
+        setSceneRtsCenterAction({ x: point.x, y: point.y, z: point.z })
+      }
+
+      return
+    }
+
     if (getState().drawing.stickerDrag.active) {
       return
     }
@@ -500,10 +601,7 @@ class DemoViewer extends Component<DemoViewerProps> {
       return
     }
 
-    if (
-      Math.abs(event.clientX - this.lastTouchPos.x) < 10 &&
-      Math.abs(event.clientY - this.lastTouchPos.y) < 10
-    ) {
+    if (!pointerMoved) {
       forceShowPanelAction()
     }
   }
@@ -601,6 +699,8 @@ class DemoViewer extends Component<DemoViewerProps> {
             <World map={map} mode={settings.scene.mode} />
           </Suspense>
 
+          {ENABLE_DEBUG_MAP_OFFSET && <MapCenterMarker />}
+
           <Stickers />
 
           {/* Skybox */}
@@ -648,11 +748,12 @@ class DemoViewer extends Component<DemoViewerProps> {
             <PlaybackPanel />
           </div>
 
-          {demo && (
-            <div className="ui-layer m-4 items-start justify-end">
-              <Killfeed parser={demo} tick={playback.tick} />
+          <div className="ui-layer m-4 items-start justify-end">
+            <div className="flex flex-col items-end gap-2">
+              {ENABLE_DEBUG_MAP_OFFSET && <MapOffsetDebugPanel />}
+              {demo && <Killfeed parser={demo} tick={playback.tick} />}
             </div>
-          )}
+          </div>
 
           {demo && (
             <div className="ui-layer m-4 items-end justify-start">

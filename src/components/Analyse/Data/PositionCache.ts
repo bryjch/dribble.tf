@@ -6,7 +6,7 @@ export interface MapBoundaries {
   boundaryMin: Vector
   boundaryMax: Vector
   cameraOffset?: Vector
-  controlOffset?: Vector
+  rtsCenter?: Vector
 }
 
 export class PositionCache extends DataCache {
