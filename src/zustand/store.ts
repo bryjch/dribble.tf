@@ -110,6 +110,8 @@ export type StoreState = {
       center: THREE.Vector3
       defaultCameraOffset: THREE.Vector3
       defaultControlOffset: THREE.Vector3
+      initialCameraOffset: THREE.Vector3
+      initialControlOffset: THREE.Vector3
     }
     controls: {
       mode: ControlsMode

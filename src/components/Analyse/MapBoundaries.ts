@@ -136,7 +136,21 @@ export function findMapAlias(map: string): string {
   return alias ? alias : baseName
 }
 
-export function getMapBoundaries(map: string): MapBoundaries | null {
+export function getMapBoundariesKey(map: string): string | null {
   const mapAlias = findMapAlias(map)
-  return OVERWRITE_MAP_BOUNDARIES[mapAlias]
+  if (OVERWRITE_MAP_BOUNDARIES[mapAlias]) {
+    return mapAlias
+  }
+
+  const baseName = getMapBasename(map)
+  if (OVERWRITE_MAP_BOUNDARIES[baseName]) {
+    return baseName
+  }
+
+  return null
+}
+
+export function getMapBoundaries(map: string): MapBoundaries | null {
+  const mapAlias = getMapBoundariesKey(map)
+  return mapAlias ? OVERWRITE_MAP_BOUNDARIES[mapAlias] : null
 }

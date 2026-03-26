@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { clamp } from 'lodash'
 
+import { getMapBoundariesKey } from '@components/Analyse/MapBoundaries'
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
 import {
   IoMdSettingsIcon,
@@ -13,7 +14,13 @@ import { CrosshairStyle } from '@constants/types'
 import { BRUSH_COLOR_OPTIONS } from '@constants/drawing'
 
 import { useStore } from '@zus/store'
-import { toggleUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
+import {
+  previewMapOffsetsAction,
+  resetMapViewOffsetsAction,
+  toggleUIPanelAction,
+  updateMapViewOffsetAction,
+  updateSettingsOptionAction,
+} from '@zus/actions'
 import { cn } from '@utils/styling'
 import { useIsMobile } from '@utils/hooks'
 
@@ -65,6 +72,7 @@ type SliderOptionProps = {
   min?: number
   max?: number
   step?: number
+  inputClassName?: string
 }
 
 const SliderOption = ({
@@ -75,11 +83,16 @@ const SliderOption = ({
   min = 1,
   max = 10,
   step = 0.1,
+  inputClassName = 'w-10',
 }: SliderOptionProps) => {
   // Track value internally so that input[type=number] will only trigger
   // callback when appropriate (i.e. enter / up / down / blurred)
   const [val, setVal] = useState(value)
   const inputFields = { min: min, max: max, step: step }
+
+  useEffect(() => {
+    setVal(value)
+  }, [value])
 
   const callback = (newValue: number) => {
     setVal(clamp(newValue, min, max))
@@ -97,7 +110,10 @@ const SliderOption = ({
       />
       <input
         type="number"
-        className="ml-4 w-10 rounded-md border border-white/40 bg-transparent px-1 text-right text-base"
+        className={cn(
+          'ml-4 rounded-md border border-white/40 bg-transparent px-1 text-right text-base',
+          inputClassName
+        )}
         value={val}
         onChange={({ target }) => setVal(Number(target.value))}
         onBlur={() => callback(val)}
@@ -151,6 +167,23 @@ export const SettingsPanel = () => {
   const scene = useStore(state => state.scene)
   const settings = useStore(state => state.settings)
   const isMobile = useIsMobile()
+  const [copiedMapSnippet, setCopiedMapSnippet] = useState(false)
+
+  const mapBoundariesKey = getMapBoundariesKey(scene.map) ?? scene.map
+  const roundedCameraOffset = {
+    x: Math.round(scene.bounds.defaultCameraOffset.x),
+    y: Math.round(scene.bounds.defaultCameraOffset.y),
+    z: Math.round(scene.bounds.defaultCameraOffset.z),
+  }
+  const roundedControlOffset = {
+    x: Math.round(scene.bounds.defaultControlOffset.x),
+    y: Math.round(scene.bounds.defaultControlOffset.y),
+    z: Math.round(scene.bounds.defaultControlOffset.z),
+  }
+  const mapOffsetSnippet = `${mapBoundariesKey}: {
+  cameraOffset: { x: ${roundedCameraOffset.x}, y: ${roundedCameraOffset.y}, z: ${roundedCameraOffset.z} },
+  controlOffset: { x: ${roundedControlOffset.x}, y: ${roundedControlOffset.y}, z: ${roundedControlOffset.z} },
+},`
 
   const toggleUIPanel = () => {
     toggleUIPanelAction('About', false)
@@ -160,6 +193,23 @@ export const SettingsPanel = () => {
   }
   const updateSettingsOption = (option: string, value: any) => {
     updateSettingsOptionAction(option, value)
+  }
+  const updateMapViewOffset = (
+    kind: 'cameraOffset' | 'controlOffset',
+    axis: 'x' | 'y' | 'z',
+    value: number
+  ) => {
+    updateMapViewOffsetAction(kind, axis, value)
+  }
+  const copyMapOffsetSnippet = async () => {
+    try {
+      await navigator.clipboard.writeText(mapOffsetSnippet)
+      setCopiedMapSnippet(true)
+      window.setTimeout(() => setCopiedMapSnippet(false), 1500)
+    } catch (error) {
+      console.error(error)
+      setCopiedMapSnippet(false)
+    }
   }
 
   return (
@@ -292,6 +342,123 @@ export const SettingsPanel = () => {
             value={settings.ui.viewDistance}
             onChange={value => updateSettingsOption('ui.viewDistance', value)}
           />
+
+          {/* ************************************************************* */}
+
+          <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">
+            Map Offset Debug
+          </div>
+
+          <Option label="Map entry" leftClass="col" rightClass="col items-end text-right">
+            <div className="text-sm">{mapBoundariesKey}</div>
+            {mapBoundariesKey !== scene.map && (
+              <div className="text-xs opacity-50">loaded from {scene.map}</div>
+            )}
+          </Option>
+
+          <Option label="Actions" leftClass="w-4/12" rightClass="w-8/12 justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-xl border px-2 py-1 text-sm hover:border-white/70"
+              onClick={() => previewMapOffsetsAction()}
+            >
+              Preview in RTS
+            </button>
+
+            <button
+              type="button"
+              className="rounded-xl border px-2 py-1 text-sm hover:border-white/70"
+              onClick={() => resetMapViewOffsetsAction()}
+            >
+              Reset
+            </button>
+
+            <button
+              type="button"
+              className={cn(
+                'rounded-xl border px-2 py-1 text-sm hover:border-white/70',
+                copiedMapSnippet && 'border-[#3273f6] bg-[#3273f6]'
+              )}
+              onClick={copyMapOffsetSnippet}
+            >
+              {copiedMapSnippet ? 'Copied' : 'Copy snippet'}
+            </button>
+          </Option>
+
+          {scene.controls.mode === 'pov' && (
+            <div className="mb-4 text-xs opacity-50">
+              POV mode ignores map offsets until you switch back to the map preview.
+            </div>
+          )}
+
+          <div className="ml-3">
+            <SliderOption
+              label="- Camera X"
+              min={-4000}
+              max={4000}
+              step={10}
+              value={roundedCameraOffset.x}
+              inputClassName="w-20"
+              onChange={value => updateMapViewOffset('cameraOffset', 'x', value)}
+            />
+
+            <SliderOption
+              label="- Camera Y"
+              min={-4000}
+              max={4000}
+              step={10}
+              value={roundedCameraOffset.y}
+              inputClassName="w-20"
+              onChange={value => updateMapViewOffset('cameraOffset', 'y', value)}
+            />
+
+            <SliderOption
+              label="- Camera Z"
+              min={-4000}
+              max={4000}
+              step={10}
+              value={roundedCameraOffset.z}
+              inputClassName="w-20"
+              onChange={value => updateMapViewOffset('cameraOffset', 'z', value)}
+            />
+
+            <SliderOption
+              label="- Control X"
+              min={-4000}
+              max={4000}
+              step={10}
+              value={roundedControlOffset.x}
+              inputClassName="w-20"
+              onChange={value => updateMapViewOffset('controlOffset', 'x', value)}
+            />
+
+            <SliderOption
+              label="- Control Y"
+              min={-4000}
+              max={4000}
+              step={10}
+              value={roundedControlOffset.y}
+              inputClassName="w-20"
+              onChange={value => updateMapViewOffset('controlOffset', 'y', value)}
+            />
+
+            <SliderOption
+              label="- Control Z"
+              min={-4000}
+              max={4000}
+              step={10}
+              value={roundedControlOffset.z}
+              inputClassName="w-20"
+              onChange={value => updateMapViewOffset('controlOffset', 'z', value)}
+            />
+          </div>
+
+          <div className="mt-4 rounded-2xl bg-black/20 p-3 text-xs">
+            <div className="mb-2 font-semibold opacity-60">Current snippet</div>
+            <pre className="overflow-x-auto whitespace-pre-wrap break-all font-mono">
+              {mapOffsetSnippet}
+            </pre>
+          </div>
 
           {/* ************************************************************* */}
 

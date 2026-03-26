@@ -73,6 +73,60 @@ const reducers = (state: StoreState, action: StoreAction) => {
         },
       }
 
+    case 'UPDATE_MAP_VIEW_OFFSET': {
+      const nextCameraOffset = state.scene.bounds.defaultCameraOffset.clone()
+      const nextControlOffset = state.scene.bounds.defaultControlOffset.clone()
+      const targetOffset =
+        action.payload.kind === 'cameraOffset' ? nextCameraOffset : nextControlOffset
+
+      switch (action.payload.axis) {
+        case 'x':
+          targetOffset.setX(action.payload.value)
+          break
+        case 'y':
+          targetOffset.setY(action.payload.value)
+          break
+        case 'z':
+          targetOffset.setZ(action.payload.value)
+          break
+      }
+
+      return {
+        ...state,
+        scene: {
+          ...state.scene,
+          bounds: {
+            ...state.scene.bounds,
+            defaultCameraOffset: nextCameraOffset,
+            defaultControlOffset: nextControlOffset,
+          },
+        },
+      }
+    }
+
+    case 'RESET_MAP_VIEW_OFFSETS': {
+      const resetCameraOffset =
+        action.payload.kind === 'controlOffset'
+          ? state.scene.bounds.defaultCameraOffset
+          : state.scene.bounds.initialCameraOffset.clone()
+      const resetControlOffset =
+        action.payload.kind === 'cameraOffset'
+          ? state.scene.bounds.defaultControlOffset
+          : state.scene.bounds.initialControlOffset.clone()
+
+      return {
+        ...state,
+        scene: {
+          ...state.scene,
+          bounds: {
+            ...state.scene.bounds,
+            defaultCameraOffset: resetCameraOffset,
+            defaultControlOffset: resetControlOffset,
+          },
+        },
+      }
+    }
+
     //
     // ─── PLAYBACK ────────────────────────────────────────────────────
     //

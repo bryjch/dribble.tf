@@ -62,6 +62,13 @@ export function getSceneProjectiles(scene: THREE.Scene, name: string): THREE.Obj
 }
 
 export function parseMapBoundaries(boundaries: MapBoundaries) {
+  const defaultCameraOffset = boundaries.cameraOffset
+    ? objCoordsToVector3(boundaries.cameraOffset)
+    : new THREE.Vector3(0, 0, 0)
+  const defaultControlOffset = boundaries.controlOffset
+    ? objCoordsToVector3(boundaries.controlOffset)
+    : new THREE.Vector3(0, 0, 100)
+
   return {
     min: objCoordsToVector3(boundaries.boundaryMin),
     max: objCoordsToVector3(boundaries.boundaryMax),
@@ -70,11 +77,9 @@ export function parseMapBoundaries(boundaries: MapBoundaries) {
       0.5 * (boundaries.boundaryMax.y - boundaries.boundaryMin.y),
       -boundaries.boundaryMin.z - 0.5 * ActorDimensions.z
     ),
-    defaultCameraOffset: boundaries.cameraOffset
-      ? objCoordsToVector3(boundaries.cameraOffset)
-      : new THREE.Vector3(0, 0, 0),
-    defaultControlOffset: boundaries.controlOffset
-      ? objCoordsToVector3(boundaries.controlOffset)
-      : new THREE.Vector3(0, 0, 100),
+    defaultCameraOffset,
+    defaultControlOffset,
+    initialCameraOffset: defaultCameraOffset.clone(),
+    initialControlOffset: defaultControlOffset.clone(),
   }
 }

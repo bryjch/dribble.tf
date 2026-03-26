@@ -146,6 +146,11 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
   }
 }
 
+const clearMapViewPreviewFocus = () => {
+  useInstance.getState().setFocusedObject(undefined)
+  useInstance.getState().setLastFocusedPOV(undefined)
+}
+
 export const changeControlsModeAction = async (
   mode: ControlsMode,
   options: { direction: 'next' | 'prev' } = { direction: 'next' }
@@ -244,7 +249,7 @@ export const jumpToPlayerPOVCamera = async (entityId: number) => {
   }
 }
 
-export const jumpToSpectatorCamera = async (options = {}) => {
+export const jumpToSpectatorCamera = async () => {
   try {
     dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'spectator' })
 
@@ -254,7 +259,7 @@ export const jumpToSpectatorCamera = async (options = {}) => {
   }
 }
 
-export const jumpToRtsCamera = async (options = {}) => {
+export const jumpToRtsCamera = async () => {
   try {
     dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'rts' })
 
@@ -435,6 +440,45 @@ export const loadSettingsAction = async () => {
 export const updateSettingsOptionAction = async (option: string, value: any) => {
   try {
     dispatch({ type: 'UPDATE_SETTINGS_OPTION', payload: { option, value } })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const updateMapViewOffsetAction = async (
+  kind: 'cameraOffset' | 'controlOffset',
+  axis: 'x' | 'y' | 'z',
+  value: number
+) => {
+  try {
+    dispatch({ type: 'UPDATE_MAP_VIEW_OFFSET', payload: { kind, axis, value } })
+
+    if (getState().scene.controls.mode !== ControlsMode.POV) {
+      clearMapViewPreviewFocus()
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const resetMapViewOffsetsAction = async (
+  kind: 'cameraOffset' | 'controlOffset' | 'all' = 'all'
+) => {
+  try {
+    dispatch({ type: 'RESET_MAP_VIEW_OFFSETS', payload: { kind } })
+
+    if (getState().scene.controls.mode !== ControlsMode.POV) {
+      clearMapViewPreviewFocus()
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const previewMapOffsetsAction = async () => {
+  try {
+    dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: ControlsMode.RTS })
+    clearMapViewPreviewFocus()
   } catch (error) {
     console.error(error)
   }
