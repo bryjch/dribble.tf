@@ -7,6 +7,7 @@ import { getMapBoundaries } from '@components/Analyse/MapBoundaries'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { getSceneActors, parseMapBoundaries } from '@utils/scene'
+import { fetchMapWorldBounds } from '@utils/game'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import {
   ControlsMode,
@@ -111,8 +112,16 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
 
 export const loadEmptySceneMapAction = async (mapName: string) => {
   try {
-    const boundaries = getMapBoundaries(mapName)
-    if (!boundaries) {
+    // Try to get world bounds from conversion.json (derived from BSP),
+    // then merge with any hardcoded camera/control offsets
+    const worldBounds = await fetchMapWorldBounds(mapName)
+    const overrides = getMapBoundaries(mapName)
+
+    const boundaries = worldBounds
+      ? { ...overrides, ...worldBounds }
+      : overrides
+
+    if (!boundaries?.boundaryMin || !boundaries?.boundaryMax) {
       alert('Unable to load map. Could not determine map boundaries.')
       return
     }

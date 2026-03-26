@@ -7,6 +7,13 @@ import { MapBoundaries } from './Data/PositionCache'
  * (note: control often requires a z-offset, because map makers don't use a consistent ground level)
  */
 export const OVERWRITE_MAP_BOUNDARIES: { [mapName: string]: MapBoundaries } = {
+  // TODO: VERIFY THIS
+  cp_granary_pro_rc17a3: {
+    boundaryMin: { x: -3232, y: -4640, z: -800 },
+    boundaryMax: { x: 3232, y: 4640, z: 1672 },
+    cameraOffset: { x: -220, y: 1330, z: 980 },
+    controlOffset: { x: 0, y: 0, z: 0 },
+  },
   cp_gullywash_final1: {
     boundaryMin: { x: -4050, y: -2950, z: -14672 },
     boundaryMax: { x: 5432, y: 2260, z: 1312 },
@@ -30,6 +37,13 @@ export const OVERWRITE_MAP_BOUNDARIES: { [mapName: string]: MapBoundaries } = {
     boundaryMax: { x: 5216, y: 3128, z: 1728 },
     cameraOffset: { x: -650, y: -580, z: 720 },
     controlOffset: { x: 0, y: 0, z: 500 },
+  },
+  // TODO: VERIFY THIS
+  cp_prolands_rc2ta: {
+    boundaryMin: { x: -4285, y: -4898, z: -14672 },
+    boundaryMax: { x: 2577, y: 4858, z: 1672 },
+    cameraOffset: { x: -220, y: 1330, z: 980 },
+    controlOffset: { x: 0, y: 0, z: 0 },
   },
   cp_reckoner: {
     boundaryMin: { x: -3232, y: -4640, z: -800 },
@@ -67,6 +81,13 @@ export const OVERWRITE_MAP_BOUNDARIES: { [mapName: string]: MapBoundaries } = {
     cameraOffset: { x: 1210, y: -550, z: 1100 },
     controlOffset: { x: 0, y: 0, z: 100 },
   },
+  // TODO: VERIFY THIS
+  koth_clearcut_b18: {
+    boundaryMin: { x: -3232, y: -4640, z: -800 },
+    boundaryMax: { x: 3232, y: 4640, z: 1672 },
+    cameraOffset: { x: -220, y: -500, z: 980 },
+    controlOffset: { x: 0, y: 0, z: 0 },
+  },
   koth_product_rc8: {
     boundaryMin: { x: -2859, y: -3668, z: -128 },
     boundaryMax: { x: -171, y: 3776, z: 1402 },
@@ -77,7 +98,7 @@ export const OVERWRITE_MAP_BOUNDARIES: { [mapName: string]: MapBoundaries } = {
 
 OVERWRITE_MAP_BOUNDARIES['koth_viaduct'] = OVERWRITE_MAP_BOUNDARIES['koth_product_rcx']
 OVERWRITE_MAP_BOUNDARIES['koth_viaduct'] = OVERWRITE_MAP_BOUNDARIES['koth_product_rc8']
-OVERWRITE_MAP_BOUNDARIES['cp_prolands'] = OVERWRITE_MAP_BOUNDARIES['cp_badlands']
+// OVERWRITE_MAP_BOUNDARIES['cp_prolands'] = OVERWRITE_MAP_BOUNDARIES['cp_badlands']
 OVERWRITE_MAP_BOUNDARIES['cp_gullywash'] = OVERWRITE_MAP_BOUNDARIES['cp_gullywash_f6']
 
 const mapAliases = new Map<string, string>([['cp_prolands', 'cp_badlands']])

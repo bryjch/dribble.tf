@@ -206,6 +206,7 @@ const readVmfMaterialReferences = vmfPath => {
  *  - Any brush entity with rendermode=10 (kRenderNone) or rendermode=6
  *  - trigger_* entities  (always EF_NODRAW in engine)
  *  - func_occluder       (visibility helper, not rendered)
+ *  - func_areaportal     (visibility helper, not rendered)
  *
  * The filtered VMF is written next to the original with a `_filtered` suffix.
  * Returns the path to the filtered file.
@@ -273,8 +274,8 @@ const filterVmfInvisibleEntities = vmfPath => {
       continue
     }
 
-    // func_occluder is a visibility optimisation brush, not rendered
-    if (cn === 'func_occluder') {
+    // func_occluder / func_areaportal are visibility helpers, not rendered
+    if (cn === 'func_occluder' || cn === 'func_areaportal') {
       keep[i] = 0
       removed++
       removedClassnames[cn] = (removedClassnames[cn] || 0) + 1

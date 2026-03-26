@@ -1,6 +1,18 @@
 {
-  "mapName": "cp_snakewater",
-  "timestamp": "2026-03-03T16:36:09.247Z",
+  "mapName": "cp_snakewater_final1",
+  "timestamp": "2026-03-26T16:50:18.595Z",
+  "worldBounds": {
+    "boundaryMin": {
+      "x": -14892,
+      "y": -4832,
+      "z": -14672
+    },
+    "boundaryMax": {
+      "x": 6808,
+      "y": 15420,
+      "z": 960
+    }
+  },
   "chunkingEnabled": false,
   "chunkGrid": null,
   "textureScale": "0.5",
@@ -18,15 +30,15 @@
   "strictMaterials": false,
   "allowMissingMaterials": true,
   "missingMaterialsCount": 0,
-  "vmfLightEntityCount": 163,
+  "vmfLightEntityCount": 190,
   "lightEnvironment": {
     "ambient": {
       "color": [
-        142,
-        152,
-        166
+        172,
+        182,
+        196
       ],
-      "brightness": 200
+      "brightness": 250
     },
     "sun": {
       "color": [
@@ -34,19 +46,19 @@
         194,
         151
       ],
-      "brightness": 700
+      "brightness": 570
     },
     "pitch": -30,
     "yaw": 10,
-    "sunSpreadAngle": null
+    "sunSpreadAngle": 3
   },
   "fog": null,
   "materialTruth": {
-    "scanned": 207,
-    "resolved": 5,
-    "unresolved": 202,
+    "scanned": 221,
+    "resolved": 2,
+    "unresolved": 219,
     "shaderCounts": {
-      "lightmappedgeneric": 5
+      "lightmappedgeneric": 2
     },
     "unresolvedSamples": [
       "materials/brick/brickwall001.vmt",
@@ -61,7 +73,7 @@
       "materials/brick/brickwall004e.vmt",
       "materials/brick/cobblewall001.vmt",
       "materials/brick/wall028.vmt",
-      "materials/coalmines/blue_wall1_middle.vmt",
+      "materials/coalmines/blendgroundtograss_coalmines.vmt",
       "materials/coalmines/red_beam1.vmt",
       "materials/coalmines/red_wall4_middle.vmt",
       "materials/concrete/computerwall_blue_stained.vmt",
@@ -83,9 +95,9 @@
       "materials/concrete/concretewall011c.vmt"
     ],
     "materials": {
-      "materials/construction/signs/sign001.vmt": {
+      "materials/dev/dev_blendmeasure.vmt": {
         "shader": "lightmappedgeneric",
-        "baseTexture": "construction/signs/sign001",
+        "baseTexture": "dev/dev_measuregeneric01b",
         "bumpMap": null,
         "surfaceProp": null,
         "translucent": false,
@@ -94,59 +106,20 @@
         "alphaTest": false,
         "noCull": false,
         "hasEnvMap": false,
-        "sourcePath": "materials/construction/signs/sign001.vmt"
+        "sourcePath": "materials/dev/dev_blendmeasure.vmt"
       },
-      "materials/metal/imetal001b_black.vmt": {
+      "materials/nature/blendgroundtograss008.vmt": {
         "shader": "lightmappedgeneric",
-        "baseTexture": "Metal/Imetal001b_white",
-        "bumpMap": null,
-        "surfaceProp": "metal",
+        "baseTexture": "Nature/dirtground010",
+        "bumpMap": "Nature/dirtground001_height-ssbump",
+        "surfaceProp": "dirt",
         "translucent": false,
         "additive": false,
         "selfIllum": false,
         "alphaTest": false,
         "noCull": false,
         "hasEnvMap": false,
-        "sourcePath": "materials/metal/imetal001b_black.vmt"
-      },
-      "materials/oceanic/signs/sign002.vmt": {
-        "shader": "lightmappedgeneric",
-        "baseTexture": "oceanic/signs/sign002",
-        "bumpMap": null,
-        "surfaceProp": null,
-        "translucent": false,
-        "additive": false,
-        "selfIllum": false,
-        "alphaTest": false,
-        "noCull": false,
-        "hasEnvMap": false,
-        "sourcePath": "materials/oceanic/signs/sign002.vmt"
-      },
-      "materials/woods/signs/woodsign02.vmt": {
-        "shader": "lightmappedgeneric",
-        "baseTexture": "woods/signs/woodsign02",
-        "bumpMap": null,
-        "surfaceProp": null,
-        "translucent": false,
-        "additive": false,
-        "selfIllum": false,
-        "alphaTest": false,
-        "noCull": false,
-        "hasEnvMap": false,
-        "sourcePath": "materials/woods/signs/woodsign02.vmt"
-      },
-      "materials/woods/signs/woodsign03.vmt": {
-        "shader": "lightmappedgeneric",
-        "baseTexture": "woods/signs/woodsign03",
-        "bumpMap": null,
-        "surfaceProp": null,
-        "translucent": false,
-        "additive": false,
-        "selfIllum": false,
-        "alphaTest": false,
-        "noCull": false,
-        "hasEnvMap": false,
-        "sourcePath": "materials/woods/signs/woodsign03.vmt"
+        "sourcePath": "materials/nature/blendgroundtograss008.vmt"
       }
     }
   },
@@ -162,13 +135,6 @@
   "skyboxName": null,
   "skyboxImageFormat": "webp",
   "allowSkyboxFallback": true,
-  "teleports": {
-    "triggerCount": 0,
-    "spawnCount": 93,
-    "hasDefaultSpawn": true,
-    "missingModelCount": 0,
-    "missingDestinationCount": 0
-  },
   "visibility": {
     "version": null,
     "chunkCount": null,
@@ -177,17 +143,5 @@
   },
   "keepVertexAttributes": true,
   "gltfpack": "./scripts/tools/gltfpack/gltfpack",
-  "success": true,
-  "worldBounds": {
-    "boundaryMin": {
-      "x": -5394,
-      "y": -4832,
-      "z": -632
-    },
-    "boundaryMax": {
-      "x": 6450,
-      "y": 5248,
-      "z": 1000
-    }
-  }
+  "success": true
 }

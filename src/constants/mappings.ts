@@ -50,27 +50,33 @@ export const TEAM_MAP: { [key: number]: string } = {
 // different versions of the same map.
 // (e.g. cp_process_final and cp_process_f7 can use the same map model)
 export const MAP_NAME_SEARCH_MAP: { [key: string]: string } = {
-  cp_metalworks: 'cp_metalworks_f5',
+  cp_granary: 'cp_granary_pro_rc17a3',
   cp_gullywash: 'cp_gullywash_f9',
+  cp_metalworks: 'cp_metalworks_f5',
   cp_process: 'cp_process_f12',
-  cp_snakewater: 'cp_snakewater_final1',
-  cp_sunshine: 'cp_sunshine',
-  koth_product: 'koth_product_final',
-  koth_bagel: 'koth_bagel_rc10',
-  cp_villa: 'cp_villa_b19',
-  cp_sultry: 'cp_sultry_b8a',
+  cp_prolands: 'cp_prolands_rc2ta',
   cp_reckoner: 'cp_reckoner_rc6',
+  cp_snakewater: 'cp_snakewater_final1',
+  cp_sultry: 'cp_sultry_b8a',
+  cp_sunshine: 'cp_sunshine',
+  cp_villa: 'cp_villa_b19',
+  koth_bagel: 'koth_bagel_rc12',
+  koth_clearcut: 'koth_clearcut_b18',
+  koth_product: 'koth_product_final',
 }
 
 export const MAP_SKYBOX_MAP: { [key: string]: string } = {
-  cp_metalworks: 'sky_night_01', //complete
+  cp_granary: 'sky_dustbowl_01', //placeholder
   cp_gullywash: 'sky_dustbowl_01', //complete
+  cp_metalworks: 'sky_night_01', //complete
   cp_process: 'sky_trainyard_01', //complete
-  cp_snakewater: 'sky_well_01', //complete
-  cp_sunshine: 'sky_tf2_04', //complete
-  koth_product: 'sky_morningsnow_01', //complete
-  koth_bagel: 'sky_granary_01', //placeholder //complete
-  cp_villa: 'sky_morningsnow_01', //complete
-  cp_sultry: 'sky_well_01',
+  cp_prolands: 'sky_morningsnow_01', //placeholder
   cp_reckoner: 'sky_hydro_01', //cp_reckoner users a custom skybox - need to extract from vmf/bsp file
+  cp_snakewater: 'sky_well_01', //complete
+  cp_sultry: 'sky_well_01',
+  cp_sunshine: 'sky_tf2_04', //complete
+  cp_villa: 'sky_morningsnow_01', //complete
+  koth_clearcut: 'sky_morningsnow_01', //placeholder
+  koth_bagel: 'sky_granary_01', //placeholder //complete
+  koth_product: 'sky_morningsnow_01', //complete
 }

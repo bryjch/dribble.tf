@@ -1,6 +1,18 @@
 {
   "mapName": "koth_clearcut_b18",
-  "timestamp": "2026-03-12T17:10:05.305Z",
+  "timestamp": "2026-03-26T14:58:03.185Z",
+  "worldBounds": {
+    "boundaryMin": {
+      "x": -4816,
+      "y": 2111,
+      "z": -392
+    },
+    "boundaryMax": {
+      "x": 4816,
+      "y": 6336,
+      "z": 694
+    }
+  },
   "chunkingEnabled": false,
   "chunkGrid": null,
   "textureScale": "0.5",
@@ -102,17 +114,5 @@
   },
   "keepVertexAttributes": true,
   "gltfpack": "./scripts/tools/gltfpack/gltfpack",
-  "success": true,
-  "worldBounds": {
-    "boundaryMin": {
-      "x": -4816,
-      "y": 2111,
-      "z": -392
-    },
-    "boundaryMax": {
-      "x": 4816,
-      "y": 6336,
-      "z": 694
-    }
-  }
+  "success": true
 }
