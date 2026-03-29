@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { clamp } from 'lodash'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
@@ -65,6 +65,7 @@ type SliderOptionProps = {
   min?: number
   max?: number
   step?: number
+  inputClassName?: string
 }
 
 const SliderOption = ({
@@ -75,11 +76,16 @@ const SliderOption = ({
   min = 1,
   max = 10,
   step = 0.1,
+  inputClassName = 'w-10',
 }: SliderOptionProps) => {
   // Track value internally so that input[type=number] will only trigger
   // callback when appropriate (i.e. enter / up / down / blurred)
   const [val, setVal] = useState(value)
   const inputFields = { min: min, max: max, step: step }
+
+  useEffect(() => {
+    setVal(value)
+  }, [value])
 
   const callback = (newValue: number) => {
     setVal(clamp(newValue, min, max))
@@ -97,7 +103,10 @@ const SliderOption = ({
       />
       <input
         type="number"
-        className="ml-4 w-10 rounded-md border border-white/40 bg-transparent px-1 text-right text-base"
+        className={cn(
+          'ml-4 rounded-md border border-white/40 bg-transparent px-1 text-right text-base',
+          inputClassName
+        )}
         value={val}
         onChange={({ target }) => setVal(Number(target.value))}
         onBlur={() => callback(val)}

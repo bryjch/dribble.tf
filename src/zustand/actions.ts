@@ -3,10 +3,11 @@ import localForage from 'localforage'
 import * as THREE from 'three'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
-import { getMapBoundaries } from '@components/Analyse/MapBoundaries'
+import { getMapBoundaries, getMapBoundariesKey } from '@components/Analyse/MapBoundaries'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { getSceneActors, parseMapBoundaries } from '@utils/scene'
+import { fetchMapWorldBounds } from '@utils/game'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import {
   ControlsMode,
@@ -76,10 +77,14 @@ export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
 export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
   try {
     toggleUIPanelAction('About', false)
+    const mapKey = getMapBoundariesKey(parsedDemo.header.map) ?? parsedDemo.header.map
+    const savedRtsCenter = getState().settings.scene.rtsCenters[mapKey]
+    const boundaryOverrides = getMapBoundaries(parsedDemo.header.map) ?? {}
 
     // Remember to update the non-redux instances!
     useInstance.getState().setParsedDemo(parsedDemo)
     useInstance.getState().setFocusedObject(undefined)
+    useInstance.getState().setMapCenterPickerActive(false)
 
     dispatch({
       type: 'LOAD_SCENE_FROM_PARSER',
@@ -88,8 +93,9 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
           players: parsedDemo.entityPlayerMap,
           map: parsedDemo.header.map,
           bounds: parseMapBoundaries({
-            ...getMapBoundaries(parsedDemo.header.map), // get camera/control offsets
+            ...boundaryOverrides, // get camera/control offsets
             ...parsedDemo.world,
+            ...(savedRtsCenter ? { rtsCenter: savedRtsCenter } : {}),
           }),
           controls: {
             mode: 'rts',
@@ -111,8 +117,21 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
 
 export const loadEmptySceneMapAction = async (mapName: string) => {
   try {
-    const boundaries = getMapBoundaries(mapName)
-    if (!boundaries) {
+    // Try to get world bounds from conversion.json (derived from BSP),
+    // then merge with any hardcoded camera/control offsets
+    const worldBounds = await fetchMapWorldBounds(mapName)
+    const overrides = getMapBoundaries(mapName)
+
+    const boundaries = worldBounds
+      ? { ...overrides, ...worldBounds }
+      : overrides
+    const mapKey = getMapBoundariesKey(mapName) ?? mapName
+    const savedRtsCenter = getState().settings.scene.rtsCenters[mapKey]
+    const boundariesWithCenter = savedRtsCenter && boundaries
+      ? { ...boundaries, rtsCenter: savedRtsCenter }
+      : boundaries
+
+    if (!boundariesWithCenter?.boundaryMin || !boundariesWithCenter?.boundaryMax) {
       alert('Unable to load map. Could not determine map boundaries.')
       return
     }
@@ -120,6 +139,7 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
     // Remember to update the non-redux instances!
     useInstance.getState().setParsedDemo(undefined)
     useInstance.getState().setFocusedObject(undefined)
+    useInstance.getState().setMapCenterPickerActive(false)
 
     dispatch({
       type: 'LOAD_SCENE_FROM_PARSER',
@@ -127,7 +147,7 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
         scene: {
           ...initialState.scene,
           map: mapName,
-          bounds: parseMapBoundaries(boundaries),
+          bounds: parseMapBoundaries(boundariesWithCenter),
         },
         playback: initialState.playback,
       },
@@ -235,7 +255,7 @@ export const jumpToPlayerPOVCamera = async (entityId: number) => {
   }
 }
 
-export const jumpToSpectatorCamera = async (options = {}) => {
+export const jumpToSpectatorCamera = async () => {
   try {
     dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'spectator' })
 
@@ -245,7 +265,7 @@ export const jumpToSpectatorCamera = async (options = {}) => {
   }
 }
 
-export const jumpToRtsCamera = async (options = {}) => {
+export const jumpToRtsCamera = async () => {
   try {
     dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'rts' })
 
@@ -426,6 +446,31 @@ export const loadSettingsAction = async () => {
 export const updateSettingsOptionAction = async (option: string, value: any) => {
   try {
     dispatch({ type: 'UPDATE_SETTINGS_OPTION', payload: { option, value } })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const toggleMapCenterPickerAction = async (active?: boolean) => {
+  try {
+    const nextActive =
+      active !== undefined ? active : !useInstance.getState().mapCenterPickerActive
+    useInstance.getState().setMapCenterPickerActive(nextActive)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const setSceneRtsCenterAction = async (point: { x: number; y: number; z: number }) => {
+  try {
+    const nextCenter = new THREE.Vector3(point.x, point.y, point.z)
+    const mapName = getState().scene.map
+    const mapKey = getMapBoundariesKey(mapName) ?? mapName
+
+    dispatch({ type: 'SET_SCENE_RTS_CENTER', payload: nextCenter })
+    useInstance.getState().setMapCenterPickerActive(false)
+
+    await updateSettingsOptionAction(`scene.rtsCenters.${mapKey}`, point)
   } catch (error) {
     console.error(error)
   }

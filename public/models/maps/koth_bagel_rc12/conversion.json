@@ -1,6 +1,18 @@
 {
   "mapName": "koth_bagel_rc12",
-  "timestamp": "2026-03-12T16:40:37.039Z",
+  "timestamp": "2026-03-26T16:07:42.028Z",
+  "worldBounds": {
+    "boundaryMin": {
+      "x": -4256,
+      "y": -2816,
+      "z": 0
+    },
+    "boundaryMax": {
+      "x": 4256,
+      "y": 3072,
+      "z": 1172
+    }
+  },
   "chunkingEnabled": false,
   "chunkGrid": null,
   "textureScale": "0.5",
@@ -693,17 +705,5 @@
   },
   "keepVertexAttributes": false,
   "gltfpack": "./scripts/tools/gltfpack/gltfpack",
-  "success": true,
-  "worldBounds": {
-    "boundaryMin": {
-      "x": -4256,
-      "y": -2816,
-      "z": 0
-    },
-    "boundaryMax": {
-      "x": 4256,
-      "y": 3072,
-      "z": 1172
-    }
-  }
+  "success": true
 }

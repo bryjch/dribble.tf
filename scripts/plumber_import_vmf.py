@@ -7,6 +7,7 @@ import sys
 import struct
 import lzma
 import zipfile
+import bmesh
 import bpy
 
 
@@ -377,6 +378,74 @@ def read_vmf_brush_side_materials(vmf_path):
                 materials.add(normalized)
 
     return sorted(materials)
+
+
+def get_material_identifier(material, fallback_name=None):
+    if material:
+        name = str(getattr(material, "name", "") or "").strip()
+        if name:
+            return name
+    return str(fallback_name or "").strip()
+
+
+def strip_imported_invisible_faces():
+    """Delete any imported mesh faces still using invisible tool materials.
+
+    Plumber is asked to skip invisible solids, but some tool faces can still
+    survive import as regular mesh primitives. Removing them before GLB export
+    keeps the asset clean and avoids relying on runtime hiding.
+    """
+
+    removed_faces = 0
+    removed_objects = 0
+
+    for obj in list(bpy.context.scene.objects):
+        if obj.type != "MESH" or not obj.data:
+            continue
+
+        mesh = obj.data
+        invisible_slots = set()
+        for slot_index, material in enumerate(mesh.materials):
+            identifier = get_material_identifier(material)
+            if not identifier and slot_index < len(obj.material_slots):
+                identifier = get_material_identifier(None, obj.material_slots[slot_index].name)
+            if is_ignored_material(identifier):
+                invisible_slots.add(slot_index)
+
+        if not invisible_slots:
+            continue
+
+        if mesh.users > 1:
+            mesh = mesh.copy()
+            obj.data = mesh
+
+        bm = bmesh.new()
+        bm.from_mesh(mesh)
+        bm.faces.ensure_lookup_table()
+
+        faces_to_delete = [face for face in bm.faces if face.material_index in invisible_slots]
+        if not faces_to_delete:
+            bm.free()
+            continue
+
+        removed_faces += len(faces_to_delete)
+        bmesh.ops.delete(bm, geom=faces_to_delete, context="FACES")
+        bm.to_mesh(mesh)
+        bm.free()
+        mesh.update()
+
+        if len(mesh.polygons) == 0:
+            mesh_data = obj.data
+            bpy.data.objects.remove(obj, do_unlink=True)
+            removed_objects += 1
+            if mesh_data and mesh_data.users == 0:
+                bpy.data.meshes.remove(mesh_data)
+
+    if removed_faces or removed_objects:
+        print(
+            f"[Plumber] Removed {removed_faces} invisible faces across "
+            f"{removed_objects} empty mesh objects."
+        )
 
 
 def read_bsp_materials(bsp_path):
@@ -860,6 +929,8 @@ def main():
         material_import_materials=True,
         material_simple_materials=True,
     )
+
+    strip_imported_invisible_faces()
 
     out_dir = os.path.dirname(args.out)
     if out_dir:

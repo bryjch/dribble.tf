@@ -1,5 +1,6 @@
 import { getAsset } from './misc'
 import { MAP_NAME_SEARCH_MAP, MAP_SKYBOX_MAP } from '@constants/mappings'
+import { MapBoundaries } from '@components/Analyse/Data/PositionCache'
 
 // Handle demos that have different versioned maps. We need a function that
 // can parse a given {mapName}, then determine which gltf model to use
@@ -57,6 +58,25 @@ interface MapSkyboxTypes {
   rt: string
   up: string
   side: string
+}
+
+export const fetchMapWorldBounds = async (
+  loadedMapName: string
+): Promise<Pick<MapBoundaries, 'boundaryMin' | 'boundaryMax'> | null> => {
+  const conversionUrl = getMapConversionUrl(loadedMapName)
+  if (!conversionUrl) return null
+
+  try {
+    const response = await fetch(conversionUrl)
+    if (!response.ok) return null
+    const meta = await response.json()
+    if (meta?.worldBounds?.boundaryMin && meta?.worldBounds?.boundaryMax) {
+      return meta.worldBounds
+    }
+    return null
+  } catch {
+    return null
+  }
 }
 
 export const getMapSkyboxUrls = (loadedMapName: string): MapSkyboxTypes | undefined => {

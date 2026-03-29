@@ -73,6 +73,18 @@ const reducers = (state: StoreState, action: StoreAction) => {
         },
       }
 
+    case 'SET_SCENE_RTS_CENTER':
+      return {
+        ...state,
+        scene: {
+          ...state.scene,
+          bounds: {
+            ...state.scene.bounds,
+            defaultRtsCenter: action.payload.clone(),
+          },
+        },
+      }
+
     //
     // ─── PLAYBACK ────────────────────────────────────────────────────
     //
