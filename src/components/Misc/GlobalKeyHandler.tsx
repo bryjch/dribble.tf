@@ -70,9 +70,9 @@ export const GlobalKeyHandler = () => {
           case 'z':
             if (drawing.enabled && drawing.tool === DrawingTool.BRUSH) {
               drawingCanvas?.undo()
-            } else if (drawing.stickersPanelOpen && event.shiftKey) {
+            } else if (event.shiftKey) {
               redoStickersAction()
-            } else if (drawing.stickersPanelOpen) {
+            } else {
               undoStickersAction()
             }
             break

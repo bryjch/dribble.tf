@@ -38,11 +38,32 @@ export type DrawingTool = (typeof DrawingTool)[keyof typeof DrawingTool]
 
 export type StickerTeam = 'red' | 'blue'
 
-export type StickerAnnotation = {
-  id: string
-  position: [number, number, number]
+export const StickerSymbol = {
+  A: 'a',
+  B: 'b',
+  C: 'c',
+  GREEN_TICK: 'green-tick',
+  RED_X: 'red-x',
+} as const
+
+export type StickerSymbol = (typeof StickerSymbol)[keyof typeof StickerSymbol]
+
+export type ClassStickerDefinition = {
+  kind: 'class'
   classId: number
   team: StickerTeam
+}
+
+export type SymbolStickerDefinition = {
+  kind: 'symbol'
+  symbol: StickerSymbol
+}
+
+export type StickerDefinition = ClassStickerDefinition | SymbolStickerDefinition
+
+export type StickerAnnotation = StickerDefinition & {
+  id: string
+  position: [number, number, number]
 }
 
 export const UIPanelType = {

@@ -1,5 +1,5 @@
 import { DEFAULT_BRUSH_COLOR, DEFAULT_BRUSH_RADIUS } from '@constants/drawing'
-import { DrawingTool, StickerAnnotation, StickerTeam } from '@constants/types'
+import { DrawingTool, StickerAnnotation, StickerDefinition } from '@constants/types'
 import { HistoryState, createHistoryState } from '@utils/history'
 
 export type StickerDragKind = 'create' | 'move'
@@ -8,8 +8,7 @@ export type StickerDragState = {
   active: boolean
   kind?: StickerDragKind
   stickerId?: string
-  stickerClassId?: number
-  stickerTeam?: StickerTeam
+  sticker?: StickerDefinition
   screenX: number
   screenY: number
 }
@@ -30,8 +29,7 @@ export function createInitialStickerDragState(): StickerDragState {
     active: false,
     kind: undefined,
     stickerId: undefined,
-    stickerClassId: undefined,
-    stickerTeam: undefined,
+    sticker: undefined,
     screenX: 0,
     screenY: 0,
   }

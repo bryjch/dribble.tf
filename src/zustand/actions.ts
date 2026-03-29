@@ -14,8 +14,8 @@ import {
   Download,
   DrawingTool,
   SceneMode,
+  StickerDefinition,
   StickerAnnotation,
-  StickerTeam,
   UIPanelType,
 } from '@constants/types'
 import { StickerDragKind } from './drawing'
@@ -598,8 +598,7 @@ export const selectStickerAction = async (stickerId?: string) => {
 export const startStickerDragAction = async (payload: {
   kind: StickerDragKind
   stickerId?: string
-  stickerClassId?: number
-  stickerTeam?: StickerTeam
+  sticker?: StickerDefinition
   screenX: number
   screenY: number
 }) => {
