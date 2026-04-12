@@ -7,6 +7,7 @@ import { MapBoundaries } from '@components/Analyse/Data/PositionCache'
 import { objCoordsToVector3 } from './geometry'
 
 const DEFAULT_RTS_CAMERA_OFFSET = new THREE.Vector3(0, 250, 1000)
+type VectorLike = { x: number; y: number; z: number }
 
 /**
  * Get all Actors in the scene
@@ -78,5 +79,21 @@ export function parseMapBoundaries(boundaries: MapBoundaries) {
       ? objCoordsToVector3(boundaries.cameraOffset)
       : DEFAULT_RTS_CAMERA_OFFSET.clone(),
     defaultRtsCenter: boundaries.rtsCenter ? objCoordsToVector3(boundaries.rtsCenter) : center,
+  }
+}
+
+export function translatePointBetweenBoundaryMins(
+  point: VectorLike,
+  fromBoundaryMin?: VectorLike | null,
+  toBoundaryMin?: VectorLike | null
+) {
+  if (!fromBoundaryMin || !toBoundaryMin) {
+    return { x: point.x, y: point.y, z: point.z }
+  }
+
+  return {
+    x: point.x + fromBoundaryMin.x - toBoundaryMin.x,
+    y: point.y + fromBoundaryMin.y - toBoundaryMin.y,
+    z: point.z + fromBoundaryMin.z - toBoundaryMin.z,
   }
 }

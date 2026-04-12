@@ -3,10 +3,11 @@ import localForage from 'localforage'
 import * as THREE from 'three'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import type { MapBoundaries } from '@components/Analyse/Data/PositionCache'
 import { getMapBoundaries, getMapBoundariesKey } from '@components/Analyse/MapBoundaries'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
-import { getSceneActors, parseMapBoundaries } from '@utils/scene'
+import { getSceneActors, parseMapBoundaries, translatePointBetweenBoundaryMins } from '@utils/scene'
 import { fetchMapWorldBounds } from '@utils/game'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import {
@@ -79,11 +80,23 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
     toggleUIPanelAction('About', false)
     const mapKey = getMapBoundariesKey(parsedDemo.header.map) ?? parsedDemo.header.map
     const savedRtsCenter = getState().settings.scene.rtsCenters[mapKey]
-    const boundaryOverrides = getMapBoundaries(parsedDemo.header.map) ?? {}
+    const boundaryOverrides: Partial<MapBoundaries> = getMapBoundaries(parsedDemo.header.map) ?? {}
+    const modelWorldBounds = await fetchMapWorldBounds(parsedDemo.header.map)
+    const sceneBoundaries = { ...boundaryOverrides, ...parsedDemo.world }
+    const referenceBoundaryMin = modelWorldBounds?.boundaryMin ?? sceneBoundaries.boundaryMin
+    const rtsCenter = savedRtsCenter ?? boundaryOverrides.rtsCenter
+    const sceneRtsCenter = rtsCenter
+      ? translatePointBetweenBoundaryMins(
+          rtsCenter,
+          referenceBoundaryMin,
+          sceneBoundaries.boundaryMin
+        )
+      : undefined
 
     // Remember to update the non-redux instances!
     useInstance.getState().setParsedDemo(parsedDemo)
     useInstance.getState().setFocusedObject(undefined)
+    useInstance.getState().setLastFocusedPOV(undefined)
     useInstance.getState().setMapCenterPickerActive(false)
 
     dispatch({
@@ -93,9 +106,8 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
           players: parsedDemo.entityPlayerMap,
           map: parsedDemo.header.map,
           bounds: parseMapBoundaries({
-            ...boundaryOverrides, // get camera/control offsets
-            ...parsedDemo.world,
-            ...(savedRtsCenter ? { rtsCenter: savedRtsCenter } : {}),
+            ...sceneBoundaries,
+            ...(sceneRtsCenter ? { rtsCenter: sceneRtsCenter } : {}),
           }),
           controls: {
             mode: 'rts',
@@ -139,6 +151,7 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
     // Remember to update the non-redux instances!
     useInstance.getState().setParsedDemo(undefined)
     useInstance.getState().setFocusedObject(undefined)
+    useInstance.getState().setLastFocusedPOV(undefined)
     useInstance.getState().setMapCenterPickerActive(false)
 
     dispatch({
@@ -466,11 +479,21 @@ export const setSceneRtsCenterAction = async (point: { x: number; y: number; z: 
     const nextCenter = new THREE.Vector3(point.x, point.y, point.z)
     const mapName = getState().scene.map
     const mapKey = getMapBoundariesKey(mapName) ?? mapName
+    const sceneBoundaryMin = getState().scene.bounds.min
 
     dispatch({ type: 'SET_SCENE_RTS_CENTER', payload: nextCenter })
     useInstance.getState().setMapCenterPickerActive(false)
 
-    await updateSettingsOptionAction(`scene.rtsCenters.${mapKey}`, point)
+    const modelWorldBounds = await fetchMapWorldBounds(mapName)
+    const settingsCenter = modelWorldBounds
+      ? translatePointBetweenBoundaryMins(
+          point,
+          sceneBoundaryMin,
+          modelWorldBounds.boundaryMin
+        )
+      : point
+
+    await updateSettingsOptionAction(`scene.rtsCenters.${mapKey}`, settingsCenter)
   } catch (error) {
     console.error(error)
   }
