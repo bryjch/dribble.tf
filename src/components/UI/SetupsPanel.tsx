@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
-import { HiListBulletIcon, FaTrashIcon } from '@components/Misc/Icons'
+import { SetupsIcon, FaTrashIcon } from '@components/Misc/Icons'
 
 import { useStore } from '@zus/store'
 import {
@@ -71,7 +71,7 @@ export const SetupsPanel = () => {
   return (
     <div className="flex items-start">
       <TogglePanelButton onClick={toggleUIPanel}>
-        <HiListBulletIcon />
+        <SetupsIcon />
       </TogglePanelButton>
 
       <TogglePanel showCloseButton isOpen={isOpen} onClickClose={toggleUIPanel}>

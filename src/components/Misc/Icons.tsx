@@ -225,6 +225,28 @@ export const HiListBulletIcon = (props: SVGProps<SVGSVGElement>) => {
   )
 }
 
+export const SetupsIcon = (props: SVGProps<SVGSVGElement>) => {
+  return (
+    <svg
+      stroke="currentColor"
+      fill="none"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      height="1rem"
+      width="1rem"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <circle cx="5" cy="5" r="2.5" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M5 21v-7a4 4 0 0 1 4-4h5a4 4 0 0 0 4-4V3.5m-3 3 3-3 3 3M16 16l5 5m0-5-5 5"
+      />
+    </svg>
+  )
+}
+
 // Crosshair style icons
 
 export const CrosshairStyleIcon = (props: SVGProps<SVGSVGElement>) => {
