@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
 import { SetupsIcon, FaTrashIcon } from '@components/Misc/Icons'
@@ -17,12 +17,35 @@ import {
 import { focusMainCanvas } from '@utils/misc'
 import { cn } from '@utils/styling'
 
+const ALL_SETUP_MAPS = '__all_setup_maps__'
+
 export const SetupsPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('Setups'))
   const draftName = useStore(state => state.setups.draftName)
   const setups = useStore(state => state.setups.items)
   const [editingSetupId, setEditingSetupId] = useState<string>()
   const [editingName, setEditingName] = useState('')
+  const [selectedMap, setSelectedMap] = useState(ALL_SETUP_MAPS)
+
+  const setupMapOptions = useMemo(() => {
+    const setupCountsByMap = new Map<string, number>()
+
+    setups.forEach(setup => {
+      setupCountsByMap.set(setup.map, (setupCountsByMap.get(setup.map) ?? 0) + 1)
+    })
+
+    return Array.from(setupCountsByMap.entries()).sort(([leftMap], [rightMap]) =>
+      leftMap.localeCompare(rightMap)
+    )
+  }, [setups])
+
+  const filteredSetups = useMemo(() => {
+    if (selectedMap === ALL_SETUP_MAPS) return setups
+    return setups.filter(setup => setup.map === selectedMap)
+  }, [selectedMap, setups])
+
+  const setupCountLabel =
+    selectedMap === ALL_SETUP_MAPS ? setups.length : `${filteredSetups.length}/${setups.length}`
 
   useEffect(() => {
     if (!editingSetupId) return
@@ -31,6 +54,13 @@ export const SetupsPanel = () => {
       setEditingName('')
     }
   }, [editingSetupId, setups])
+
+  useEffect(() => {
+    if (selectedMap === ALL_SETUP_MAPS) return
+    if (setupMapOptions.some(([map]) => map === selectedMap)) return
+
+    setSelectedMap(ALL_SETUP_MAPS)
+  }, [selectedMap, setupMapOptions])
 
   const toggleUIPanel = () => {
     toggleUIPanelAction('Settings', false)
@@ -43,6 +73,10 @@ export const SetupsPanel = () => {
   const saveSetup = async () => {
     const setup = await saveCurrentSetupAction(draftName)
     if (!setup) return
+    if (selectedMap !== ALL_SETUP_MAPS && selectedMap !== setup.map) {
+      setSelectedMap(setup.map)
+    }
+    setSetupDraftNameAction('')
     focusMainCanvas()
   }
 
@@ -53,7 +87,11 @@ export const SetupsPanel = () => {
   }
 
   const updateSetup = async (setupId: string) => {
-    await updateSetupFromCurrentAction(setupId)
+    const setup = await updateSetupFromCurrentAction(setupId)
+    if (!setup) return
+    if (selectedMap !== ALL_SETUP_MAPS && selectedMap !== setup.map) {
+      setSelectedMap(setup.map)
+    }
   }
 
   const copySetupLink = async (setupId: string) => {
@@ -75,52 +113,73 @@ export const SetupsPanel = () => {
       </TogglePanelButton>
 
       <TogglePanel showCloseButton isOpen={isOpen} onClickClose={toggleUIPanel}>
-        <div className="w-[min(360px,calc(100vw-2rem))] px-6 pb-6 pt-6">
+        <div className="w-[min(400px,calc(100vw-2rem))] px-6 pb-6 pt-6">
           <div className="mb-4 mr-8 flex items-center justify-between">
-            <div className="text-sm font-semibold">
-              Setups ({setups.length})
+            <div className="text-sm font-semibold">Setups ({setupCountLabel})</div>
+          </div>
+
+          <div className="mb-3">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={draftName}
+                placeholder="defending mid with disadvantage"
+                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none transition-colors focus:border-white/30"
+                onChange={event => setSetupDraftNameAction(event.target.value)}
+                onKeyDown={event => {
+                  if (event.key === 'Enter') {
+                    saveSetup()
+                  }
+                }}
+              />
+
+              <button
+                className={cn(
+                  'shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                  draftName.trim()
+                    ? 'bg-white text-black hover:bg-white/90'
+                    : 'cursor-not-allowed bg-white/10 text-white/40'
+                )}
+                disabled={!draftName.trim()}
+                onClick={saveSetup}
+              >
+                Save
+              </button>
             </div>
           </div>
 
-          <div className="mb-5 rounded-xl bg-white/5 p-3">
-            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-white/50">
-              Save current board
-            </div>
-
-            <input
-              type="text"
-              value={draftName}
-              placeholder="defending mid with disadvantage"
-              className="mb-2 w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none transition-colors focus:border-white/30"
-              onChange={event => setSetupDraftNameAction(event.target.value)}
-              onKeyDown={event => {
-                if (event.key === 'Enter') {
-                  saveSetup()
-                }
-              }}
-            />
-
-            <button
-              className={cn(
-                'w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                draftName.trim()
-                  ? 'bg-white text-black hover:bg-white/90'
-                  : 'cursor-not-allowed bg-white/10 text-white/40'
-              )}
-              disabled={!draftName.trim()}
-              onClick={saveSetup}
-            >
-              Save current setup
-            </button>
-          </div>
+          {setups.length > 0 && (
+            <label className="-mt-1 mb-5 block">
+              <select
+                value={selectedMap}
+                className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none transition-colors focus:border-white/30"
+                onChange={event => {
+                  setSelectedMap(event.target.value)
+                  setEditingSetupId(undefined)
+                  setEditingName('')
+                }}
+              >
+                <option value={ALL_SETUP_MAPS}>All maps ({setups.length})</option>
+                {setupMapOptions.map(([map, count]) => (
+                  <option key={map} value={map}>
+                    {map} ({count})
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           <div className="max-h-[60vh] overflow-y-auto">
             {setups.length === 0 ? (
               <div className="rounded-xl border border-dashed border-white/10 px-4 py-5 text-center text-xs text-white/40">
                 No setups yet. Save the current map board to reuse or share it later.
               </div>
+            ) : filteredSetups.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-white/10 px-4 py-5 text-center text-xs text-white/40">
+                No setups saved for {selectedMap}.
+              </div>
             ) : (
-              setups.map(setup => {
+              filteredSetups.map(setup => {
                 const isEditing = editingSetupId === setup.id
 
                 return (

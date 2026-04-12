@@ -16,6 +16,15 @@ import { DrawingTool } from '@constants/types'
 
 import { useEventListener } from '@utils/hooks'
 
+function isTextEntryTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false
+
+  return (
+    target.isContentEditable ||
+    !!target.closest('input, textarea, select, [contenteditable="true"], [contenteditable="plaintext-only"]')
+  )
+}
+
 /**
  * This is just a null object added to Scene to make it easier for us to handle
  * any global key press behaviour
@@ -32,6 +41,8 @@ export const GlobalKeyHandler = () => {
   const canvasKeyDown = useCallback(
     (event: KeyboardEvent) => {
       try {
+        if (isTextEntryTarget(event.target)) return
+
         switch (keycode(event)) {
           case 'esc':
             if (mapCenterPickerActive) {
@@ -93,7 +104,26 @@ export const GlobalKeyHandler = () => {
 
   const canvasKeyUp = useCallback(
     (event: KeyboardEvent) => {
-      switch (keycode(event)) {
+      const key = keycode(event)
+
+      if (isTextEntryTarget(event.target)) {
+        const wasDrawingKeyHeld = keysHeld.current.has('f')
+
+        if (key === 'f') {
+          keysHeld.current.delete('f')
+          if (wasDrawingKeyHeld && settings.drawing.activation === 'hold') {
+            toggleUIDrawingAction(false)
+          }
+        }
+
+        if (key === 'g') {
+          keysHeld.current.delete('g')
+        }
+
+        return
+      }
+
+      switch (key) {
         case 'f':
           keysHeld.current.delete('f')
           if (settings.drawing.activation === 'hold') {

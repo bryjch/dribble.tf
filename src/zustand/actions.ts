@@ -537,6 +537,8 @@ export const bootstrapSharedSetupFromHashAction = async () => {
 
     dispatch({ type: 'SET_PENDING_SHARED_SETUP', payload: setup })
     dispatch({ type: 'SET_SETUP_DRAFT_NAME', payload: setup.name })
+    dispatch({ type: 'SET_UI_PANEL_INACTIVE', payload: { name: UIPanelType.ABOUT } })
+    dispatch({ type: 'SET_UI_PANEL_ACTIVE', payload: { name: UIPanelType.SETUPS } })
     return setup
   } catch (error) {
     console.error(error)
