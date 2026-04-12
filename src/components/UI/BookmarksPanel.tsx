@@ -21,6 +21,7 @@ export const BookmarksPanel = () => {
     toggleUIPanelAction('Settings', false)
     toggleUIPanelAction('About', false)
     toggleUIPanelAction('MatchKillfeed', false)
+    toggleUIPanelAction('Setups', false)
     toggleUIPanelAction('Bookmarks')
   }
 

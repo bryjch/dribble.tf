@@ -55,6 +55,7 @@ export const MatchKillfeedPanel = () => {
     toggleUIPanelAction('Settings', false)
     toggleUIPanelAction('About', false)
     toggleUIPanelAction('Bookmarks', false)
+    toggleUIPanelAction('Setups', false)
     toggleUIPanelAction('MatchKillfeed')
   }
 

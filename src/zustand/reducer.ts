@@ -2,7 +2,7 @@ import localForage from 'localforage'
 import { set, clone, clamp, uniq, without, sortedUniq, sortBy } from 'lodash'
 
 import { StoreState, StoreAction, useInstance } from './store'
-import { StickerAnnotation } from '@constants/types'
+import { SavedSetup, StickerAnnotation } from '@constants/types'
 import { redoHistoryState, pushHistoryState, undoHistoryState } from '@utils/history'
 import { createInitialStickerDragState } from './drawing'
 
@@ -122,6 +122,142 @@ const reducers = (state: StoreState, action: StoreAction) => {
       return {
         ...state,
         settings: updatedSettings,
+      }
+
+    //
+    // ─── SETUPS ──────────────────────────────────────────────────────
+    //
+
+    case 'LOAD_SETUPS':
+      return {
+        ...state,
+        setups: {
+          ...state.setups,
+          items: sortSavedSetups(action.payload ?? []),
+        },
+      }
+
+    case 'SET_SETUP_DRAFT_NAME':
+      return {
+        ...state,
+        setups: {
+          ...state.setups,
+          draftName: action.payload,
+        },
+      }
+
+    case 'SAVE_SETUP': {
+      const nextItems = sortSavedSetups([
+        action.payload,
+        ...state.setups.items.filter(setup => setup.id !== action.payload.id),
+      ])
+
+      persistSetups(nextItems)
+
+      return {
+        ...state,
+        setups: {
+          ...state.setups,
+          items: nextItems,
+          draftName: action.payload.name,
+        },
+      }
+    }
+
+    case 'UPDATE_SETUP': {
+      const nextItems = sortSavedSetups(
+        state.setups.items.map(setup => (setup.id === action.payload.id ? action.payload : setup))
+      )
+
+      persistSetups(nextItems)
+
+      return {
+        ...state,
+        setups: {
+          ...state.setups,
+          items: nextItems,
+          draftName:
+            state.setups.draftName === action.payload.previousName
+              ? action.payload.name
+              : state.setups.draftName,
+        },
+      }
+    }
+
+    case 'RENAME_SETUP': {
+      const nextItems = sortSavedSetups(
+        state.setups.items.map(setup =>
+          setup.id === action.payload.id
+            ? { ...setup, name: action.payload.name, updatedAt: action.payload.updatedAt }
+            : setup
+        )
+      )
+
+      persistSetups(nextItems)
+
+      return {
+        ...state,
+        setups: {
+          ...state.setups,
+          items: nextItems,
+          draftName:
+            state.setups.draftName === action.payload.previousName
+              ? action.payload.name
+              : state.setups.draftName,
+        },
+      }
+    }
+
+    case 'DELETE_SETUP': {
+      const nextItems = state.setups.items.filter(setup => setup.id !== action.payload)
+
+      persistSetups(nextItems)
+
+      return {
+        ...state,
+        setups: {
+          ...state.setups,
+          items: nextItems,
+        },
+      }
+    }
+
+    case 'SET_PENDING_SHARED_SETUP':
+      return {
+        ...state,
+        setups: {
+          ...state.setups,
+          pendingSharedSetup: action.payload,
+        },
+      }
+
+    case 'CLEAR_PENDING_SHARED_SETUP':
+      return {
+        ...state,
+        setups: {
+          ...state.setups,
+          pendingSharedSetup: undefined,
+        },
+      }
+
+    case 'APPLY_SETUP_STICKERS':
+      return {
+        ...state,
+        drawing: {
+          ...state.drawing,
+          stickersPanelOpen: false,
+          selectedStickerId: undefined,
+          stickerHistory: {
+            past: [],
+            present: action.payload.stickers,
+            future: [],
+          },
+          stickerDrag: createInitialStickerDragState(),
+        },
+        setups: {
+          ...state.setups,
+          draftName: action.payload.name ?? state.setups.draftName,
+        },
       }
 
     //
@@ -440,6 +576,14 @@ function resolveSelectedStickerId(
 ): string | undefined {
   if (!selectedStickerId) return undefined
   return stickers.some(sticker => sticker.id === selectedStickerId) ? selectedStickerId : undefined
+}
+
+function persistSetups(setups: SavedSetup[]) {
+  localForage.setItem('setups', setups)
+}
+
+function sortSavedSetups(setups: SavedSetup[]): SavedSetup[] {
+  return [...setups].sort((left, right) => right.updatedAt - left.updatedAt)
 }
 
 export default reducers

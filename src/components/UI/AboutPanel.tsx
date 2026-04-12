@@ -44,6 +44,7 @@ export const AboutPanel = () => {
     toggleUIPanelAction('Settings', false)
     toggleUIPanelAction('MatchKillfeed', false)
     toggleUIPanelAction('Bookmarks', false)
+    toggleUIPanelAction('Setups', false)
     toggleUIPanelAction('About')
   }
 

@@ -14,12 +14,15 @@ import {
 } from '@components/UI/CameraTipPanels'
 
 import { useStore, useInstance } from '@zus/store'
+import { applySetupAction } from '@zus/actions'
 import { useIsMobile } from '@utils/hooks'
 
 const ViewerPage = () => {
   const parser = useStore(state => state.parser)
   const parsedDemo = useInstance(state => state.parsedDemo)
   const loadedMap = useStore(state => state.scene.map)
+  const setupCameraBridge = useInstance(state => state.setupCameraBridge)
+  const pendingSharedSetup = useStore(state => state.setups.pendingSharedSetup)
   const isMobile = useIsMobile()
 
   const loadingDownloads = useStore(state =>
@@ -38,6 +41,11 @@ const ViewerPage = () => {
 
     useGLTF.preload(preloadAssets)
   }, [])
+
+  useEffect(() => {
+    if (!pendingSharedSetup || !setupCameraBridge) return
+    applySetupAction(pendingSharedSetup, { fromShared: true })
+  }, [pendingSharedSetup, setupCameraBridge])
 
   //
   // ─── RENDER ─────────────────────────────────────────────────────────────────────

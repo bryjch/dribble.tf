@@ -165,6 +165,7 @@ export const SettingsPanel = () => {
     toggleUIPanelAction('About', false)
     toggleUIPanelAction('MatchKillfeed', false)
     toggleUIPanelAction('Bookmarks', false)
+    toggleUIPanelAction('Setups', false)
     toggleUIPanelAction('Settings')
   }
   const updateSettingsOption = (option: string, value: any) => {
