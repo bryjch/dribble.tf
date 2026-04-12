@@ -1,7 +1,12 @@
 import React from 'react'
 
 import { ViewerPage } from '@pages/ViewerPage'
-import { loadEmptySceneMapAction, loadSettingsAction } from '@zus/actions'
+import {
+  bootstrapSharedSetupFromHashAction,
+  loadEmptySceneMapAction,
+  loadSetupsAction,
+  loadSettingsAction,
+} from '@zus/actions'
 import { getState } from '@zus/store'
 
 class App extends React.Component {
@@ -15,7 +20,9 @@ class App extends React.Component {
 
   async componentDidMount() {
     await loadSettingsAction()
-    await loadEmptySceneMapAction(getState().scene.map)
+    await loadSetupsAction()
+    const sharedSetup = await bootstrapSharedSetupFromHashAction()
+    await loadEmptySceneMapAction(sharedSetup?.map ?? getState().scene.map)
 
     this.setState({ isReady: true })
 

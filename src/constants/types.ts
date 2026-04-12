@@ -71,9 +71,37 @@ export const UIPanelType = {
   SETTINGS: 'Settings',
   MATCH_KILLFEED: 'MatchKillfeed',
   BOOKMARKS: 'Bookmarks',
+  SETUPS: 'Setups',
 } as const
 
 export type UIPanelType = (typeof UIPanelType)[keyof typeof UIPanelType]
+
+export const SETUP_STORAGE_VERSION = 1 as const
+
+export type SetupRtsCamera = {
+  mode: 'rts'
+  position: [number, number, number]
+  target: [number, number, number]
+}
+
+export type SetupSpectatorCamera = {
+  mode: 'spectator'
+  position: [number, number, number]
+  quaternion: [number, number, number, number]
+}
+
+export type SavedSetupCamera = SetupRtsCamera | SetupSpectatorCamera
+
+export type SavedSetup = {
+  id: string
+  version: typeof SETUP_STORAGE_VERSION
+  name: string
+  map: string
+  camera: SavedSetupCamera
+  stickers: StickerAnnotation[]
+  createdAt: number
+  updatedAt: number
+}
 
 export const CrosshairStyle = {
   NONE: 'none',

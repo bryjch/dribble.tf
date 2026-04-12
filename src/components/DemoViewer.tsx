@@ -33,6 +33,7 @@ import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 import { MatchKillfeedPanel } from '@components/UI/MatchKillfeedPanel'
 import { BookmarksPanel } from '@components/UI/BookmarksPanel'
+import { SetupsPanel } from '@components/UI/SetupsPanel'
 import { FpsCounter } from '@components/UI/FpsCounter'
 import { Crosshair } from '@components/UI/Crosshair'
 import { MapOffsetDebugPanel } from '@components/UI/MapOffsetDebugPanel'
@@ -43,6 +44,7 @@ import { AiFillFastForwardIcon } from '@components/Misc/Icons'
 // Actions & utils
 import { useStore, getState, useInstance } from '@zus/store'
 import {
+  changeControlsModeAction,
   forceShowPanelAction,
   goToTickAction,
   playbackJumpAction,
@@ -52,7 +54,7 @@ import { ActorProps } from './Scene/Actors'
 import { isPerfLoggingEnabled, readJsHeapMemoryMb } from '@utils/misc'
 import { useIsMobile } from '@utils/hooks'
 import { cn } from '@utils/styling'
-import { DrawingTool } from '@constants/types'
+import { ControlsMode, DrawingTool, SavedSetupCamera } from '@constants/types'
 import { getWorldIntersectionFromScreen } from '@utils/raycast'
 
 //
@@ -104,6 +106,8 @@ const Controls = () => {
   const cameraRef = useRef<THREE.PerspectiveCamera>(null)
   const controlsRef = useRef<any>()
   const spectatorRef = useRef<any>()
+  const pendingSetupCameraRef = useRef<SavedSetupCamera | null>(null)
+  const skipSpectatorAutoEnableRef = useRef(false)
   // const [spectatorRef, setSpectatorRef] = useState()
   const { gl, scene, set } = useThree()
 
@@ -177,7 +181,12 @@ const Controls = () => {
       }
 
       spectatorRef.current.listen()
-      spectatorRef.current.enable()
+      if (skipSpectatorAutoEnableRef.current) {
+        spectatorRef.current.disable()
+        skipSpectatorAutoEnableRef.current = false
+      } else {
+        spectatorRef.current.enable()
+      }
     }
   }, [cameraRef.current, lastFocusedPOV, bounds, controlsMode])
 
@@ -201,6 +210,106 @@ const Controls = () => {
       spectatorRef.current.disable()
     }
   }, [controlsMode, isStickersToolActive])
+
+  const captureSetupCamera = useCallback((): SavedSetupCamera | null => {
+    if (!cameraRef.current) return null
+
+    if (controlsMode === ControlsMode.RTS && controlsRef.current) {
+      return {
+        mode: 'rts',
+        position: vector3ToTuple(cameraRef.current.position),
+        target: vector3ToTuple(controlsRef.current.target),
+      }
+    }
+
+    if (controlsMode === ControlsMode.SPECTATOR) {
+      return {
+        mode: 'spectator',
+        position: vector3ToTuple(cameraRef.current.position),
+        quaternion: quaternionToTuple(cameraRef.current.quaternion),
+      }
+    }
+
+    const focusedView = getFocusedViewTransform(focusedObject)
+    if (!focusedView) {
+      return {
+        mode: 'spectator',
+        position: vector3ToTuple(cameraRef.current.position),
+        quaternion: quaternionToTuple(cameraRef.current.quaternion),
+      }
+    }
+
+    return {
+      mode: 'spectator',
+      position: vector3ToTuple(focusedView.position),
+      quaternion: quaternionToTuple(focusedView.quaternion),
+    }
+  }, [controlsMode, focusedObject])
+
+  const tryApplyPendingSetupCamera = useCallback(() => {
+    if (!pendingSetupCameraRef.current || !cameraRef.current) return false
+
+    const pendingCamera = pendingSetupCameraRef.current
+
+    if (pendingCamera.mode === 'rts') {
+      if (controlsMode !== ControlsMode.RTS || !controlsRef.current) return false
+
+      cameraRef.current.position.set(...pendingCamera.position)
+      controlsRef.current.target.set(...pendingCamera.target)
+      cameraRef.current.lookAt(controlsRef.current.target)
+      controlsRef.current.update()
+      controlsRef.current.saveState()
+      pendingSetupCameraRef.current = null
+      return true
+    }
+
+    if (controlsMode !== ControlsMode.SPECTATOR) return false
+
+    spectatorRef.current?.disable()
+    cameraRef.current.position.set(...pendingCamera.position)
+    cameraRef.current.quaternion.set(...pendingCamera.quaternion)
+    cameraRef.current.updateMatrixWorld()
+    pendingSetupCameraRef.current = null
+    return true
+  }, [controlsMode])
+
+  const applySetupCamera = useCallback(
+    (camera: SavedSetupCamera) => {
+      pendingSetupCameraRef.current = camera
+
+      if (camera.mode === 'spectator') {
+        skipSpectatorAutoEnableRef.current = true
+      }
+
+      if (camera.mode === 'rts' && controlsMode !== ControlsMode.RTS) {
+        changeControlsModeAction(ControlsMode.RTS)
+        return
+      }
+
+      if (camera.mode === 'spectator' && controlsMode !== ControlsMode.SPECTATOR) {
+        changeControlsModeAction(ControlsMode.SPECTATOR)
+        return
+      }
+
+      tryApplyPendingSetupCamera()
+    },
+    [controlsMode, tryApplyPendingSetupCamera]
+  )
+
+  useEffect(() => {
+    useInstance.getState().setSetupCameraBridge({
+      capture: captureSetupCamera,
+      apply: applySetupCamera,
+    })
+
+    return () => {
+      useInstance.getState().setSetupCameraBridge(undefined)
+    }
+  }, [applySetupCamera, captureSetupCamera])
+
+  useEffect(() => {
+    tryApplyPendingSetupCamera()
+  }, [bounds, controlsMode, tryApplyPendingSetupCamera])
 
   useFrame(() => {
     if (controlsRef.current) controlsRef.current.update()
@@ -418,6 +527,7 @@ const PanelToolbar = ({ hasDemoLoaded }: { hasDemoLoaded: boolean }) => {
         <div className="flex items-center">
           <SettingsPanel />
           <AboutPanel />
+          <SetupsPanel />
           {hasDemoLoaded && <MatchKillfeedPanel />}
           {hasDemoLoaded && <BookmarksPanel />}
         </div>
@@ -435,14 +545,18 @@ const PanelToolbar = ({ hasDemoLoaded }: { hasDemoLoaded: boolean }) => {
         <AboutPanel />
       </div>
 
+      <div className="ui-layer justift-start m-4 mt-28 items-start">
+        <SetupsPanel />
+      </div>
+
       {hasDemoLoaded && (
-        <div className="ui-layer m-4 mt-28 items-start justify-start">
+        <div className="ui-layer m-4 mt-40 items-start justify-start">
           <MatchKillfeedPanel />
         </div>
       )}
 
       {hasDemoLoaded && (
-        <div className="ui-layer m-4 mt-40 items-start justify-start">
+        <div className="ui-layer m-4 mt-52 items-start justify-start">
           <BookmarksPanel />
         </div>
       )}
@@ -787,6 +901,14 @@ class DemoViewer extends Component<DemoViewerProps> {
 }
 
 export { DemoViewer }
+
+function vector3ToTuple(vector: THREE.Vector3): [number, number, number] {
+  return [vector.x, vector.y, vector.z]
+}
+
+function quaternionToTuple(quaternion: THREE.Quaternion): [number, number, number, number] {
+  return [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
+}
 
 //
 // ─── DATA FOR DEBUGGING ─────────────────────────────────────────────────────────

@@ -9,11 +9,22 @@ import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { getSceneActors, parseMapBoundaries, translatePointBetweenBoundaryMins } from '@utils/scene'
 import { fetchMapWorldBounds } from '@utils/game'
+import {
+  buildSetupShareUrl,
+  cloneSetupCamera,
+  cloneSetupStickers,
+  createSetupId,
+  deserializeSetupFromShareToken,
+  normalizeStoredSetups,
+  parseSetupHash,
+} from '@utils/setups'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import {
   ControlsMode,
   Download,
   DrawingTool,
+  SavedSetup,
+  SETUP_STORAGE_VERSION,
   SceneMode,
   StickerDefinition,
   StickerAnnotation,
@@ -514,6 +525,224 @@ export const toggleSettingsOptionAction = async (option: string) => {
 }
 
 //
+// ─── SETUPS ─────────────────────────────────────────────────────────────────────
+//
+
+export const loadSetupsAction = async () => {
+  try {
+    const setups = await localForage.getItem<SavedSetup[]>('setups')
+    dispatch({ type: 'LOAD_SETUPS', payload: normalizeStoredSetups(setups) })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const setSetupDraftNameAction = async (name: string) => {
+  try {
+    dispatch({ type: 'SET_SETUP_DRAFT_NAME', payload: name })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const bootstrapSharedSetupFromHashAction = async () => {
+  try {
+    const token = parseSetupHash(window.location.hash)
+    if (!token) return null
+
+    const setup = deserializeSetupFromShareToken(token)
+    if (!setup) {
+      console.warn('Ignoring invalid or unsupported shared setup URL.')
+      return null
+    }
+
+    dispatch({ type: 'SET_PENDING_SHARED_SETUP', payload: setup })
+    dispatch({ type: 'SET_SETUP_DRAFT_NAME', payload: setup.name })
+    return setup
+  } catch (error) {
+    console.error(error)
+    return null
+  }
+}
+
+export const clearPendingSharedSetupAction = async () => {
+  try {
+    dispatch({ type: 'CLEAR_PENDING_SHARED_SETUP' })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const captureCurrentSetupAction = async (name: string): Promise<SavedSetup | null> => {
+  try {
+    const trimmedName = name.trim()
+    if (!trimmedName) return null
+
+    const camera = useInstance.getState().setupCameraBridge?.capture()
+    if (!camera) {
+      console.warn('Unable to capture setup camera because the viewer camera bridge is missing.')
+      return null
+    }
+
+    const timestamp = Date.now()
+
+    return {
+      id: createSetupId(),
+      version: SETUP_STORAGE_VERSION,
+      name: trimmedName,
+      map: getState().scene.map,
+      camera: cloneSetupCamera(camera),
+      stickers: cloneSetupStickers(getState().drawing.stickerHistory.present),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    }
+  } catch (error) {
+    console.error(error)
+    return null
+  }
+}
+
+export const saveCurrentSetupAction = async (name = getState().setups.draftName) => {
+  try {
+    const setup = await captureCurrentSetupAction(name)
+    if (!setup) return null
+
+    dispatch({ type: 'SAVE_SETUP', payload: setup })
+    addEventHistoryAction('saveSetup', setup.name)
+    return setup
+  } catch (error) {
+    console.error(error)
+    return null
+  }
+}
+
+export const renameSetupAction = async (id: string, name: string) => {
+  try {
+    const trimmedName = name.trim()
+    if (!trimmedName) return null
+
+    const existingSetup = getSetupById(id)
+    if (!existingSetup) return null
+
+    dispatch({
+      type: 'RENAME_SETUP',
+      payload: {
+        id,
+        name: trimmedName,
+        previousName: existingSetup.name,
+        updatedAt: Date.now(),
+      },
+    })
+
+    addEventHistoryAction('renameSetup', trimmedName)
+    return trimmedName
+  } catch (error) {
+    console.error(error)
+    return null
+  }
+}
+
+export const updateSetupFromCurrentAction = async (id: string) => {
+  try {
+    const existingSetup = getSetupById(id)
+    if (!existingSetup) return null
+
+    const camera = useInstance.getState().setupCameraBridge?.capture()
+    if (!camera) return null
+
+    const nextSetup: SavedSetup & { previousName: string } = {
+      ...existingSetup,
+      previousName: existingSetup.name,
+      map: getState().scene.map,
+      camera: cloneSetupCamera(camera),
+      stickers: cloneSetupStickers(getState().drawing.stickerHistory.present),
+      updatedAt: Date.now(),
+    }
+
+    dispatch({ type: 'UPDATE_SETUP', payload: nextSetup })
+    addEventHistoryAction('updateSetup', existingSetup.name)
+    return nextSetup
+  } catch (error) {
+    console.error(error)
+    return null
+  }
+}
+
+export const deleteSetupAction = async (id: string) => {
+  try {
+    const existingSetup = getSetupById(id)
+    if (!existingSetup) return
+
+    dispatch({ type: 'DELETE_SETUP', payload: id })
+    addEventHistoryAction('deleteSetup', existingSetup.name)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+export const applySetupAction = async (
+  setup: SavedSetup,
+  options: { fromShared?: boolean } = {}
+) => {
+  try {
+    const setupCameraBridge = useInstance.getState().setupCameraBridge
+    if (!setupCameraBridge) {
+      console.warn('Unable to apply setup because the viewer camera bridge is missing.')
+      return false
+    }
+
+    const currentMap = getState().scene.map
+    const parsedDemo = useInstance.getState().parsedDemo
+
+    if (parsedDemo || currentMap !== setup.map) {
+      await loadEmptySceneMapAction(setup.map)
+    }
+
+    dispatch({
+      type: 'APPLY_SETUP_STICKERS',
+      payload: {
+        stickers: cloneSetupStickers(setup.stickers),
+        name: setup.name,
+      },
+    })
+    setupCameraBridge.apply(cloneSetupCamera(setup.camera))
+    dispatch({ type: 'CLEAR_PENDING_SHARED_SETUP' })
+
+    addEventHistoryAction(options.fromShared ? 'loadSharedSetup' : 'loadSetup', setup.name)
+    return true
+  } catch (error) {
+    console.error(error)
+    return false
+  }
+}
+
+export const applySetupByIdAction = async (id: string, options: { fromShared?: boolean } = {}) => {
+  try {
+    const setup = getSetupById(id)
+    if (!setup) return false
+    return applySetupAction(setup, options)
+  } catch (error) {
+    console.error(error)
+    return false
+  }
+}
+
+export const copySetupShareUrlAction = async (setupOrId: SavedSetup | string) => {
+  try {
+    const setup = typeof setupOrId === 'string' ? getSetupById(setupOrId) : setupOrId
+    if (!setup || !navigator.clipboard) return null
+
+    const shareUrl = buildSetupShareUrl(setup)
+    await navigator.clipboard.writeText(shareUrl)
+    addEventHistoryAction('copySetupLink', setup.name)
+    return shareUrl
+  } catch (error) {
+    console.error(error)
+    return null
+  }
+}
+
+//
 // ─── UI ─────────────────────────────────────────────────────────────────────────
 //
 
@@ -785,4 +1014,8 @@ export const updateDownloadAction = async (
   } catch (error) {
     console.error(error)
   }
+}
+
+function getSetupById(id: string): SavedSetup | undefined {
+  return getState().setups.items.find(setup => setup.id === id)
 }

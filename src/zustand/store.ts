@@ -15,6 +15,8 @@ import {
   Download,
   DrawingActivation,
   ParserStatus,
+  SavedSetup,
+  SavedSetupCamera,
   SceneMode,
   UIPanelType,
 } from '@constants/types'
@@ -47,6 +49,10 @@ export type InstanceState = {
     visibleChunkCount: number
     currentCluster: number | null
   }
+  setupCameraBridge?: {
+    capture: () => SavedSetupCamera | null
+    apply: (camera: SavedSetupCamera) => void
+  }
   setThreeScene: (threeScene: THREE.Scene) => void
   setParsedDemo: (parsedDemo: AsyncParser | undefined) => void
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => void
@@ -62,6 +68,12 @@ export type InstanceState = {
       visibleChunkCount: number
       currentCluster: number | null
     }>
+  ) => void
+  setSetupCameraBridge: (
+    setupCameraBridge?: {
+      capture: () => SavedSetupCamera | null
+      apply: (camera: SavedSetupCamera) => void
+    }
   ) => void
 }
 
@@ -87,6 +99,7 @@ const useInstance = create<InstanceState>()(set => ({
     visibleChunkCount: 0,
     currentCluster: null,
   },
+  setupCameraBridge: undefined,
   setThreeScene: (threeScene: THREE.Scene) => set({ threeScene }),
   setParsedDemo: (parsedDemo: AsyncParser | undefined) => set({ parsedDemo }),
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => set({ drawingCanvas }),
@@ -109,6 +122,7 @@ const useInstance = create<InstanceState>()(set => ({
         ...runtimePerf,
       },
     })),
+  setSetupCameraBridge: setupCameraBridge => set({ setupCameraBridge }),
 }))
 
 // This "Standard Store" is pretty much just a typical Redux store. Note that we are using
@@ -202,6 +216,11 @@ export type StoreState = {
     timestamp: number
   }[]
   downloads: Map<string, Download>
+  setups: {
+    items: SavedSetup[]
+    draftName: string
+    pendingSharedSetup?: SavedSetup
+  }
 }
 
 export const initialState: StoreState = {
@@ -288,6 +307,12 @@ export const initialState: StoreState = {
   eventHistory: [],
 
   downloads: new Map(),
+
+  setups: {
+    items: [],
+    draftName: '',
+    pendingSharedSetup: undefined,
+  },
 }
 
 export type StoreAction = {
