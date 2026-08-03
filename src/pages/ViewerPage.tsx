@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { IoArrowForwardSharpIcon } from '@components/Misc/Icons'
 import { GlobalKeyHandler } from '@components/Misc/GlobalKeyHandler'
 import { DemoDropzone } from '@components/Misc/DemoDropzone'
+import { UrlDemoNotice } from '@components/Misc/UrlDemoNotice'
 import { DemoDrawing } from '@components/Misc/DemoDrawing'
 import { DemoViewer } from '@components/DemoViewer'
 import {
@@ -107,6 +108,9 @@ const ViewerPage = () => {
           <div>Parsing demo ... {parser.progress}%</div>
         </motion.div>
       </div>
+
+      {/* Status for a demo requested via the URL */}
+      <UrlDemoNotice />
 
       {/* Camera tip panels overlays - hidden on mobile (keyboard shortcuts not relevant) */}
       {!isMobile && (
