@@ -3,6 +3,7 @@ import localForage from 'localforage'
 import * as THREE from 'three'
 
 import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import { LiveSource } from '@components/Analyse/Data/LiveSource'
 import type { MapBoundaries } from '@components/Analyse/Data/PositionCache'
 import { getMapBoundaries, getMapBoundariesKey } from '@components/Analyse/MapBoundaries'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
@@ -328,14 +329,22 @@ export const goToTickAction = async (tick: number) => {
 
     dispatch({ type: 'GO_TO_TICK', payload: tick })
 
-    // Automatically pause playback once it has reached the last tick
-    if (tick >= maxTicks) {
+    // Automatically pause playback once it has reached the last tick (a live match keeps
+    // going: playback waits at its edge for the next snapshot)
+    if (tick >= maxTicks && !isLiveMatch()) {
       dispatch({ type: 'TOGGLE_PLAYBACK', payload: false })
     }
   } catch (error) {
     console.error(error)
   }
 }
+
+/** A live match grows: its end moves on with every snapshot. */
+export const setMaxTicksAction = (maxTicks: number) => {
+  dispatch({ type: 'SET_MAX_TICKS', payload: maxTicks })
+}
+
+const isLiveMatch = () => useInstance.getState().parsedDemo instanceof LiveSource
 
 export const playbackJumpAction = async (direction: string) => {
   try {
@@ -378,7 +387,7 @@ export const togglePlaybackAction = async (playing = undefined) => {
     const isAtEnd = getState().playback.maxTicks === getState().playback.tick
 
     // Pressing play when at the end of playback should trigger restart
-    if (isAtEnd) {
+    if (isAtEnd && !isLiveMatch()) {
       dispatch({ type: 'GO_TO_TICK', payload: 1 })
     }
 

@@ -169,6 +169,10 @@ export const AboutPanel = () => {
             <div className="w-4" />
           </div>
 
+          <p className="mt-4 text-center text-sm opacity-70">
+            Or paste an <code>stv.tf</code> match link to watch it live.
+          </p>
+
           {/* Controls */}
 
           <p className="mb-2 mt-10 text-xs font-black uppercase opacity-60">Controls</p>

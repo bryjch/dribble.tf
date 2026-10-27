@@ -95,6 +95,9 @@ const reducers = (state: StoreState, action: StoreAction) => {
         playback: { ...state.playback, tick: clamp(action.payload, 1, state.playback.maxTicks) },
       }
 
+    case 'SET_MAX_TICKS':
+      return { ...state, playback: { ...state.playback, maxTicks: Math.max(1, action.payload) } }
+
     case 'PLAYBACK_END_REACHED':
       return { ...state, playback: { ...state.playback, playing: false } }
 

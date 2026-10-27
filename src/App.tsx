@@ -10,6 +10,7 @@ import {
 } from '@zus/actions'
 import { getState } from '@zus/store'
 import { loadUrlDemoAction, resolveUrlDemoAction } from '@utils/embed'
+import { connectLiveAction, listenForPastedLiveLinks, resolveLiveAction } from '@utils/live'
 
 class App extends React.Component {
   state = {
@@ -29,6 +30,8 @@ class App extends React.Component {
     // first means the empty scene boots straight into that demo's map, instead of
     // downloading the default map's model and discarding it seconds later.
     const urlDemo = await resolveUrlDemoAction()
+    // Or a live match from stv.tf (?live=) — see @utils/live.
+    const live = urlDemo ? null : await resolveLiveAction()
 
     await loadEmptySceneMapAction(urlDemo?.map ?? sharedSetup?.map ?? getState().scene.map)
 
@@ -39,6 +42,9 @@ class App extends React.Component {
       const loaded = await loadUrlDemoAction(urlDemo)
       if (loaded?.tick) goToTickAction(loaded.tick)
     }
+
+    if (live) connectLiveAction(live)
+    listenForPastedLiveLinks()
 
     // Completely disable right clicks cause it's kinda annoying
     // when interacting with UI elements

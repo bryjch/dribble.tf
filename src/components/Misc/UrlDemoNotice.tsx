@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { UrlDemoStatus, getUrlDemoStatus, subscribeToUrlDemoStatus } from '@utils/embed'
 
 /**
- * Status overlay for a demo requested via the URL (?demo= / ?demoUrl=).
+ * Status overlay for a demo requested via the URL (?demo= / ?demoUrl=), or a live match (?live=).
  *
  * Kept out of the zustand store on purpose — nothing else needs to read this, and a plain
  * subscription keeps the feature self-contained.
@@ -24,11 +24,13 @@ export const UrlDemoNotice = () => {
         transition={{ duration: 0.2 }}
         className="max-w-md rounded-lg bg-pp-panel/90 px-5 py-3 text-center"
       >
-        {status.state === 'resolving' && <div>Looking up demo ...</div>}
+        {status.state === 'resolving' && <div>{status.message ?? 'Looking up demo ...'}</div>}
+
+        {status.state === 'notice' && <div className="text-sm">{status.message}</div>}
 
         {status.state === 'error' && (
           <>
-            <div className="font-bold">Couldn't load this demo</div>
+            <div className="font-bold">{status.title ?? "Couldn't load this demo"}</div>
             <div className="mt-1 text-sm opacity-70">{status.message}</div>
             {status.link && (
               <a

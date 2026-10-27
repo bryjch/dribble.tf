@@ -39,8 +39,9 @@ const isAllowedDemoUrl = (url: string): boolean => {
 
 export type UrlDemoStatus =
   | { state: 'idle' }
-  | { state: 'resolving' }
-  | { state: 'error'; message: string; link?: { href: string; label: string } }
+  | { state: 'resolving'; message?: string }
+  | { state: 'notice'; message: string }
+  | { state: 'error'; title?: string; message: string; link?: { href: string; label: string } }
 
 type UrlDemoStatusListener = (status: UrlDemoStatus) => void
 
@@ -54,7 +55,7 @@ export const subscribeToUrlDemoStatus = (listener: UrlDemoStatusListener) => {
   return () => listeners.delete(listener)
 }
 
-const setUrlDemoStatus = (status: UrlDemoStatus) => {
+export const setUrlDemoStatus = (status: UrlDemoStatus) => {
   urlDemoStatus = status
   listeners.forEach(listener => listener(status))
 }
