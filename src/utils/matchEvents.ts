@@ -1,4 +1,5 @@
 import { AsyncParser, CachedDeath } from '@components/Analyse/Data/AsyncParser'
+import { LiveSource } from '@components/Analyse/Data/LiveSource'
 
 export interface MatchKillEvent {
   type: 'kill'
@@ -113,6 +114,9 @@ export function getAllKills(parser: AsyncParser): MatchKillEvent[] {
 }
 
 export function getUberPops(parser: AsyncParser): MatchUberEvent[] {
+  // A live match is told when an uber is popped; a demo has to find the charge dropping.
+  if (parser instanceof LiveSource) return parser.uberPops
+
   const events: MatchUberEvent[] = []
   const { uberCache, metaCache } = parser.playerCache
   const step = 1 << uberCache.sparse

@@ -65,7 +65,7 @@ export const MatchKillfeedPanel = () => {
     const annotatedKills = annotateKillstreaks(rawKills, tickRate)
     const ubers: MatchUberEvent[] = getUberPops(parser)
     return [...annotatedKills, ...ubers].sort((a, b) => a.tick - b.tick)
-  }, [parser, tickRate])
+  }, [parser, parser?.revision, tickRate])
 
   const filteredEvents = useMemo(() => {
     if (!filterText) return events

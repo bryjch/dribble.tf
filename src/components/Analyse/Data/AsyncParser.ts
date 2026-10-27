@@ -61,6 +61,8 @@ export class AsyncParser {
   world!: World
   progressCallback: (progress: number) => void
   perf?: ParserPerformanceStats
+  /** Counts changes to deaths, rounds and ubers; a demo never changes, a live match does. */
+  revision = 0
 
   constructor(buffer: ArrayBuffer, progressCallback: (progress: number) => void) {
     this.buffer = buffer
