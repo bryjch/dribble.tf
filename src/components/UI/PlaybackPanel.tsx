@@ -17,6 +17,7 @@ import { EventHistoryText } from './EventHistoryText'
 import { StickerPalette } from './StickerPalette'
 
 import { useInstance, useStore } from '@zus/store'
+import { LiveSource } from '@components/Analyse/Data/LiveSource'
 import {
   changePlaySpeedAction,
   goToTickAction,
@@ -461,7 +462,13 @@ export const PlaybackPanel = () => {
 
           {/* Duration (Current Time / Total Time) */}
 
-          <div className="text-outline text-sm">
+          <div className="text-outline flex items-center gap-2 text-sm">
+            {parsedDemo instanceof LiveSource && (
+              <LiveBadge
+                atEdge={maxTicks - tick < 2 / parsedDemo.intervalPerTick}
+                onClick={() => goToTick(maxTicks)}
+              />
+            )}
             {getDurationFromTicks(tick).formatted} / {getDurationFromTicks(maxTicks).formatted}
           </div>
         </div>
@@ -469,3 +476,18 @@ export const PlaybackPanel = () => {
     </div>
   )
 }
+
+// A live match from stv.tf: red while playback is at the edge, otherwise a button back to it.
+const LiveBadge = ({ atEdge, onClick }: { atEdge: boolean; onClick: () => void }) => (
+  <button
+    className={cn(
+      'pointer-events-auto flex items-center gap-1 rounded px-1.5 text-xs font-bold',
+      atEdge ? 'bg-red-600 text-white' : 'bg-white/20 text-white/80 hover:bg-white/30'
+    )}
+    title={atEdge ? 'Watching live' : 'Back to live'}
+    onClick={onClick}
+  >
+    <span className={cn('h-1.5 w-1.5 rounded-full', atEdge ? 'bg-white' : 'bg-white/60')} />
+    LIVE
+  </button>
+)
