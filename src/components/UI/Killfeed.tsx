@@ -1,12 +1,11 @@
-import { useState } from 'react'
 import { inRange } from 'lodash'
 
 import { AsyncParser, CachedDeath } from '@components/Analyse/Data/AsyncParser'
-import { KILL_ICON_ALIASES } from '@constants/killIconAliases'
 
 import { jumpToPlayerPOVCamera } from '@zus/actions'
 import { useInstance } from '@zus/store'
 import { focusMainCanvas } from '@utils/misc'
+import { killIconUrl } from '@utils/killIcons'
 import { cn } from '@utils/styling'
 import { useIsMobile } from '@utils/hooks'
 
@@ -68,10 +67,7 @@ export const Killfeed = (props: KillfeedProps) => {
 export const KillfeedItem = (props: KillfeedItemProps) => {
   const { killer, assister, victim, weapon } = props.death
 
-  let iconName = KILL_ICON_ALIASES[weapon] || weapon
-  let [weaponIcon, setWeaponIcon] = useState(
-    new URL(`/src/assets/kill_icons/${iconName}.png`, import.meta.url).href
-  )
+  const weaponIcon = killIconUrl(weapon)
 
   const teamTextColorMap: { [key: string]: string } = {
     red: 'text-pp-killfeed-text-red',
@@ -79,11 +75,6 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
   }
   let killerTeamColor = killer ? teamTextColorMap[killer.user.team] : ''
   let victimTeamColor = teamTextColorMap[victim?.user.team]
-
-  const onWeaponIconImgError = () => {
-    console.log(`Missing kill icon: ${iconName}`)
-    setWeaponIcon(new URL(`/src/assets/kill_icons/skull.png`, import.meta.url).href)
-  }
 
   const onClickPlayerName = (entityId: number) => {
     jumpToPlayerPOVCamera(entityId)
@@ -122,7 +113,6 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
           src={weaponIcon}
           className={cn('h-[1.2rem] ', props.highlighted ? '' : 'brightness-[600%]')}
           alt={`${weapon} Icon`}
-          onError={onWeaponIconImgError}
         />
       </div>
 

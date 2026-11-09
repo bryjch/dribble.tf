@@ -13,7 +13,7 @@ import {
   AnnotatedMatchKillEvent,
 } from '@utils/matchEvents'
 import { getDurationFromTicks } from '@utils/parser'
-import { KILL_ICON_ALIASES } from '@constants/killIconAliases'
+import { killIconUrl } from '@utils/killIcons'
 import { cn } from '@utils/styling'
 
 const teamTextColorMap: { [key: string]: string } = {
@@ -185,14 +185,7 @@ interface KillRowProps {
 const KillRow = ({ event, timestamp, onSeek, onFilter }: KillRowProps) => {
   const { killer, victim, assister, weapon, streak } = event
 
-  const iconName = KILL_ICON_ALIASES[weapon] || weapon
-  const [weaponIcon, setWeaponIcon] = useState(
-    new URL(`/src/assets/kill_icons/${iconName}.png`, import.meta.url).href
-  )
-
-  const onWeaponIconError = () => {
-    setWeaponIcon(new URL(`/src/assets/kill_icons/skull.png`, import.meta.url).href)
-  }
+  const weaponIcon = killIconUrl(weapon)
 
   const killerTeamColor = killer ? teamTextColorMap[killer.user.team] || '' : ''
   const victimTeamColor = teamTextColorMap[victim.user.team] || ''
@@ -243,7 +236,6 @@ const KillRow = ({ event, timestamp, onSeek, onFilter }: KillRowProps) => {
             src={weaponIcon}
             className="h-[0.9rem] brightness-[600%]"
             alt={weapon}
-            onError={onWeaponIconError}
           />
         </div>
 
