@@ -64,7 +64,8 @@ The first implementation downloads Serveme's uncompressed `.bsp` response. Brows
 
 Keep `World.tsx` as the scene owner and replace URL-only map lookup with a resolver that returns one Derived Map regardless of whether it was published, cached, or generated.
 
-- Parse the world GLB from verified bytes with the existing `GLTFLoader` and preserve the existing Source-to-Three transform.
+- Parse the world GLB from verified bytes with the existing `GLTFLoader` (with the meshopt decoder, see ADR 0004) and preserve the existing Source-to-Three transform. `bsp-to-glb` writes Source world coordinates (glTF y-up), as published GLBs are, and the scene is drawn in them (ADR 0005), so a Derived Map needs no offset. Its manifest `worldBounds` only feed `scene.bounds` for the camera, when no match supplies the world's bounds.
+- Load the model once per resolved map, as published GLBs are: the scene mode swaps materials, and props, decals and lightmap textures belong to the model so one dispose frees them after React removes it.
 - Resolve common and map-specific materials from the manifests; map supported VMT features onto existing Three.js materials.
 - Decode flat and directional RGBExp32 lightmaps in the material shader and use displacement alpha for supported blends.
 - Load each required shared StudioModel once and clone or instance prop occurrences from the prop manifest instead of embedding duplicate geometry in the map GLB.
