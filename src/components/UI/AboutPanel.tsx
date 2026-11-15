@@ -5,7 +5,7 @@ import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePane
 import { FileIcon, LinkIcon, PlayCircleIcon, TiInfoLargeIcon } from '@components/Misc/Icons'
 
 import { useStore } from '@zus/store'
-import { toggleUIPanelAction, onUploadDemoAction, loadEmptySceneMapAction } from '@zus/actions'
+import { toggleOnlyUIPanelAction, onUploadDemoAction, loadEmptySceneMapAction } from '@zus/actions'
 import { loadSampleDemoAction } from '@utils/sampleDemo'
 import { openMatchLink } from '@utils/matchLink'
 import { cn } from '@utils/styling'
@@ -121,12 +121,25 @@ const CONTROLS: [string[], string][] = [
   [['Space'], 'Play / pause'],
   [['←', '→'], 'Seek 50 ticks'],
   [['B'], 'Bookmark'],
+  [['Tab'], 'Scoreboard (hold)'],
   [['F'], 'Drawing tools'],
 ]
 
+// On a touch screen: the RTS camera's gestures (RtsControls) and DoubleTapSeek.
+const TOUCH_CONTROLS: [string[], string][] = [
+  [['Drag'], 'Rotate camera'],
+  [['Pinch'], 'Zoom and pan'],
+  [['Double-tap'], 'Seek 50 ticks (left or right half)'],
+  [['Tap'], 'Show the playback bar'],
+  [['⚙'], 'Camera mode, in Settings'],
+]
+
+const isTouchScreen = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
+
 const ControlsList = () => (
   <dl className="ui-keys">
-    {CONTROLS.map(([keys, value]) => (
+    {(isTouchScreen() ? TOUCH_CONTROLS : CONTROLS).map(([keys, value]) => (
       <div key={value} className="ui-keys__row">
         <dt className="ui-keys__keys">
           {keys.map(key => (
@@ -230,13 +243,7 @@ const AboutBody = () => {
 export const AboutPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('About'))
 
-  const toggleUIPanel = () => {
-    toggleUIPanelAction('Settings', false)
-    toggleUIPanelAction('MatchKillfeed', false)
-    toggleUIPanelAction('Bookmarks', false)
-    toggleUIPanelAction('Setups', false)
-    toggleUIPanelAction('About')
-  }
+  const toggleUIPanel = () => toggleOnlyUIPanelAction('About')
 
   return (
     <div className="flex items-start">

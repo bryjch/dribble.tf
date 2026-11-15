@@ -37,6 +37,7 @@ import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 import { MatchKillfeedPanel } from '@components/UI/MatchKillfeedPanel'
 import { BookmarksPanel } from '@components/UI/BookmarksPanel'
+import { Scoreboard } from '@components/UI/Scoreboard'
 import { SetupsPanel } from '@components/UI/SetupsPanel'
 import { FpsCounter } from '@components/UI/FpsCounter'
 import { Crosshair } from '@components/UI/Crosshair'
@@ -763,6 +764,10 @@ const MatchHud = ({ match }: { match?: MatchSource }) => {
       {players.length > 0 && (
         <FocusedPlayerLayer players={players} tick={tick} intervalPerTick={intervalPerTick} />
       )}
+
+      <div className="ui-layer">
+        <Scoreboard match={match} players={players} />
+      </div>
     </>
   )
 }

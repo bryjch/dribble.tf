@@ -27,6 +27,20 @@ export interface CachedDeath {
   killerTeam: number
 }
 
+/**
+ * A player's scoreboard line, as stv.tf shows it: points, kills and deaths are the server's;
+ * assists, damage and healing are counted from events (stvtf, like logs.tf).
+ */
+export interface ScoreLine {
+  points: number
+  kills: number
+  deaths: number
+  assists: number
+  damage: number
+  healing: number
+  ping: number
+}
+
 export interface MatchSource {
   readonly kind: 'demo' | 'live'
   readonly header: Header
@@ -49,6 +63,8 @@ export interface MatchSource {
   buildingsAt(tick: number): CachedBuilding[]
   /** The objectives and round state; null before the first round state is known. */
   objectivesAt(tick: number): ObjectiveState | null
+  /** Each player's scoreboard line at a tick, by entity id (as CachedPlayer.user has it). */
+  scoresAt(tick: number): Map<number, ScoreLine>
   /** A player's team (2 red, 3 blue) by their slot, which chat entries name them by. */
   slotTeamAt(slot: number, tick: number): number
   /** The ticks rounds start at (when play begins after setup), from the round state. */

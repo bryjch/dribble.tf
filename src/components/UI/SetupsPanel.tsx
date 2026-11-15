@@ -11,7 +11,7 @@ import {
   renameSetupAction,
   saveCurrentSetupAction,
   setSetupDraftNameAction,
-  toggleUIPanelAction,
+  toggleOnlyUIPanelAction,
   updateSetupFromCurrentAction,
 } from '@zus/actions'
 import { focusMainCanvas } from '@utils/misc'
@@ -61,13 +61,7 @@ export const SetupsPanel = () => {
     setSelectedMap(ALL_SETUP_MAPS)
   }, [selectedMap, setupMapOptions])
 
-  const toggleUIPanel = () => {
-    toggleUIPanelAction('Settings', false)
-    toggleUIPanelAction('About', false)
-    toggleUIPanelAction('MatchKillfeed', false)
-    toggleUIPanelAction('Bookmarks', false)
-    toggleUIPanelAction('Setups')
-  }
+  const toggleUIPanel = () => toggleOnlyUIPanelAction('Setups')
 
   const saveSetup = async () => {
     const setup = await saveCurrentSetupAction(draftName)

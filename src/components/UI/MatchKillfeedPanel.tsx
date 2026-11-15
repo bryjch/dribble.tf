@@ -4,7 +4,7 @@ import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePane
 import { HiListBulletIcon } from '@components/Misc/Icons'
 
 import { useStore, useInstance } from '@zus/store'
-import { toggleUIPanelAction, goToTickAction, jumpToPlayerPOVCamera } from '@zus/actions'
+import { toggleOnlyUIPanelAction, goToTickAction, jumpToPlayerPOVCamera } from '@zus/actions'
 import {
   getAllKills,
   getUberPops,
@@ -37,13 +37,7 @@ export const MatchKillfeedPanel = () => {
 
   const tickRate = parser?.intervalPerTick ? 1 / parser.intervalPerTick : 66.67
 
-  const toggleUIPanel = () => {
-    toggleUIPanelAction('Settings', false)
-    toggleUIPanelAction('About', false)
-    toggleUIPanelAction('Bookmarks', false)
-    toggleUIPanelAction('Setups', false)
-    toggleUIPanelAction('MatchKillfeed')
-  }
+  const toggleUIPanel = () => toggleOnlyUIPanelAction('MatchKillfeed')
 
   const events = useMemo(() => {
     if (!parser) return []

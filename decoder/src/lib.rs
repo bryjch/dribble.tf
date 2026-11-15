@@ -7,6 +7,8 @@
 //! - per player, every few ticks: health, class and team, connected, über, heal target;
 //! - per player, every 4 ticks: conditions (burning, cloaked, …), medigun/über state and the
 //!   weapon in hand;
+//! - per player, every 32 ticks: their scoreboard line (points, kills, deaths, assists, damage,
+//!   healing) and ping;
 //! - per player, the ticks they fired on (bullets, a new projectile, flames, a clip going down);
 //! - per projectile, only while it exists: position and rotation, every tick;
 //! - per building, only while it exists: where it is and its state, every 4 ticks;
@@ -33,7 +35,7 @@ use stvtf::output::{
 };
 
 /// The layout of the arrays and metadata below; the viewer refuses a decoder of another format.
-const FORMAT: u32 = 3;
+const FORMAT: u32 = 4;
 
 /// Fixed-point scales, as the viewer decodes them (it reads them from the metadata).
 const POSITION_SCALE: f64 = 1024.0;
@@ -45,6 +47,10 @@ const META_SPARSE: u32 = 6;
 const FLAG_SPARSE: u32 = 4;
 const STATUS_SPARSE: u32 = 2;
 const BUILDING_SPARSE: u32 = 2;
+const SCORE_SPARSE: u32 = 5;
+
+/// Values per sample of a player's `score`: points, kills, deaths, assists, damage, healing, ping.
+const SCORE_STRIDE: usize = 7;
 
 /// The player conditions kept, one bit each in this order; `StreamEvents.ts` has the same list.
 /// Each is any of TF2's conditions named, or starting with a name ending in `*`.
@@ -119,6 +125,8 @@ struct PlayerSeries {
     conditions: Vec<u32>,
     charge: Vec<u16>,
     weapon: Vec<u16>,
+    /// SCORE_STRIDE values per sample.
+    score: Vec<u32>,
     /// Ticks they fired on, in the order found (sorted and merged at the end).
     shots: Vec<u32>,
     /// The weapon and its clip in the last snapshot, to see the clip go down.
@@ -425,6 +433,17 @@ impl Decoder {
                 series.shots.push(tick);
             }
             series.last_clip = clip;
+            // The scoreboard line as stv.tf shows it: the server's points, kills and deaths, and
+            // assists, damage and healing counted from events (stvtf, like logs.tf).
+            let at = (tick >> SCORE_SPARSE) as usize * SCORE_STRIDE;
+            put(&mut series.score, at, SCORE_STRIDE);
+            if let Some(score) = &p.score {
+                let line = [score.points, score.kills, score.deaths, score.assists, score.damage, score.healing];
+                for (i, value) in line.into_iter().enumerate() {
+                    series.score[at + i] = u32::try_from(value.max(0)).unwrap_or(u32::MAX);
+                }
+            }
+            series.score[at + 6] = u32::from(p.ping);
             series.add(
                 Sample {
                     tick,
@@ -582,6 +601,7 @@ impl Decoder {
             p.conditions.resize(sparse_len(STATUS_SPARSE), 0);
             p.charge.resize(sparse_len(STATUS_SPARSE), 0);
             p.weapon.resize(sparse_len(STATUS_SPARSE), 0);
+            p.score.resize(sparse_len(SCORE_SPARSE) * SCORE_STRIDE, 0);
             let shots = merge_shots(p.shots, ticks);
             players.push(json!({
                 "id": slot,
@@ -603,6 +623,7 @@ impl Decoder {
                 Buffer::U16(p.charge),
                 Buffer::U16(p.weapon),
                 Buffer::U32(shots),
+                Buffer::U32(p.score),
             ]);
         }
 
@@ -676,6 +697,7 @@ impl Decoder {
                 "conditions": STATUS_SPARSE,
                 "charge": STATUS_SPARSE,
                 "weapon": STATUS_SPARSE,
+                "score": SCORE_SPARSE,
             },
             "projectileCount": projectile_count,
             "buildingCount": building_count,
@@ -700,6 +722,7 @@ const PLAYER_BUFFERS: &[&str] = &[
     "charge",
     "weapon",
     "shots",
+    "score",
 ];
 
 /// One shot is often seen more than once (the bullets, the clip, the projectile, a tick or two

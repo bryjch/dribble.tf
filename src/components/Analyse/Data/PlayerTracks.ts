@@ -1,5 +1,6 @@
 import { UserInfo, Vector } from './Types'
 import { MedigunState, UberedKind, medigunOf, uberedOf } from './StreamEvents'
+import type { ScoreLine } from './MatchSource'
 
 export interface CachedPlayer {
   /** Source world coordinates. */
@@ -27,7 +28,7 @@ export interface CachedPlayer {
   lastShotTick: number | null
 }
 
-/** Each player's arrays, as the decoder sends them (see decoder/src/lib.rs, format 3). */
+/** Each player's arrays, as the decoder sends them (see decoder/src/lib.rs, format 4). */
 export interface PlayerArrays {
   /** x, y, z per tick, fixed point. */
   position: Uint32Array
@@ -45,11 +46,23 @@ export interface PlayerArrays {
   weapon: Uint16Array
   /** The ticks the player fired on, sorted (not one per tick). */
   shots: Uint32Array
+  /** Points, kills, deaths, assists, damage, healing and ping, SCORE_STRIDE values per sample. */
+  score: Uint32Array
 }
+
+const SCORE_STRIDE = 7
 
 /** The arrays kept one value per `1 << n` ticks, and their n; the decoder's metadata says. */
 export type PlayerSampling = Record<
-  'health' | 'meta' | 'connected' | 'uber' | 'healTarget' | 'conditions' | 'charge' | 'weapon',
+  | 'health'
+  | 'meta'
+  | 'connected'
+  | 'uber'
+  | 'healTarget'
+  | 'conditions'
+  | 'charge'
+  | 'weapon'
+  | 'score',
   number
 >
 
@@ -131,6 +144,23 @@ export class PlayerTracks {
       medigun: medigunOf(charge),
       weapon: weapon > 0 ? weapon - 1 : null,
       lastShotTick: lastAtOrBefore(arrays?.shots, tick),
+    }
+  }
+
+  /** A player's scoreboard line at a tick; null for a slot with no arrays. */
+  score(slot: number, tick: number): ScoreLine | null {
+    const arrays = this.slots[slot]
+    if (!arrays?.score) return null
+    const o = (tick >> this.sampling.score) * SCORE_STRIDE
+    const s = arrays.score
+    return {
+      points: s[o] ?? 0,
+      kills: s[o + 1] ?? 0,
+      deaths: s[o + 2] ?? 0,
+      assists: s[o + 3] ?? 0,
+      damage: s[o + 4] ?? 0,
+      healing: s[o + 5] ?? 0,
+      ping: s[o + 6] ?? 0,
     }
   }
 

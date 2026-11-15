@@ -16,7 +16,7 @@ declare function postMessage(message: any, transfer?: any[]): void
 //
 
 /** The decoder format this build reads (decoder/src/lib.rs, FORMAT). */
-const DECODER_FORMAT = 3
+const DECODER_FORMAT = 4
 
 const PLAYER_ARRAYS = [
   'position',
@@ -30,6 +30,7 @@ const PLAYER_ARRAYS = [
   'charge',
   'weapon',
   'shots',
+  'score',
 ] as const satisfies readonly (keyof PlayerArrays)[]
 
 const mismatch = () =>

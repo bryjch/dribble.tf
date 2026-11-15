@@ -14,7 +14,7 @@ import { CrosshairStyle } from '@constants/types'
 import { BRUSH_COLOR_OPTIONS } from '@constants/drawing'
 
 import { useStore } from '@zus/store'
-import { toggleUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
+import { toggleOnlyUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
 import { cn } from '@utils/styling'
 import { useIsMobile } from '@utils/hooks'
 import { DEFAULT_THEME, THEMES, isThemeId } from '@theme/themes'
@@ -156,13 +156,7 @@ export const SettingsPanel = () => {
   const settings = useStore(state => state.settings)
   const isMobile = useIsMobile()
 
-  const toggleUIPanel = () => {
-    toggleUIPanelAction('About', false)
-    toggleUIPanelAction('MatchKillfeed', false)
-    toggleUIPanelAction('Bookmarks', false)
-    toggleUIPanelAction('Setups', false)
-    toggleUIPanelAction('Settings')
-  }
+  const toggleUIPanel = () => toggleOnlyUIPanelAction('Settings')
   const updateSettingsOption = (option: string, value: any) => {
     updateSettingsOptionAction(option, value)
   }

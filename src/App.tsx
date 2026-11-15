@@ -56,9 +56,11 @@ class App extends React.Component {
     if (live) connectLiveAction(live)
     listenForPastedMatchLinks()
 
-    // Completely disable right clicks cause it's kinda annoying
-    // when interacting with UI elements
+    // No context menu over the viewer (right-drag pans the camera), except in text fields, where
+    // it has paste and spellcheck.
     window.addEventListener('contextmenu', event => {
+      const target = event.target as HTMLElement | null
+      if (target?.closest?.('input, textarea, [contenteditable="true"]')) return
       event.preventDefault()
     })
   }

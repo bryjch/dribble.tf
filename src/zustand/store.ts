@@ -220,6 +220,8 @@ export type StoreState = {
   bookmarks: number[]
   ui: {
     activePanels: UIPanelType[]
+    /** Shown while Tab is held. */
+    scoreboardOpen: boolean
   }
   eventHistory: {
     type: string
@@ -320,6 +322,7 @@ export const initialState: StoreState = {
 
   ui: {
     activePanels: [UIPanelType.ABOUT],
+    scoreboardOpen: false,
   },
 
   eventHistory: [],
