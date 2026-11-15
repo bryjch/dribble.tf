@@ -47,6 +47,8 @@ export interface DecodedMeta {
   buildingCount: number
   /** Ticks per building sample: 1 << buildingSparse. */
   buildingSparse: number
+  /** Objectives and the round state, as keys where they change (ObjectiveTimeline.ts reads them). */
+  objectives: import('../../components/Analyse/Data/ObjectiveTimeline').ObjectiveData
   events: DecodedEvent[]
 }
 

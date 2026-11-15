@@ -4,6 +4,7 @@ import { CachedDeath, CachedDemo, DemoDecoder, ParserPerformanceStats } from './
 import { PlayerCache } from './PlayerCache'
 import { BuildingCache } from './BuildingCache'
 import { ProjectileCache, tracksFromSlots } from './ProjectileCache'
+import { ObjectiveData, ObjectiveTimeline, emptyObjectives } from './ObjectiveTimeline'
 import { getMapBoundaries } from '../MapBoundaries'
 import { ChatEntry, PlayerRef, Round } from './Types'
 import { POSITION_FIXED_SCALE } from './PositionEncoding'
@@ -66,6 +67,7 @@ interface Decoded {
   playerArrays: PlayerArrays
   projectiles: { tracks: Uint32Array; positions: Uint32Array; rotations: Uint32Array }
   buildings: { tracks: Uint32Array; samples: Uint32Array; sparse: number }
+  objectives: ObjectiveData
   chat: ChatEntry[]
   deaths: CachedDemo['deaths']
   rounds: Round[]
@@ -155,6 +157,7 @@ async function decodeWithStvtf(buffer: ArrayBuffer, progress: Progress): Promise
     playerArrays,
     projectiles: { tracks, positions, rotations },
     buildings: { tracks: buildingTracks, samples: buildingSamples, sparse: meta.buildingSparse },
+    objectives: meta.objectives,
     chat,
     deaths,
     rounds,
@@ -217,6 +220,7 @@ async function decodeWithParser2(buffer: ArrayBuffer, progress: Progress): Promi
     // The projectile caches' team and type keep one value per 64 ticks.
     projectiles: tracksFromSlots(p.ids, p.position, p.rotation, p.team, p.type, 6),
     buildings: { tracks: new Uint32Array(0), samples: new Uint32Array(0), sparse: 2 },
+    objectives: emptyObjectives(),
     chat: r.chat ?? [],
     deaths: r.deaths,
     rounds: r.rounds,
@@ -278,6 +282,8 @@ function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseSt
     angleScale
   )
 
+  const objectives = new ObjectiveTimeline(d.objectives, d.intervalPerTick)
+
   const { tracks, positions, rotations } = d.projectiles
   const projectileCache = new ProjectileCache(tracks, positions, rotations, positionScale, angleScale)
 
@@ -288,6 +294,7 @@ function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseSt
       Math.trunc(Math.trunc(world.boundaryMin[axis] - boundaryOverride.boundaryMin[axis]) * positionScale)
     shiftVectorCache([...a.position, positions], shift('x'), shift('y'), shift('z'))
     buildingCache.shift(shift('x'), shift('y'), shift('z'))
+    objectives.shift(shift('x') / positionScale, shift('y') / positionScale, shift('z') / positionScale)
     world.boundaryMin = boundaryOverride.boundaryMin
     world.boundaryMax = boundaryOverride.boundaryMax
   }
@@ -323,6 +330,7 @@ function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseSt
     playerCache,
     buildingCache,
     projectileCache,
+    objectives,
     chat: d.chat,
     deaths: d.deaths,
     rounds: d.rounds,

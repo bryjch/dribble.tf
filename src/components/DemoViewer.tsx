@@ -17,6 +17,9 @@ import { Lights } from '@components/Scene/Lights'
 import { Actors } from '@components/Scene/Actors'
 import { Projectiles } from '@components/Scene/Projectiles'
 import { Buildings } from '@components/Scene/Buildings'
+import { Objectives } from '@components/Scene/Objectives'
+import { ObjectiveHud } from '@components/UI/ObjectiveHud'
+import { ObjectiveState } from '@components/Analyse/Data/ObjectiveTimeline'
 import { CachedBuilding } from '@components/Analyse/Data/BuildingCache'
 import { World } from '@components/Scene/World'
 import { Skybox } from '@components/Scene/Skybox'
@@ -741,6 +744,8 @@ class DemoViewer extends Component<DemoViewerProps> {
     let actorsThisTick: ActorProps[] = []
     let projectilesThisTick: InterpolatedProjectile[] = []
     let buildingsThisTick: CachedBuilding[] = []
+    let objectivesThisTick: ObjectiveState | null = null
+    const showObjectives = settings.ui.showObjectives !== false
 
     if (!!demo) {
       playersThisTick = demo
@@ -763,6 +768,7 @@ class DemoViewer extends Component<DemoViewerProps> {
       })
 
       buildingsThisTick = demo.getBuildingAtTick(renderTick)
+      objectivesThisTick = demo.getObjectivesAtTick(renderTick)
 
       const projectilesCurrentTick = demo.getProjectilesAtTick(renderTick)
       const projectilesNextTick = demo.getProjectilesAtTick(renderTick + 1)
@@ -847,6 +853,10 @@ class DemoViewer extends Component<DemoViewerProps> {
 
           <Buildings buildings={buildingsThisTick} />
 
+          {/* Control points, carts, flags */}
+
+          {showObjectives && <Objectives state={objectivesThisTick} players={playersThisTick} />}
+
           {/* Projectiles */}
 
           <Projectiles
@@ -870,6 +880,12 @@ class DemoViewer extends Component<DemoViewerProps> {
           <div className="ui-layer mb-4 items-end justify-center text-center">
             <PlaybackPanel />
           </div>
+
+          {showObjectives && objectivesThisTick && (
+            <div className="ui-layer m-4 items-start justify-center">
+              <ObjectiveHud state={objectivesThisTick} players={playersThisTick} />
+            </div>
+          )}
 
           <div className="ui-layer m-4 items-start justify-end">
             <div className="flex flex-col items-end gap-2">

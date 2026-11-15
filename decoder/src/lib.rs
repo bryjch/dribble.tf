@@ -7,7 +7,8 @@
 //! - per player, every few ticks: health, class and team, connected, über, heal target;
 //! - per player, every 4 ticks: conditions (burning, cloaked, …) and medigun/über state;
 //! - per projectile, only while it exists: position and rotation, every tick;
-//! - per building, only while it exists: where it is and its state, every 4 ticks.
+//! - per building, only while it exists: where it is and its state, every 4 ticks;
+//! - objectives and the round state, as keys where they change (`objectives.rs`).
 //!
 //! Snapshots never become JSON: there is one a tick, and as JSON a 14-minute demo is 360 MB.
 //! Only the metadata and the events the viewer uses go out as JSON.
@@ -15,6 +16,8 @@
 //! Ticks here count from 1 at the first snapshot, like a live match's in the viewer.
 //!
 //! The browser calls the `extern "C"` functions at the bottom; see `src/libs/decoder/decoder.js`.
+
+mod objectives;
 
 use std::collections::HashMap;
 
@@ -317,6 +320,7 @@ struct Decoder {
     tracks: Vec<Track>,
     active_buildings: HashMap<u32, BuildingTrack>,
     buildings: Vec<BuildingTrack>,
+    objectives: objectives::Objectives,
     /// Events with their server tick, made local at the end (some come before any snapshot).
     events: Vec<(u32, Value)>,
 }
@@ -450,6 +454,8 @@ impl Decoder {
         }
 
         self.add_buildings(s, tick, &entity_of);
+        let interval = self.tick_interval.unwrap_or(f64::from(stvtf::DEFAULT_TICK_INTERVAL));
+        self.objectives.add(s, tick, interval, origin, &entity_of);
     }
 
     fn add_buildings(&mut self, s: &Snapshot, tick: u32, entity_of: &HashMap<u16, u32>) {
@@ -613,6 +619,7 @@ impl Decoder {
             "projectileCount": projectile_count,
             "buildingCount": building_count,
             "buildingSparse": BUILDING_SPARSE,
+            "objectives": self.objectives.json(),
             "events": events,
         });
         Decoded { meta: meta.to_string(), buffers }
