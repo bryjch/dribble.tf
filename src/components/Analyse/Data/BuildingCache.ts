@@ -1,5 +1,4 @@
 import { Vector } from './Types'
-import { ANGLE_FIXED_SCALE, POSITION_FIXED_SCALE } from './PositionEncoding'
 import { BUILDING_KINDS, BuildingKind } from './StreamEvents'
 
 export interface CachedBuilding {
@@ -12,7 +11,7 @@ export interface CachedBuilding {
   level: number
   health: number
   maxHealth: number
-  /** Relative to the world's boundaryMin, like the players'. */
+  /** Source world coordinates. */
   position: Vector
   yaw: number
   /** Where a sentry's turret points (yaw, degrees). */
@@ -58,16 +57,16 @@ export class BuildingCache {
   positionScale: number
   angleScale: number
 
-  // Built on first use, on the main thread: not sent from the worker.
+  // Built on first use.
   private sampleStarts?: Uint32Array
   private blocks?: number[][]
 
   constructor(
-    tracks: Uint32Array = new Uint32Array(0),
-    samples: Uint32Array = new Uint32Array(0),
-    sparse: number = 2,
-    positionScale: number = POSITION_FIXED_SCALE,
-    angleScale: number = ANGLE_FIXED_SCALE
+    tracks: Uint32Array,
+    samples: Uint32Array,
+    sparse: number,
+    positionScale: number,
+    angleScale: number
   ) {
     this.tracks = tracks
     this.samples = samples
@@ -152,19 +151,5 @@ export class BuildingCache {
       })
     }
     return out
-  }
-
-  /** Moves every building by a fixed-point offset (a map's own bounds replacing the demo's). */
-  shift(dx: number, dy: number, dz: number) {
-    const s = this.samples
-    for (let o = 0; o < s.length; o += BUILDING_SAMPLE_STRIDE) {
-      s[o] += dx
-      s[o + 1] += dy
-      s[o + 2] += dz
-    }
-  }
-
-  static rehydrate(data: BuildingCache) {
-    Object.setPrototypeOf(data, BuildingCache.prototype)
   }
 }

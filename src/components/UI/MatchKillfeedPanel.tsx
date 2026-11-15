@@ -45,7 +45,7 @@ const getStreakTextColor = (streakCount: number): string => {
 
 export const MatchKillfeedPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('MatchKillfeed'))
-  const parser = useInstance(state => state.parsedDemo)
+  const parser = useInstance(state => state.match)
 
   const [filterText, setFilterText] = useState('')
 

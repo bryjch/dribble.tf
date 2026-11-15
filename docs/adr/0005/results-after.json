@@ -1,0 +1,277 @@
+{
+  "url": "http://localhost:4175",
+  "startedAt": "2026-11-15T13:08:40.283Z",
+  "screenshots": [
+    {
+      "name": "01-default-rts-t800",
+      "renderInfo": {
+        "calls": 698,
+        "triangles": 1784699,
+        "geometries": 679,
+        "textures": 376,
+        "programs": 30
+      }
+    },
+    {
+      "name": "02-overview-busiest",
+      "renderInfo": {
+        "calls": 746,
+        "triangles": 1844306,
+        "geometries": 716,
+        "textures": 396,
+        "programs": 31
+      }
+    },
+    {
+      "name": "03-overview-t9000",
+      "renderInfo": {
+        "calls": 738,
+        "triangles": 1841682,
+        "geometries": 730,
+        "textures": 396,
+        "programs": 31
+      }
+    },
+    {
+      "name": "04-close-t15000",
+      "renderInfo": {
+        "calls": 729,
+        "triangles": 1836649,
+        "geometries": 749,
+        "textures": 402,
+        "programs": 31
+      }
+    },
+    {
+      "name": "05-pov-t12000",
+      "renderInfo": {
+        "calls": 773,
+        "triangles": 1843243,
+        "geometries": 841,
+        "textures": 442,
+        "programs": 31
+      }
+    },
+    {
+      "name": "06-pov-busiest",
+      "renderInfo": {
+        "calls": 757,
+        "triangles": 1834161,
+        "geometries": 856,
+        "textures": 442,
+        "programs": 31
+      }
+    },
+    {
+      "name": "07-untextured-t9000",
+      "renderInfo": {
+        "calls": 698,
+        "triangles": 1725928,
+        "geometries": 886,
+        "textures": 442,
+        "programs": 33
+      }
+    }
+  ],
+  "playback": {
+    "rts1x": {
+      "speed": 1,
+      "cpuThrottle": 1,
+      "ticksAdvanced": 533,
+      "frames": 482,
+      "fps": 60.3,
+      "frameMsP50": 16.7,
+      "frameMsP95": 16.7,
+      "frameMsP99": 16.8,
+      "frameMsMax": 16.8,
+      "framesOver20ms": 0,
+      "longTasks": 0,
+      "scriptMsPerSec": 960.9,
+      "taskMsPerSec": 1003,
+      "layoutMsPerSec": 4.3,
+      "styleMsPerSec": 8,
+      "viewerRendersPerSec": 0,
+      "sceneRenderMsAvg": 3.38,
+      "nonRenderMsPerSec": 798.8,
+      "drawCallsAvg": 699,
+      "trianglesAvg": 1785301
+    },
+    "rts3x": {
+      "speed": 3,
+      "cpuThrottle": 1,
+      "ticksAdvanced": 1599,
+      "frames": 482,
+      "fps": 60.3,
+      "frameMsP50": 16.7,
+      "frameMsP95": 16.7,
+      "frameMsP99": 16.8,
+      "frameMsMax": 16.8,
+      "framesOver20ms": 0,
+      "longTasks": 0,
+      "scriptMsPerSec": 959.4,
+      "taskMsPerSec": 1002.6,
+      "layoutMsPerSec": 5,
+      "styleMsPerSec": 7,
+      "viewerRendersPerSec": 0,
+      "sceneRenderMsAvg": 3.68,
+      "nonRenderMsPerSec": 780.4,
+      "drawCallsAvg": 727,
+      "trianglesAvg": 1833126
+    },
+    "pov1x": {
+      "speed": 1,
+      "cpuThrottle": 1,
+      "ticksAdvanced": 532,
+      "frames": 481,
+      "fps": 60.1,
+      "frameMsP50": 16.7,
+      "frameMsP95": 16.7,
+      "frameMsP99": 16.8,
+      "frameMsMax": 16.8,
+      "framesOver20ms": 0,
+      "longTasks": 0,
+      "scriptMsPerSec": 961.1,
+      "taskMsPerSec": 1001.9,
+      "layoutMsPerSec": 4.7,
+      "styleMsPerSec": 7.4,
+      "viewerRendersPerSec": 0,
+      "sceneRenderMsAvg": 3.02,
+      "nonRenderMsPerSec": 819.9,
+      "drawCallsAvg": 543,
+      "trianglesAvg": 1581092
+    },
+    "rts1xCpu4": {
+      "speed": 1,
+      "cpuThrottle": 4,
+      "ticksAdvanced": 542,
+      "frames": 303,
+      "fps": 37.9,
+      "frameMsP50": 33.3,
+      "frameMsP95": 33.4,
+      "frameMsP99": 33.4,
+      "frameMsMax": 50,
+      "framesOver20ms": 178,
+      "longTasks": 0,
+      "scriptMsPerSec": 890.1,
+      "taskMsPerSec": 1010.1,
+      "layoutMsPerSec": 17.7,
+      "styleMsPerSec": 22.8,
+      "viewerRendersPerSec": 0,
+      "sceneRenderMsAvg": 15.48,
+      "nonRenderMsPerSec": 418.1,
+      "drawCallsAvg": 700,
+      "trianglesAvg": 1785345
+    },
+    "pov1xCpu4": {
+      "speed": 1,
+      "cpuThrottle": 4,
+      "ticksAdvanced": 539,
+      "frames": 351,
+      "fps": 43.9,
+      "frameMsP50": 16.7,
+      "frameMsP95": 33.4,
+      "frameMsP99": 33.4,
+      "frameMsMax": 33.5,
+      "framesOver20ms": 132,
+      "longTasks": 0,
+      "scriptMsPerSec": 888.1,
+      "taskMsPerSec": 1009.2,
+      "layoutMsPerSec": 18.2,
+      "styleMsPerSec": 21.4,
+      "viewerRendersPerSec": 0,
+      "sceneRenderMsAvg": 12.27,
+      "nonRenderMsPerSec": 464.5,
+      "drawCallsAvg": 525,
+      "trianglesAvg": 1562982
+    }
+  },
+  "load": {
+    "demoReadyMs": 1355,
+    "sceneReadyMs": 5399,
+    "parse": {
+      "parseMs": 577.3999999761581,
+      "hydrateMs": 0,
+      "transferMs": 36.599853515625,
+      "playerCount": 13,
+      "projectileCount": 600,
+      "ticks": 28180,
+      "playerCacheBytes": 8179743,
+      "projectileCacheBytes": 4644384
+    },
+    "maxTicks": 28179,
+    "heapMbAfterLoad": 26
+  },
+  "sceneDelayTicks": 0,
+  "scenarios": {
+    "busiestTick": 20678,
+    "busiest": 24,
+    "defaultCamera": {
+      "mode": "rts",
+      "position": [
+        1464,
+        -358,
+        659
+      ],
+      "target": [
+        526,
+        208,
+        66
+      ]
+    },
+    "close": {
+      "mode": "rts",
+      "target": [
+        526,
+        208,
+        66
+      ],
+      "position": [
+        876,
+        -492,
+        366
+      ]
+    },
+    "povEntityId": 2
+  },
+  "memory": {
+    "start": {
+      "calls": 701,
+      "triangles": 1815307,
+      "geometries": 1097,
+      "textures": 455,
+      "programs": 35
+    },
+    "afterModeToggles": {
+      "calls": 700,
+      "triangles": 1813507,
+      "geometries": 1123,
+      "textures": 455,
+      "programs": 35
+    },
+    "mapRoundTrips": [
+      {
+        "calls": 671,
+        "triangles": 1740860,
+        "geometries": 997,
+        "textures": 439,
+        "programs": 34
+      },
+      {
+        "calls": 671,
+        "triangles": 1740860,
+        "geometries": 997,
+        "textures": 462,
+        "programs": 34
+      }
+    ],
+    "afterMapSwitches": {
+      "calls": 671,
+      "triangles": 1740860,
+      "geometries": 997,
+      "textures": 462,
+      "programs": 34
+    },
+    "heapMbAfterMapSwitches": 26.5
+  },
+  "consoleErrors": []
+}

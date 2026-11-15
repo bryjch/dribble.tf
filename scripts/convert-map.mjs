@@ -1852,14 +1852,9 @@ if (metadataOnly) {
         if (!fs.existsSync(lmOutput)) {
           console.warn('Lightmap injector did not produce output; skipping.')
         } else if (fs.statSync(lmOutput).size > chunkedSizeBefore) {
+          // The lightmaps are inside the GLB; nothing loads lightmap_atlas.png, so it stays in
+          // the temporary directory instead of being published next to the map.
           fs.copyFileSync(lmOutput, chunkedOutput)
-          // Copy atlas PNG to output dir (separate file - Three.js loads it independently)
-          const atlasSrc = path.join(lightmapDataPath, 'lightmap_atlas.png')
-          const atlasDst = path.join(outDir, 'lightmap_atlas.png')
-          if (fs.existsSync(atlasSrc)) {
-            fs.copyFileSync(atlasSrc, atlasDst)
-            console.log(`Lightmap atlas: ${atlasDst}`)
-          }
           console.log('Lightmap injection complete.')
         } else {
           console.warn('Lightmap GLB was not larger than chunked source; skipping.')
@@ -1889,6 +1884,7 @@ if (metadataOnly) {
     const step1 = path.join(tempDir, `${mapName}_gt_instance.glb`)
     const step2 = path.join(tempDir, `${mapName}_gt_joined.glb`)
     const step3 = path.join(tempDir, `${mapName}_gt_resized.glb`)
+    const step4 = path.join(tempDir, `${mapName}_gt_meshopt.glb`)
 
     console.log('gltf-transform: flattening instances...')
     runCommand(gltfTransformBin, ['instance', texturedOutput, step1])
@@ -1899,10 +1895,16 @@ if (metadataOnly) {
     console.log('gltf-transform: resizing textures to 128x128...')
     runCommand(gltfTransformBin, ['resize', step2, step3, '--width', '128', '--height', '128'])
 
-    fs.copyFileSync(step3, texturedOutput)
+    // Compresses geometry with EXT_meshopt_compression (World.tsx decodes it with three's
+    // MeshoptDecoder): about 3.5x smaller, geometry being most of a map. See meshopt-map.mjs
+    // for why not the CLI's `meshopt`.
+    console.log('meshopt compression...')
+    runCommand(process.execPath, [path.join(repoRoot, 'scripts', 'meshopt-map.mjs'), step3, step4])
+
+    fs.copyFileSync(step4, texturedOutput)
     console.log('gltf-transform post-processing complete.')
 
-    for (const f of [step1, step2, step3]) {
+    for (const f of [step1, step2, step3, step4]) {
       if (fs.existsSync(f)) fs.unlinkSync(f)
     }
   }

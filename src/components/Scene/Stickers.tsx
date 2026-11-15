@@ -56,9 +56,12 @@ type SceneStickerProps = {
   dragPreviewPositionRef?: MutableRefObject<THREE.Vector3 | null>
 }
 
-export const Stickers = () => {
+// No stickers on mobile. The check lives out here so the scene below always runs the same hooks
+// (useIsMobile flips when the window is resized across its breakpoint).
+export const Stickers = () => (useIsMobile() ? null : <StickersScene />)
+
+const StickersScene = () => {
   const { camera, gl, scene } = useThree()
-  const isMobile = useIsMobile()
 
   const controlsMode = useStore(state => state.scene.controls.mode)
   const stickers = useStore(state => state.drawing.stickerHistory.present)
@@ -79,10 +82,6 @@ export const Stickers = () => {
   const dragPlaneNormalRef = useRef(new THREE.Vector3())
   const dragPlaneAnchorRef = useRef(new THREE.Vector3())
   const dragPlaneIntersectionRef = useRef(new THREE.Vector3())
-
-  if (isMobile) {
-    return null
-  }
 
   const interactionEnabled =
     controlsMode === ControlsMode.RTS || controlsMode === ControlsMode.SPECTATOR

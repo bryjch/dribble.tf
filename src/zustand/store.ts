@@ -1,10 +1,11 @@
 import { create } from 'zustand'
+import localForage from 'localforage'
 import { redux } from 'zustand/middleware'
 import CanvasDraw from 'react-canvas-draw'
 import { isMobile } from 'react-device-detect'
 import * as THREE from 'three'
 
-import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import type { MatchSource } from '@components/Analyse/Data/MatchSource'
 import { getMapBoundaries } from '@components/Analyse/MapBoundaries'
 
 import { parseMapBoundaries } from '@utils/scene'
@@ -24,7 +25,7 @@ import { DrawingState, createInitialDrawingState } from './drawing'
 import rootReducer from './reducer'
 
 // This "Instance Store" is meant to be used for larger objects that are problematic
-// to keep in the "Standard Store". (e.g. parsed demo file (AsyncParser), three.js objects)
+// to keep in the "Standard Store". (e.g. the match being watched (MatchSource), three.js objects)
 // We wanna keep easily accessible references to these important objects because they're
 // used a lot throughout.
 
@@ -38,11 +39,10 @@ export type InstanceState = {
   }
   mapCenterPickerActive: boolean
   threeScene: THREE.Scene
-  parsedDemo?: AsyncParser
+  match?: MatchSource
   focusedObject?: THREE.Object3D
   lastFocusedPOV?: THREE.Object3D
   drawingCanvas?: CanvasDraw
-  frameProgress: number
   runtimePerf: {
     renderCalls: number
     renderTriangles: number
@@ -54,11 +54,10 @@ export type InstanceState = {
     apply: (camera: SavedSetupCamera) => void
   }
   setThreeScene: (threeScene: THREE.Scene) => void
-  setParsedDemo: (parsedDemo: AsyncParser | undefined) => void
+  setMatch: (match: MatchSource | undefined) => void
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => void
   setFocusedObject: (focusedObject?: THREE.Object3D) => void
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => void
-  setFrameProgress: (frameProgress: number) => void
   setMapCenterPickerActive: (mapCenterPickerActive: boolean) => void
   setMapOffsetDebug: (mapOffsetDebug: { cameraOffset: { x: number; y: number; z: number } }) => void
   setRuntimePerf: (
@@ -88,11 +87,10 @@ const useInstance = create<InstanceState>()(set => ({
   },
   mapCenterPickerActive: false,
   threeScene: new THREE.Scene(),
-  parsedDemo: undefined,
+  match: undefined,
   focusedObject: undefined,
   lastFocusedPOV: undefined,
   drawingCanvas: undefined,
-  frameProgress: 0,
   runtimePerf: {
     renderCalls: 0,
     renderTriangles: 0,
@@ -101,11 +99,10 @@ const useInstance = create<InstanceState>()(set => ({
   },
   setupCameraBridge: undefined,
   setThreeScene: (threeScene: THREE.Scene) => set({ threeScene }),
-  setParsedDemo: (parsedDemo: AsyncParser | undefined) => set({ parsedDemo }),
+  setMatch: (match: MatchSource | undefined) => set({ match }),
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => set({ drawingCanvas }),
   setFocusedObject: (focusedObject?: THREE.Object3D) => set({ focusedObject }),
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => set({ lastFocusedPOV }),
-  setFrameProgress: (frameProgress: number) => set({ frameProgress }),
   setMapCenterPickerActive: (mapCenterPickerActive: boolean) => set({ mapCenterPickerActive }),
   setMapOffsetDebug: mapOffsetDebug =>
     set(state => {
@@ -140,7 +137,6 @@ export type StoreState = {
     error?: Error
   }
   scene: {
-    players: Map<any, any>
     map: string
     bounds: {
       min: THREE.Vector3
@@ -166,6 +162,9 @@ export type StoreState = {
     scene: {
       mode: SceneMode
       interpolateFrames: boolean
+      /** Saved RTS centres per map, Source world coordinates. */
+      worldRtsCenters: Record<string, { x: number; y: number; z: number }>
+      /** Saved before 2026-11, relative to each map model's minimum corner; read, not written. */
       rtsCenters: Record<string, { x: number; y: number; z: number }>
     }
     camera: {
@@ -235,7 +234,6 @@ export const initialState: StoreState = {
   },
 
   scene: {
-    players: new Map(),
     map: 'cp_snakewater',
     bounds: parseMapBoundaries(getMapBoundaries('cp_snakewater')!),
     controls: {
@@ -258,6 +256,7 @@ export const initialState: StoreState = {
     scene: {
       mode: isMobile ? SceneMode.UNTEXTURED : SceneMode.TEXTURED,
       interpolateFrames: true,
+      worldRtsCenters: {},
       rtsCenters: {},
     },
     camera: {
@@ -332,5 +331,11 @@ const useStore = create(redux<StoreState, StoreAction>(rootReducer as any, initi
 // Export these functions at first level because they will be used very frequently
 // and are essentially the Redux equivalents (makes migration/adoption easier)
 const { dispatch, getState } = useStore
+
+// Settings and setups are saved whenever they change, outside the reducers so those stay pure.
+useStore.subscribe((state, previous) => {
+  if (state.settings !== previous.settings) localForage.setItem('settings', state.settings)
+  if (state.setups.items !== previous.setups.items) localForage.setItem('setups', state.setups.items)
+})
 
 export { useStore, dispatch, getState, useInstance }

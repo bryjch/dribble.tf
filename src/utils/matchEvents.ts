@@ -1,4 +1,4 @@
-import { AsyncParser, CachedDeath } from '@components/Analyse/Data/AsyncParser'
+import type { CachedDeath, MatchSource } from '@components/Analyse/Data/MatchSource'
 
 export interface MatchKillEvent {
   type: 'kill'
@@ -88,7 +88,7 @@ export function annotateKillstreaks(
   }))
 }
 
-export function getAllKills(parser: AsyncParser): MatchKillEvent[] {
+export function getAllKills(parser: MatchSource): MatchKillEvent[] {
   const kills: MatchKillEvent[] = []
 
   for (const tickKey in parser.deaths) {
@@ -112,41 +112,6 @@ export function getAllKills(parser: AsyncParser): MatchKillEvent[] {
   return kills
 }
 
-export function getUberPops(parser: AsyncParser): MatchUberEvent[] {
-  // A live match, and a demo stvtf decoded, are told when an uber is popped; a demo parser2
-  // decoded has to find the charge dropping.
-  if (parser.uberPops) return parser.uberPops
-
-  const events: MatchUberEvent[] = []
-  const { uberCache, metaCache } = parser.playerCache
-  const step = 1 << uberCache.sparse
-
-  for (let i = 0; i < parser.nextMappedPlayer; i++) {
-    const entity = parser.entityPlayerMap.get(i)
-    if (!entity) continue
-
-    for (let tick = step; tick < parser.ticks; tick += step) {
-      const prevCharge = uberCache.getOrNull(i, tick - step)
-      const currCharge = uberCache.getOrNull(i, tick)
-
-      // Detect when charge crosses below 95 from a near-full state.
-      // Uber drains ~3% per 16-tick sample, so a single-step drop from
-      // >=95 to <95 reliably catches the first moment of activation.
-      if (prevCharge !== null && currCharge !== null && prevCharge >= 95 && currCharge < 95) {
-        const meta = metaCache.getMeta(i, tick)
-        if (meta.classId === 5) {
-          events.push({
-            type: 'uber',
-            tick,
-            medicName: entity.user.name,
-            medicTeam: meta.teamId,
-            medicEntityId: entity.user.entityId,
-          })
-        }
-      }
-    }
-  }
-
-  events.sort((a, b) => a.tick - b.tick)
-  return events
+export function getUberPops(match: MatchSource): MatchUberEvent[] {
+  return match.uberPops
 }

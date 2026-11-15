@@ -17,7 +17,6 @@ import { EventHistoryText } from './EventHistoryText'
 import { StickerPalette } from './StickerPalette'
 
 import { useInstance, useStore } from '@zus/store'
-import { LiveSource } from '@components/Analyse/Data/LiveSource'
 import {
   changePlaySpeedAction,
   goToTickAction,
@@ -29,10 +28,6 @@ import { focusMainCanvas } from '@utils/misc'
 import { cn } from '@utils/styling'
 import { getDurationFromTicks } from '@utils/parser'
 import { useIsMobile } from '@utils/hooks'
-
-// Since parser only returns round ends (not round starts) we need to
-// account for the humiliation period before it resets
-const ROUND_HUMILIATION_BUFFER_TICKS = 300
 
 export const PLAYBACK_SPEED_OPTIONS = [
   { label: '3×', value: 3 },
@@ -96,7 +91,7 @@ const PlaybackAction = (props: PlaybackActionProps) => {
 }
 
 export const PlaybackPanel = () => {
-  const parsedDemo = useInstance(state => state.parsedDemo)
+  const match = useInstance(state => state.match)
   const playback = useStore(state => state.playback)
   const bookmarks = useStore(state => state.bookmarks)
   const lastEventHistory = useStore(state => state.eventHistory)?.[0]
@@ -106,26 +101,17 @@ export const PlaybackPanel = () => {
   const isBookmarked = bookmarks.includes(tick)
   const isMobile = useIsMobile()
 
+  // A live match's rounds grow while it is watched: look again every ten seconds or so.
+  const liveRefresh = match?.kind === 'live' ? Math.floor(maxTicks / 660) : 0
   const rounds = useMemo(() => {
-    const result = [
-      {
-        tick: ROUND_HUMILIATION_BUFFER_TICKS,
-        winningTeam: parsedDemo?.rounds[0]?.winner || 'none',
-        duration: parsedDemo?.rounds[0]?.length,
-      },
-    ]
-
-    // The last round is always the end of the demo, so we can ignore it
-    parsedDemo?.rounds?.slice(0, -1).forEach((round, index) => {
-      result.push({
-        tick: round.endTick + ROUND_HUMILIATION_BUFFER_TICKS,
-        winningTeam: parsedDemo?.rounds[index + 1]?.winner || 'none',
-        duration: parsedDemo?.rounds[index + 1]?.length,
-      })
+    if (!match) return []
+    // Each round from where play began, with the winner of the first round end after it.
+    const starts = match.roundStarts()
+    return (starts.length ? starts : [1]).map(start => {
+      const end = match.rounds.find(round => round.endTick > start)
+      return { tick: start, winningTeam: end?.winner || 'none', duration: end?.length }
     })
-
-    return result
-  }, [parsedDemo?.rounds])
+  }, [match, match?.revision, liveRefresh])
 
   const onClickRound = async (round: any) => {
     await goToTickAction(round.tick)
@@ -201,7 +187,7 @@ export const PlaybackPanel = () => {
               icon={
                 <div className="-mr-1 flex min-w-11 select-none flex-col items-center text-center">
                   <div className="text-xs leading-none">TICK</div>
-                  <div className="font-bold leading-none">{tick * 2}</div>
+                  <div className="font-bold leading-none">{tick}</div>
                 </div>
               }
               content={
@@ -214,7 +200,7 @@ export const PlaybackPanel = () => {
                       const tickEl = e.target.elements.namedItem('tick') as HTMLInputElement
                       const newTick = Number(tickEl.value)
                       if (isNaN(newTick)) return
-                      goToTick(newTick / 2)
+                      goToTick(newTick)
                     }}
                   >
                     <input
@@ -233,7 +219,7 @@ export const PlaybackPanel = () => {
 
                   <div className="mt-2 flex justify-between text-xs opacity-80">
                     <div>Total Ticks</div>
-                    <div className="font-bold">{maxTicks * 2}</div>
+                    <div className="font-bold">{maxTicks}</div>
                   </div>
                 </div>
               }
@@ -463,9 +449,9 @@ export const PlaybackPanel = () => {
           {/* Duration (Current Time / Total Time) */}
 
           <div className="text-outline flex items-center gap-2 text-sm">
-            {parsedDemo instanceof LiveSource && (
+            {match?.kind === 'live' && (
               <LiveBadge
-                atEdge={maxTicks - tick < 2 / parsedDemo.intervalPerTick}
+                atEdge={maxTicks - tick < 2 / match.intervalPerTick}
                 onClick={() => goToTick(maxTicks)}
               />
             )}

@@ -1,4 +1,4 @@
-import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
+import { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
 
 import { CLASS_ORDER_MAP, HEALTH_MAP } from '@constants/mappings'
 

@@ -1,51 +1,30 @@
-import { useRef, useEffect, useLayoutEffect, Suspense, useState } from 'react'
+import { useRef, useEffect, useLayoutEffect, useMemo, useCallback, memo, Suspense } from 'react'
 
 import * as THREE from 'three'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { Select } from '@react-three/postprocessing'
 import { Html, useGLTF, Clone } from '@react-three/drei'
-import { Vector } from '@components/Analyse/Data/Types'
 
 import { HealBeam } from '@components/Scene/HealBeam'
 import { Nameplate } from '@components/Scene/Nameplate'
-import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
+import { SCENE_PRIORITY, isScenePlayer, sceneFrame } from '@components/Scene/PlaybackDriver'
+import type { MatchSource } from '@components/Analyse/Data/MatchSource'
+import { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
 import { hasCondition } from '@components/Analyse/Data/StreamEvents'
 
 import { useInstance, useStore } from '@zus/store'
-import { CLASS_MAP } from '@constants/mappings'
-import {
-  objCoordsToVector3,
-  cameraQuaternionFromSourceAnglesDeg,
-  yawQuaternionFromDegrees,
-  smoothingAlpha,
-  createStaleFrameGuard,
-  guardedLerpProgress,
-} from '@utils/geometry'
+import { CLASS_MAP, PLAYER_DIMENSIONS } from '@constants/mappings'
+import { cameraQuaternionFromSourceAnglesDeg, yawQuaternionFromDegrees } from '@utils/geometry'
 import { getAsset } from '@utils/misc'
 import { useEventListener } from '@utils/hooks'
 
-// Default TF2 player dimensions as specified in:
-// https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper%27s_Reference
-export const ActorDimensions = new THREE.Vector3(49, 49, 83)
+export const ActorDimensions = new THREE.Vector3(
+  PLAYER_DIMENSIONS.x,
+  PLAYER_DIMENSIONS.y,
+  PLAYER_DIMENSIONS.z
+)
 
 
-export const AimLineSize = 150
-const RENDER_POSITION_SMOOTH_SECONDS = 0.04
-const RENDER_ROTATION_SMOOTH_SECONDS = 0.03
-const TELEPORT_LERP_DISTANCE = 4096
-
-/**
- * Resolve view angles that may erroneously be all-zero from the parser.
- * Updates lastGoodRef when non-zero angles are found, and falls back
- * to the last known good angles when all components are zero.
- */
-function resolveViewAngles(angles: Vector, lastGoodRef: { current: Vector }): Vector {
-  if (angles.x === 0 && angles.y === 0 && angles.z === 0) {
-    return lastGoodRef.current
-  }
-  lastGoodRef.current = angles
-  return angles
-}
 
 //
 // ─── PLAYER MODEL ───────────────────────────────────────────────────────────────
@@ -120,20 +99,75 @@ export const PlayerModel = (props: PlayerModelProps) => {
 }
 
 // ─── ACTORS ──────────────────────────────────────────────────────────────────
+//
+// Players are drawn in two halves. Where each player is and where they look changes every
+// frame: Actors' frame callback sets that on the objects directly from sceneFrame. What a
+// player looks like (class, team, alive, health on the nameplate, conditions, heal target)
+// changes far less often: that is React state, rendered from the store's tick a few times a
+// second, and each Actor re-renders only when its own look changes.
+//
 
-export interface ActorsProps {
-  actors: ActorProps[]
+/** The objects an Actor hands Actors to move every frame. */
+interface ActorHandles {
+  group: THREE.Group
+  body: THREE.Group
+  aim: THREE.Group
 }
 
-export const Actors = (props: ActorsProps) => {
-  const { actors = [] } = props
+export interface ActorsProps {
+  match?: MatchSource
+}
+
+export const Actors = ({ match }: ActorsProps) => {
+  const tick = useStore(state => state.playback.tick)
+  const handles = useRef(new Map<number, ActorHandles>())
+
+  const players = useMemo(
+    () => (match ? match.playersAt(tick).filter(isScenePlayer) : []),
+    [match, tick]
+  )
+
+  useFrame(() => {
+    for (const player of sceneFrame.players) {
+      const actor = handles.current.get(player.user.entityId)
+      if (actor) placeActor(actor, player)
+    }
+  }, SCENE_PRIORITY)
+
+  const register = useCallback((entityId: number, actor: ActorHandles | null) => {
+    if (actor) handles.current.set(entityId, actor)
+    else handles.current.delete(entityId)
+  }, [])
+
+  const positionOf = useCallback(
+    (entityId: number) => handles.current.get(entityId)?.group.position,
+    []
+  )
 
   return (
     <group name="actors">
-      {actors.map((actor, index) => (
-        <Actor key={`actor-${index}`} {...actor} />
+      {/* Keyed by player: a list position changes hands when anyone joins, leaves or swaps team. */}
+      {players.map(player => (
+        <Actor
+          key={`actor-${player.user.entityId}`}
+          player={player}
+          register={register}
+          positionOf={positionOf}
+        />
       ))}
     </group>
+  )
+}
+
+function placeActor(actor: ActorHandles, player: CachedPlayer) {
+  const { position, viewAngles } = player
+  actor.group.position.set(position.x, position.y, position.z)
+  actor.group.quaternion.identity()
+  // Source QAngle convention (degrees): x=pitch, y=yaw, z=roll. The body turns with the yaw
+  // only; the aim (and the POV camera on it) has the full view angles.
+  actor.body.quaternion.copy(yawQuaternionFromDegrees(viewAngles.y))
+  actor.aim.quaternion.copy(
+    cameraQuaternionFromSourceAnglesDeg({ pitch: viewAngles.x, yaw: viewAngles.y, roll: viewAngles.z })
   )
 }
 
@@ -141,140 +175,62 @@ export const Actors = (props: ActorsProps) => {
 // ─── ACTOR ──────────────────────────────────────────────────────────────────────
 //
 
-export type ActorProps = CachedPlayer & { positionNext: Vector; viewAnglesNext: Vector }
+interface ActorProps {
+  /** The player at the store's tick: what they look like, not where they are. */
+  player: CachedPlayer
+  register: (entityId: number, actor: ActorHandles | null) => void
+  positionOf: (entityId: number) => THREE.Vector3 | undefined
+}
 
-export const Actor = (props: ActorProps) => {
+/** Whether two states of a player look the same (where they are does not count). */
+const sameLook = (a: ActorProps, b: ActorProps) => {
+  const p = a.player
+  const q = b.player
+  return (
+    p.user.entityId === q.user.entityId &&
+    p.user.name === q.user.name &&
+    p.team === q.team &&
+    p.classId === q.classId &&
+    p.health === q.health &&
+    p.conditions === q.conditions &&
+    p.ubered === q.ubered &&
+    p.healTarget === q.healTarget &&
+    a.register === b.register &&
+    a.positionOf === b.positionOf
+  )
+}
+
+const Actor = memo(({ player, register, positionOf }: ActorProps) => {
   const actorRef = useRef<THREE.Group>(null)
   const bodyRef = useRef<THREE.Group>(null)
   const playerAimRef = useRef<THREE.Group>(null)
-  const lastGoodViewAngles = useRef<Vector>({ x: 0, y: 0, z: 0 })
-  const lerpedPosition = useRef(new THREE.Vector3())
-  const hasPositionInit = useRef(false)
-  const staleGuard = useRef(createStaleFrameGuard(props.position))
-  const [changing, setChanging] = useState<boolean>(false)
-  const { scene } = useThree()
 
-  const playback = useStore(state => state.playback)
-  const settings = useStore(state => state.settings)
+  const nameplate = useStore(state => state.settings.ui.nameplate)
   const focusedObject = useInstance(state => state.focusedObject)
 
-  const { classId, health, team, user, healTarget, conditions, ubered } = props
+  const { classId, health, team, user, healTarget, conditions, ubered } = player
+  const entityId = user.entityId
   const cloaked = hasCondition(conditions, 'cloaked')
   const tint = ubered ? (team === 'red' ? '#ff3b3b' : '#3b8bff') : null
-  const isFocusedPOV = focusedObject?.userData?.entityId === user.entityId
-  let { position, viewAngles, positionNext, viewAnglesNext } = props
-
-  // Resolve zero-valued view angles (parser bug) by falling back to last non-zero angles
-  viewAngles = resolveViewAngles(viewAngles, lastGoodViewAngles)
-  if (viewAnglesNext.x === 0 && viewAnglesNext.y === 0 && viewAnglesNext.z === 0) {
-    viewAnglesNext = viewAngles
-  }
-
+  const isFocusedPOV = focusedObject?.userData?.entityId === entityId
   const alive = health > 0
-  let color
-  if (team === 'red') color = '#ff0202'
-  if (team === 'blue') color = '#0374ff'
+  const color = team === 'red' ? '#ff0202' : team === 'blue' ? '#0374ff' : undefined
 
-  // Source QAngle convention (degrees): x=pitch, y=yaw, z=roll
-  const positionVec3: THREE.Vector3 = objCoordsToVector3(position)
-  const positionNextVec3: THREE.Vector3 = objCoordsToVector3(positionNext)
-  const pitchDeg = viewAngles.x
-  const yawDeg = viewAngles.y
-  const rollDeg = viewAngles.z
-  const pitchNextDeg = viewAnglesNext.x
-  const yawNextDeg = viewAnglesNext.y
-  const rollNextDeg = viewAnglesNext.z
+  useLayoutEffect(() => {
+    const group = actorRef.current
+    const body = bodyRef.current
+    const aim = playerAimRef.current
+    if (!group || !body || !aim) return
+    const actor = { group, body, aim }
+    // Placed now, so a player who just appeared is not drawn at the origin for a frame.
+    placeActor(actor, sceneFrame.playersByEntity.get(entityId) ?? player)
+    register(entityId, actor)
+    return () => register(entityId, null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entityId, register])
 
-  const healTargetVec3: THREE.Vector3 | undefined = healTarget
-    ? scene
-        .getObjectByName('actors')
-        ?.children.find(({ userData }) => userData.entityId === healTarget)?.position
-    : undefined
-
-  useFrame((_, delta) => {
-    if (!actorRef.current || !bodyRef.current || !playerAimRef.current) return
-
-    // Actor group is position-only; rotations are applied to children.
-    actorRef.current.quaternion.identity()
-
-    const frameProgress = useInstance.getState().frameProgress
-
-    // Skip interpolation when disabled or paused
-    if (settings.scene.interpolateFrames === false || playback.playing === false) {
-      actorRef.current.position.set(position.x, position.y, position.z)
-      hasPositionInit.current = true
-      bodyRef.current.quaternion.copy(yawQuaternionFromDegrees(yawDeg))
-      playerAimRef.current.position.set(0, 0, ActorDimensions.z)
-      playerAimRef.current.quaternion.copy(
-        cameraQuaternionFromSourceAnglesDeg({ pitch: pitchDeg, yaw: yawDeg, roll: rollDeg })
-      )
-      guardedLerpProgress(staleGuard.current, frameProgress, position, false)
-      return
-    }
-
-    const lerpProgress = guardedLerpProgress(
-      staleGuard.current, frameProgress, position, playback.playing
-    )
-    const didTeleport = positionVec3.distanceTo(positionNextVec3) > TELEPORT_LERP_DISTANCE
-    const wasInitialized = hasPositionInit.current
-    const positionBlend = smoothingAlpha(delta, RENDER_POSITION_SMOOTH_SECONDS)
-    const rotationBlend = smoothingAlpha(delta, RENDER_ROTATION_SMOOTH_SECONDS)
-
-    // Position interpolation
-    if (didTeleport) {
-      lerpedPosition.current.copy(positionVec3)
-    } else {
-      lerpedPosition.current.copy(positionVec3).lerp(positionNextVec3, lerpProgress)
-    }
-
-    if (didTeleport || !wasInitialized) {
-      actorRef.current.position.copy(lerpedPosition.current)
-    } else {
-      actorRef.current.position.lerp(lerpedPosition.current, positionBlend)
-    }
-    hasPositionInit.current = true
-
-    // Body: yaw-only quaternion
-    const bodyTarget = yawQuaternionFromDegrees(yawDeg)
-      .clone()
-      .slerp(yawQuaternionFromDegrees(yawNextDeg), lerpProgress)
-    if (didTeleport || !wasInitialized) {
-      bodyRef.current.quaternion.copy(bodyTarget)
-    } else {
-      bodyRef.current.quaternion.slerp(bodyTarget, rotationBlend)
-    }
-
-    // Aim/camera: full view angles
-    const camTarget = cameraQuaternionFromSourceAnglesDeg({
-      pitch: pitchDeg,
-      yaw: yawDeg,
-      roll: rollDeg,
-    })
-      .clone()
-      .slerp(
-        cameraQuaternionFromSourceAnglesDeg({
-          pitch: pitchNextDeg,
-          yaw: yawNextDeg,
-          roll: rollNextDeg,
-        }),
-        lerpProgress
-      )
-    if (didTeleport || !wasInitialized) {
-      playerAimRef.current.quaternion.copy(camTarget)
-    } else {
-      playerAimRef.current.quaternion.slerp(camTarget, rotationBlend)
-    }
-  })
-
-  // Kinda hacky solution to fix player models not updating when they change class,
-  // which is due to how PlayerModel handles caching of loaded GLTF models. So this
-  // solution relies of quickly remounting the PlayerModel with the updated team/classId
-  // values. It doesn't appear to trigger any network refetches, so this should be ok
-  useEffect(() => {
-    setChanging(true)
-    const timer = setTimeout(() => setChanging(false), 10)
-    return () => clearTimeout(timer)
-  }, [team, classId])
+  const origin = actorRef.current?.position
+  const target = healTarget ? positionOf(healTarget) : undefined
 
   return (
     <group name="actor" ref={actorRef} userData={user}>
@@ -282,8 +238,10 @@ export const Actor = (props: ActorProps) => {
 
       <group name="playerBody" ref={bodyRef}>
         <Suspense fallback={null}>
-          {team && classId && !changing ? (
+          {team && classId ? (
+            // A new key per class and team mounts that model instead of reusing the last one.
             <PlayerModel
+              key={`${team}-${classId}`}
               visible={alive && !isFocusedPOV}
               team={team}
               classId={classId}
@@ -297,24 +255,16 @@ export const Actor = (props: ActorProps) => {
       {/* Player aim */}
 
       <group ref={playerAimRef} name="playerAim" position={[0, 0, ActorDimensions.z]}>
-        {/* Aim line (debugging) */}
-        {/* <mesh visible={alive} position={[AimLineSize * 0.5, 0, 0]}>
-          <boxGeometry attach="geometry" args={[AimLineSize, 5, 5]} />
-          <meshBasicMaterial attach="material" color={color} opacity={0.5} transparent />
-        </mesh> */}
-
         <POVCamera />
       </group>
 
-      {/* Medic heal beam */}
+      {/* Medic heal beam: both ends are the players' objects, moved every frame */}
 
-      {healTargetVec3 && (
-        <HealBeam origin={positionVec3} target={healTargetVec3} color={color} />
-      )}
+      {origin && target && <HealBeam origin={origin} target={target} color={color} />}
 
       {/* Nameplate */}
 
-      {settings.ui.nameplate.enabled && !isFocusedPOV && (
+      {nameplate.enabled && !isFocusedPOV && (
         <Html
           name="html"
           className="pointer-events-none select-none"
@@ -329,14 +279,14 @@ export const Actor = (props: ActorProps) => {
               classId={classId}
               conditions={conditions}
               ubered={ubered}
-              settings={settings.ui.nameplate}
+              settings={nameplate}
             />
           )}
         </Html>
       )}
     </group>
   )
-}
+}, sameLook)
 
 export interface POVCameraProps {}
 

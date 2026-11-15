@@ -14,20 +14,25 @@ import {
   RtsCameraTipPanel,
 } from '@components/UI/CameraTipPanels'
 
+import { useShallow } from 'zustand/react/shallow'
+
 import { useStore, useInstance } from '@zus/store'
 import { applySetupAction } from '@zus/actions'
 import { useIsMobile } from '@utils/hooks'
 
 const ViewerPage = () => {
   const parser = useStore(state => state.parser)
-  const parsedDemo = useInstance(state => state.parsedDemo)
+  const match = useInstance(state => state.match)
   const loadedMap = useStore(state => state.scene.map)
   const setupCameraBridge = useInstance(state => state.setupCameraBridge)
   const pendingSharedSetup = useStore(state => state.setups.pendingSharedSetup)
   const isMobile = useIsMobile()
 
-  const loadingDownloads = useStore(state =>
-    Array.from(state.downloads.values()).filter(({ status }) => status === 'loading')
+  // Shallow: the selector builds a new array every time, which would re-render on any change.
+  const loadingDownloads = useStore(
+    useShallow(state =>
+      Array.from(state.downloads.values()).filter(({ status }) => status === 'loading')
+    )
   )
 
   //
@@ -56,7 +61,7 @@ const ViewerPage = () => {
     <div className="antialiased">
       <GlobalKeyHandler />
 
-      <DemoViewer demo={parsedDemo} map={loadedMap} />
+      <DemoViewer demo={match} map={loadedMap} />
 
       {/* Downloads overlay */}
       {loadingDownloads.length > 0 && (

@@ -15,6 +15,8 @@ export interface DecodedEvent {
 }
 
 export interface DecodedMeta {
+  /** The layout of the arrays and this metadata (decoder/src/lib.rs, FORMAT). */
+  format: number
   header: {
     demo_type: string
     version: number
@@ -41,8 +43,8 @@ export interface DecodedMeta {
   playerBuffers: string[]
   /** The condition bits, in order (StreamEvents.ts, CONDITION_FLAGS). */
   conditionFlags: string[]
-  /** Ticks per value in the conditions and charge arrays: 1 << statusSparse. */
-  statusSparse: number
+  /** Per player array kept one value per `1 << n` ticks: its n. */
+  sampling: import('../../components/Analyse/Data/PlayerTracks').PlayerSampling
   projectileCount: number
   buildingCount: number
   /** Ticks per building sample: 1 << buildingSparse. */

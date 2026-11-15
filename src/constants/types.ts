@@ -76,7 +76,12 @@ export const UIPanelType = {
 
 export type UIPanelType = (typeof UIPanelType)[keyof typeof UIPanelType]
 
-export const SETUP_STORAGE_VERSION = 1 as const
+/**
+ * 2: positions are Source world coordinates. 1 (before 2026-11): relative to the map model's
+ * minimum corner; read and converted (toWorldSetup), never written.
+ */
+export const SETUP_STORAGE_VERSION = 2 as const
+export type SetupVersion = 1 | typeof SETUP_STORAGE_VERSION
 
 export type SetupRtsCamera = {
   mode: 'rts'
@@ -94,7 +99,7 @@ export type SavedSetupCamera = SetupRtsCamera | SetupSpectatorCamera
 
 export type SavedSetup = {
   id: string
-  version: typeof SETUP_STORAGE_VERSION
+  version: SetupVersion
   name: string
   map: string
   camera: SavedSetupCamera

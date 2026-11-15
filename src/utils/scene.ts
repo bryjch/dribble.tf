@@ -1,13 +1,12 @@
 import * as THREE from 'three'
 import { first, last } from 'lodash'
 
-import { ActorDimensions } from '@components/Scene/Actors'
-import { MapBoundaries } from '@components/Analyse/Data/PositionCache'
+import { PLAYER_DIMENSIONS } from '@constants/mappings'
+import { MapBoundaries } from '@components/Analyse/Data/Types'
 
 import { objCoordsToVector3 } from './geometry'
 
 const DEFAULT_RTS_CAMERA_OFFSET = new THREE.Vector3(0, 250, 1000)
-type VectorLike = { x: number; y: number; z: number }
 
 /**
  * Get all Actors in the scene
@@ -64,36 +63,26 @@ export function getSceneProjectiles(scene: THREE.Scene, name: string): THREE.Obj
   return projectiles
 }
 
+/**
+ * The scene's bounds and default camera from a map's boundaries (Source world coordinates, as
+ * the scene is drawn in). The centre's height is half a player below the world's zero, which is
+ * where the default view has always looked.
+ */
 export function parseMapBoundaries(boundaries: MapBoundaries) {
+  const { boundaryMin: min, boundaryMax: max } = boundaries
   const center = new THREE.Vector3(
-    0.5 * (boundaries.boundaryMax.x - boundaries.boundaryMin.x),
-    0.5 * (boundaries.boundaryMax.y - boundaries.boundaryMin.y),
-    -boundaries.boundaryMin.z - 0.5 * ActorDimensions.z
+    min.x + 0.5 * (max.x - min.x),
+    min.y + 0.5 * (max.y - min.y),
+    -0.5 * PLAYER_DIMENSIONS.z
   )
 
   return {
-    min: objCoordsToVector3(boundaries.boundaryMin),
-    max: objCoordsToVector3(boundaries.boundaryMax),
+    min: objCoordsToVector3(min),
+    max: objCoordsToVector3(max),
     center,
     defaultCameraOffset: boundaries.cameraOffset
       ? objCoordsToVector3(boundaries.cameraOffset)
       : DEFAULT_RTS_CAMERA_OFFSET.clone(),
     defaultRtsCenter: boundaries.rtsCenter ? objCoordsToVector3(boundaries.rtsCenter) : center,
-  }
-}
-
-export function translatePointBetweenBoundaryMins(
-  point: VectorLike,
-  fromBoundaryMin?: VectorLike | null,
-  toBoundaryMin?: VectorLike | null
-) {
-  if (!fromBoundaryMin || !toBoundaryMin) {
-    return { x: point.x, y: point.y, z: point.z }
-  }
-
-  return {
-    x: point.x + fromBoundaryMin.x - toBoundaryMin.x,
-    y: point.y + fromBoundaryMin.y - toBoundaryMin.y,
-    z: point.z + fromBoundaryMin.z - toBoundaryMin.z,
   }
 }

@@ -1,4 +1,4 @@
-import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
+import { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
 import { ObjectiveState, ObjectiveTeam } from '@components/Analyse/Data/ObjectiveTimeline'
 
 //

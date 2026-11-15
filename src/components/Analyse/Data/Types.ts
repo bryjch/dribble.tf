@@ -4,9 +4,17 @@ export interface Vector {
   z: number
 }
 
+/** A map's extent, in Source world coordinates. */
 export interface World {
   boundaryMin: Vector
   boundaryMax: Vector
+}
+
+/** A map's extent, and where the RTS camera starts: Source world coordinates. */
+export interface MapBoundaries extends World {
+  /** The default camera's offset from the RTS centre. */
+  cameraOffset?: Vector
+  rtsCenter?: Vector
 }
 
 export interface Header {

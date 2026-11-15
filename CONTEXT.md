@@ -23,6 +23,10 @@ _Avoid_: parser (a match source need not parse anything)
 **Tick**:
 One step of the game's simulation, 66.67 a second; a match's ticks start at 1.
 
+**World coordinates**:
+Where something is in a match, as the game itself places it (Source units, z up); the scene is drawn in them.
+_Avoid_: scene coordinates, relative positions, boundaryMin-relative
+
 **Objective**:
 What a game mode makes teams fight over: a control point, a payload cart, or an intelligence flag.
 _Avoid_: point (for a cart or flag), intel (for any objective)

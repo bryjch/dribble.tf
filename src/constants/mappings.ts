@@ -80,3 +80,7 @@ export const MAP_SKYBOX_MAP: { [key: string]: string } = {
   koth_bagel: 'sky_granary_01', //placeholder //complete
   koth_product: 'sky_morningsnow_01', //complete
 }
+
+// Default TF2 player dimensions as specified in:
+// https://developer.valvesoftware.com/wiki/TF2/Team_Fortress_2_Mapper%27s_Reference
+export const PLAYER_DIMENSIONS = { x: 49, y: 49, z: 83 } as const

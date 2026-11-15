@@ -1,11 +1,10 @@
-import { AsyncParser } from './AsyncParser'
-import { CachedPlayer, PlayerCache } from './PlayerCache'
+import { CachedPlayer } from './PlayerTracks'
 import { CachedProjectile } from './ProjectileCache'
 import { CachedBuilding } from './BuildingCache'
-import { ObjectiveTimeline } from './ObjectiveTimeline'
-import { PlayerMeta } from './PlayerMetaCache'
+import { ObjectiveState, ObjectiveTimeline } from './ObjectiveTimeline'
 import { getMapBoundaries } from '../MapBoundaries'
-import { Vector } from './Types'
+import { ChatEntry, Header, PlayerRef, Round, World } from './Types'
+import { CachedDeath, MatchSource, lerp, lerpAngle, roundStartsFrom } from './MatchSource'
 import type { MatchUberEvent } from '@utils/matchEvents'
 import {
   BUILDING_KINDS,
@@ -29,9 +28,9 @@ export type { StreamMessage }
 //
 // ─── LIVE MATCH SOURCE ──────────────────────────────────────────────────────────
 //
-// Stands in for AsyncParser when the match comes from an stv.tf event stream instead of a
-// .dem file. The viewer only ever asks a parser for the state at a tick, so this keeps every
-// snapshot stv.tf sends and answers the same questions from them.
+// The match source for a live match, fed by an stv.tf event stream instead of a .dem file. The
+// viewer only ever asks a match source for the state at a tick, so this keeps every snapshot
+// stv.tf sends and answers the same questions from them.
 //
 // stv.tf sends full snapshots (not deltas) about every 4 server ticks; the viewer asks for
 // every tick, so positions are interpolated between the two snapshots around it. Snapshots
@@ -87,12 +86,22 @@ interface Frame {
   buildings: Float32Array
 }
 
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t
-const lerpAngle = (a: number, b: number, t: number) =>
-  a + (((((b - a) % 360) + 540) % 360) - 180) * t
-export class LiveSource extends AsyncParser {
-  frames: Frame[] = []
+export class LiveSource implements MatchSource {
+  readonly kind = 'live' as const
+  header: Header
+  intervalPerTick: number
+  world: World = { boundaryMin: { x: 0, y: 0, z: 0 }, boundaryMax: { x: 0, y: 0, z: 0 } }
+  ticks = 1
+  revision = 0
+  deaths: { [tick: string]: CachedDeath[] } = {}
+  chat: ChatEntry[] = []
+  rounds: Round[] = []
   uberPops: MatchUberEvent[] = []
+  frames: Frame[] = []
+  readonly objectives: ObjectiveTimeline
+
+  // Players by slot: one slot per stv.tf player id, in the order they were first seen.
+  private players = new Map<number, PlayerRef>()
 
   // The server tick the first snapshot had, and the latest one seen.
   private baseTick: number | null = null
@@ -100,13 +109,11 @@ export class LiveSource extends AsyncParser {
   // A kill or chat line from the history replayed on a reconnect is skipped up to here.
   private lastEventTick = 0
   private slots = new Map<number, number>()
-  private origin: Vector = { x: 0, y: 0, z: 0 }
 
   /** Called when the server's ticks start over: a restarted server, or a replay looping. */
   onReset: (() => void) | null = null
 
   constructor(map: string, hostname: string, intervalPerTick: number, world: Vec3[] | null) {
-    super(new ArrayBuffer(0), () => {})
     this.header = {
       demo_type: 'stv.tf',
       version: 0,
@@ -121,19 +128,7 @@ export class LiveSource extends AsyncParser {
       signon: 0,
     }
     this.intervalPerTick = intervalPerTick
-    this.ticks = 1
-    this.chat = []
-    this.deaths = {}
-    this.rounds = []
-    this.entityPlayerMap = new Map()
-    this.nextMappedPlayer = 0
-    this.playerCache = {
-      metaCache: { getMeta: (slot: number, tick: number) => this.getMeta(slot, tick) },
-    } as unknown as PlayerCache
-    this.buildingCache = { getBuildings: () => [] } as any
-    this.projectileCache = { getProjectiles: () => [] } as any
     this.objectives = new ObjectiveTimeline(undefined, intervalPerTick)
-    this.world = { boundaryMin: { x: 0, y: 0, z: 0 }, boundaryMax: { x: 0, y: 0, z: 0 } }
     this.setWorld(world)
   }
 
@@ -142,7 +137,7 @@ export class LiveSource extends AsyncParser {
     return this.world.boundaryMax.x !== this.world.boundaryMin.x
   }
 
-  /** Positions are relative to the map's boundaryMin, as the parser worker stores them. */
+  /** The map's extent: dribble.tf's own bounds for a map it knows, else the stream's. */
   setWorld(world: Vec3[] | null) {
     const known = getMapBoundaries(this.header.map)
     if (known) {
@@ -154,8 +149,6 @@ export class LiveSource extends AsyncParser {
         boundaryMax: { x: max[0], y: max[1], z: max[2] },
       }
     }
-    this.origin = this.world.boundaryMin
-    this.objectives.offset = { x: -this.origin.x, y: -this.origin.y, z: -this.origin.z }
   }
 
   get latestTick() {
@@ -205,7 +198,6 @@ export class LiveSource extends AsyncParser {
     if (slot === undefined) {
       slot = this.slots.size
       this.slots.set(id, slot)
-      this.nextMappedPlayer = this.slots.size
     }
     return slot
   }
@@ -230,7 +222,7 @@ export class LiveSource extends AsyncParser {
       const slot = this.slotOf(p.id)
       const o = slot * STRIDE
       const team = teamName(p.team)
-      this.entityPlayerMap.set(slot, {
+      this.players.set(slot, {
         user: { name: p.name, userId: p.id, steamId: p.steamid, entityId: p.ent, team },
       })
       data[o + PRESENT] = 1
@@ -294,7 +286,7 @@ export class LiveSource extends AsyncParser {
   private playerRef(id: number | null | undefined, names?: Record<string, { name: string; team: string }>) {
     if (id == null) return null
     const slot = this.slots.get(id)
-    const known = slot !== undefined ? this.entityPlayerMap.get(slot) : undefined
+    const known = slot !== undefined ? this.players.get(slot) : undefined
     if (known) return { user: { ...known.user } }
     const named = names?.[id]
     if (!named) return null
@@ -354,22 +346,29 @@ export class LiveSource extends AsyncParser {
     return { i, a, b: t > 0 ? b : undefined, t }
   }
 
-  getMeta(slot: number, tick: number): PlayerMeta {
+  slotTeamAt(slot: number, tick: number): number {
     const frame = this.frames[this.frameIndexAt(tick)]
     const o = slot * STRIDE
-    if (!frame || o >= frame.players.length) return { classId: 0, teamId: 0 }
-    return { classId: frame.players[o + CLASS], teamId: frame.players[o + TEAM] }
+    if (!frame || o >= frame.players.length) return 0
+    return frame.players[o + TEAM]
   }
 
-  getPlayersAtTick(tick: number): CachedPlayer[] {
+  objectivesAt(tick: number): ObjectiveState | null {
+    return this.objectives.at(tick)
+  }
+
+  roundStarts(): number[] {
+    return roundStartsFrom(this.objectives.data.round)
+  }
+
+  playersAt(tick: number): CachedPlayer[] {
     const at = this.around(tick)
     const players: CachedPlayer[] = []
     if (!at) return players
     const { a, b, t } = at
-    const { origin } = this
 
-    for (let slot = 0; slot < this.nextMappedPlayer; slot++) {
-      const ref = this.entityPlayerMap.get(slot)
+    for (let slot = 0; slot < this.slots.size; slot++) {
+      const ref = this.players.get(slot)
       if (!ref) continue
       const o = slot * STRIDE
       const p = a.players
@@ -403,7 +402,7 @@ export class LiveSource extends AsyncParser {
 
       const team = teamId === 2 ? 'red' : teamId === 3 ? 'blue' : ''
       players.push({
-        position: { x: x - origin.x, y: y - origin.y, z: z - origin.z },
+        position: { x, y, z },
         viewAngles: { x: pitch, y: yaw, z: 0 },
         user: { ...ref.user, team },
         health,
@@ -425,11 +424,10 @@ export class LiveSource extends AsyncParser {
     return players
   }
 
-  getBuildingAtTick(tick: number): CachedBuilding[] {
+  buildingsAt(tick: number): CachedBuilding[] {
     const at = this.around(tick)
     if (!at) return []
     const { a, b, t } = at
-    const { origin } = this
     const next = new Map<number, number>()
     if (b) {
       for (let o = 0; o < b.buildings.length; o += B_STRIDE) next.set(b.buildings[o + B_ID], o)
@@ -452,7 +450,7 @@ export class LiveSource extends AsyncParser {
         level: q[o + B_LEVEL],
         health: q[o + B_HP],
         maxHealth: q[o + B_MAX],
-        position: { x: q[o + B_X] - origin.x, y: q[o + B_Y] - origin.y, z: q[o + B_Z] - origin.z },
+        position: { x: q[o + B_X], y: q[o + B_Y], z: q[o + B_Z] },
         yaw: q[o + B_YAW],
         aim,
         target: q[o + B_TARGET] || null,
@@ -466,11 +464,10 @@ export class LiveSource extends AsyncParser {
     return out
   }
 
-  getProjectilesAtTick(tick: number): CachedProjectile[] {
+  projectilesAt(tick: number): CachedProjectile[] {
     const at = this.around(tick)
     if (!at) return []
     const { a, b, t } = at
-    const { origin } = this
     const next = new Map<number, number>()
     if (b) {
       for (let o = 0; o < b.projectiles.length; o += P_STRIDE) next.set(b.projectiles[o], o)
@@ -492,7 +489,7 @@ export class LiveSource extends AsyncParser {
       out.push({
         entityId: p[o],
         type: ['', 'rocket', 'pipebomb', 'stickybomb', 'healingBolt'][p[o + 1]],
-        position: { x: x - origin.x, y: y - origin.y, z: z - origin.z },
+        position: { x, y, z },
         rotation: { x: 0, y: 0, z: p[o + 5] },
         teamNumber: p[o + 6],
       })

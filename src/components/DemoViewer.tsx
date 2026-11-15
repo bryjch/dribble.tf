@@ -1,4 +1,4 @@
-import { Component, createRef, useRef, useEffect, useState, useCallback, Suspense } from 'react'
+import { memo, useRef, useEffect, useMemo, useState, useCallback, Suspense } from 'react'
 
 // THREE related imports
 import * as THREE from 'three'
@@ -19,14 +19,12 @@ import { Projectiles } from '@components/Scene/Projectiles'
 import { Buildings } from '@components/Scene/Buildings'
 import { Objectives } from '@components/Scene/Objectives'
 import { ObjectiveHud } from '@components/UI/ObjectiveHud'
-import { ObjectiveState } from '@components/Analyse/Data/ObjectiveTimeline'
-import { CachedBuilding } from '@components/Analyse/Data/BuildingCache'
 import { World } from '@components/Scene/World'
 import { Skybox } from '@components/Scene/Skybox'
 import { Stickers } from '@components/Scene/Stickers'
-import { AsyncParser } from './Analyse/Data/AsyncParser'
-import { CachedPlayer } from './Analyse/Data/PlayerCache'
-import { InterpolatedProjectile } from './Scene/Projectiles'
+import { PlaybackDriver, isScenePlayer } from '@components/Scene/PlaybackDriver'
+import type { MatchSource } from './Analyse/Data/MatchSource'
+import { CachedPlayer } from './Analyse/Data/PlayerTracks'
 
 // UI Panels
 import { AboutPanel } from '@components/UI/AboutPanel'
@@ -51,16 +49,15 @@ import { useStore, getState, useInstance } from '@zus/store'
 import {
   changeControlsModeAction,
   forceShowPanelAction,
-  goToTickAction,
   playbackJumpAction,
   setSceneRtsCenterAction,
 } from '@zus/actions'
-import { ActorProps } from './Scene/Actors'
 import { isPerfLoggingEnabled, readJsHeapMemoryMb } from '@utils/misc'
 import { useIsMobile } from '@utils/hooks'
 import { cn } from '@utils/styling'
 import { ControlsMode, DrawingTool, SavedSetupCamera } from '@constants/types'
 import { getWorldIntersectionFromScreen } from '@utils/raycast'
+import { benchCount, setBenchRenderer } from '@utils/bench'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -373,14 +370,29 @@ const Controls = () => {
 
 const PerfProbe = ({ enabled }: { enabled: boolean }) => {
   const { gl } = useThree()
+  const elapsed = useRef(0)
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (!enabled) return
 
     useInstance.getState().setRuntimePerf({
       renderCalls: gl.info.render.calls,
       renderTriangles: gl.info.render.triangles,
     })
+
+    elapsed.current += delta
+    if (elapsed.current < 5) return
+    elapsed.current = 0
+    const heapMb = readJsHeapMemoryMb()
+    const { runtimePerf } = useInstance.getState()
+    console.log(
+      `[Perf] tick=${getState().playback.tick}` +
+        ` calls=${runtimePerf.renderCalls}` +
+        ` triangles=${runtimePerf.renderTriangles}` +
+        ` visibleChunks=${runtimePerf.visibleChunkCount}` +
+        ` cluster=${runtimePerf.currentCluster ?? 'all'}` +
+        (heapMb !== undefined ? ` heap=${heapMb.toFixed(1)}MB` : '')
+    )
   })
 
   return null
@@ -573,129 +585,54 @@ const PanelToolbar = ({ hasDemoLoaded }: { hasDemoLoaded: boolean }) => {
 // ─── COMPONENT ──────────────────────────────────────────────────────────────────
 //
 type DemoViewerProps = {
-  demo?: AsyncParser
+  demo?: MatchSource
   map: string
 }
 
-class DemoViewer extends Component<DemoViewerProps> {
-  playbackSub = function () {}
-  settingsSub = function () {}
-  canvasRef = createRef<HTMLCanvasElement>()
-  uiLayers = createRef<HTMLDivElement>()
+// Cap Retina/high-density DPR so fill-rate does not erase later draw-call wins.
+const CANVAS_DPR = typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio || 1, 1.25)
 
-  // Perf logging
-  perfLoggingEnabled = isPerfLoggingEnabled()
-  perfLogTimer = 0
+/**
+ * The viewer: the 3D scene and the interface over it. Nothing here re-renders while playback
+ * runs. The scene animates in frame callbacks (PlaybackDriver, Actors, Projectiles), and the
+ * parts that show the tick (MatchHud, MatchProps, Actors' looks) follow the store's tick, which
+ * the playback clock updates a few times a second.
+ */
+export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
+  benchCount('viewerRender')
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const lastPointer = useRef({ x: 0, y: 0 })
+  const perfLoggingEnabled = useMemo(() => isPerfLoggingEnabled(), [])
 
-  // Timing variables for animation loop
-  elapsedTime = 0
-  lastTimestamp = 0
-  lastTouchPos = { x: 0, y: 0 }
+  const sceneMode = useStore(state => state.settings.scene.mode)
+  const showSkybox = useStore(state => state.settings.ui.showSkybox)
+  const playerOutlines = useStore(state => state.settings.ui.playerOutlines)
+  const showStats = useStore(state => state.settings.ui.showStats)
 
-  state = {
-    playback: getState().playback,
-    settings: getState().settings,
+  // Force tabIndex (r3f seems to ignore it if provided in props) as this is how
+  // we can ensure separation of Global and Canvas-only keyboard events when certain
+  // elements are in focus (e.g. when menu is open, we don't want to trigger Canvas events)
+  // https://github.com/pmndrs/react-three-fiber/issues/1238
+  useEffect(() => {
+    canvasRef.current?.setAttribute('tabindex', '0')
+  }, [])
+
+  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    lastPointer.current = { x: event.clientX, y: event.clientY }
   }
 
-  //
-  // ─── LIFECYCLE ──────────────────────────────────────────────────────────────────
-  //
-
-  componentDidMount() {
-    this.animate(0)
-
-    // These zustand subscribers are necessary because useStore.getState doesn't
-    // update correctly in React class components. Unfortunately I've decided to
-    // keep this component as a class component instead of converting to a functional
-    // component -- because it seems to be SUPER PAINFUL trying to get the animate()
-    // requestAnimationFrame stuff working correctly as a functional component
-    // (it ends up annihilating the fps and some other buggy behaviour)
-    this.playbackSub = useStore.subscribe(state => this.setState({ playback: state.playback }))
-    this.settingsSub = useStore.subscribe(state => this.setState({ settings: state.settings }))
-
-    // Force tabIndex (r3f seems to ignore it if provided in props) as this is how
-    // we can ensure separation of Global and Canvas-only keyboard events when certain
-    // elements are in focus (e.g. when menu is open, we don't want to trigger Canvas events)
-    // https://github.com/pmndrs/react-three-fiber/issues/1238
-    this.canvasRef.current?.setAttribute('tabindex', '0')
-  }
-
-  componentWillUnmount() {
-    this.playbackSub()
-    this.settingsSub()
-  }
-
-  //
-  // ─── ANIMATION LOOP ─────────────────────────────────────────────────────────────
-  //
-
-  // TODO: it may be better to try using THREE.js Clock for playback instead
-  // of this requestAnimationFrame() implementation
-  // https://threejs.org/docs/#api/en/core/Clock
-  animate = async (timestamp: number) => {
-    const { playback } = this.state
-
-    const intervalPerTick = playback.intervalPerTick || 0.015
-    const millisPerTick = 1000 * intervalPerTick * (1 / playback.speed)
-    const frameDelta = timestamp - this.lastTimestamp
-
-    this.elapsedTime += frameDelta
-
-    if (playback.playing) {
-      if (this.elapsedTime >= millisPerTick) {
-        const ticksToAdvance = Math.floor(this.elapsedTime / millisPerTick)
-        this.elapsedTime -= ticksToAdvance * millisPerTick
-        goToTickAction(playback.tick + ticksToAdvance)
-      }
-      useInstance.getState().setFrameProgress(Math.min(this.elapsedTime / millisPerTick, 0.999))
-    } else {
-      useInstance.getState().setFrameProgress(0)
-      this.elapsedTime = 0
-    }
-
-    if (this.perfLoggingEnabled) {
-      this.perfLogTimer += frameDelta
-      if (this.perfLogTimer >= 5000) {
-        this.perfLogTimer = 0
-        const heapMb = readJsHeapMemoryMb()
-        const { runtimePerf } = useInstance.getState()
-        console.log(
-          `[Perf] tick=${playback.tick}` +
-            ` calls=${runtimePerf.renderCalls}` +
-            ` triangles=${runtimePerf.renderTriangles}` +
-            ` visibleChunks=${runtimePerf.visibleChunkCount}` +
-            ` cluster=${runtimePerf.currentCluster ?? 'all'}` +
-            (heapMb !== undefined ? ` heap=${heapMb.toFixed(1)}MB` : '')
-        )
-      }
-    }
-
-    this.lastTimestamp = timestamp
-
-    requestAnimationFrame(this.animate)
-  }
-
-  onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    this.lastTouchPos = { x: event.clientX, y: event.clientY }
-  }
-
-  onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+  const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
     const pointerMoved =
-      Math.abs(event.clientX - this.lastTouchPos.x) >= 10 ||
-      Math.abs(event.clientY - this.lastTouchPos.y) >= 10
+      Math.abs(event.clientX - lastPointer.current.x) >= 10 ||
+      Math.abs(event.clientY - lastPointer.current.y) >= 10
 
     if (useInstance.getState().mapCenterPickerActive) {
-      if (pointerMoved) {
-        return
-      }
+      if (pointerMoved) return
 
       const scene = useInstance.getState().threeScene
       const camera = (scene as THREE.Scene & { camera?: THREE.Camera }).camera
       const domElement = event.currentTarget.querySelector('canvas')
-
-      if (!camera || !domElement) {
-        return
-      }
+      if (!camera || !domElement) return
 
       const point = getWorldIntersectionFromScreen({
         camera,
@@ -704,228 +641,157 @@ class DemoViewer extends Component<DemoViewerProps> {
         screenX: event.clientX,
         screenY: event.clientY,
       })
-
-      if (point) {
-        setSceneRtsCenterAction({ x: point.x, y: point.y, z: point.z })
-      }
-
+      if (point) setSceneRtsCenterAction({ x: point.x, y: point.y, z: point.z })
       return
     }
 
-    if (getState().drawing.stickerDrag.active) {
-      return
-    }
-
-    if (getState().drawing.enabled && getState().drawing.tool === DrawingTool.STICKERS) {
-      return
-    }
-
-    if (!pointerMoved) {
-      forceShowPanelAction()
-    }
+    if (getState().drawing.stickerDrag.active) return
+    if (getState().drawing.enabled && getState().drawing.tool === DrawingTool.STICKERS) return
+    if (!pointerMoved) forceShowPanelAction()
   }
 
-  //
-  // ─── RENDER ─────────────────────────────────────────────────────────────────────
-  //
+  return (
+    <div className="h-screen w-screen">
+      <Canvas
+        ref={canvasRef}
+        id="main-canvas"
+        gl={{ alpha: true }}
+        dpr={CANVAS_DPR}
+        onCreated={({ gl }) => setBenchRenderer(gl)}
+        onContextMenu={e => e.preventDefault()}
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+      >
+        {/* Playback: moves the clock and reads the match, before anything else in the frame */}
 
-  render() {
-    const { playback, settings } = this.state
-    const { demo, map } = this.props
-    const INTERP_DELAY_TICKS = 2
-    const renderTick = Math.max(1, playback.tick - INTERP_DELAY_TICKS)
-    const MAX_PROJECTILES_FOR_HIGH_QUALITY_INTERPOLATION = 16
-    // Cap Retina/high-density DPR so fill-rate does not erase later draw-call wins.
-    const canvasDpr =
-      typeof window === 'undefined' ? 1 : Math.min(window.devicePixelRatio || 1, 1.25)
+        <PlaybackDriver match={demo} />
 
-    let playersThisTick: CachedPlayer[] = []
-    let playersNextTick: CachedPlayer[] = []
-    let actorsThisTick: ActorProps[] = []
-    let projectilesThisTick: InterpolatedProjectile[] = []
-    let buildingsThisTick: CachedBuilding[] = []
-    let objectivesThisTick: ObjectiveState | null = null
-    const showObjectives = settings.ui.showObjectives !== false
+        {/* Base scene elements */}
 
-    if (!!demo) {
-      playersThisTick = demo
-        .getPlayersAtTick(renderTick)
-        .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
+        <Lights map={map} />
+        <Controls />
+        <PerfProbe enabled={perfLoggingEnabled} />
+        <CanvasKeyHandler />
 
-      playersNextTick = demo
-        .getPlayersAtTick(renderTick + 1)
-        .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
+        {/* World Map */}
 
-      const nextTickMap = new Map(playersNextTick.map(p => [p.user.entityId, p]))
+        <Suspense fallback={null}>
+          <World map={map} mode={sceneMode} />
+        </Suspense>
 
-      actorsThisTick = playersThisTick.map(player => {
-        const next = nextTickMap.get(player.user.entityId)
-        return {
-          ...player,
-          positionNext: next?.position ?? player.position,
-          viewAnglesNext: next?.viewAngles ?? player.viewAngles,
-        }
-      })
+        {ENABLE_DEBUG_MAP_OFFSET && <MapCenterMarker />}
 
-      buildingsThisTick = demo.getBuildingAtTick(renderTick)
-      objectivesThisTick = demo.getObjectivesAtTick(renderTick)
+        <Stickers />
 
-      const projectilesCurrentTick = demo.getProjectilesAtTick(renderTick)
-      const projectilesNextTick = demo.getProjectilesAtTick(renderTick + 1)
-      const projectilesNextById = new Map(projectilesNextTick.map(p => [p.entityId, p]))
+        {/* Skybox */}
 
-      const useHighQualityProjectileInterpolation =
-        projectilesCurrentTick.length <= MAX_PROJECTILES_FOR_HIGH_QUALITY_INTERPOLATION
-      const projectilesPrevTick = useHighQualityProjectileInterpolation
-        ? demo.getProjectilesAtTick(Math.max(renderTick - 1, 1))
-        : []
-      const projectilesNext2Tick = useHighQualityProjectileInterpolation
-        ? demo.getProjectilesAtTick(renderTick + 2)
-        : []
-      const projectilesPrevById = new Map(projectilesPrevTick.map(p => [p.entityId, p]))
-      const projectilesNext2ById = new Map(projectilesNext2Tick.map(p => [p.entityId, p]))
+        {showSkybox && <Skybox map={map} />}
 
-      projectilesThisTick = projectilesCurrentTick.map(projectile => {
-        const nextProjectile = projectilesNextById.get(projectile.entityId)
-        const prevProjectile = projectilesPrevById.get(projectile.entityId)
-        const next2Projectile = projectilesNext2ById.get(projectile.entityId)
-        return {
-          ...projectile,
-          positionPrev: prevProjectile?.position ?? projectile.position,
-          positionNext: nextProjectile?.position ?? projectile.position,
-          positionNext2:
-            next2Projectile?.position ?? nextProjectile?.position ?? projectile.position,
-          rotationNext: nextProjectile?.rotation ?? projectile.rotation,
-        }
-      })
-    }
+        {/* Actors */}
 
-    return (
-      <div className="h-screen w-screen">
-        <Canvas
-          ref={this.canvasRef}
-          id="main-canvas"
-          gl={{ alpha: true }}
-          dpr={canvasDpr}
-          onContextMenu={e => e.preventDefault()}
-          onPointerDown={this.onPointerDown}
-          onPointerUp={this.onPointerUp}
-        >
-          {/* Base scene elements */}
+        <Suspense fallback={null}>
+          <Selection>
+            <Actors match={demo} />
 
-          <Lights map={map} />
-          <Controls />
-          <PerfProbe enabled={this.perfLoggingEnabled} />
-          <CanvasKeyHandler />
-
-          {/* World Map */}
-
-          <Suspense fallback={null}>
-            <World map={map} mode={settings.scene.mode} />
-          </Suspense>
-
-          {ENABLE_DEBUG_MAP_OFFSET && <MapCenterMarker />}
-
-          <Stickers />
-
-          {/* Skybox */}
-
-          {settings.ui.showSkybox && <Skybox map={map} />}
-
-          {/* Actors */}
-
-          <Suspense fallback={null}>
-            <Selection>
-              <Actors actors={actorsThisTick} />
-
-              <EffectComposer enabled={settings.ui.playerOutlines} autoClear={false}>
-                <Outline
-                  blendFunction={BlendFunction.SCREEN}
-                  visibleEdgeColor={0xffffff}
-                  hiddenEdgeColor={0xffffff}
-                  xRay={true}
-                />
-              </EffectComposer>
-            </Selection>
-          </Suspense>
-
-          {/* Buildings */}
-
-          <Buildings buildings={buildingsThisTick} />
-
-          {/* Control points, carts, flags */}
-
-          {showObjectives && <Objectives state={objectivesThisTick} players={playersThisTick} />}
-
-          {/* Projectiles */}
-
-          <Projectiles
-            projectiles={projectilesThisTick}
-            tick={renderTick}
-            intervalPerTick={demo?.intervalPerTick ?? 0.015}
-          />
-        </Canvas>
-
-        {/* Normal React (non-THREE.js) UI elements */}
-
-        {settings.ui.showStats && <FpsCounter />}
-
-        <div className="ui-layer pointer-events-none items-center justify-center">
-          <Crosshair />
-        </div>
-
-        <div className="ui-layers" ref={this.uiLayers}>
-          <DoubleTapSeek />
-
-          <div className="ui-layer mb-4 items-end justify-center text-center">
-            <PlaybackPanel />
-          </div>
-
-          {showObjectives && objectivesThisTick && (
-            <div className="ui-layer m-4 items-start justify-center">
-              <ObjectiveHud state={objectivesThisTick} players={playersThisTick} />
-            </div>
-          )}
-
-          <div className="ui-layer m-4 items-start justify-end">
-            <div className="flex flex-col items-end gap-2">
-              {ENABLE_DEBUG_MAP_OFFSET && <MapOffsetDebugPanel />}
-              {demo && <Killfeed parser={demo} tick={playback.tick} />}
-            </div>
-          </div>
-
-          {demo && (
-            <div className="ui-layer m-4 items-end justify-start">
-              <ChatHud parser={demo} tick={playback.tick} />
-            </div>
-          )}
-
-          {playersThisTick.length > 0 && (
-            <div className="ui-layer items-center justify-stretch">
-              <PlayerStatuses
-                players={playersThisTick}
-                tick={playback.tick}
-                intervalPerTick={demo?.intervalPerTick ?? 0.015}
+            <EffectComposer enabled={playerOutlines} autoClear={false}>
+              <Outline
+                blendFunction={BlendFunction.SCREEN}
+                visibleEdgeColor={0xffffff}
+                hiddenEdgeColor={0xffffff}
+                xRay={true}
               />
-            </div>
-          )}
+            </EffectComposer>
+          </Selection>
+        </Suspense>
 
-          {playersThisTick.length > 0 && (
-            <FocusedPlayerLayer
-              players={playersThisTick}
-              tick={playback.tick}
-              intervalPerTick={demo?.intervalPerTick ?? 0.015}
-            />
-          )}
+        {/* Buildings, control points, carts, flags */}
 
-          <PanelToolbar hasDemoLoaded={!!demo} />
-        </div>
+        <MatchProps match={demo} />
+
+        {/* Projectiles */}
+
+        <Projectiles />
+      </Canvas>
+
+      {/* Normal React (non-THREE.js) UI elements */}
+
+      {showStats && <FpsCounter />}
+
+      <div className="ui-layer pointer-events-none items-center justify-center">
+        <Crosshair />
       </div>
-    )
-  }
+
+      <div className="ui-layers">
+        <DoubleTapSeek />
+
+        <div className="ui-layer mb-4 items-end justify-center text-center">
+          <PlaybackPanel />
+        </div>
+
+        <MatchHud match={demo} />
+
+        <PanelToolbar hasDemoLoaded={!!demo} />
+      </div>
+    </div>
+  )
+})
+
+/** Buildings and objectives in the world, at the store's tick (they are sampled every few ticks). */
+const MatchProps = ({ match }: { match?: MatchSource }) => {
+  const tick = useStore(state => state.playback.tick)
+  const showObjectives = useStore(state => state.settings.ui.showObjectives !== false)
+  if (!match) return null
+  const players = match.playersAt(tick).filter(isScenePlayer)
+  return (
+    <>
+      <Buildings buildings={match.buildingsAt(tick)} />
+      {showObjectives && <Objectives state={match.objectivesAt(tick)} players={players} />}
+    </>
+  )
 }
 
-export { DemoViewer }
+/** The match's interface over the scene: objectives, killfeed, chat, player cards. */
+const MatchHud = ({ match }: { match?: MatchSource }) => {
+  benchCount('hudRender')
+  const tick = useStore(state => state.playback.tick)
+  const showObjectives = useStore(state => state.settings.ui.showObjectives !== false)
+  if (!match) return null
+
+  const players = match.playersAt(tick).filter(isScenePlayer)
+  const objectives = showObjectives ? match.objectivesAt(tick) : null
+  const { intervalPerTick } = match
+
+  return (
+    <>
+      {objectives && (
+        <div className="ui-layer m-4 items-start justify-center">
+          <ObjectiveHud state={objectives} players={players} />
+        </div>
+      )}
+
+      <div className="ui-layer m-4 items-start justify-end">
+        <div className="flex flex-col items-end gap-2">
+          {ENABLE_DEBUG_MAP_OFFSET && <MapOffsetDebugPanel />}
+          <Killfeed parser={match} tick={tick} />
+        </div>
+      </div>
+
+      <div className="ui-layer m-4 items-end justify-start">
+        <ChatHud parser={match} tick={tick} />
+      </div>
+
+      {players.length > 0 && (
+        <div className="ui-layer items-center justify-stretch">
+          <PlayerStatuses players={players} tick={tick} intervalPerTick={intervalPerTick} />
+        </div>
+      )}
+
+      {players.length > 0 && (
+        <FocusedPlayerLayer players={players} tick={tick} intervalPerTick={intervalPerTick} />
+      )}
+    </>
+  )
+}
 
 function vector3ToTuple(vector: THREE.Vector3): [number, number, number] {
   return [vector.x, vector.y, vector.z]
@@ -934,72 +800,3 @@ function vector3ToTuple(vector: THREE.Vector3): [number, number, number] {
 function quaternionToTuple(quaternion: THREE.Quaternion): [number, number, number, number] {
   return [quaternion.x, quaternion.y, quaternion.z, quaternion.w]
 }
-
-//
-// ─── DATA FOR DEBUGGING ─────────────────────────────────────────────────────────
-//
-
-export const TEST_PROJECTILES = [
-  {
-    entityId: 4,
-    position: new THREE.Vector3(-100, 50, 0),
-    rotation: new THREE.Vector3(0, 0, 0),
-    teamNumber: 2,
-    type: 'stickybomb',
-  },
-  {
-    entityId: 5,
-    position: new THREE.Vector3(-100, -50, 0),
-    rotation: new THREE.Vector3(0, 0, 0),
-    teamNumber: 3,
-    type: 'stickybomb',
-  },
-  {
-    entityId: 6,
-    position: new THREE.Vector3(-100, 0, 0),
-    rotation: new THREE.Vector3(0, 0, 0),
-    teamNumber: 3,
-    type: 'rocket',
-  },
-  {
-    entityId: 7,
-    position: new THREE.Vector3(-100, 100, 0),
-    rotation: new THREE.Vector3(0, 0, 0),
-    teamNumber: 2,
-    type: 'pipebomb',
-  },
-  {
-    entityId: 8,
-    position: new THREE.Vector3(-100, -100, 0),
-    rotation: new THREE.Vector3(0, 0, 0),
-    teamNumber: 3,
-    type: 'pipebomb',
-  },
-]
-
-export const TEST_ACTORS = [
-  {
-    position: { x: 0, y: 0, z: 0 },
-    viewAngles: { x: 0, y: 0, z: 0 },
-    classId: 1,
-    health: 125,
-    team: '',
-    user: { name: 'None', entityId: 1 },
-  },
-  {
-    position: { x: 0, y: 200, z: 0 },
-    viewAngles: { x: 0, y: 0, z: 0 },
-    classId: 1,
-    health: 125,
-    team: 'red',
-    user: { name: 'Red', entityId: 2 },
-  },
-  {
-    position: { x: 0, y: -200, z: 0 },
-    viewAngles: { x: 0, y: 0, z: 0 },
-    classId: 1,
-    health: 125,
-    team: 'blue',
-    user: { name: 'Blue', entityId: 3 },
-  },
-]

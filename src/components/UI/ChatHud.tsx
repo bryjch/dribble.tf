@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { isMobile } from 'react-device-detect'
 
-import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import type { MatchSource } from '@components/Analyse/Data/MatchSource'
 import { ChatEntry } from '@components/Analyse/Data/Types'
 
 const HUD_CHAT_TIME_SECONDS = 12
@@ -60,7 +60,7 @@ const parseHexColor = (hex: string): RGBA | null => {
 }
 
 const getPlayerNameColor = (
-  parser: AsyncParser,
+  parser: MatchSource,
   playerId: number | null | undefined,
   tick: number
 ): RGBA => {
@@ -68,8 +68,8 @@ const getPlayerNameColor = (
     return Tf2Colors.grey
   }
 
-  const meta = parser.playerCache?.metaCache?.getMeta?.(playerId, tick)
-  switch (meta?.teamId) {
+  const teamId = parser.slotTeamAt(playerId, tick)
+  switch (teamId) {
     case 2:
       return Tf2Colors.red
     case 3:
@@ -179,7 +179,7 @@ const getVisibleChat = (chat: ChatEntry[], tick: number, intervalPerTick: number
 }
 
 export interface ChatHudProps {
-  parser: AsyncParser
+  parser: MatchSource
   tick: number
 }
 

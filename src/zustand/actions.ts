@@ -1,14 +1,14 @@
-import { get, merge, clamp, sortBy, round } from 'lodash'
+import { get, merge, clamp, cloneDeep, sortBy, round } from 'lodash'
 import localForage from 'localforage'
 import * as THREE from 'three'
 
-import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
-import { LiveSource } from '@components/Analyse/Data/LiveSource'
-import type { MapBoundaries } from '@components/Analyse/Data/PositionCache'
+import { decodeDemo } from '@components/Analyse/Data/DemoSource'
+import type { MatchSource } from '@components/Analyse/Data/MatchSource'
+import type { MapBoundaries } from '@components/Analyse/Data/Types'
 import { getMapBoundaries, getMapBoundariesKey } from '@components/Analyse/MapBoundaries'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
-import { getSceneActors, parseMapBoundaries, translatePointBetweenBoundaryMins } from '@utils/scene'
+import { getSceneActors, parseMapBoundaries } from '@utils/scene'
 import { fetchMapWorldBounds } from '@utils/game'
 import {
   buildSetupShareUrl,
@@ -18,6 +18,7 @@ import {
   deserializeSetupFromShareToken,
   normalizeStoredSetups,
   parseSetupHash,
+  toWorldSetup,
 } from '@utils/setups'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import {
@@ -35,6 +36,7 @@ import { StickerDragKind } from './drawing'
 
 import { dispatch, getState, initialState, StoreState, useInstance } from './store'
 import { isMobile } from 'react-device-detect'
+import { setClockTick } from '@utils/playback'
 
 //
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
@@ -57,26 +59,23 @@ export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
   try {
     dispatch({ type: 'PARSE_DEMO_INIT' })
 
-    const parsedDemo = new AsyncParser(fileBuffer, async progress => {
-      dispatch({ type: 'PARSE_DEMO_PROGRESS', payload: progress })
-    })
-
+    let match
     try {
-      await parsedDemo.cache()
+      match = await decodeDemo(fileBuffer, progress => {
+        dispatch({ type: 'PARSE_DEMO_PROGRESS', payload: progress })
+      })
     } catch (error) {
       alert(`Unable to load demo. Please make sure it's a valid SourceTV .dem file.`)
       throw error
     }
 
-    console.log('%c-------- Demo parsed --------', 'color: blue; font-size: 16px;')
-    console.log(parsedDemo)
-    console.log('%c-----------------------------', 'color: blue; font-size: 16px;')
+    console.info('[Perf][Decode]', match.stats)
 
     dispatch({ type: 'PARSE_DEMO_SUCCESS' })
 
-    await loadSceneFromDemoAction(parsedDemo)
+    await loadSceneFromDemoAction(match)
 
-    return parsedDemo
+    return match
   } catch (error) {
     dispatch({ type: 'PARSE_DEMO_ERROR', payload: error })
     throw error
@@ -87,26 +86,33 @@ export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
 //
 
-export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
+/**
+ * Where the RTS camera should orbit on a map, if the viewer saved one: Source world coordinates.
+ * Centres saved before 2026-11 (settings.scene.rtsCenters) were relative to the map model's
+ * minimum corner and are converted here.
+ */
+async function savedRtsCenter(map: string) {
+  const key = getMapBoundariesKey(map) ?? map
+  const { worldRtsCenters, rtsCenters } = getState().settings.scene
+  if (worldRtsCenters?.[key]) return worldRtsCenters[key]
+  const legacy = rtsCenters?.[key]
+  if (!legacy) return undefined
+  const reference = (await fetchMapWorldBounds(map))?.boundaryMin ?? getMapBoundaries(map)?.boundaryMin
+  return reference
+    ? { x: legacy.x + reference.x, y: legacy.y + reference.y, z: legacy.z + reference.z }
+    : undefined
+}
+
+export const loadSceneFromDemoAction = async (match: MatchSource) => {
   try {
     toggleUIPanelAction('About', false)
-    const mapKey = getMapBoundariesKey(parsedDemo.header.map) ?? parsedDemo.header.map
-    const savedRtsCenter = getState().settings.scene.rtsCenters[mapKey]
-    const boundaryOverrides: Partial<MapBoundaries> = getMapBoundaries(parsedDemo.header.map) ?? {}
-    const modelWorldBounds = await fetchMapWorldBounds(parsedDemo.header.map)
-    const sceneBoundaries = { ...boundaryOverrides, ...parsedDemo.world }
-    const referenceBoundaryMin = modelWorldBounds?.boundaryMin ?? sceneBoundaries.boundaryMin
-    const rtsCenter = savedRtsCenter ?? boundaryOverrides.rtsCenter
-    const sceneRtsCenter = rtsCenter
-      ? translatePointBetweenBoundaryMins(
-          rtsCenter,
-          referenceBoundaryMin,
-          sceneBoundaries.boundaryMin
-        )
-      : undefined
+    // The map's own bounds and camera when dribble.tf knows the map, else the demo's bounds.
+    const overrides: Partial<MapBoundaries> = getMapBoundaries(match.header.map) ?? {}
+    const sceneBoundaries = { ...match.world, ...overrides }
+    const rtsCenter = (await savedRtsCenter(match.header.map)) ?? overrides.rtsCenter
 
     // Remember to update the non-redux instances!
-    useInstance.getState().setParsedDemo(parsedDemo)
+    useInstance.getState().setMatch(match)
     useInstance.getState().setFocusedObject(undefined)
     useInstance.getState().setLastFocusedPOV(undefined)
     useInstance.getState().setMapCenterPickerActive(false)
@@ -115,11 +121,10 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
       type: 'LOAD_SCENE_FROM_PARSER',
       payload: {
         scene: {
-          players: parsedDemo.entityPlayerMap,
-          map: parsedDemo.header.map,
+          map: match.header.map,
           bounds: parseMapBoundaries({
             ...sceneBoundaries,
-            ...(sceneRtsCenter ? { rtsCenter: sceneRtsCenter } : {}),
+            ...(rtsCenter ? { rtsCenter } : {}),
           }),
           controls: {
             mode: 'rts',
@@ -129,8 +134,8 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
           playing: true,
           speed: 1,
           tick: 1,
-          maxTicks: parsedDemo.ticks - 1,
-          intervalPerTick: parsedDemo.intervalPerTick,
+          maxTicks: match.ticks - 1,
+          intervalPerTick: match.intervalPerTick,
         },
       },
     })
@@ -146,14 +151,9 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
     const worldBounds = await fetchMapWorldBounds(mapName)
     const overrides = getMapBoundaries(mapName)
 
-    const boundaries = worldBounds
-      ? { ...overrides, ...worldBounds }
-      : overrides
-    const mapKey = getMapBoundariesKey(mapName) ?? mapName
-    const savedRtsCenter = getState().settings.scene.rtsCenters[mapKey]
-    const boundariesWithCenter = savedRtsCenter && boundaries
-      ? { ...boundaries, rtsCenter: savedRtsCenter }
-      : boundaries
+    const boundaries = worldBounds ? { ...overrides, ...worldBounds } : overrides
+    const rtsCenter = await savedRtsCenter(mapName)
+    const boundariesWithCenter = rtsCenter && boundaries ? { ...boundaries, rtsCenter } : boundaries
 
     if (!boundariesWithCenter?.boundaryMin || !boundariesWithCenter?.boundaryMax) {
       alert('Unable to load map. Could not determine map boundaries.')
@@ -161,7 +161,7 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
     }
 
     // Remember to update the non-redux instances!
-    useInstance.getState().setParsedDemo(undefined)
+    useInstance.getState().setMatch(undefined)
     useInstance.getState().setFocusedObject(undefined)
     useInstance.getState().setLastFocusedPOV(undefined)
     useInstance.getState().setMapCenterPickerActive(false)
@@ -194,8 +194,8 @@ export const changeControlsModeAction = async (
       // then "append" that information to each scene Actor. This definitely seems suboptimal,
       // but this action should not be called super frequently so we'll just let it slide.
       const tick = getState().playback.tick
-      const demo = useInstance.getState().parsedDemo
-      let playersThisTick = demo!.getPlayersAtTick(tick)
+      const demo = useInstance.getState().match
+      let playersThisTick = demo!.playersAt(tick)
 
       let actors = getSceneActors(useInstance.getState().threeScene)
 
@@ -327,6 +327,7 @@ export const goToTickAction = async (tick: number) => {
   try {
     const maxTicks = getState().playback.maxTicks
 
+    setClockTick(Math.min(tick, maxTicks))
     dispatch({ type: 'GO_TO_TICK', payload: tick })
 
     // Automatically pause playback once it has reached the last tick (a live match keeps
@@ -344,7 +345,7 @@ export const setMaxTicksAction = (maxTicks: number) => {
   dispatch({ type: 'SET_MAX_TICKS', payload: maxTicks })
 }
 
-const isLiveMatch = () => useInstance.getState().parsedDemo instanceof LiveSource
+const isLiveMatch = () => useInstance.getState().match?.kind === 'live'
 
 export const playbackJumpAction = async (direction: string) => {
   try {
@@ -441,6 +442,8 @@ export const changePlaySpeedAction = async (speed: 'faster' | 'slower' | number)
   }
 }
 
+let forceShowPanelTimer: ReturnType<typeof setTimeout> | undefined
+
 export const forceShowPanelAction = async (forceShowPanel?: boolean) => {
   try {
     if (forceShowPanel === undefined) {
@@ -449,7 +452,12 @@ export const forceShowPanelAction = async (forceShowPanel?: boolean) => {
 
     dispatch({ type: 'FORCE_SHOW_PANEL', payload: forceShowPanel })
 
-    setTimeout(() => dispatch({ type: 'FORCE_SHOW_PANEL', payload: false }), 1500)
+    // One timer at a time, so an earlier one cannot hide the panel early.
+    clearTimeout(forceShowPanelTimer)
+    forceShowPanelTimer = setTimeout(
+      () => dispatch({ type: 'FORCE_SHOW_PANEL', payload: false }),
+      1500
+    )
   } catch (error) {
     console.error(error)
   }
@@ -470,7 +478,11 @@ export const loadSettingsAction = async () => {
       settings.scene.mode = SceneMode.UNTEXTURED
     }
 
-    dispatch({ type: 'LOAD_SETTINGS', payload: { settings: merge(defaultSettings, settings) } })
+    // merge writes into its first argument, so the defaults are copied first.
+    dispatch({
+      type: 'LOAD_SETTINGS',
+      payload: { settings: merge(cloneDeep(defaultSettings), settings) },
+    })
   } catch (error) {
     console.error(error)
   }
@@ -486,8 +498,7 @@ export const updateSettingsOptionAction = async (option: string, value: any) => 
 
 export const toggleMapCenterPickerAction = async (active?: boolean) => {
   try {
-    const nextActive =
-      active !== undefined ? active : !useInstance.getState().mapCenterPickerActive
+    const nextActive = active !== undefined ? active : !useInstance.getState().mapCenterPickerActive
     useInstance.getState().setMapCenterPickerActive(nextActive)
   } catch (error) {
     console.error(error)
@@ -496,24 +507,14 @@ export const toggleMapCenterPickerAction = async (active?: boolean) => {
 
 export const setSceneRtsCenterAction = async (point: { x: number; y: number; z: number }) => {
   try {
-    const nextCenter = new THREE.Vector3(point.x, point.y, point.z)
     const mapName = getState().scene.map
     const mapKey = getMapBoundariesKey(mapName) ?? mapName
-    const sceneBoundaryMin = getState().scene.bounds.min
 
-    dispatch({ type: 'SET_SCENE_RTS_CENTER', payload: nextCenter })
+    dispatch({ type: 'SET_SCENE_RTS_CENTER', payload: new THREE.Vector3(point.x, point.y, point.z) })
     useInstance.getState().setMapCenterPickerActive(false)
 
-    const modelWorldBounds = await fetchMapWorldBounds(mapName)
-    const settingsCenter = modelWorldBounds
-      ? translatePointBetweenBoundaryMins(
-          point,
-          sceneBoundaryMin,
-          modelWorldBounds.boundaryMin
-        )
-      : point
-
-    await updateSettingsOptionAction(`scene.rtsCenters.${mapKey}`, settingsCenter)
+    // The scene is drawn in Source world coordinates, so the picked point is saved as it is.
+    await updateSettingsOptionAction(`scene.worldRtsCenters.${mapKey}`, { ...point })
   } catch (error) {
     console.error(error)
   }
@@ -539,8 +540,10 @@ export const toggleSettingsOptionAction = async (option: string) => {
 
 export const loadSetupsAction = async () => {
   try {
-    const setups = await localForage.getItem<SavedSetup[]>('setups')
-    dispatch({ type: 'LOAD_SETUPS', payload: normalizeStoredSetups(setups) })
+    const stored = await localForage.getItem<SavedSetup[]>('setups')
+    // Older setups are converted to world coordinates once, and saved so.
+    const setups = await Promise.all(normalizeStoredSetups(stored).map(toWorldSetup))
+    dispatch({ type: 'LOAD_SETUPS', payload: setups })
   } catch (error) {
     console.error(error)
   }
@@ -559,7 +562,8 @@ export const bootstrapSharedSetupFromHashAction = async () => {
     const token = parseSetupHash(window.location.hash)
     if (!token) return null
 
-    const setup = deserializeSetupFromShareToken(token)
+    const decoded = deserializeSetupFromShareToken(token)
+    const setup = decoded && (await toWorldSetup(decoded))
     if (!setup) {
       console.warn('Ignoring invalid or unsupported shared setup URL.')
       return null
@@ -703,9 +707,9 @@ export const applySetupAction = async (
     }
 
     const currentMap = getState().scene.map
-    const parsedDemo = useInstance.getState().parsedDemo
+    const match = useInstance.getState().match
 
-    if (parsedDemo || currentMap !== setup.map) {
+    if (match || currentMap !== setup.map) {
       await loadEmptySceneMapAction(setup.map)
     }
 
@@ -1024,6 +1028,58 @@ export const updateDownloadAction = async (
     }
   } catch (error) {
     console.error(error)
+  }
+}
+
+/** Marks a download as finished, whether or not its progress ever reached 100%. */
+export const finishDownloadAction = (url: string, status: 'success' | 'error' = 'success') => {
+  dispatch({
+    type: 'UPDATE_DOWNLOAD',
+    payload: { url, status, ...(status === 'success' ? { progress: 100 } : {}) },
+  })
+}
+
+/** Fetches a file into an ArrayBuffer, showing it in the downloads overlay. */
+export const downloadFileAction = async (
+  download: Pick<Download, 'type' | 'name' | 'url'>
+): Promise<ArrayBuffer> => {
+  await addDownloadAction(download)
+  try {
+    const response = await fetch(download.url)
+    if (!response.ok) throw new Error(`${download.url}: ${response.status}`)
+    // content-length is the encoded size, so with compression progress is approximate.
+    const total = Number(response.headers.get('content-length')) || 0
+    if (!response.body) {
+      const buffer = await response.arrayBuffer()
+      finishDownloadAction(download.url)
+      return buffer
+    }
+    const chunks: Uint8Array[] = []
+    let received = 0
+    const reader = response.body.getReader()
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+      received += value.length
+      if (total) {
+        updateDownloadAction(download.url, {
+          progress: Math.min(99, (received / total) * 100),
+          size: total,
+        })
+      }
+    }
+    const bytes = new Uint8Array(received)
+    let offset = 0
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset)
+      offset += chunk.length
+    }
+    finishDownloadAction(download.url)
+    return bytes.buffer
+  } catch (error) {
+    finishDownloadAction(download.url, 'error')
+    throw error
   }
 }
 
