@@ -50,6 +50,7 @@
     "dev": "vite",
     "build": "vite build",
     "build:decoder": "node scripts/build-decoder.mjs",
+    "build:viewmodels": "node scripts/viewmodels/build-viewmodels.mjs",
     "preview": "vite preview",
     "convert:map": "node scripts/convert-map.mjs",
     "sync:bsp-to-glb-wasm": "node scripts/sync-bsp-to-glb-wasm.mjs",
