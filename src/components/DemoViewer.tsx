@@ -24,7 +24,7 @@ import { CachedBuilding } from '@components/Analyse/Data/BuildingCache'
 import { World } from '@components/Scene/World'
 import { Skybox } from '@components/Scene/Skybox'
 import { Stickers } from '@components/Scene/Stickers'
-import { AsyncParser } from './Analyse/Data/AsyncParser'
+import type { MatchSource } from './Analyse/Data/MatchSource'
 import { CachedPlayer } from './Analyse/Data/PlayerCache'
 import { InterpolatedProjectile } from './Scene/Projectiles'
 
@@ -574,7 +574,7 @@ const PanelToolbar = ({ hasDemoLoaded }: { hasDemoLoaded: boolean }) => {
 // ─── COMPONENT ──────────────────────────────────────────────────────────────────
 //
 type DemoViewerProps = {
-  demo?: AsyncParser
+  demo?: MatchSource
   map: string
 }
 
@@ -752,11 +752,11 @@ class DemoViewer extends Component<DemoViewerProps> {
 
     if (!!demo) {
       playersThisTick = demo
-        .getPlayersAtTick(renderTick)
+        .playersAt(renderTick)
         .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
 
       playersNextTick = demo
-        .getPlayersAtTick(renderTick + 1)
+        .playersAt(renderTick + 1)
         .filter(({ connected, teamId }) => connected && [2, 3].includes(teamId)) // Only get CONNECTED and RED/BLU players
 
       const nextTickMap = new Map(playersNextTick.map(p => [p.user.entityId, p]))
@@ -770,20 +770,20 @@ class DemoViewer extends Component<DemoViewerProps> {
         }
       })
 
-      buildingsThisTick = demo.getBuildingAtTick(renderTick)
-      objectivesThisTick = demo.getObjectivesAtTick(renderTick)
+      buildingsThisTick = demo.buildingsAt(renderTick)
+      objectivesThisTick = demo.objectivesAt(renderTick)
 
-      const projectilesCurrentTick = demo.getProjectilesAtTick(renderTick)
-      const projectilesNextTick = demo.getProjectilesAtTick(renderTick + 1)
+      const projectilesCurrentTick = demo.projectilesAt(renderTick)
+      const projectilesNextTick = demo.projectilesAt(renderTick + 1)
       const projectilesNextById = new Map(projectilesNextTick.map(p => [p.entityId, p]))
 
       const useHighQualityProjectileInterpolation =
         projectilesCurrentTick.length <= MAX_PROJECTILES_FOR_HIGH_QUALITY_INTERPOLATION
       const projectilesPrevTick = useHighQualityProjectileInterpolation
-        ? demo.getProjectilesAtTick(Math.max(renderTick - 1, 1))
+        ? demo.projectilesAt(Math.max(renderTick - 1, 1))
         : []
       const projectilesNext2Tick = useHighQualityProjectileInterpolation
-        ? demo.getProjectilesAtTick(renderTick + 2)
+        ? demo.projectilesAt(renderTick + 2)
         : []
       const projectilesPrevById = new Map(projectilesPrevTick.map(p => [p.entityId, p]))
       const projectilesNext2ById = new Map(projectilesNext2Tick.map(p => [p.entityId, p]))

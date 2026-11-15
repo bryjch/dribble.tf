@@ -1,13 +1,11 @@
-import init, { parse_demo_cache_with_progress } from '../../../libs/parser2/parser2.js'
 import { decodeDemo } from '../../../libs/decoder/decoder.js'
-import { CachedDeath, CachedDemo, DemoDecoder, ParserPerformanceStats } from './AsyncParser'
+import type { CachedDeath, DecodedDemo, DecodeStats } from './DemoSource'
 import { PlayerCache } from './PlayerCache'
 import { BuildingCache } from './BuildingCache'
-import { ProjectileCache, tracksFromSlots } from './ProjectileCache'
-import { ObjectiveData, ObjectiveTimeline, emptyObjectives } from './ObjectiveTimeline'
+import { ProjectileCache } from './ProjectileCache'
+import { ObjectiveData, ObjectiveTimeline } from './ObjectiveTimeline'
 import { getMapBoundaries } from '../MapBoundaries'
 import { ChatEntry, PlayerRef, Round } from './Types'
-import { POSITION_FIXED_SCALE } from './PositionEncoding'
 import { CONDITION_FLAGS, toChatEntry, toDeath, toRound, toUberPop } from './StreamEvents'
 import type { MatchUberEvent } from '@utils/matchEvents'
 
@@ -16,8 +14,7 @@ declare function postMessage(message: any, transfer?: any[]): void
 //
 // ─── DEMO DECODING ──────────────────────────────────────────────────────────────
 //
-// Two decoders produce the same thing: stvtf (decoder/, the default), which stv.tf also uses
-// for live matches, and parser2 (the tf2jump build), kept as a fallback with ?decoder=parser2.
+// Demos are decoded by stvtf (decoder/), the extractor stv.tf also uses for live matches.
 //
 
 interface DecodedPlayer {
@@ -38,7 +35,6 @@ interface PlayerArrays {
   connected: Uint8Array[]
   uber: Uint16Array[]
   healTarget: Uint16Array[]
-  /** Empty from parser2, which has neither. */
   conditions: Uint32Array[]
   charge: Uint16Array[]
 }
@@ -55,30 +51,26 @@ const PLAYER_ARRAYS = [
   'charge',
 ] as const satisfies readonly (keyof PlayerArrays)[]
 
-/** What either decoder hands over, before it becomes a CachedDemo. */
+/** What the decoder hands over, before it becomes a DecodedDemo. */
 interface Decoded {
-  header: CachedDemo['header']
+  header: DecodedDemo['header']
   ticks: number
   intervalPerTick: number
   positionScale: number
   angleScale: number
-  world: CachedDemo['world']
+  world: DecodedDemo['world']
   players: DecodedPlayer[]
   playerArrays: PlayerArrays
   projectiles: { tracks: Uint32Array; positions: Uint32Array; rotations: Uint32Array }
   buildings: { tracks: Uint32Array; samples: Uint32Array; sparse: number }
   objectives: ObjectiveData
   chat: ChatEntry[]
-  deaths: CachedDemo['deaths']
+  deaths: DecodedDemo['deaths']
   rounds: Round[]
-  /** When the decoder is told about übers; parser2's demos find them from the charge instead. */
-  uberPops?: MatchUberEvent[]
+  uberPops: MatchUberEvent[]
 }
 
 type Progress = (progress: number) => void
-
-const finiteOr = (value: number | undefined, fallback: number) =>
-  Number.isFinite(value) && value! > 0 ? value! : fallback
 
 const refFor = (p: DecodedPlayer): PlayerRef => ({
   user: {
@@ -165,69 +157,7 @@ async function decodeWithStvtf(buffer: ArrayBuffer, progress: Progress): Promise
   }
 }
 
-// ─── parser2 ────────────────────────────────────────────────────────────────────
-
-type Parser2Result = {
-  header: CachedDemo['header']
-  ticks: number
-  intervalPerTick: number
-  positionScale?: number
-  angleScale?: number
-  world: CachedDemo['world']
-  players: DecodedPlayer[]
-  playerCache: PlayerArrays
-  projectileCache: {
-    ids: number[]
-    position: Uint32Array[]
-    rotation: Uint32Array[]
-    team: Uint8Array[]
-    type: Uint8Array[]
-  }
-  chat: ChatEntry[]
-  deaths: CachedDemo['deaths']
-  rounds: CachedDemo['rounds']
-}
-
-let parser2Ready: Promise<unknown> | null = null
-
-async function decodeWithParser2(buffer: ArrayBuffer, progress: Progress): Promise<Decoded> {
-  parser2Ready ??= init()
-  await parser2Ready
-  const result = parse_demo_cache_with_progress(new Uint8Array(buffer), progress)
-  if (typeof result === 'string' || !result) throw new Error(result || 'Failed to parse demo.')
-  const r = result as Parser2Result
-  const p = r.projectileCache
-  return {
-    header: r.header,
-    ticks: r.ticks,
-    intervalPerTick: r.intervalPerTick,
-    positionScale: finiteOr(r.positionScale, POSITION_FIXED_SCALE),
-    angleScale: finiteOr(r.angleScale, 1),
-    world: r.world,
-    players: r.players,
-    // parser2 also has weapon and duck caches, which the viewer does not read.
-    playerArrays: {
-      position: r.playerCache.position,
-      viewAngles: r.playerCache.viewAngles,
-      health: r.playerCache.health,
-      meta: r.playerCache.meta,
-      connected: r.playerCache.connected,
-      uber: r.playerCache.uber,
-      healTarget: r.playerCache.healTarget,
-      conditions: [],
-      charge: [],
-    },
-    // The projectile caches' team and type keep one value per 64 ticks.
-    projectiles: tracksFromSlots(p.ids, p.position, p.rotation, p.team, p.type, 6),
-    buildings: { tracks: new Uint32Array(0), samples: new Uint32Array(0), sparse: 2 },
-    objectives: emptyObjectives(),
-    chat: r.chat ?? [],
-    deaths: r.deaths,
-    rounds: r.rounds,
-  }
-}
-
-// ─── Both ───────────────────────────────────────────────────────────────────────
+// ─── Into the caches ────────────────────────────────────────────────────────────
 
 const shiftVectorCache = (
   arrays: Uint32Array[],
@@ -256,7 +186,7 @@ const sumBytes = (arrays: ArrayBufferView[]) => {
   return total
 }
 
-function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseStart: number) {
+function toDecodedDemo(d: Decoded, parseMs: number) {
   const hydrateStart = performance.now()
   const { header, ticks, positionScale, angleScale, world, playerArrays: a } = d
 
@@ -299,34 +229,25 @@ function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseSt
     world.boundaryMax = boundaryOverride.boundaryMax
   }
 
-  const entityPlayerMap = new Map<number, PlayerRef>()
-  let nextMappedPlayer = 0
-  for (const player of d.players) {
-    entityPlayerMap.set(player.id, refFor(player))
-    nextMappedPlayer = Math.max(nextMappedPlayer, player.id + 1)
-  }
+  const players = new Map<number, PlayerRef>(d.players.map(p => [p.id, refFor(p)]))
 
   const playerArrays = PLAYER_ARRAYS.flatMap(name => a[name] as ArrayBufferView[])
-  const playerCacheBytes = sumBytes(playerArrays)
-  const projectileCacheBytes = projectileCache.byteLength
-  const perf: ParserPerformanceStats = {
-    decoder,
-    workerTotalMs: performance.now() - parseStart,
+  const stats: DecodeStats = {
     parseMs,
     hydrateMs: performance.now() - hydrateStart,
-    transferMs: 0, // Filled in by AsyncParser after message transfer
+    transferMs: 0, // Filled in on the main thread
     playerCount: d.players.length,
     projectileCount: projectileCache.projectileCount,
     ticks,
-    playerCacheBytes,
-    projectileCacheBytes,
-    transferBytes: playerCacheBytes + projectileCacheBytes,
-    totalBytes: playerCacheBytes + projectileCacheBytes,
+    playerCacheBytes: sumBytes(playerArrays),
+    projectileCacheBytes: projectileCache.byteLength,
   }
 
-  const cachedDemo: CachedDemo = {
+  const decoded: DecodedDemo = {
     ticks,
     header,
+    intervalPerTick: d.intervalPerTick,
+    world,
     playerCache,
     buildingCache,
     projectileCache,
@@ -335,12 +256,9 @@ function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseSt
     deaths: d.deaths,
     rounds: d.rounds,
     uberPops: d.uberPops,
-    intervalPerTick: d.intervalPerTick,
-    world,
-    nextMappedPlayer,
-    entityPlayerMap,
-    now: performance.now(),
-    perf,
+    players,
+    postedAt: performance.timeOrigin + performance.now(),
+    stats,
   }
   // Zero-copy: the arrays move to the main thread rather than being cloned.
   const transfers = [
@@ -348,31 +266,21 @@ function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseSt
       [...playerArrays, tracks, positions, rotations, buildings.tracks, buildings.samples].map(arr => arr.buffer)
     ),
   ]
-  return { cachedDemo, transfers }
+  return { decoded, transfers }
 }
 
-/**
- * @global postMessage
- * @param event
- */
 onmessage = async (event: MessageEvent) => {
   try {
     const buffer = event.data.buffer as ArrayBuffer
-    const decoder: DemoDecoder = event.data.decoder === 'parser2' ? 'parser2' : 'stvtf'
     const progress: Progress = p => postMessage({ progress: p })
 
     const parseStart = performance.now()
-    const decoded =
-      decoder === 'parser2'
-        ? await decodeWithParser2(buffer, progress)
-        : await decodeWithStvtf(buffer, progress)
+    const raw = await decodeWithStvtf(buffer, progress)
     const parseMs = performance.now() - parseStart
 
-    const { cachedDemo, transfers } = toCachedDemo(decoded, decoder, parseMs, parseStart)
-    console.log(
-      `${decoder}: parse=${parseMs.toFixed(1)}ms hydrate=${cachedDemo.perf!.hydrateMs.toFixed(1)}ms total=${cachedDemo.perf!.workerTotalMs.toFixed(1)}ms`
-    )
-    postMessage(cachedDemo, transfers)
+    const { decoded, transfers } = toDecodedDemo(raw, parseMs)
+    console.log(`stvtf: parse=${parseMs.toFixed(1)}ms hydrate=${decoded.stats.hydrateMs.toFixed(1)}ms`)
+    postMessage(decoded, transfers)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.error(error)

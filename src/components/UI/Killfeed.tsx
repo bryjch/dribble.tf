@@ -1,6 +1,6 @@
 import { inRange } from 'lodash'
 
-import { AsyncParser, CachedDeath } from '@components/Analyse/Data/AsyncParser'
+import type { CachedDeath, MatchSource } from '@components/Analyse/Data/MatchSource'
 
 import { jumpToPlayerPOVCamera } from '@zus/actions'
 import { useInstance } from '@zus/store'
@@ -12,7 +12,7 @@ import { useIsMobile } from '@utils/hooks'
 const RELEVANT_DEATH_LINGER_TICKS = 200 // Keep death in feed for this many ticks
 
 export interface KillfeedProps {
-  parser: AsyncParser
+  parser: MatchSource
   tick: number
 }
 

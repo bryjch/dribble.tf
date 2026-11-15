@@ -5,7 +5,7 @@ import CanvasDraw from 'react-canvas-draw'
 import { isMobile } from 'react-device-detect'
 import * as THREE from 'three'
 
-import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
+import type { MatchSource } from '@components/Analyse/Data/MatchSource'
 import { getMapBoundaries } from '@components/Analyse/MapBoundaries'
 
 import { parseMapBoundaries } from '@utils/scene'
@@ -25,7 +25,7 @@ import { DrawingState, createInitialDrawingState } from './drawing'
 import rootReducer from './reducer'
 
 // This "Instance Store" is meant to be used for larger objects that are problematic
-// to keep in the "Standard Store". (e.g. parsed demo file (AsyncParser), three.js objects)
+// to keep in the "Standard Store". (e.g. the match being watched (MatchSource), three.js objects)
 // We wanna keep easily accessible references to these important objects because they're
 // used a lot throughout.
 
@@ -39,7 +39,7 @@ export type InstanceState = {
   }
   mapCenterPickerActive: boolean
   threeScene: THREE.Scene
-  parsedDemo?: AsyncParser
+  match?: MatchSource
   focusedObject?: THREE.Object3D
   lastFocusedPOV?: THREE.Object3D
   drawingCanvas?: CanvasDraw
@@ -55,7 +55,7 @@ export type InstanceState = {
     apply: (camera: SavedSetupCamera) => void
   }
   setThreeScene: (threeScene: THREE.Scene) => void
-  setParsedDemo: (parsedDemo: AsyncParser | undefined) => void
+  setMatch: (match: MatchSource | undefined) => void
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => void
   setFocusedObject: (focusedObject?: THREE.Object3D) => void
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => void
@@ -89,7 +89,7 @@ const useInstance = create<InstanceState>()(set => ({
   },
   mapCenterPickerActive: false,
   threeScene: new THREE.Scene(),
-  parsedDemo: undefined,
+  match: undefined,
   focusedObject: undefined,
   lastFocusedPOV: undefined,
   drawingCanvas: undefined,
@@ -102,7 +102,7 @@ const useInstance = create<InstanceState>()(set => ({
   },
   setupCameraBridge: undefined,
   setThreeScene: (threeScene: THREE.Scene) => set({ threeScene }),
-  setParsedDemo: (parsedDemo: AsyncParser | undefined) => set({ parsedDemo }),
+  setMatch: (match: MatchSource | undefined) => set({ match }),
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => set({ drawingCanvas }),
   setFocusedObject: (focusedObject?: THREE.Object3D) => set({ focusedObject }),
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => set({ lastFocusedPOV }),
@@ -141,7 +141,6 @@ export type StoreState = {
     error?: Error
   }
   scene: {
-    players: Map<any, any>
     map: string
     bounds: {
       min: THREE.Vector3
@@ -236,7 +235,6 @@ export const initialState: StoreState = {
   },
 
   scene: {
-    players: new Map(),
     map: 'cp_snakewater',
     bounds: parseMapBoundaries(getMapBoundaries('cp_snakewater')!),
     controls: {

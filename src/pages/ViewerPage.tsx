@@ -20,7 +20,7 @@ import { useIsMobile } from '@utils/hooks'
 
 const ViewerPage = () => {
   const parser = useStore(state => state.parser)
-  const parsedDemo = useInstance(state => state.parsedDemo)
+  const match = useInstance(state => state.match)
   const loadedMap = useStore(state => state.scene.map)
   const setupCameraBridge = useInstance(state => state.setupCameraBridge)
   const pendingSharedSetup = useStore(state => state.setups.pendingSharedSetup)
@@ -56,7 +56,7 @@ const ViewerPage = () => {
     <div className="antialiased">
       <GlobalKeyHandler />
 
-      <DemoViewer demo={parsedDemo} map={loadedMap} />
+      <DemoViewer demo={match} map={loadedMap} />
 
       {/* Downloads overlay */}
       {loadingDownloads.length > 0 && (

@@ -2,8 +2,8 @@ import { get, merge, clamp, cloneDeep, sortBy, round } from 'lodash'
 import localForage from 'localforage'
 import * as THREE from 'three'
 
-import { AsyncParser } from '@components/Analyse/Data/AsyncParser'
-import { LiveSource } from '@components/Analyse/Data/LiveSource'
+import { decodeDemo } from '@components/Analyse/Data/DemoSource'
+import type { MatchSource } from '@components/Analyse/Data/MatchSource'
 import type { MapBoundaries } from '@components/Analyse/Data/PositionCache'
 import { getMapBoundaries, getMapBoundariesKey } from '@components/Analyse/MapBoundaries'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
@@ -57,26 +57,23 @@ export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
   try {
     dispatch({ type: 'PARSE_DEMO_INIT' })
 
-    const parsedDemo = new AsyncParser(fileBuffer, async progress => {
-      dispatch({ type: 'PARSE_DEMO_PROGRESS', payload: progress })
-    })
-
+    let match
     try {
-      await parsedDemo.cache()
+      match = await decodeDemo(fileBuffer, progress => {
+        dispatch({ type: 'PARSE_DEMO_PROGRESS', payload: progress })
+      })
     } catch (error) {
       alert(`Unable to load demo. Please make sure it's a valid SourceTV .dem file.`)
       throw error
     }
 
-    console.log('%c-------- Demo parsed --------', 'color: blue; font-size: 16px;')
-    console.log(parsedDemo)
-    console.log('%c-----------------------------', 'color: blue; font-size: 16px;')
+    console.info('[Perf][Decode]', match.stats)
 
     dispatch({ type: 'PARSE_DEMO_SUCCESS' })
 
-    await loadSceneFromDemoAction(parsedDemo)
+    await loadSceneFromDemoAction(match)
 
-    return parsedDemo
+    return match
   } catch (error) {
     dispatch({ type: 'PARSE_DEMO_ERROR', payload: error })
     throw error
@@ -87,14 +84,14 @@ export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
 //
 
-export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
+export const loadSceneFromDemoAction = async (match: MatchSource) => {
   try {
     toggleUIPanelAction('About', false)
-    const mapKey = getMapBoundariesKey(parsedDemo.header.map) ?? parsedDemo.header.map
+    const mapKey = getMapBoundariesKey(match.header.map) ?? match.header.map
     const savedRtsCenter = getState().settings.scene.rtsCenters[mapKey]
-    const boundaryOverrides: Partial<MapBoundaries> = getMapBoundaries(parsedDemo.header.map) ?? {}
-    const modelWorldBounds = await fetchMapWorldBounds(parsedDemo.header.map)
-    const sceneBoundaries = { ...boundaryOverrides, ...parsedDemo.world }
+    const boundaryOverrides: Partial<MapBoundaries> = getMapBoundaries(match.header.map) ?? {}
+    const modelWorldBounds = await fetchMapWorldBounds(match.header.map)
+    const sceneBoundaries = { ...boundaryOverrides, ...match.world }
     const referenceBoundaryMin = modelWorldBounds?.boundaryMin ?? sceneBoundaries.boundaryMin
     const rtsCenter = savedRtsCenter ?? boundaryOverrides.rtsCenter
     const sceneRtsCenter = rtsCenter
@@ -106,7 +103,7 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
       : undefined
 
     // Remember to update the non-redux instances!
-    useInstance.getState().setParsedDemo(parsedDemo)
+    useInstance.getState().setMatch(match)
     useInstance.getState().setFocusedObject(undefined)
     useInstance.getState().setLastFocusedPOV(undefined)
     useInstance.getState().setMapCenterPickerActive(false)
@@ -115,8 +112,7 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
       type: 'LOAD_SCENE_FROM_PARSER',
       payload: {
         scene: {
-          players: parsedDemo.entityPlayerMap,
-          map: parsedDemo.header.map,
+          map: match.header.map,
           bounds: parseMapBoundaries({
             ...sceneBoundaries,
             ...(sceneRtsCenter ? { rtsCenter: sceneRtsCenter } : {}),
@@ -129,8 +125,8 @@ export const loadSceneFromDemoAction = async (parsedDemo: AsyncParser) => {
           playing: true,
           speed: 1,
           tick: 1,
-          maxTicks: parsedDemo.ticks - 1,
-          intervalPerTick: parsedDemo.intervalPerTick,
+          maxTicks: match.ticks - 1,
+          intervalPerTick: match.intervalPerTick,
         },
       },
     })
@@ -158,7 +154,7 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
     }
 
     // Remember to update the non-redux instances!
-    useInstance.getState().setParsedDemo(undefined)
+    useInstance.getState().setMatch(undefined)
     useInstance.getState().setFocusedObject(undefined)
     useInstance.getState().setLastFocusedPOV(undefined)
     useInstance.getState().setMapCenterPickerActive(false)
@@ -191,8 +187,8 @@ export const changeControlsModeAction = async (
       // then "append" that information to each scene Actor. This definitely seems suboptimal,
       // but this action should not be called super frequently so we'll just let it slide.
       const tick = getState().playback.tick
-      const demo = useInstance.getState().parsedDemo
-      let playersThisTick = demo!.getPlayersAtTick(tick)
+      const demo = useInstance.getState().match
+      let playersThisTick = demo!.playersAt(tick)
 
       let actors = getSceneActors(useInstance.getState().threeScene)
 
@@ -341,7 +337,7 @@ export const setMaxTicksAction = (maxTicks: number) => {
   dispatch({ type: 'SET_MAX_TICKS', payload: maxTicks })
 }
 
-const isLiveMatch = () => useInstance.getState().parsedDemo instanceof LiveSource
+const isLiveMatch = () => useInstance.getState().match?.kind === 'live'
 
 export const playbackJumpAction = async (direction: string) => {
   try {
@@ -706,9 +702,9 @@ export const applySetupAction = async (
     }
 
     const currentMap = getState().scene.map
-    const parsedDemo = useInstance.getState().parsedDemo
+    const match = useInstance.getState().match
 
-    if (parsedDemo || currentMap !== setup.map) {
+    if (match || currentMap !== setup.map) {
       await loadEmptySceneMapAction(setup.map)
     }
 

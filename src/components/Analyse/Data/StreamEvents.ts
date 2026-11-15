@@ -1,4 +1,4 @@
-import type { CachedDeath } from './AsyncParser'
+import type { CachedDeath } from './MatchSource'
 import type { MatchUberEvent } from '@utils/matchEvents'
 import { ChatEntry, PlayerRef, Round, TeamName } from './Types'
 

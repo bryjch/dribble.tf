@@ -76,7 +76,7 @@ export const installBench = () => {
 
   const api = {
     status: () => {
-      const demo = useInstance.getState().parsedDemo as any
+      const demo = useInstance.getState().match as any
       const { playback, scene, downloads } = getState()
       return {
         demoLoaded: !!demo,
@@ -88,7 +88,7 @@ export const installBench = () => {
           .filter(d => d.status === 'loading')
           .map(d => `${d.name} ${d.progress}%`),
         triangles: renderer?.info.render.triangles ?? 0,
-        perf: demo?.perf ?? null,
+        perf: demo?.stats ?? null,
       }
     },
     renderInfo: () => ({
@@ -104,10 +104,10 @@ export const installBench = () => {
     },
     /** Players (slot order) at a tick: entity id, team, class, alive. */
     players: (tick: number) => {
-      const demo = useInstance.getState().parsedDemo as any
+      const demo = useInstance.getState().match as any
       if (!demo) return []
       return demo
-        .getPlayersAtTick(tick)
+        .playersAt(tick)
         .filter((p: any) => p.connected && (p.teamId === 2 || p.teamId === 3))
         .map((p: any) => ({
           entityId: p.user.entityId,
@@ -118,8 +118,8 @@ export const installBench = () => {
         }))
     },
     projectileCount: (tick: number) => {
-      const demo = useInstance.getState().parsedDemo as any
-      return demo ? demo.getProjectilesAtTick(tick).length : 0
+      const demo = useInstance.getState().match as any
+      return demo ? demo.projectilesAt(tick).length : 0
     },
     pause: async () => {
       await togglePlaybackAction(false as any)

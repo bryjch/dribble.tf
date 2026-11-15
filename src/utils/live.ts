@@ -237,7 +237,7 @@ export const connectLiveAction = (request: LiveRequest) => {
 
   // Dropping a demo in ends the stream.
   const unsubscribe = useInstance.subscribe(state => {
-    if (state.parsedDemo && !(state.parsedDemo instanceof LiveSource)) {
+    if (state.match && state.match.kind !== 'live') {
       stream.close()
       unsubscribe()
     }

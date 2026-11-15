@@ -222,7 +222,7 @@ export const StatusItem = (props: StatusItemProps) => {
       break
 
     case 'uber':
-      // parser2's demos do not say which medigun; stvtf's and live matches do.
+      // A medic seen before their medigun is known shows a plain 'Charge'.
       name = player.medigun ? MEDIGUN_LABELS[player.medigun.kind] : 'Charge'
       if (player.medigun?.resist) name += ` · ${player.medigun.resist.toUpperCase()}`
       health = player.chargeLevel || 0

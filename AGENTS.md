@@ -11,7 +11,7 @@
 - **Converter resume path**: `node scripts/convert-map.mjs ... --metadata-only true` reuses the temp BSP/VMF/GLBs/lightmaps to finish skybox, teleports, visibility, and `conversion.json` after a late-stage failure; skybox conversion still needs `vtf2img` importable from the `python3` on `PATH`
 - **Headless browser validation**: Chrome remote debugging currently needs both `--user-data-dir=<tmp>` and `--remote-allow-origins=*`, and WebGL-backed validation in headless mode needed `--use-angle=swiftshader --enable-unsafe-swiftshader --enable-webgl --ignore-gpu-blocklist`; runtime perf logs are enabled with `?perf=true`
 - **WASM support**: Vite 5 handles `.wasm` via `new URL('./file.wasm', import.meta.url)` natively — no `vite-plugin-wasm` or `vite-plugin-top-level-await` needed; wasm-bindgen's JS glue uses this pattern and has its own MIME-type fallback
-- **Demo decoder**: `decoder/` is a small Rust crate around stvtf (pinned by git rev in `decoder/Cargo.toml`); `npm run build:decoder` rebuilds `src/libs/decoder/decoder.wasm`, which is committed so `npm run build` needs no Rust. rustup installs the toolchain pinned in `decoder/rust-toolchain.toml`. `?decoder=parser2` falls back to the old prebuilt parser2 WASM (no source available)
+- **Demo decoder**: `decoder/` is a small Rust crate around stvtf (pinned by git rev in `decoder/Cargo.toml`); `npm run build:decoder` rebuilds `src/libs/decoder/decoder.wasm`, which is committed so `npm run build` needs no Rust. rustup installs the toolchain pinned in `decoder/rust-toolchain.toml`.
 - **Framework**: React + Three.js (react-three-fiber) + Zustand + Tailwind
 
 ## Project Structure

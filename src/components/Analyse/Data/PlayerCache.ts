@@ -39,7 +39,6 @@ export class PlayerCache {
   uberCache: SparseDataCache
   healTargetCache: SparseDataCache
   connectedCache: SparseDataCache
-  /** Empty for parser2's demos, which do not have them. */
   conditionsCache: SparseDataCache
   chargeCache: SparseDataCache
   respawnTickCache: Map<string, number | null> = new Map()
