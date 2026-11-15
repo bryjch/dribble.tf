@@ -3,6 +3,7 @@ import { useRef, useState, useEffect } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/Addons.js'
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 
 
 import mapChunkingConfig from '@constants/mapChunking.json'
@@ -345,6 +346,9 @@ function setChunkVisibilityForCluster(
 
 function freezeStaticMapSubtree(root: THREE.Object3D) {
   root.traverse(node => {
+    // Its matrix from its position, rotation and scale once, before freezing it: quantized
+    // models (meshopt) give nodes a transform that undoes the quantization.
+    node.updateMatrix()
     node.matrixAutoUpdate = false
 
     if (node.type !== 'Mesh') return
@@ -438,7 +442,8 @@ function getClusterIndexForWorldPoint(
 function loadGLTF(url: string, name?: string) {
   return new Promise<GLTF>((resolve, reject) => {
     try {
-      const gltfLoader = new GLTFLoader().setCrossOrigin('anonymous')
+      // Map models are meshopt-compressed (EXT_meshopt_compression), see scripts/convert-map.mjs
+      const gltfLoader = new GLTFLoader().setCrossOrigin('anonymous').setMeshoptDecoder(MeshoptDecoder)
 
       const onLoad = (gltf: GLTF) => {
         finishDownloadAction(url, 'success')
