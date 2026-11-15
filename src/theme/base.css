@@ -120,7 +120,7 @@
     top: 0;
     left: calc(100% + 0.5rem);
     display: flex;
-    max-height: calc(100vh - 2rem);
+    max-height: calc(100vh - 2rem - var(--ui-dock-clearance));
     max-width: calc(100vw - 4.5rem);
     flex-direction: column;
     overflow: hidden;
@@ -1016,6 +1016,28 @@
 
   /* ─── Camera tips ─────────────────────────────────────────────────────────── */
 
+  /* Bottom right, clear of a docked playback bar and the FPS counter. The tips share one grid
+     cell, so the one fading out and the one fading in sit in the same place. */
+  .ui-tips {
+    padding: 1rem;
+    padding-bottom: calc(1rem + var(--ui-dock-clearance));
+  }
+
+  .ui-root:has(.hud-fps) .ui-tips {
+    padding-bottom: calc(2.25rem + var(--ui-dock-clearance));
+  }
+
+  .ui-tips__stack {
+    display: grid;
+    align-items: end;
+    justify-items: end;
+  }
+
+  .ui-tips__stack > * {
+    grid-area: 1 / 1;
+    pointer-events: none;
+  }
+
   .ui-tip {
     width: 18rem;
     padding: 1.1rem 1.25rem;
@@ -1120,6 +1142,7 @@
     font-family: var(--ui-font-hud);
     font-size: 0.9rem;
     font-weight: var(--ui-hud-weight);
+    text-shadow: var(--ui-hud-text-shadow);
     transition:
       transform 0.15s,
       opacity 0.15s;
@@ -1915,9 +1938,17 @@
     background: rgb(var(--team));
   }
 
+  /* Bottom left, kept left of the centred timeline (110% of .hud-playback, so its left edge is
+     at 50vw - 28.6rem) on screens wide enough to have room beside it. */
   .hud-chat {
-    max-width: 46rem;
+    display: flex;
+    max-width: max(16rem, min(34rem, calc(50vw - 30.5rem)));
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    margin-bottom: var(--ui-dock-clearance);
     font-family: var(--ui-font-body);
+    font-weight: 600;
     pointer-events: none;
     text-shadow: var(--ui-hud-text-shadow);
     user-select: none;
@@ -1925,11 +1956,32 @@
 
   .hud-chat__line {
     line-height: 1.35;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
     transition: opacity 120ms linear;
   }
 
-  .hud-chat__line + .hud-chat__line {
-    margin-top: 0.25rem;
+  /* *DEAD*, (TEAM), *SPEC*: who could see the message. */
+  .hud-chat__prefix {
+    margin-right: 0.3em;
+    color: rgb(var(--ui-chat-normal));
+  }
+
+  /* ─── FPS counter ─────────────────────────────────────────────────────────── */
+
+  .hud-fps {
+    position: fixed;
+    right: 0;
+    bottom: var(--ui-dock-clearance);
+    z-index: 2000000000;
+    padding: 0.15rem 0.5rem;
+    background: rgb(var(--ui-ground) / var(--ui-hud-alpha));
+    color: rgb(var(--ui-ink));
+    font-family: var(--ui-font-mono);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+    pointer-events: none;
   }
 
   /* ─── Sticker palette ─────────────────────────────────────────────────────── */

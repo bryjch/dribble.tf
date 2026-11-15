@@ -29,7 +29,7 @@ export const POVCameraTipPanel = () => {
 
   return (
     <motion.div
-      className="ui-tip absolute"
+      className="ui-tip"
       animate={showing ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
       transition={{ duration: 0.2 }}
       initial={false}
@@ -139,7 +139,7 @@ export const RtsCameraTipPanel = () => {
 
   return (
     <motion.div
-      className="ui-tip absolute"
+      className="ui-tip"
       animate={showing ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
       transition={{ duration: 0.2 }}
       initial={false}

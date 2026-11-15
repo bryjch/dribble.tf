@@ -63,7 +63,8 @@ html[data-theme='mannco'] {
   --ui-border-width: 0px;
   --ui-shadow: 0 6px 18px rgb(0 0 0 / 0.45), 0 1px 0 rgb(0 0 0 / 0.6);
 
-  --ui-roster-width: 14rem;
+  /* Wide enough for a tagged name in Rubik beside the health number. */
+  --ui-roster-width: 15.5rem;
   --ui-roster-height: 2.25rem;
   --ui-roster-gap: 3px;
   --ui-focus-width: 2px;
@@ -72,6 +73,9 @@ html[data-theme='mannco'] {
   --ui-killicon-filter: brightness(0) invert(91%) sepia(16%);
 
   --ui-selection: 207 106 50;
+
+  /* Chat text in TanLight, team names in the game's chat colours. */
+  --ui-chat-normal: 235 226 202;
 }
 
 /* ─── Panels: the main menu's dialogs ───────────────────────────────────────── */
@@ -527,8 +531,15 @@ html[data-theme='mannco'] {
   text-transform: uppercase;
 }
 
-/* Chat in TF2's own chat font colours is left alone; it only takes the drop shadow. */
+/* Chat as the game draws it: TF2's chat colours, a hard drop shadow, no backing. */
 [data-theme='mannco'] .hud-chat {
+  font-size: 0.95rem;
   font-weight: 500;
-  text-shadow: 1px 1px 0 rgb(0 0 0 / 0.9);
+  text-shadow:
+    1px 1px 0 rgb(0 0 0 / 0.9),
+    0 0 3px rgb(0 0 0 / 0.5);
+}
+
+[data-theme='mannco'] .hud-chat__name {
+  font-weight: 700;
 }

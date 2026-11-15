@@ -8,13 +8,15 @@ const HUD_CHAT_TIME_SECONDS = 12
 const HUD_CHAT_FADE_SECONDS = 2
 const HUD_CHAT_MAX_LINES = 8
 
-const Tf2Colors = {
-  normal: { r: 255, g: 178, b: 0, a: 1 },
-  grey: { r: 204, g: 204, b: 204, a: 1 },
-  red: { r: 255, g: 63, b: 63, a: 1 },
-  blue: { r: 153, g: 204, b: 255, a: 1 },
-  location: { r: 64, g: 255, b: 64, a: 1 },
-  achievement: { r: 153, g: 255, b: 153, a: 1 },
+// TF2's chat colours (hud_basechat.h) are tokens (--ui-chat-*, tokens.css) so a theme can
+// retint them; colours a server sends as hex are drawn as sent.
+const ChatColors = {
+  normal: 'rgb(var(--ui-chat-normal))',
+  grey: 'rgb(var(--ui-chat-name))',
+  red: 'rgb(var(--ui-chat-name-red))',
+  blue: 'rgb(var(--ui-chat-name-blu))',
+  location: 'rgb(var(--ui-chat-location))',
+  achievement: 'rgb(var(--ui-chat-achievement))',
 } as const
 
 type RGBA = { r: number; g: number; b: number; a: number }
@@ -25,6 +27,9 @@ const toCssColor = (c: RGBA) => {
   }
   return `rgb(${c.r} ${c.g} ${c.b} / ${c.a})`
 }
+
+/** Who could see a message, as TF2 prefixes it. */
+const CHAT_PREFIX = /^(\*DEAD\*\s?\(TEAM\)|\*DEAD\*|\*SPEC\*|\*COACH\*|\(TEAM\))\s*/
 
 const parseHex = (hex: string) => {
   const normalized = hex.trim()
@@ -63,36 +68,44 @@ const getPlayerNameColor = (
   parser: MatchSource,
   playerId: number | null | undefined,
   tick: number
-): RGBA => {
+): string => {
   if (playerId === null || playerId === undefined) {
-    return Tf2Colors.grey
+    return ChatColors.grey
   }
 
   const teamId = parser.slotTeamAt(playerId, tick)
   switch (teamId) {
     case 2:
-      return Tf2Colors.red
+      return ChatColors.red
     case 3:
-      return Tf2Colors.blue
+      return ChatColors.blue
     default:
-      return Tf2Colors.grey
+      return ChatColors.grey
   }
 }
 
-type Segment = { text: string; color: string }
+type Segment = { text: string; color: string; kind?: 'name' | 'prefix' }
 
-const parseTf2ColorMarkup = (rawText: string, playerNameColor: RGBA): Segment[] => {
+const parseTf2ColorMarkup = (rawText: string, playerNameColor: string): Segment[] => {
   // Valve SDK: hud_basechat.h (TextColor)
   // 1 normal, 2 old colors, 3 player name, 4 location, 5 achievement, 6 custom, 7 hex rgb, 8 hex rgba
-  let currentColor: RGBA = Tf2Colors.normal
-  let lastCustomColor: RGBA = Tf2Colors.normal
+  let currentColor: string = ChatColors.normal
+  let lastCustomColor: string = ChatColors.normal
 
   const out: Segment[] = []
   let buf = ''
 
   const flush = () => {
     if (!buf) return
-    out.push({ text: buf, color: toCssColor(currentColor) })
+    const kind = currentColor === playerNameColor ? 'name' : undefined
+    // The visibility prefix leads the first segment, before the name.
+    const prefix = !out.length && !kind ? buf.match(CHAT_PREFIX) : null
+    if (prefix) {
+      out.push({ text: prefix[1], color: currentColor, kind: 'prefix' })
+      buf = buf.slice(prefix[0].length)
+      if (!buf) return
+    }
+    out.push({ text: buf, color: currentColor, kind })
     buf = ''
   }
 
@@ -103,16 +116,16 @@ const parseTf2ColorMarkup = (rawText: string, playerNameColor: RGBA): Segment[] 
       switch (code) {
         case 1: // normal
         case 2: // old colors
-          currentColor = Tf2Colors.normal
+          currentColor = ChatColors.normal
           break
         case 3: // player name
           currentColor = playerNameColor
           break
         case 4: // location
-          currentColor = Tf2Colors.location
+          currentColor = ChatColors.location
           break
         case 5: // achievement
-          currentColor = Tf2Colors.achievement
+          currentColor = ChatColors.achievement
           break
         case 6: // custom
           currentColor = lastCustomColor
@@ -121,8 +134,8 @@ const parseTf2ColorMarkup = (rawText: string, playerNameColor: RGBA): Segment[] 
           const hex = rawText.slice(i + 1, i + 7)
           const parsed = parseHexColor(hex)
           if (parsed) {
-            currentColor = parsed
-            lastCustomColor = parsed
+            currentColor = toCssColor(parsed)
+            lastCustomColor = currentColor
             i += 6
           }
           break
@@ -134,8 +147,8 @@ const parseTf2ColorMarkup = (rawText: string, playerNameColor: RGBA): Segment[] 
           const hex = rawText.slice(i + 1, i + 9)
           const parsed = parseHexColor(hex)
           if (parsed) {
-            currentColor = parsed
-            lastCustomColor = parsed
+            currentColor = toCssColor(parsed)
+            lastCustomColor = currentColor
             i += 8
           }
           break
@@ -210,18 +223,19 @@ export const ChatHud = (props: ChatHudProps) => {
         const segments = parseTf2ColorMarkup(entry.rawText, nameColor)
 
         return (
-          <div
-            key={`chat-${entry.tick}-${idx}`}
-            className="hud-chat__line"
-            style={{ opacity }}
-          >
-            <span className="whitespace-pre-wrap">
-              {segments.map((seg, segIdx) => (
-                <span key={segIdx} style={{ color: seg.color }}>
-                  {seg.text}
-                </span>
-              ))}
-            </span>
+          <div key={`chat-${entry.tick}-${idx}`} className="hud-chat__line" style={{ opacity }}>
+            {segments.map((seg, segIdx) => (
+              <span
+                key={segIdx}
+                // Literal names: Tailwind drops @layer rules for classes it can't find in source.
+                className={
+                  seg.kind === 'name' ? 'hud-chat__name' : seg.kind === 'prefix' ? 'hud-chat__prefix' : undefined
+                }
+                style={seg.kind === 'prefix' ? undefined : { color: seg.color }}
+              >
+                {seg.text}
+              </span>
+            ))}
           </div>
         )
       })}

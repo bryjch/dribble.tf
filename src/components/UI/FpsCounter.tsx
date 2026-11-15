@@ -26,10 +26,7 @@ export function FpsCounter() {
   }, [])
 
   return (
-    <div
-      ref={textRef}
-      className="fixed bottom-0 right-0 bg-black/50 px-2 py-1 font-mono text-xs text-white"
-    >
+    <div ref={textRef} className="hud-fps" aria-hidden>
       0 FPS
     </div>
   )

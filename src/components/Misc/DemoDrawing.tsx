@@ -63,17 +63,27 @@ export const DemoDrawing = () => {
 
       <div
         className={cn(
-          'pointer-events-none absolute inset-0 flex items-end justify-center overflow-hidden [outline:8px_solid_rgba(0,0,0,0.6)] [transition:0.3s_ease_all]',
+          'pointer-events-none absolute inset-0 flex items-end justify-center overflow-hidden pb-[var(--ui-dock-clearance)] [outline:8px_solid_rgba(0,0,0,0.6)] [transition:0.3s_ease_all]',
           enabled && '-outline-offset-8'
         )}
       >
+        {/* Hidden, it is out of the way of clicks and focus as well as out of sight: it sits
+            over the playback bar, and an invisible panel there swallowed clicks on the timeline. */}
         <motion.div
-          className="pointer-events-auto flex w-[min(420px,calc(100vw-2rem))] flex-col gap-4 rounded-2xl bg-[rgba(50,50,50,0.95)] px-6 pb-4 pt-5 text-white"
-          animate={enabled ? { opacity: 1, y: '-2rem' } : { opacity: 0, y: 100 }}
+          className={cn(
+            'hud-palette flex w-[min(420px,calc(100vw-2rem))] flex-col gap-4 px-6 pb-4 pt-5',
+            enabled ? 'pointer-events-auto' : 'pointer-events-none'
+          )}
+          aria-hidden={!enabled}
+          animate={
+            enabled
+              ? { opacity: 1, y: '-2rem', visibility: 'visible' }
+              : { opacity: 0, y: 100, transitionEnd: { visibility: 'hidden' } }
+          }
           transition={{ duration: 0.2 }}
           initial={false}
         >
-          <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/60">Brush</div>
+          <div className="ui-muted text-xs font-bold uppercase tracking-[0.2em]">Brush</div>
 
           <div className="flex items-center justify-center">
             {BRUSH_COLOR_OPTIONS.map(({ color }) => (
