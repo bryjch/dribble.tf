@@ -308,6 +308,12 @@ export const SettingsPanel = () => {
           />
 
           <ToggleOption
+            label="Damage numbers in POV"
+            checked={settings.ui.damageNumbers}
+            onChange={checked => updateSettingsOption('ui.damageNumbers', checked)}
+          />
+
+          <ToggleOption
             label="Show nameplates"
             keyCode="N"
             checked={settings.ui.nameplate.enabled}

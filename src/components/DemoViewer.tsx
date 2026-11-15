@@ -16,6 +16,7 @@ import { Lights } from '@components/Scene/Lights'
 import { Actors } from '@components/Scene/Actors'
 import { Projectiles } from '@components/Scene/Projectiles'
 import { Viewmodel } from '@components/Scene/Viewmodel'
+import { DamageNumbers } from '@components/Scene/DamageNumbers'
 import { Buildings } from '@components/Scene/Buildings'
 import { Objectives } from '@components/Scene/Objectives'
 import { ObjectiveHud } from '@components/UI/ObjectiveHud'
@@ -676,6 +677,10 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
         {/* Buildings, control points, carts, flags */}
 
         <MatchProps match={demo} />
+
+        {/* In POV, the damage the spectated player deals, over whoever they hit */}
+
+        <DamageNumbers match={demo} />
 
         {/* Projectiles */}
 

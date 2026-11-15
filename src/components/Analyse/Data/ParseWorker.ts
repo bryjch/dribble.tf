@@ -1,8 +1,9 @@
 import { decodeDemo as decodeWithStvtf } from '../../../libs/decoder/decoder.js'
 import type { CachedDeath, DecodedDemo } from './DemoSource'
+import type { DamageHit } from './MatchSource'
 import type { PlayerArrays } from './PlayerTracks'
 import { ChatEntry, PlayerRef, Round } from './Types'
-import { CONDITION_FLAGS, toChatEntry, toDeath, toRound, toUberPop } from './StreamEvents'
+import { CONDITION_FLAGS, toChatEntry, toDamageHit, toDeath, toRound, toUberPop } from './StreamEvents'
 import type { MatchUberEvent } from '@utils/matchEvents'
 
 declare function postMessage(message: any, transfer?: any[]): void
@@ -16,7 +17,7 @@ declare function postMessage(message: any, transfer?: any[]): void
 //
 
 /** The decoder format this build reads (decoder/src/lib.rs, FORMAT). */
-const DECODER_FORMAT = 4
+const DECODER_FORMAT = 5
 
 const PLAYER_ARRAYS = [
   'position',
@@ -81,11 +82,21 @@ onmessage = async (event: MessageEvent) => {
     const chat: ChatEntry[] = []
     const rounds: Round[] = []
     const uberPops: MatchUberEvent[] = []
+    // Events come in tick order, so each attacker's hits do too.
+    const damage = new Map<number, DamageHit[]>()
     for (const m of meta.events) {
       switch (m.type) {
         case 'kill': {
           const death = toDeath(m.tick, m, refOf)
           if (death) (deaths[m.tick] ??= []).push(death)
+          break
+        }
+        case 'damage': {
+          const dealt = toDamageHit(m.tick, m, refOf)
+          if (!dealt) break
+          let hits = damage.get(dealt.attacker)
+          if (!hits) damage.set(dealt.attacker, (hits = []))
+          hits.push(dealt.hit)
           break
         }
         case 'chat':
@@ -127,6 +138,7 @@ onmessage = async (event: MessageEvent) => {
       deaths,
       rounds,
       uberPops,
+      damage,
       parseMs,
       postedAt: performance.timeOrigin + performance.now(),
     }

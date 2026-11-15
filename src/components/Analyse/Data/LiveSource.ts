@@ -4,7 +4,7 @@ import { CachedBuilding } from './BuildingCache'
 import { ObjectiveState, ObjectiveTimeline } from './ObjectiveTimeline'
 import { getMapBoundaries } from '../MapBoundaries'
 import { ChatEntry, Header, PlayerRef, Round, World } from './Types'
-import { CachedDeath, MatchSource, ScoreLine, lerp, lerpAngle, roundStartsFrom } from './MatchSource'
+import { CachedDeath, DamageHit, MatchSource, ScoreLine, lerp, lerpAngle, roundStartsFrom } from './MatchSource'
 import type { MatchUberEvent } from '@utils/matchEvents'
 import {
   BUILDING_KINDS,
@@ -18,6 +18,7 @@ import {
   TEAM_IDS,
   teamName,
   toChatEntry,
+  toDamageHit,
   toDeath,
   toRound,
   toUberPop,
@@ -123,6 +124,8 @@ export class LiveSource implements MatchSource {
   private lastClip = new Map<number, [number, number]>()
   // Every projectile in the last snapshot, by id, to see new ones fired.
   private inFlight = new Map<number, string>()
+  // Hits by the attacker's entity id, each player's in tick order.
+  private damage = new Map<number, DamageHit[]>()
 
   /** Called when the server's ticks start over: a restarted server, or a replay looping. */
   onReset: (() => void) | null = null
@@ -192,6 +195,8 @@ export class LiveSource implements MatchSource {
     switch (m.type) {
       case 'kill':
         return this.addKill(tick, m)
+      case 'damage':
+        return this.addDamage(tick, m)
       case 'chat':
         return this.addChat(tick, m)
       case 'uber':
@@ -371,6 +376,16 @@ export class LiveSource implements MatchSource {
     this.revision++
   }
 
+  private addDamage(tick: number, m: StreamMessage) {
+    const dealt = toDamageHit(tick, m, id => this.playerRef(id))
+    if (!dealt) return
+    let hits = this.damage.get(dealt.attacker)
+    if (!hits) this.damage.set(dealt.attacker, (hits = []))
+    let i = hits.length
+    while (i > 0 && hits[i - 1].tick > tick) i--
+    hits.splice(i, 0, dealt.hit)
+  }
+
   private addChat(tick: number, m: StreamMessage) {
     const slot = m.player != null ? (this.slots.get(m.player) ?? null) : null
     const entry = toChatEntry(tick, m, slot)
@@ -387,6 +402,10 @@ export class LiveSource implements MatchSource {
   //
   // ─── QUERIES ────────────────────────────────────────────────────────────────────
   //
+
+  damageBy(entityId: number): readonly DamageHit[] {
+    return this.damage.get(entityId) ?? []
+  }
 
   /** The last snapshot at or before the tick (the first one before any). */
   private frameIndexAt(tick: number) {

@@ -5,6 +5,8 @@ import { ObjectiveData, ObjectiveState, ObjectiveTimeline } from './ObjectiveTim
 import { ChatEntry, Header, PlayerRef, Round, World } from './Types'
 import {
   CachedDeath,
+  DamageHit,
+  DamageLog,
   MatchSource,
   ScoreLine,
   lerpPlayers,
@@ -51,6 +53,7 @@ export interface DecodedDemo {
   deaths: { [tick: string]: CachedDeath[] }
   rounds: Round[]
   uberPops: MatchUberEvent[]
+  damage: DamageLog
   parseMs: number
   /** performance.timeOrigin + now() when the worker posted, comparable across threads. */
   postedAt: number
@@ -90,6 +93,8 @@ export function decodeDemo(
   })
 }
 
+const NO_HITS: readonly DamageHit[] = []
+
 /** A demo, decoded up front: every tick's state is in typed arrays. */
 export class DemoSource implements MatchSource {
   readonly kind = 'demo' as const
@@ -104,6 +109,7 @@ export class DemoSource implements MatchSource {
   readonly uberPops: MatchUberEvent[]
   readonly stats: DecodeStats
 
+  private readonly damage: DamageLog
   private readonly playerTracks: PlayerTracks
   private readonly buildingCache: BuildingCache
   private readonly projectileCache: ProjectileCache
@@ -121,6 +127,7 @@ export class DemoSource implements MatchSource {
     this.chat = decoded.chat
     this.rounds = decoded.rounds
     this.uberPops = decoded.uberPops
+    this.damage = decoded.damage
     this.players = new Map(decoded.players.map(({ slot, ref }) => [slot, ref]))
     this.slotCount = Math.max(0, ...this.players.keys()) + 1
 
@@ -196,6 +203,10 @@ export class DemoSource implements MatchSource {
 
   objectivesAt(tick: number): ObjectiveState | null {
     return this.objectives.at(this.clamp(tick))
+  }
+
+  damageBy(entityId: number): readonly DamageHit[] {
+    return this.damage.get(entityId) ?? NO_HITS
   }
 
   scoresAt(tick: number): Map<number, ScoreLine> {

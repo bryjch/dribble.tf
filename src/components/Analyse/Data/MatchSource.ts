@@ -27,6 +27,19 @@ export interface CachedDeath {
   killerTeam: number
 }
 
+/** A hit one player landed on another. */
+export interface DamageHit {
+  tick: number
+  /** The victim's entity id. */
+  victim: number
+  amount: number
+  crit: boolean
+  minicrit: boolean
+}
+
+/** Hits by the attacker's entity id, each player's in tick order. */
+export type DamageLog = Map<number, DamageHit[]>
+
 /**
  * A player's scoreboard line, as stv.tf shows it: points, kills and deaths are the server's;
  * assists, damage and healing are counted from events (stvtf, like logs.tf).
@@ -58,6 +71,8 @@ export interface MatchSource {
   readonly rounds: Round[]
   readonly uberPops: MatchUberEvent[]
 
+  /** The hits a player (by entity id) landed on other players, in tick order. */
+  damageBy(entityId: number): readonly DamageHit[]
   playersAt(tick: number): CachedPlayer[]
   projectilesAt(tick: number): CachedProjectile[]
   buildingsAt(tick: number): CachedBuilding[]

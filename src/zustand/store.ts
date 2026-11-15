@@ -202,6 +202,8 @@ export type StoreState = {
         color: string
       }
       playerOutlines: boolean
+      /** In POV, the damage the spectated player deals, over whoever they hit. */
+      damageNumbers: boolean
       showStats: boolean
       showSkybox: boolean
       /** The score, timer and objectives HUD, and the objectives in the world. Saved settings from before lack it. */
@@ -305,6 +307,7 @@ export const initialState: StoreState = {
         color: '#ffffff',
       },
       playerOutlines: false,
+      damageNumbers: true,
       showStats: true,
       showSkybox: true,
       showObjectives: true,
