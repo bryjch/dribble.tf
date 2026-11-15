@@ -1,3 +1,4 @@
+import { reportError } from '@utils/notice'
 import { get, merge, clamp, cloneDeep, sortBy, round } from 'lodash'
 import localForage from 'localforage'
 import * as THREE from 'three'
@@ -65,7 +66,7 @@ export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
         dispatch({ type: 'PARSE_DEMO_PROGRESS', payload: progress })
       })
     } catch (error) {
-      alert(`Unable to load demo. Please make sure it's a valid SourceTV .dem file.`)
+      reportError("Couldn't read this demo", "Make sure it's a SourceTV .dem file, not a POV demo.")
       throw error
     }
 

@@ -197,7 +197,7 @@ export const ChatHud = (props: ChatHudProps) => {
   }
 
   return (
-    <div className="text-outline pointer-events-none max-w-[46rem] select-none space-y-1">
+    <div className="hud-chat">
       {visible.map((entry, idx) => {
         const ageSeconds = Math.max(0, (tick - entry.tick) * intervalPerTick)
         const fadeStart = HUD_CHAT_TIME_SECONDS - HUD_CHAT_FADE_SECONDS
@@ -212,8 +212,8 @@ export const ChatHud = (props: ChatHudProps) => {
         return (
           <div
             key={`chat-${entry.tick}-${idx}`}
-            className="leading-snug"
-            style={{ opacity, transition: 'opacity 120ms linear' }}
+            className="hud-chat__line"
+            style={{ opacity }}
           >
             <span className="whitespace-pre-wrap">
               {segments.map((seg, segIdx) => (

@@ -1,6 +1,6 @@
 import { LiveSource, StreamMessage } from '@components/Analyse/Data/LiveSource'
 import { getMapModelUrls } from '@utils/game'
-import { setUrlDemoStatus } from '@utils/embed'
+import { setUrlDemoStatus } from '@utils/notice'
 import { goToTickAction, loadSceneFromDemoAction, setMaxTicksAction } from '@zus/actions'
 import { getState, useInstance } from '@zus/store'
 
@@ -15,7 +15,7 @@ import { getState, useInstance } from '@zus/store'
 //   /?live=https://stv.tf/w/abc123/        a match page (also …/overlay, …/5 for a delay)
 //   /?live=https://stv.tf/start?t=…        a start link from serveme.tf
 //
-// Pasting such a link anywhere on the page opens it too.
+// Pasting such a link anywhere on the page opens it too (see @utils/matchLink).
 //
 
 // Playback stays this far behind the newest snapshot, so the stream's jitter never runs it
@@ -26,15 +26,9 @@ const LIVE_LAG_SECONDS = 0.5
 const FOLLOW_SECONDS = 5
 const CATCH_UP_SECONDS = 1
 
-// stv.tf and the sites that run it behind their own domain (serveme.tf's /live), plus a
-// local stvtf-web. Extend this to watch another deployment.
-const ALLOWED_LIVE_HOSTS = [
-  /(^|\.)stv\.tf$/i,
-  /(^|\.)serveme\.tf$/i,
-  /^localhost$/i,
-  /^127\.0\.0\.1$/,
-  /^\[::1\]$/,
-]
+// Any host may serve a match: stv.tf, serveme.tf's /live, or anyone running stvtf-web
+// themselves. A link is recognised by stv.tf's page shape (below), not by its domain; the
+// browser's CORS rules decide whether its event stream can actually be read.
 
 export interface LiveRequest {
   /** The link as given, to send people back to stv.tf when something goes wrong. */
@@ -43,16 +37,22 @@ export interface LiveRequest {
   delaySeconds: number
 }
 
-const isAllowedLiveUrl = (url: URL) =>
-  (url.protocol === 'https:' || url.protocol === 'http:') &&
-  (url.origin === window.location.origin ||
-    ALLOWED_LIVE_HOSTS.some(pattern => pattern.test(url.hostname)))
+/** The host a match link points at, for messages ("stv.tf", "serveme.tf", ...). */
+const hostOf = (link: string) => {
+  try {
+    return new URL(link).hostname.replace(/^www\./, '')
+  } catch {
+    return 'the server'
+  }
+}
 
-/** Whether pasted text is a link this can play. */
+const isWebUrl = (url: URL) => url.protocol === 'https:' || url.protocol === 'http:'
+
+/** Whether a link has the shape of an stv.tf match page (/w/<id>/…) or start link (/start). */
 export const isLiveLink = (text: string) => {
   try {
     const url = new URL(text.trim())
-    return isAllowedLiveUrl(url) && /(\/w\/[\w-]+|\/start)(\/|$)/.test(url.pathname)
+    return isWebUrl(url) && /(\/w\/[\w-]+|\/start)(\/|$)/.test(url.pathname)
   } catch {
     return false
   }
@@ -81,13 +81,13 @@ const watchPage = (url: URL): LiveRequest => {
 
 const resolveLink = async (link: string): Promise<LiveRequest> => {
   const url = new URL(link.trim())
-  if (!isAllowedLiveUrl(url)) throw new Error(`${url.hostname} is not an stv.tf server`)
+  if (!isWebUrl(url)) throw new Error("That isn't a web link.")
 
   // A start link starts the match (or joins it) and says which page it is on.
   if (url.pathname.endsWith('/start')) {
     url.searchParams.set('format', 'json')
     const response = await fetch(url)
-    if (!response.ok) throw new Error(`stv.tf could not start this match (${response.status})`)
+    if (!response.ok) throw new Error(`${url.hostname} could not start this match (${response.status})`)
     const { page } = await response.json()
     return watchPage(new URL(page, url))
   }
@@ -101,7 +101,7 @@ export const resolveLiveAction = async (): Promise<LiveRequest | null> => {
   if (!link) return null
 
   try {
-    setUrlDemoStatus({ state: 'resolving', message: 'Connecting to stv.tf ...' })
+    setUrlDemoStatus({ state: 'resolving', message: `Connecting to ${hostOf(link)}…` })
     return await resolveLink(link)
   } catch (error) {
     setUrlDemoStatus({
@@ -119,7 +119,8 @@ export const resolveLiveAction = async (): Promise<LiveRequest | null> => {
  */
 export const connectLiveAction = (request: LiveRequest) => {
   const stream = new EventSource(request.eventsUrl)
-  const stvLink = { href: request.link, label: 'Open on stv.tf' }
+  const host = hostOf(request.link)
+  const stvLink = { href: request.link, label: `Open on ${host}` }
   let source: LiveSource | null = null
   let loaded = false
   let server: StreamMessage | null = null
@@ -183,7 +184,7 @@ export const connectLiveAction = (request: LiveRequest) => {
           setUrlDemoStatus({
             state: 'error',
             title: 'SourceTV disconnected',
-            message: m.reason || 'stv.tf lost the connection to this match.',
+            message: m.reason || `${host} lost the connection to this match.`,
             link: stvLink,
           })
         } else if (!loaded) {
@@ -227,7 +228,7 @@ export const connectLiveAction = (request: LiveRequest) => {
       setUrlDemoStatus({
         state: 'error',
         title: "Couldn't watch this match",
-        message: 'stv.tf refused the stream: the match may have ended or the link expired.',
+        message: `${host} refused the stream: the match may have ended or the link expired.`,
         link: stvLink,
       })
     } else {
@@ -241,20 +242,5 @@ export const connectLiveAction = (request: LiveRequest) => {
       stream.close()
       unsubscribe()
     }
-  })
-}
-
-/** Pasting an stv.tf link opens it, the same as following a ?live= link. */
-export const listenForPastedLiveLinks = () => {
-  window.addEventListener('paste', event => {
-    const target = event.target as HTMLElement | null
-    if (target?.closest('input, textarea, [contenteditable="true"]')) return
-    const text = event.clipboardData?.getData('text') ?? ''
-    if (!isLiveLink(text)) return
-    event.preventDefault()
-    const url = new URL(window.location.href)
-    url.search = `?live=${encodeURIComponent(text.trim())}`
-    url.hash = ''
-    window.location.assign(url.href)
   })
 }

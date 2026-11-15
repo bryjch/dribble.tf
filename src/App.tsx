@@ -7,10 +7,13 @@ import {
   loadEmptySceneMapAction,
   loadSetupsAction,
   loadSettingsAction,
+  updateSettingsOptionAction,
 } from '@zus/actions'
 import { getState } from '@zus/store'
+import { applyTheme, getThemeFromUrl } from '@theme/themes'
 import { loadUrlDemoAction, resolveUrlDemoAction } from '@utils/embed'
-import { connectLiveAction, listenForPastedLiveLinks, resolveLiveAction } from '@utils/live'
+import { connectLiveAction, resolveLiveAction } from '@utils/live'
+import { listenForPastedMatchLinks } from '@utils/matchLink'
 import { installBench } from '@utils/bench'
 
 class App extends React.Component {
@@ -25,6 +28,11 @@ class App extends React.Component {
   async componentDidMount() {
     installBench()
     await loadSettingsAction()
+
+    // ?theme= picks a look and remembers it; after that the overlays follow the setting.
+    const urlTheme = getThemeFromUrl()
+    if (urlTheme) await updateSettingsOptionAction('ui.theme', urlTheme)
+    applyTheme(getState().settings.ui.theme)
     await loadSetupsAction()
     const sharedSetup = await bootstrapSharedSetupFromHashAction()
 
@@ -46,7 +54,7 @@ class App extends React.Component {
     }
 
     if (live) connectLiveAction(live)
-    listenForPastedLiveLinks()
+    listenForPastedMatchLinks()
 
     // Completely disable right clicks cause it's kinda annoying
     // when interacting with UI elements

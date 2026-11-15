@@ -26,7 +26,8 @@
       "@libs/*": ["src/libs/*"],
       "@pages/*": ["src/pages/*"],
       "@zus/*": ["src/zustand/*"],
-      "@utils/*": ["src/utils/*"]
+      "@utils/*": ["src/utils/*"],
+      "@theme/*": ["src/theme/*"]
     }
   },
   "include": ["src"],

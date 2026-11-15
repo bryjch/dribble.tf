@@ -76,14 +76,14 @@ export const StickerPalette = () => {
 
   const actionButtonClass = (enabled: boolean = true) =>
     cn(
-      'inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white transition-all',
-      enabled ? 'hover:scale-105 hover:bg-white/20' : 'cursor-default opacity-40'
+      'ui-btn h-9 w-9 !p-0',
+      !enabled && 'cursor-default opacity-40'
     )
 
   return (
     <div
       data-sticker-panel="true"
-      className="w-auto rounded-[28px] border border-white/10 bg-black/75 p-4 text-white shadow-[0_24px_80px_rgba(0,0,0,0.45)] backdrop-blur"
+      className="hud-palette w-auto p-4"
     >
       <div className="grid gap-3">
         {(['blue', 'red'] as StickerTeam[]).map(team => (
@@ -113,7 +113,7 @@ export const StickerPalette = () => {
           </div>
         ))}
 
-        <div className="flex flex-nowrap justify-start gap-2 border-t border-white/10 pt-3">
+        <div className="flex flex-nowrap justify-start gap-2 border-t border-ui-line/15 pt-3">
           {SYMBOL_STICKERS.map(({ sticker, buttonClassName, label }) => {
             const isDraggingThisSticker =
               stickerDrag.active &&
@@ -139,7 +139,7 @@ export const StickerPalette = () => {
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <div className="text-left text-xs uppercase tracking-[0.1em] text-white/60">
+        <div className="ui-section-title !m-0 text-left">
           Drag & drop onto scene
         </div>
 
@@ -173,10 +173,8 @@ export const StickerPalette = () => {
 
           <button
             className={cn(
-              'rounded-full border border-white/10 px-4 py-2 text-sm font-semibold transition-all',
-              stickerHistory.present.length > 0
-                ? 'bg-white/10 hover:bg-white/20'
-                : 'cursor-default bg-white/5 opacity-40'
+              'ui-btn',
+              stickerHistory.present.length === 0 && 'cursor-default opacity-40'
             )}
             onClick={() => clearStickersAction()}
             disabled={stickerHistory.present.length === 0}

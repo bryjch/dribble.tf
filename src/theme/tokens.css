@@ -1,0 +1,83 @@
+/*
+ * ─── SEMANTIC TOKENS ────────────────────────────────────────────────────────────
+ *
+ * The one place an overlay's colours, type, corners and depth come from. Components use the
+ * Tailwind names mapped onto these (bg-ui-ground, text-team-red-ink, rounded-panel ...) or the
+ * hooks in base.css; a theme is these tokens redefined under html[data-theme='<id>'].
+ *
+ * Colours are bare "R G B" triplets so Tailwind's /opacity modifiers work on them.
+ * The defaults below are the Legacy theme: dribble.tf as it looked before themes.
+ */
+
+:root {
+  /* Surfaces. ground: panels and HUD chips over the scene. raised: hover washes, inputs. */
+  --ui-ground: 0 0 0;
+  --ui-panel-alpha: 0.8;
+  --ui-hud-alpha: 0.7;
+  --ui-raised: 255 255 255;
+  --ui-raised-alpha: 0.08;
+  --ui-line: 255 255 255;
+  --ui-line-alpha: 0.12;
+  --ui-scrim: 0 0 0;
+
+  /* Ink. */
+  --ui-ink: 238 238 238;
+  --ui-ink-muted: 168 168 168;
+  --ui-ink-faint: 110 110 110;
+  --ui-ink-on-team: 255 255 255;
+
+  /* Interaction. accent: selected and primary. focus: the focused player and focus rings. */
+  --ui-accent: 238 238 238;
+  --ui-accent-ink: 17 17 17;
+  --ui-focus: 255 255 255;
+
+  /* Teams. solid: score blocks, class tiles. ink: names on the ground. fill/track: health. */
+  --ui-red: 172 38 65;
+  --ui-blu: 136 174 184;
+  --ui-red-ink: 255 74 74;
+  --ui-blu-ink: 119 169 236;
+  --ui-red-fill: 172 38 65;
+  --ui-blu-fill: 136 174 184;
+  --ui-red-track: 172 38 65;
+  --ui-blu-track: 136 174 184;
+  --ui-track-alpha: 0.5;
+  --ui-neutral: 107 107 107;
+
+  /* State. */
+  --ui-good: 62 255 0;
+  --ui-warn: 251 191 36;
+  --ui-bad: 255 119 104;
+  --ui-live: 220 38 38;
+  --ui-overheal-wash: 255 255 255;
+
+  /* Type. */
+  --ui-font-body: 'Source Sans Pro', system-ui, sans-serif;
+  --ui-font-hud: var(--ui-font-body);
+  --ui-font-display: var(--ui-font-body);
+  --ui-font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --ui-caps-tracking: 0.06em;
+  --ui-title-case: none;
+  --ui-hud-weight: 600;
+  --ui-hud-text-shadow: 0 0 2px #000, 0 0 2px #000, 0 0 2px #000, 0 0 2px #000;
+
+  /* Shape. panel: side panels. control: buttons and inputs. chip: HUD pills. bar: roster rows. */
+  --ui-radius-panel: 1.5rem;
+  --ui-radius-control: 0.75rem;
+  --ui-radius-chip: 0.75rem;
+  --ui-radius-bar: 0.75rem;
+  --ui-radius-transport: 9999px;
+  --ui-radius-point: 9999px;
+  --ui-border-width: 0px;
+  --ui-shadow: none;
+
+  /* HUD geometry. */
+  --ui-roster-width: 13rem;
+  --ui-roster-height: 2.25rem;
+  --ui-roster-gap: 1.5px;
+  --ui-focus-width: 3px;
+  --ui-focus-shift: 0.75rem;
+  --ui-killicon-filter: brightness(600%);
+
+  /* Browser surfaces. */
+  --ui-selection: 150 113 216;
+}

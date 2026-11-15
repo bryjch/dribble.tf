@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { clamp } from 'lodash'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
+import { Segmented, Switch } from '@components/UI/Shared/Controls'
 import {
   IoMdSettingsIcon,
   CrosshairStyleIcon,
@@ -16,6 +17,7 @@ import { useStore } from '@zus/store'
 import { toggleUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
 import { cn } from '@utils/styling'
 import { useIsMobile } from '@utils/hooks'
+import { DEFAULT_THEME, THEMES, isThemeId } from '@theme/themes'
 
 //
 // ─── BASE OPTION WRAPPER ────────────────────────────────────────────────────────
@@ -30,27 +32,25 @@ type OptionProps = {
   onClickLabel?: () => void
 }
 
-const Option = ({
-  label,
-  keyCode,
-  children,
-  leftClass = '',
-  rightClass = '',
-  onClickLabel,
-}: OptionProps) => (
-  <div className="mb-4 flex items-center justify-between">
-    <div className={cn('flex items-center', leftClass)}>
-      <div
-        className={cn('select-none text-base font-semibold', !!onClickLabel && 'cursor-default')}
-        onClick={onClickLabel}
-      >
+const Option = ({ label, keyCode, children, leftClass = '', rightClass = '', onClickLabel }: OptionProps) => (
+  <div className="ui-option">
+    <div className={cn('ui-option__label', leftClass)}>
+      <span className={cn(!!onClickLabel && 'cursor-default')} onClick={onClickLabel}>
         {label}
-      </div>
-      {!!keyCode && <kbd className="ml-2 text-[66%]">{keyCode}</kbd>}
+      </span>
+      {!!keyCode && <kbd>{keyCode}</kbd>}
     </div>
 
     <div className={cn('flex items-center', rightClass)}>{children}</div>
   </div>
+)
+
+const Section = ({ children }: { children: React.ReactNode }) => (
+  <div className="ui-section-title">{children}</div>
+)
+
+const OptionGroup = ({ children }: { children: React.ReactNode }) => (
+  <div className="ui-option-group">{children}</div>
 )
 
 //
@@ -76,7 +76,7 @@ const SliderOption = ({
   min = 1,
   max = 10,
   step = 0.1,
-  inputClassName = 'w-10',
+  inputClassName = '',
 }: SliderOptionProps) => {
   // Track value internally so that input[type=number] will only trigger
   // callback when appropriate (i.e. enter / up / down / blurred)
@@ -93,20 +93,19 @@ const SliderOption = ({
   }
 
   return (
-    <Option label={label} keyCode={keyCode} leftClass="w-5/12" rightClass="w-7/12">
+    <Option label={label} keyCode={keyCode} leftClass="w-5/12 shrink-0" rightClass="flex-1">
       <input
         type="range"
-        className="slider h-[2px] flex-1 cursor-pointer rounded-md bg-white/30 outline-offset-4 [-webkit-appearance:none]"
+        className="ui-range"
+        aria-label={label}
         value={val}
         onChange={({ target }) => callback(Number(target.value))}
         {...inputFields}
       />
       <input
         type="number"
-        className={cn(
-          'ml-4 rounded-md border border-white/40 bg-transparent px-1 text-right text-base',
-          inputClassName
-        )}
+        className={cn('ui-input ui-input--number ml-3', inputClassName)}
+        aria-label={`${label} value`}
         value={val}
         onChange={({ target }) => setVal(Number(target.value))}
         onBlur={() => callback(val)}
@@ -140,13 +139,7 @@ const ToggleOption = ({ label, keyCode, checked, disabled, onChange }: ToggleOpt
 
   return (
     <Option label={label} keyCode={keyCode} onClickLabel={callback}>
-      <input
-        type="checkbox"
-        className="h-4 w-4"
-        checked={checked}
-        disabled={disabled}
-        onChange={callback}
-      />
+      <Switch checked={checked} disabled={disabled} onChange={callback} label={label} />
     </Option>
   )
 }
@@ -174,35 +167,47 @@ export const SettingsPanel = () => {
 
   return (
     <div className="flex items-start">
-      <TogglePanelButton onClick={toggleUIPanel}>
+      <TogglePanelButton onClick={toggleUIPanel} active={isOpen} label="Settings">
         <IoMdSettingsIcon />
       </TogglePanelButton>
 
       <TogglePanel
-        className="w-[clamp(100px,460px,80vw)]"
+        className="w-[min(440px,calc(100vw-5rem))]"
+        title="Settings"
         showCloseButton
         isOpen={isOpen}
         onClickClose={toggleUIPanel}
       >
-        <div className="max-h-[90vh] overflow-auto px-8 pb-8 pt-10">
+        <div>
+          <Section>Theme</Section>
+
+          <Option label="Look">
+            <Segmented
+              label="Theme"
+              options={THEMES.map(theme => ({ label: theme.label, value: theme.id }))}
+              value={isThemeId(settings.ui.theme) ? settings.ui.theme : DEFAULT_THEME}
+              onChange={value => updateSettingsOption('ui.theme', value)}
+            />
+          </Option>
+
           {/* ************************************************************* */}
 
-          <div className="mb-4 text-xs font-black uppercase opacity-60">Camera</div>
+          <Section>Camera</Section>
 
-          <Option label="POV Camera (next)" keyCode="1" leftClass="col" />
-          <Option label="POV Camera (prev)" keyCode="Shift + 1" leftClass="col" />
+          <Option label="POV Camera (next)" keyCode="1" />
+          <Option label="POV Camera (prev)" keyCode="Shift + 1" />
 
-          {!isMobile && <Option label="Spectator Camera" keyCode="2" leftClass="col" />}
+          {!isMobile && <Option label="Spectator Camera" keyCode="2" />}
           {isMobile && (
-            <Option label="Spectator Camera" leftClass="col">
-              <span className="text-xs opacity-40">Desktop only</span>
+            <Option label="Spectator Camera">
+              <span className="ui-option__hint">Desktop only</span>
             </Option>
           )}
 
           {scene.controls.mode === 'spectator' && !isMobile && (
-            <div className="ml-3">
+            <OptionGroup>
               <SliderOption
-                label="- FOV"
+                label="FOV"
                 min={50}
                 max={120}
                 step={1}
@@ -211,25 +216,25 @@ export const SettingsPanel = () => {
               />
 
               <SliderOption
-                label="- Look Sensitivity"
+                label="Look Sensitivity"
                 value={settings.controls.lookSpeed}
                 onChange={value => updateSettingsOption('controls.lookSpeed', value)}
               />
 
               <SliderOption
-                label="- Move Speed"
+                label="Move Speed"
                 value={settings.controls.moveSpeed}
                 onChange={value => updateSettingsOption('controls.moveSpeed', value)}
               />
-            </div>
+            </OptionGroup>
           )}
 
           <Option label="RTS Camera" keyCode="3" />
 
           {scene.controls.mode === 'rts' && (
-            <div className="ml-3">
+            <OptionGroup>
               <SliderOption
-                label="- FOV"
+                label="FOV"
                 min={50}
                 max={120}
                 step={1}
@@ -238,58 +243,50 @@ export const SettingsPanel = () => {
               />
 
               <SliderOption
-                label="- Pan speed"
+                label="Pan speed"
                 value={settings.controls.panSpeed}
                 onChange={value => updateSettingsOption('controls.panSpeed', value)}
               />
 
               <SliderOption
-                label="- Rotate speed"
+                label="Rotate speed"
                 value={settings.controls.rotateSpeed}
                 onChange={value => updateSettingsOption('controls.rotateSpeed', value)}
               />
 
               <SliderOption
-                label="- Zoom speed"
+                label="Zoom speed"
                 value={settings.controls.zoomSpeed}
                 onChange={value => updateSettingsOption('controls.zoomSpeed', value)}
               />
 
               <ToggleOption
-                label="- Inertia enabled"
+                label="Inertia enabled"
                 checked={settings.controls.enableDamping}
                 onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
               />
-            </div>
+            </OptionGroup>
           )}
 
           {/* ************************************************************* */}
 
-          <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Scene</div>
+          <Section>Scene</Section>
 
           <Option label="Material" keyCode="M">
-            <div className="flex gap-1">
-              {[
+            <Segmented
+              label="Material"
+              options={[
                 { label: 'Wireframe', value: 'wireframe' },
                 { label: 'Plain', value: 'untextured' },
                 { label: 'Textured', value: 'textured' },
-              ].map(button => (
-                <button
-                  key={`geometry-material-btn-${button.value}`}
-                  className={cn(
-                    'rounded-xl border px-2 text-sm',
-                    settings.scene.mode === button.value && 'border-[#3273f6] bg-[#3273f6]'
-                  )}
-                  onClick={() => updateSettingsOption('scene.mode', button.value)}
-                >
-                  {button.label}
-                </button>
-              ))}
-            </div>
+              ]}
+              value={settings.scene.mode}
+              onChange={value => updateSettingsOption('scene.mode', value)}
+            />
           </Option>
 
           <ToggleOption
-            label="Frame smoothing (*expensive)"
+            label="Frame smoothing"
             checked={settings.scene.interpolateFrames}
             onChange={checked => updateSettingsOption('scene.interpolateFrames', checked)}
           />
@@ -305,10 +302,10 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
-          <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Players</div>
+          <Section>Players</Section>
 
           <ToggleOption
-            label="Player outlines (*expensive)"
+            label="Player outlines"
             keyCode="O"
             checked={settings.ui.playerOutlines}
             onChange={checked => updateSettingsOption('ui.playerOutlines', checked)}
@@ -322,63 +319,54 @@ export const SettingsPanel = () => {
           />
 
           {settings.ui.nameplate.enabled && (
-            <div className="ml-3">
+            <OptionGroup>
               <ToggleOption
-                label="- Name"
+                label="Name"
                 checked={settings.ui.nameplate.showName}
                 disabled={!settings.ui.nameplate.enabled}
                 onChange={checked => updateSettingsOption('ui.nameplate.showName', checked)}
               />
 
               <ToggleOption
-                label="- Health"
+                label="Health"
                 checked={settings.ui.nameplate.showHealth}
                 disabled={!settings.ui.nameplate.enabled}
                 onChange={checked => updateSettingsOption('ui.nameplate.showHealth', checked)}
               />
 
               <ToggleOption
-                label="- Class"
+                label="Class"
                 checked={settings.ui.nameplate.showClass}
                 disabled={!settings.ui.nameplate.enabled}
                 onChange={checked => updateSettingsOption('ui.nameplate.showClass', checked)}
               />
 
               <ToggleOption
-                label="- Conditions"
+                label="Conditions"
                 checked={settings.ui.nameplate.showConditions !== false}
                 disabled={!settings.ui.nameplate.enabled}
                 onChange={checked => updateSettingsOption('ui.nameplate.showConditions', checked)}
               />
-            </div>
+            </OptionGroup>
           )}
 
           {/* ************************************************************* */}
 
-          <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Crosshair</div>
+          <Section>Crosshair</Section>
 
           <Option label="Style">
-            <div className="flex gap-1">
-              {([
-                { label: 'None', value: CrosshairStyle.NONE, icon: null },
-                { label: 'Crosshair', value: CrosshairStyle.CROSSHAIR, icon: <CrosshairStyleIcon className="h-4 w-4" /> },
-                { label: 'Cross', value: CrosshairStyle.CROSS, icon: <CrossStyleIcon className="h-4 w-4" /> },
-                { label: 'Circle', value: CrosshairStyle.CIRCLE, icon: <CircleStyleIcon className="h-4 w-4" /> },
-                { label: 'Dot', value: CrosshairStyle.DOT, icon: <DotStyleIcon className="h-4 w-4" /> },
-              ] as const).map(button => (
-                <button
-                  key={`crosshair-style-btn-${button.value}`}
-                  className={cn(
-                    'flex items-center gap-1 rounded-xl border px-2 py-0.5 text-sm',
-                    settings.ui.crosshair.style === button.value && 'border-[#3273f6] bg-[#3273f6]'
-                  )}
-                  onClick={() => updateSettingsOption('ui.crosshair.style', button.value)}
-                >
-                  {button.icon}
-                  {button.label}
-                </button>
-              ))}
-            </div>
+            <Segmented
+              label="Crosshair style"
+              options={[
+                { label: 'None', value: CrosshairStyle.NONE },
+                { label: 'Cross', value: CrosshairStyle.CROSSHAIR, icon: <CrosshairStyleIcon className="h-3.5 w-3.5" /> },
+                { label: 'Plus', value: CrosshairStyle.CROSS, icon: <CrossStyleIcon className="h-3.5 w-3.5" /> },
+                { label: 'Circle', value: CrosshairStyle.CIRCLE, icon: <CircleStyleIcon className="h-3.5 w-3.5" /> },
+                { label: 'Dot', value: CrosshairStyle.DOT, icon: <DotStyleIcon className="h-3.5 w-3.5" /> },
+              ]}
+              value={settings.ui.crosshair.style}
+              onChange={value => updateSettingsOption('ui.crosshair.style', value)}
+            />
           </Option>
 
           {settings.ui.crosshair.style !== 'none' && (
@@ -404,14 +392,12 @@ export const SettingsPanel = () => {
               <Option label="Color">
                 <div className="flex items-center gap-1.5">
                   {BRUSH_COLOR_OPTIONS.map(({ color }) => (
-                    <div
+                    <button
+                      type="button"
                       key={`crosshair-color-${color}`}
-                      className={cn(
-                        'h-6 w-6 cursor-pointer rounded-full [transition:0.2s_ease_all] hover:scale-110',
-                        settings.ui.crosshair.color === color
-                          ? '[border:2px_solid_white] scale-110'
-                          : '[border:2px_solid_transparent]'
-                      )}
+                      className="ui-swatch"
+                      data-active={settings.ui.crosshair.color === color}
+                      aria-label={`Crosshair colour ${color}`}
                       style={{ backgroundColor: color }}
                       onClick={() => updateSettingsOption('ui.crosshair.color', color)}
                     />
@@ -423,7 +409,7 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
-          <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Drawing</div>
+          <Section>Drawing</Section>
 
           <Option label="Activate" keyCode="F" />
           <Option label="Clear active tool" keyCode="C" />
@@ -432,23 +418,15 @@ export const SettingsPanel = () => {
           <Option label="Delete selected sticker" keyCode="Delete" />
 
           <Option label="Activation method" rightClass="col-auto">
-            <div className="flex gap-1">
-              {[
+            <Segmented
+              label="Activation method"
+              options={[
                 { label: 'Hold', value: 'hold' },
                 { label: 'Toggle', value: 'toggle' },
-              ].map(button => (
-                <button
-                  key={`drawing-activation-method-btn-${button.value}`}
-                  className={cn(
-                    'rounded-xl border px-2 text-sm',
-                    settings.drawing.activation === button.value && 'border-[#3273f6] bg-[#3273f6]'
-                  )}
-                  onClick={() => updateSettingsOption('drawing.activation', button.value)}
-                >
-                  {button.label}
-                </button>
-              ))}
-            </div>
+              ]}
+              value={settings.drawing.activation}
+              onChange={value => updateSettingsOption('drawing.activation', value)}
+            />
           </Option>
 
           <ToggleOption
@@ -459,7 +437,7 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
-          <div className="mb-4 mt-16 text-xs font-black uppercase opacity-60">Misc</div>
+          <Section>Misc</Section>
 
           <ToggleOption
             label="Show FPS"

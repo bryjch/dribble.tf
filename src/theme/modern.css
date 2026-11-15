@@ -1,0 +1,769 @@
+/*
+ * ─── MODERN ─────────────────────────────────────────────────────────────────────
+ *
+ * The comp-HUD lineage, after stv.tf: near-black shade bars, square corners, a condensed HUD
+ * face, the big health number first. Team colours and their worked-out shades are stv.tf's
+ * (#d0453f / #4f8fc0, d70/d45 fills, w55 overheal), so a match looks the same in both.
+ *
+ * Signature: the playback bar docks full width along the bottom, and its track is the match
+ * at a glance: each round tinted by who won it, every kill a tick in the killer's colour.
+ */
+
+html[data-theme='modern'] {
+  --ui-ground: 11 12 14;
+  --ui-panel-alpha: 0.97;
+  --ui-hud-alpha: 0.82;
+  --ui-raised: 255 255 255;
+  --ui-raised-alpha: 0.05;
+  --ui-line: 44 48 54;
+  --ui-line-alpha: 1;
+  --ui-scrim: 11 12 14;
+
+  --ui-ink: 216 218 221;
+  --ui-ink-muted: 138 144 153;
+  --ui-ink-faint: 98 104 113;
+  --ui-ink-on-team: 255 255 255;
+
+  --ui-accent: 79 143 192;
+  --ui-accent-ink: 255 255 255;
+  --ui-focus: 255 209 102;
+
+  --ui-red: 208 69 63;
+  --ui-blu: 79 143 192;
+  --ui-red-ink: 217 106 101;
+  --ui-blu-ink: 114 165 205;
+  --ui-red-fill: 146 48 44;
+  --ui-blu-fill: 55 100 134;
+  --ui-red-track: 11 12 14;
+  --ui-blu-track: 11 12 14;
+  --ui-track-alpha: 0.8;
+  --ui-neutral: 74 79 87;
+
+  --ui-good: 124 196 127;
+  --ui-warn: 255 209 102;
+  --ui-bad: 255 107 90;
+  --ui-live: 208 69 63;
+
+  --ui-font-body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ui-font-hud: 'Roboto Condensed Variable', 'Roboto Condensed', 'Arial Narrow', sans-serif;
+  --ui-font-display: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ui-caps-tracking: 0.06em;
+  --ui-title-case: none;
+  --ui-hud-weight: 600;
+  --ui-hud-text-shadow: 0 1px 2px #000;
+
+  --ui-radius-panel: 6px;
+  --ui-radius-control: 4px;
+  --ui-radius-chip: 2px;
+  --ui-radius-bar: 0px;
+  --ui-radius-transport: 0px;
+  --ui-radius-point: 2px;
+  --ui-border-width: 1px;
+  --ui-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
+
+  --ui-roster-width: 15.5rem;
+  --ui-roster-height: 2.5rem;
+  --ui-roster-gap: 3px;
+  --ui-focus-width: 2px;
+  --ui-focus-shift: 0.5rem;
+  --ui-killicon-filter: brightness(600%);
+
+  --ui-selection: 79 143 192;
+}
+
+html[data-theme='modern'] body {
+  font-size: 13px;
+}
+
+/* Worked-out team shades, as stv.tf has them. */
+[data-theme='modern'] [data-team='blue'] {
+  --t-d70: 55 100 134;
+  --t-d45: 36 64 86;
+  --t-w55: 158 193 220;
+}
+
+[data-theme='modern'] [data-team='red'] {
+  --t-d70: 146 48 44;
+  --t-d45: 94 31 28;
+  --t-w55: 229 153 149;
+}
+
+/* ─── Panels: stv.tf's sidebar ──────────────────────────────────────────────── */
+
+[data-theme='modern'] .ui-panel,
+[data-theme='modern'] .ui-tip,
+[data-theme='modern'] .ui-toast,
+[data-theme='modern'] .hud-palette {
+  background: rgb(30 33 37 / 0.97);
+}
+
+[data-theme='modern'] .ui-panel {
+  /* Clear of the playback dock. */
+  max-height: calc(100vh - 4.5rem);
+  font-size: 13px;
+}
+
+[data-theme='modern'] .ui-input--number {
+  padding: 0.15rem 0.4rem;
+}
+
+[data-theme='modern'] .ui-panel__header {
+  padding: 0.6rem 0.5rem 0.6rem 0.9rem;
+  border-bottom: 1px solid rgb(var(--ui-line));
+}
+
+[data-theme='modern'] .ui-panel__title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+[data-theme='modern'] .ui-panel__body {
+  padding: 0.75rem 0.9rem 1rem;
+}
+
+[data-theme='modern'] .ui-section-title {
+  margin: 1.1rem -0.9rem 0.4rem;
+  padding: 0.75rem 0.9rem 0;
+  border-top: 1px solid rgb(var(--ui-line));
+  font-size: 11px;
+  font-weight: 700;
+}
+
+[data-theme='modern'] .ui-section-title:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+[data-theme='modern'] .ui-option {
+  min-height: 1.85rem;
+}
+
+[data-theme='modern'] .ui-option__label {
+  font-size: 13px;
+}
+
+[data-theme='modern'] .ui-option-group .ui-option__label {
+  font-size: 12px;
+}
+
+[data-theme='modern'] .ui-toolbar {
+  gap: 4px;
+}
+
+[data-theme='modern'] .ui-toolbar-btn {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgb(var(--ui-line));
+  background: rgb(var(--ui-ground) / 0.9);
+  color: rgb(var(--ui-ink-muted));
+}
+
+[data-theme='modern'] .ui-toolbar-btn:hover {
+  background: rgb(var(--ui-ground) / 0.9);
+  color: rgb(var(--ui-ink));
+}
+
+[data-theme='modern'] .ui-toolbar-btn[data-active='true'] {
+  border-color: rgb(var(--ui-accent));
+  background: rgb(var(--ui-accent));
+  color: #fff;
+}
+
+[data-theme='modern'] .ui-toolbar-btn svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+[data-theme='modern'] .ui-btn {
+  padding: 0.3rem 0.7rem;
+  border-color: rgb(var(--ui-line));
+  font-size: 13px;
+}
+
+[data-theme='modern'] .ui-btn--small {
+  padding: 0.1rem 0.45rem;
+  font-size: 11px;
+}
+
+[data-theme='modern'] .ui-btn--primary {
+  border-color: rgb(var(--ui-accent));
+}
+
+[data-theme='modern'] .ui-seg {
+  gap: 0;
+  padding: 0;
+  border: 1px solid rgb(var(--ui-line));
+  background: transparent;
+}
+
+[data-theme='modern'] .ui-seg__item {
+  border-radius: 0;
+  font-size: 12px;
+}
+
+[data-theme='modern'] .ui-seg__item + .ui-seg__item {
+  border-left: 1px solid rgb(var(--ui-line));
+}
+
+[data-theme='modern'] .ui-switch {
+  width: 1.9rem;
+  height: 1.05rem;
+  background: rgb(var(--ui-line));
+}
+
+[data-theme='modern'] .ui-switch::after {
+  top: 0.15rem;
+  left: 0.15rem;
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
+[data-theme='modern'] .ui-switch[aria-checked='true'] {
+  background: rgb(var(--ui-accent));
+}
+
+[data-theme='modern'] .ui-switch[aria-checked='true']::after {
+  background: #fff;
+  transform: translateX(0.85rem);
+}
+
+[data-theme='modern'] .ui-input {
+  padding: 0.3rem 0.55rem;
+  background: rgb(var(--ui-ground) / 0.6);
+  font-size: 13px;
+}
+
+[data-theme='modern'] .ui-kbd,
+[data-theme='modern'] kbd {
+  border-bottom-width: 1px;
+  border-color: rgb(var(--ui-line));
+  background: rgb(var(--ui-ground) / 0.6);
+  color: rgb(var(--ui-ink-muted));
+  font-size: 11px;
+}
+
+[data-theme='modern'] .ui-list-row,
+[data-theme='modern'] .ui-event-row {
+  border-radius: 2px;
+}
+
+[data-theme='modern'] .ui-event-row__name[data-team='red'] {
+  color: rgb(217 106 101);
+}
+
+[data-theme='modern'] .ui-tooltip {
+  border-radius: 4px;
+  background: rgb(var(--ui-ground) / 0.95);
+  font-size: 12px;
+}
+
+[data-theme='modern'] .ui-tooltip__arrow {
+  fill: rgb(var(--ui-line));
+}
+
+[data-theme='modern'] .ui-toast__progress {
+  background: rgb(var(--ui-accent) / 0.25);
+}
+
+/* ─── HUD: rosters, as stv.tf's cards ───────────────────────────────────────── */
+
+[data-theme='modern'] .hud-roster {
+  margin: 0 10px;
+}
+
+[data-theme='modern'] .hud-player {
+  background: rgb(var(--ui-ground) / 0.8);
+  font-size: 15px;
+}
+
+[data-theme='modern'] .hud-player__class {
+  padding: 6px;
+  background: rgb(var(--team));
+}
+
+[data-theme='modern'] .hud-player[data-dead='true'] {
+  opacity: 1;
+}
+
+[data-theme='modern'] .hud-player[data-dead='true'] .hud-player__class {
+  background: rgb(var(--ui-neutral));
+  opacity: 0.7;
+}
+
+[data-theme='modern'] .hud-player[data-dead='true'] .hud-player__name {
+  color: rgb(255 255 255 / 0.5);
+}
+
+[data-theme='modern'] .hud-player__bar {
+  background: transparent;
+}
+
+[data-theme='modern'] .hud-player__fill {
+  background: linear-gradient(90deg, rgb(var(--t-d70)), rgb(var(--t-d45)));
+  transition: width 0.25s linear;
+}
+
+[data-theme='modern'] .hud-roster[data-team='red'] .hud-player__fill {
+  background: linear-gradient(270deg, rgb(var(--t-d70)), rgb(var(--t-d45)));
+}
+
+[data-theme='modern'] .hud-player__overheal {
+  background: rgb(var(--t-w55) / 0.38);
+}
+
+[data-theme='modern'] .hud-player__name {
+  padding: 0 0.4rem;
+  color: #fff;
+  font-weight: 600;
+  text-shadow: 0 1px 2px #000;
+}
+
+[data-theme='modern'] .hud-player__hp {
+  width: auto;
+  min-width: 3rem;
+  padding: 0 0.55rem;
+  color: #fff;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-shadow: 0 2px 0 rgb(0 0 0 / 0.65);
+}
+
+[data-theme='modern'] .hud-player[data-hp='over'] .hud-player__hp {
+  color: #fff;
+}
+
+[data-theme='modern'] .hud-player[data-hp='low'] .hud-player__hp {
+  color: rgb(var(--ui-bad));
+}
+
+[data-theme='modern'] .hud-player__respawn {
+  color: rgb(255 255 255 / 0.55);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 1;
+  text-transform: uppercase;
+}
+
+[data-theme='modern'] .hud-player__tag {
+  border-radius: 2px;
+  background: rgb(var(--ui-focus));
+  font-size: 10px;
+}
+
+[data-theme='modern'] .hud-player[data-focused='true'] {
+  box-shadow: inset 0 0 0 2px rgb(var(--ui-focus));
+  outline: 0;
+}
+
+[data-theme='modern'] .hud-player[data-kind='charge'] {
+  height: 1.5rem;
+}
+
+[data-theme='modern'] .hud-player[data-kind='charge'] .hud-player__fill {
+  background: rgb(var(--team) / 0.85);
+}
+
+[data-theme='modern'] .hud-player[data-kind='charge'] .hud-player__name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+[data-theme='modern'] .hud-player[data-kind='charge'] .hud-player__hp {
+  font-size: 15px;
+}
+
+/* ─── HUD: killfeed ─────────────────────────────────────────────────────────── */
+
+[data-theme='modern'] .hud-killfeed {
+  gap: 2px;
+}
+
+[data-theme='modern'] .hud-kill {
+  padding: 0.25rem 0.55rem;
+  border-radius: 2px;
+  background: rgb(var(--ui-ground) / 0.82);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+[data-theme='modern'] .hud-kill__weapon {
+  padding: 0 0.6rem;
+}
+
+[data-theme='modern'] .hud-kill__icon {
+  height: 1rem;
+}
+
+[data-theme='modern'] .hud-kill[data-highlighted='true'] {
+  background: rgb(var(--ui-ink) / 0.94);
+}
+
+[data-theme='modern'] .hud-kill[data-highlighted='true'] .hud-kill__name[data-team='red'] {
+  color: rgb(146 48 44);
+}
+
+[data-theme='modern'] .hud-kill[data-highlighted='true'] .hud-kill__name[data-team='blue'] {
+  color: rgb(43 79 106);
+}
+
+/* ─── HUD: score, timer, points ─────────────────────────────────────────────── */
+
+[data-theme='modern'] .hud-objective {
+  gap: 4px;
+}
+
+[data-theme='modern'] .hud-scorebar {
+  gap: 4px;
+  border-radius: 0;
+  background: transparent;
+}
+
+[data-theme='modern'] .hud-score {
+  min-width: 4.5rem;
+  gap: 0.5rem;
+  padding: 0 0.6rem;
+  border-radius: 2px;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+[data-theme='modern'] .hud-score__team {
+  display: inline;
+  color: rgb(255 255 255 / 0.75);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+[data-theme='modern'] .hud-timer-block {
+  min-width: 5rem;
+  flex-direction: column-reverse;
+  padding: 0.1rem 0.6rem;
+  background: transparent;
+}
+
+[data-theme='modern'] .hud-timer {
+  color: #fff;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.05;
+  text-shadow: 0 2px 0 rgb(0 0 0 / 0.65);
+}
+
+[data-theme='modern'] .hud-round-label {
+  color: rgb(var(--ui-focus));
+  font-size: 10px;
+  font-weight: 800;
+  text-shadow: 0 1px 2px #000;
+}
+
+[data-theme='modern'] .hud-points {
+  gap: 4px;
+  padding: 0;
+  background: transparent;
+}
+
+[data-theme='modern'] .hud-point {
+  width: 1.4rem;
+  height: 1.4rem;
+  border: 1px solid rgb(0 0 0 / 0.6);
+}
+
+[data-theme='modern'] .hud-cart__track {
+  height: 0.5rem;
+  border-radius: 0;
+  background: rgb(var(--ui-ground) / 0.8);
+}
+
+[data-theme='modern'] .hud-subchip {
+  border-radius: 2px;
+  background: rgb(var(--ui-ground) / 0.82);
+  font-size: 12px;
+}
+
+/* ─── HUD: playback, docked full width ──────────────────────────────────────── */
+
+[data-theme='modern'] .hud-playback {
+  display: flex;
+  width: 100vw;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 -1rem;
+  padding: 0.45rem 0.75rem;
+  border-top: 1px solid rgb(var(--ui-line));
+  background: rgb(var(--ui-ground) / 0.92);
+  font-size: 13px;
+  text-align: left;
+}
+
+/* The undo/seek toast floats above the dock instead of pushing it. */
+[data-theme='modern'] .hud-playback > div:first-child:not(.hud-transport-row) {
+  position: absolute;
+  bottom: calc(100% + 0.75rem);
+  left: 50%;
+  margin: 0 !important;
+  transform: translateX(-50%);
+}
+
+[data-theme='modern'] .hud-event {
+  border-radius: 4px;
+}
+
+[data-theme='modern'] .hud-transport-row {
+  margin: 0;
+}
+
+[data-theme='modern'] .hud-transport,
+[data-theme='modern'] .hud-transport[data-dimmed='true'] {
+  gap: 0.15rem;
+  padding: 0;
+  background: transparent;
+  opacity: 1;
+  transform: none;
+}
+
+[data-theme='modern'] .hud-transport-btn {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 4px;
+  color: rgb(var(--ui-ink-muted));
+  opacity: 1;
+}
+
+[data-theme='modern'] .hud-transport-btn:hover {
+  background: rgb(255 255 255 / 0.06);
+  color: rgb(var(--ui-ink));
+  transform: none;
+}
+
+[data-theme='modern'] .hud-transport-btn svg,
+[data-theme='modern'] .hud-transport-btn[data-kind='play'] svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+[data-theme='modern'] .hud-transport-btn[data-kind='play'] {
+  color: rgb(var(--ui-ink));
+}
+
+[data-theme='modern'] .hud-transport-btn[data-kind='tick'],
+[data-theme='modern'] .hud-transport-btn[data-kind='speed'] {
+  width: auto;
+  padding: 0 0.35rem;
+}
+
+[data-theme='modern'] .hud-transport-btn[data-kind='bookmark'][data-active='true'] {
+  color: rgb(var(--ui-warn));
+}
+
+[data-theme='modern'] .hud-transport-btn[data-kind='stickers'] > span {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 4px;
+}
+
+[data-theme='modern'] .hud-tick-readout {
+  flex-direction: row;
+  align-items: baseline;
+  gap: 0.3rem;
+}
+
+[data-theme='modern'] .hud-tick-readout__label {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+[data-theme='modern'] .hud-tick-readout__value {
+  color: rgb(var(--ui-ink));
+  font-size: 13px;
+}
+
+[data-theme='modern'] .hud-speed-chip {
+  padding: 0.05rem 0.4rem;
+  border: 1px solid rgb(var(--ui-line));
+  border-radius: 4px;
+  background: transparent;
+  color: rgb(var(--ui-ink));
+  font-size: 12px;
+}
+
+[data-theme='modern'] .hud-timeline {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 0.9rem;
+  width: auto;
+  margin: 0;
+}
+
+[data-theme='modern'] .hud-timeline > .relative {
+  min-width: 0;
+  flex: 1;
+}
+
+[data-theme='modern'] .hud-timeline__slider {
+  height: 1.4rem;
+}
+
+[data-theme='modern'] .hud-timeline__track {
+  height: 0.9rem;
+  overflow: hidden;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.05);
+}
+
+[data-theme='modern'] .hud-timeline__rounds,
+[data-theme='modern'] .hud-timeline__kills {
+  display: block;
+}
+
+[data-theme='modern'] .hud-timeline__round {
+  box-shadow: inset 1px 0 0 rgb(var(--ui-ground));
+}
+
+[data-theme='modern'] .hud-timeline__round[data-winner='blue'] {
+  background: rgb(var(--ui-blu) / 0.3);
+}
+
+[data-theme='modern'] .hud-timeline__round[data-winner='red'] {
+  background: rgb(var(--ui-red) / 0.3);
+}
+
+/* What has been played: a light wash ending in a hard playhead. */
+[data-theme='modern'] .hud-timeline__range {
+  border-radius: 0;
+  background: rgb(255 255 255 / 0.1);
+  box-shadow: inset -2px 0 0 #fff;
+}
+
+[data-theme='modern'] .hud-timeline__kill {
+  top: 20%;
+  bottom: 20%;
+  width: 2px;
+  opacity: 0.55;
+}
+
+[data-theme='modern'] .hud-timeline__kill[data-past='true'] {
+  opacity: 1;
+}
+
+[data-theme='modern'] .hud-timeline__kill[data-team='blue'] {
+  background: rgb(114 165 205);
+}
+
+[data-theme='modern'] .hud-timeline__kill[data-team='red'] {
+  background: rgb(217 106 101);
+}
+
+[data-theme='modern'] .hud-timeline__marker {
+  top: 0;
+  width: 2px;
+  height: 0.35rem;
+  border-radius: 0;
+  transform: translate(-50%, 0);
+}
+
+[data-theme='modern'] .hud-timeline__meta {
+  flex-shrink: 0;
+  gap: 0.9rem;
+  margin: 0;
+  font-size: 12px;
+}
+
+[data-theme='modern'] .hud-rounds {
+  gap: 2px;
+}
+
+[data-theme='modern'] .hud-rounds__label {
+  margin-right: 0.3rem;
+  color: rgb(var(--ui-ink-muted));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-shadow: none;
+  text-transform: uppercase;
+}
+
+[data-theme='modern'] .hud-round {
+  width: 1.3rem;
+  height: 1.15rem;
+  border-radius: 2px;
+  background: rgb(255 255 255 / 0.06);
+  color: rgb(var(--ui-ink-muted));
+  font-size: 11px;
+  font-weight: 700;
+}
+
+[data-theme='modern'] .hud-round[data-winner='blue'] {
+  background: rgb(var(--ui-blu) / 0.85);
+  color: #fff;
+}
+
+[data-theme='modern'] .hud-round[data-winner='red'] {
+  background: rgb(var(--ui-red) / 0.85);
+  color: #fff;
+}
+
+[data-theme='modern'] .hud-round[data-reached='false'] {
+  opacity: 0.45;
+}
+
+[data-theme='modern'] .hud-round::after {
+  display: none;
+}
+
+[data-theme='modern'] .hud-clock {
+  color: rgb(var(--ui-ink));
+  font-family: var(--ui-font-hud);
+  font-size: 13px;
+  font-weight: 600;
+  text-shadow: none;
+}
+
+[data-theme='modern'] .hud-clock__total {
+  color: rgb(var(--ui-ink-muted));
+}
+
+[data-theme='modern'] .hud-live {
+  border-radius: 2px;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+}
+
+/* With the dock along the bottom, the chat sits just above it. */
+[data-theme='modern'] .hud-chat {
+  margin-bottom: 2.75rem;
+  font-size: 13px;
+}
+
+/* ─── HUD: focused player ───────────────────────────────────────────────────── */
+
+[data-theme='modern'] .hud-focused__hp {
+  font-size: 2.6rem;
+  font-weight: 800;
+  text-shadow: 0 2px 0 rgb(0 0 0 / 0.65);
+}
+
+[data-theme='modern'] .hud-focused__card {
+  border-radius: 0;
+  background: rgb(var(--ui-ground) / 0.82);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+[data-theme='modern'] .hud-focused__team {
+  height: 3px;
+}
+
+[data-theme='modern'] .hud-focused__respawn {
+  color: rgb(var(--ui-focus));
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

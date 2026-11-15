@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+// Semantic tokens, component hooks, then the themes that redefine them (see src/theme/themes.ts).
+// Imported without extensions so Sass inlines them and Tailwind sees their @layer blocks.
+@import 'theme/tokens';
+@import 'theme/base';
+@import 'theme/mannco';
+@import 'theme/modern';
+
 @layer components {
   .ui-layer {
     @apply pointer-events-none absolute inset-0 flex *:pointer-events-auto;
@@ -52,18 +59,19 @@
   --pp-killfeed-text-red: 255 74 74;
   --pp-focused-background-blue: 136 174 184;
   --pp-focused-background-red: 172 38 65;
-  --pp-healthbar-blue: 136 174 184;
-  --pp-healthbar-red: 172 38 65;
+  // In-world nameplates and buildings follow the theme's team fills.
+  --pp-healthbar-blue: var(--ui-blu-fill);
+  --pp-healthbar-red: var(--ui-red-fill);
   --pp-health-overhealed: 62 255 0;
   --pp-health-low: 255 119 104;
 }
 
 html {
   background-color: var(--background-primary);
-  color: var(--text-primary);
+  color: rgb(var(--ui-ink));
   font-size: 1.5vw;
   font-size: clamp(8px, 1.5vw, 14px);
-  font-family: 'Source Sans Pro', sans-serif;
+  font-family: var(--ui-font-body);
 }
 
 @media screen and (min-width: 1024px) {
@@ -74,30 +82,15 @@ html {
 
 pre,
 code,
-kbd,
 samp {
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-family: var(--ui-font-mono);
   font-size: 1em;
 }
 
 code {
   font-size: 87.5%;
-  color: rgb(var(--pp-accent-tertiary));
-  word-wrap: break-word;
-}
-
-a > code {
   color: inherit;
-}
-
-kbd {
-  padding: 0.15rem 0.5rem;
-  font-family: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: 1em;
-  font-size: 87.5%;
-  color: #fff;
-  background-color: #212529;
-  border-radius: 0.2rem;
+  word-wrap: break-word;
 }
 
 /* Disable number input arrows - Chrome, Safari, Edge, Opera */

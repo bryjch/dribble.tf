@@ -267,7 +267,7 @@ const Actor = memo(({ player, register, positionOf }: ActorProps) => {
       {nameplate.enabled && !isFocusedPOV && (
         <Html
           name="html"
-          className="pointer-events-none select-none"
+          className="pointer-events-none select-none text-white"
           style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
           position={[0, 0, ActorDimensions.z * 0.85]}
         >

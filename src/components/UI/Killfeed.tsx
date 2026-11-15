@@ -42,7 +42,7 @@ export const Killfeed = (props: KillfeedProps) => {
   }
 
   return (
-    <div className={cn('flex flex-col items-end text-right', isMobile && 'text-xs')}>
+    <div className={cn('hud-killfeed', isMobile && 'text-xs')} aria-live="off">
       {relevantDeaths.map(death => {
         let highlighted = false
 
@@ -69,12 +69,7 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
 
   const weaponIcon = killIconUrl(weapon)
 
-  const teamTextColorMap: { [key: string]: string } = {
-    red: 'text-pp-killfeed-text-red',
-    blue: 'text-pp-killfeed-text-blue',
-  }
-  let killerTeamColor = killer ? teamTextColorMap[killer.user.team] : ''
-  let victimTeamColor = teamTextColorMap[victim?.user.team]
+  const killerTeam = killer?.user.team
 
   const onClickPlayerName = (entityId: number) => {
     jumpToPlayerPOVCamera(entityId)
@@ -82,46 +77,43 @@ export const KillfeedItem = (props: KillfeedItemProps) => {
   }
 
   return (
-    <div
-      className={cn(
-        'mb-2 flex rounded-xl bg-pp-panel/70 px-5 py-2 font-bold',
-        props.highlighted && 'bg-white/90'
-      )}
-    >
+    <div className="hud-kill" data-highlighted={props.highlighted ? 'true' : undefined}>
       {killer && killer !== victim && (
-        <div
-          className={cn('cursor-pointer hover:underline active:underline', killerTeamColor)}
+        <span
+          className="hud-kill__name"
+          data-team={killerTeam}
           onClick={onClickPlayerName.bind(this, killer.user.entityId)}
         >
           {killer.user.name}
-        </div>
+        </span>
       )}
-
-      {assister && <div className={cn('mx-2', killerTeamColor)}>+</div>}
 
       {assister && (
-        <div
-          className={cn('cursor-pointer hover:underline active:underline', killerTeamColor)}
-          onClick={onClickPlayerName.bind(this, assister.user.entityId)}
-        >
-          {assister.user.name}
-        </div>
+        <>
+          <span className="hud-kill__plus" data-team={killerTeam}>
+            +
+          </span>
+          <span
+            className="hud-kill__name"
+            data-team={killerTeam}
+            onClick={onClickPlayerName.bind(this, assister.user.entityId)}
+          >
+            {assister.user.name}
+          </span>
+        </>
       )}
 
-      <div className="inline-flex items-center px-4">
-        <img
-          src={weaponIcon}
-          className={cn('h-[1.2rem] ', props.highlighted ? '' : 'brightness-[600%]')}
-          alt={`${weapon} Icon`}
-        />
-      </div>
+      <span className="hud-kill__weapon">
+        <img src={weaponIcon} className="hud-kill__icon" alt={weapon} />
+      </span>
 
-      <div
-        className={cn('cursor-pointer hover:underline active:underline', victimTeamColor)}
+      <span
+        className="hud-kill__name"
+        data-team={victim?.user.team}
         onClick={onClickPlayerName.bind(this, victim.user.entityId)}
       >
         {victim.user.name}
-      </div>
+      </span>
     </div>
   )
 }

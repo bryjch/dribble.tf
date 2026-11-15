@@ -19,6 +19,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useStore, useInstance } from '@zus/store'
 import { applySetupAction } from '@zus/actions'
 import { useIsMobile } from '@utils/hooks'
+import { applyTheme } from '@theme/themes'
 
 const ViewerPage = () => {
   const parser = useStore(state => state.parser)
@@ -27,6 +28,7 @@ const ViewerPage = () => {
   const setupCameraBridge = useInstance(state => state.setupCameraBridge)
   const pendingSharedSetup = useStore(state => state.setups.pendingSharedSetup)
   const isMobile = useIsMobile()
+  const theme = useStore(state => state.settings.ui.theme)
 
   // Shallow: the selector builds a new array every time, which would re-render on any change.
   const loadingDownloads = useStore(
@@ -38,6 +40,9 @@ const ViewerPage = () => {
   //
   // ─── LIFECYCLE ──────────────────────────────────────────────────────────────────
   //
+
+  // The overlays follow the theme setting (see @theme/themes).
+  useEffect(() => applyTheme(theme), [theme])
 
   // Preload any assets here
   useEffect(() => {
@@ -58,7 +63,7 @@ const ViewerPage = () => {
   //
 
   return (
-    <div className="antialiased">
+    <div className="ui-root antialiased">
       <GlobalKeyHandler />
 
       <DemoViewer demo={match} map={loadedMap} />
@@ -73,26 +78,20 @@ const ViewerPage = () => {
                 initial={{ opacity: 0, y: -2 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
-                className="pointer-events-none relative overflow-hidden rounded-lg bg-pp-panel/80 px-4 py-3"
+                className="ui-toast pointer-events-none min-w-64"
+                role="status"
               >
-                <div
-                  className="absolute inset-0 right-[unset] bg-white/30"
-                  style={{ width: `${download.progress.toFixed(1)}%` }}
-                />
+                <div className="ui-toast__progress" style={{ width: `${download.progress.toFixed(1)}%` }} />
 
-                <div className="flex items-center">
-                  <div className="animate-bounce">
-                    <IoArrowForwardSharpIcon className="mr-2 rotate-90" />
-                  </div>
-
+                <div className="relative flex items-center gap-2.5">
+                  <IoArrowForwardSharpIcon className="rotate-90 animate-bounce" />
                   <div>
-                    <div className="text-xs uppercase opacity-50">
+                    <div className="ui-toast__label">
                       Downloading {download.type}
-                      {download.size && `- ${(download.size / (1024 * 1024)).toFixed(2)}MB`}
+                      {download.size && ` · ${(download.size / (1024 * 1024)).toFixed(1)} MB`}
                     </div>
-
-                    <div>
-                      {download.stage ?? `${download.name} ... ${download.progress.toFixed(1)}%`}
+                    <div className="tabular-nums">
+                      {download.stage ?? `${download.name} · ${download.progress.toFixed(0)}%`}
                     </div>
                   </div>
                 </div>
@@ -105,12 +104,17 @@ const ViewerPage = () => {
       {/* Parsing demo overlay */}
       <div className="ui-layer top-20 items-start justify-center">
         <motion.div
-          className="pointer-events-none inline-flex rounded-lg bg-pp-panel/80 px-5 py-2"
+          className="ui-toast pointer-events-none min-w-56"
+          role="status"
           animate={parser.status === 'loading' ? { opacity: 1, y: 0 } : { opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
           initial={false}
         >
-          <div>Parsing demo ... {parser.progress}%</div>
+          <div className="ui-toast__progress" style={{ width: `${parser.progress}%` }} />
+          <div className="relative">
+            <div className="ui-toast__label">Reading demo</div>
+            <div className="tabular-nums">{parser.progress}%</div>
+          </div>
         </motion.div>
       </div>
 

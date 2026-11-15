@@ -14,12 +14,7 @@ import {
 } from '@utils/matchEvents'
 import { getDurationFromTicks } from '@utils/parser'
 import { killIconUrl } from '@utils/killIcons'
-import { cn } from '@utils/styling'
 
-const teamTextColorMap: { [key: string]: string } = {
-  red: 'text-pp-killfeed-text-red',
-  blue: 'text-pp-killfeed-text-blue',
-}
 
 const teamIdToName = (teamId: number): string => {
   if (teamId === 2) return 'red'
@@ -31,17 +26,8 @@ const teamIdToName = (teamId: number): string => {
 
 type PanelEvent = AnnotatedMatchKillEvent | MatchUberEvent
 
-const getStreakBorderColor = (streakCount: number): string => {
-  if (streakCount >= 4) return '#ef4444'
-  if (streakCount === 3) return '#f97316'
-  return '#f59e0b'
-}
-
-const getStreakTextColor = (streakCount: number): string => {
-  if (streakCount >= 4) return 'text-red-400'
-  if (streakCount === 3) return 'text-orange-400'
-  return 'text-amber-400'
-}
+/** 2K, 3K, 4K+: how hot a streak row runs (see .ui-event-row[data-streak]). */
+const streakLevel = (streakCount: number) => (streakCount >= 4 ? 4 : streakCount)
 
 export const MatchKillfeedPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('MatchKillfeed'))
@@ -91,48 +77,56 @@ export const MatchKillfeedPanel = () => {
 
   return (
     <div className="flex items-start">
-      <TogglePanelButton onClick={toggleUIPanel}>
+      <TogglePanelButton onClick={toggleUIPanel} active={isOpen} label="Match events">
         <HiListBulletIcon />
       </TogglePanelButton>
 
-      <TogglePanel showCloseButton isOpen={isOpen} onClickClose={toggleUIPanel}>
-        <div className="w-[min(520px,calc(100vw-2rem))] px-6 pb-6 pt-6">
-          <div className="relative mb-3 mr-8">
-            <input
-              type="text"
-              placeholder="Filter by player name..."
-              value={filterText}
-              onChange={e => setFilterText(e.target.value)}
-              className="w-full rounded-lg bg-white/10 px-3 py-1.5 pr-8 text-sm outline-none placeholder:text-white/40"
-            />
-            {filterText && (
-              <button
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-white/40 transition-colors hover:text-white"
-                onClick={() => setFilterText('')}
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="h-4 w-4"
-                >
-                  <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                </svg>
-              </button>
-            )}
-          </div>
+      <TogglePanel
+        className="w-[min(520px,calc(100vw-5rem))]"
+        title="Match events"
+        count={filterText ? `${filteredEvents.length}/${events.length}` : events.length}
+        showCloseButton
+        isOpen={isOpen}
+        onClickClose={toggleUIPanel}
+      >
+        <div className="relative mb-3">
+          <input
+            type="text"
+            placeholder="Filter by player name"
+            aria-label="Filter by player name"
+            value={filterText}
+            onChange={e => setFilterText(e.target.value)}
+            className="ui-input w-full pr-8"
+          />
+          {filterText && (
+            <button
+              className="ui-icon-btn absolute right-1.5 top-1/2 -translate-y-1/2"
+              aria-label="Clear filter"
+              onClick={() => setFilterText('')}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+              </svg>
+            </button>
+          )}
+        </div>
 
-          <div className="max-h-[60vh] overflow-y-auto">
-            {filteredEvents.map((event, index) => (
-              <MatchEventRow
-                key={`${event.type}-${event.tick}-${index}`}
-                event={event}
-                tickRate={tickRate}
-                onSeek={seekToPlayer}
-                onFilter={setFilterText}
-              />
-            ))}
+        {filteredEvents.length === 0 && (
+          <div className="ui-empty-note">
+            {filterText ? `No kills or ubers involve “${filterText}”.` : 'No kills or ubers yet.'}
           </div>
+        )}
+
+        <div className="flex flex-col gap-px">
+          {filteredEvents.map((event, index) => (
+            <MatchEventRow
+              key={`${event.type}-${event.tick}-${index}`}
+              event={event}
+              tickRate={tickRate}
+              onSeek={seekToPlayer}
+              onFilter={setFilterText}
+            />
+          ))}
         </div>
       </TogglePanel>
     </div>
@@ -152,20 +146,16 @@ const MatchEventRow = ({ event, tickRate, onSeek, onFilter }: MatchEventRowProps
   const timestamp = getDurationFromTicks(event.tick, tickRate).formatted
 
   if (event.type === 'uber') {
-    const teamColor = teamTextColorMap[teamIdToName(event.medicTeam)] || ''
     return (
-      <div
-        className="mb-0.5 flex items-center rounded-lg px-2 py-1 text-xs"
-        style={{ borderLeft: '3px solid transparent' }}
-      >
-        <span className="mr-3 w-12 flex-shrink-0 font-mono text-white/50">{timestamp}</span>
+      <div className="ui-event-row" data-kind="uber">
+        <span className="ui-time w-12">{timestamp}</span>
         <FilterButton onClick={() => onFilter(event.medicName)} />
         <ClickableName
           name={event.medicName}
-          className={cn('font-bold', teamColor)}
+          team={teamIdToName(event.medicTeam)}
           onClick={() => onSeek(event.tick, event.medicEntityId)}
         />
-        <span className="ml-2 italic text-yellow-300">popped uber</span>
+        <span className="ui-event-row__note">popped über</span>
       </div>
     )
   }
@@ -187,61 +177,44 @@ const KillRow = ({ event, timestamp, onSeek, onFilter }: KillRowProps) => {
 
   const weaponIcon = killIconUrl(weapon)
 
-  const killerTeamColor = killer ? teamTextColorMap[killer.user.team] || '' : ''
-  const victimTeamColor = teamTextColorMap[victim.user.team] || ''
   const filterName = killer && killer !== victim ? killer.user.name : victim.user.name
 
-  const streakStyle = streak
-    ? { borderLeft: `3px solid ${getStreakBorderColor(streak.streakCount)}` }
-    : { borderLeft: '3px solid transparent' }
-
   return (
-    <div className="mb-0.5 flex items-center rounded-lg px-2 py-1 text-xs" style={streakStyle}>
-      <span className="mr-3 w-12 flex-shrink-0 font-mono text-white/50">{timestamp}</span>
+    <div className="ui-event-row" data-kind="kill" data-streak={streak ? streakLevel(streak.streakCount) : undefined}>
+      <span className="ui-time w-12">{timestamp}</span>
       <FilterButton onClick={() => onFilter(filterName)} />
 
-      {streak && (
-        <span
-          className={cn(
-            'mr-1.5 flex-shrink-0 text-[0.65rem] font-bold leading-none',
-            getStreakTextColor(streak.streakCount)
-          )}
-        >
-          {streak.streakCount}K
-        </span>
-      )}
+      {streak && <span className="ui-event-row__streak">{streak.streakCount}K</span>}
 
       <div className="flex min-w-0 flex-1 items-center">
         {killer && killer !== victim && (
           <ClickableName
             name={killer.user.name}
-            className={cn('truncate font-bold', killerTeamColor)}
+            team={killer.user.team}
             onClick={() => onSeek(event.tick, killer.user.entityId)}
           />
         )}
 
         {assister && (
           <>
-            <span className={cn('mx-1', killerTeamColor)}>+</span>
+            <span className="hud-team-ink mx-1" data-team={killer?.user.team}>
+              +
+            </span>
             <ClickableName
               name={assister.user.name}
-              className={cn('truncate font-bold', killerTeamColor)}
+              team={killer?.user.team}
               onClick={() => onSeek(event.tick, assister.user.entityId)}
             />
           </>
         )}
 
-        <div className="mx-2 inline-flex flex-shrink-0 items-center">
-          <img
-            src={weaponIcon}
-            className="h-[0.9rem] brightness-[600%]"
-            alt={weapon}
-          />
-        </div>
+        <span className="ui-event-row__weapon">
+          <img src={weaponIcon} alt={weapon} />
+        </span>
 
         <ClickableName
           name={victim.user.name}
-          className={cn('truncate font-bold', victimTeamColor)}
+          team={victim.user.team}
           onClick={() => onSeek(event.tick, victim.user.entityId)}
         />
       </div>
@@ -253,27 +226,30 @@ const KillRow = ({ event, timestamp, onSeek, onFilter }: KillRowProps) => {
 
 const ClickableName = ({
   name,
-  className,
+  team,
   onClick,
 }: {
   name: string
-  className?: string
+  team?: string
   onClick: () => void
 }) => (
-  <span
-    className={cn('cursor-pointer rounded px-0.5 py-1 hover:bg-white/15 active:bg-white/15 active:underline', className)}
+  <button
+    type="button"
+    className="ui-event-row__name"
+    data-team={team || undefined}
     onClick={onClick}
     title={`Watch ${name}'s POV`}
   >
     {name}
-  </span>
+  </button>
 )
 
 // ─── FILTER BUTTON ──────────────────────────────────────────────────────────────
 
 const FilterButton = ({ onClick }: { onClick: () => void }) => (
   <button
-    className="mr-2 flex-shrink-0 rounded p-0.5 text-white/25 transition-colors hover:text-white"
+    className="ui-icon-btn ui-event-row__filter"
+    aria-label="Filter by this player"
     onClick={e => {
       e.stopPropagation()
       onClick()

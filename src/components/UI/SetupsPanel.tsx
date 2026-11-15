@@ -15,7 +15,6 @@ import {
   updateSetupFromCurrentAction,
 } from '@zus/actions'
 import { focusMainCanvas } from '@utils/misc'
-import { cn } from '@utils/styling'
 
 const ALL_SETUP_MAPS = '__all_setup_maps__'
 
@@ -94,8 +93,13 @@ export const SetupsPanel = () => {
     }
   }
 
+  // What the last Copy link press did, shown on that button for a moment.
+  const [copyResult, setCopyResult] = useState<{ id: string; ok: boolean }>()
+
   const copySetupLink = async (setupId: string) => {
-    await copySetupShareUrlAction(setupId)
+    const url = await copySetupShareUrlAction(setupId)
+    setCopyResult({ id: setupId, ok: !!url })
+    setTimeout(() => setCopyResult(result => (result?.id === setupId ? undefined : result)), 2000)
   }
 
   const commitRename = async () => {
@@ -108,23 +112,28 @@ export const SetupsPanel = () => {
 
   return (
     <div className="flex items-start">
-      <TogglePanelButton onClick={toggleUIPanel}>
+      <TogglePanelButton onClick={toggleUIPanel} active={isOpen} label="Setups">
         <SetupsIcon />
       </TogglePanelButton>
 
-      <TogglePanel showCloseButton isOpen={isOpen} onClickClose={toggleUIPanel}>
-        <div className="w-[min(400px,calc(100vw-2rem))] px-6 pb-6 pt-6">
-          <div className="mb-4 mr-8 flex items-center justify-between">
-            <div className="text-sm font-semibold">Setups ({setupCountLabel})</div>
-          </div>
+      <TogglePanel
+        className="w-[min(400px,calc(100vw-5rem))]"
+        title="Setups"
+        count={setupCountLabel}
+        showCloseButton
+        isOpen={isOpen}
+        onClickClose={toggleUIPanel}
+      >
+        <div>
 
           <div className="mb-3">
             <div className="flex gap-2">
               <input
                 type="text"
                 value={draftName}
-                placeholder="defending mid with disadvantage"
-                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none transition-colors focus:border-white/30"
+                placeholder="Name this setup, e.g. holding mid 5v6"
+                aria-label="Setup name"
+                className="ui-input flex-1"
                 onChange={event => setSetupDraftNameAction(event.target.value)}
                 onKeyDown={event => {
                   if (event.key === 'Enter') {
@@ -134,12 +143,7 @@ export const SetupsPanel = () => {
               />
 
               <button
-                className={cn(
-                  'shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                  draftName.trim()
-                    ? 'bg-white text-black hover:bg-white/90'
-                    : 'cursor-not-allowed bg-white/10 text-white/40'
-                )}
+                className="ui-btn ui-btn--primary"
                 disabled={!draftName.trim()}
                 onClick={saveSetup}
               >
@@ -152,7 +156,8 @@ export const SetupsPanel = () => {
             <label className="-mt-1 mb-5 block">
               <select
                 value={selectedMap}
-                className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none transition-colors focus:border-white/30"
+                className="ui-input w-full"
+                aria-label="Show setups for map"
                 onChange={event => {
                   setSelectedMap(event.target.value)
                   setEditingSetupId(undefined)
@@ -169,13 +174,13 @@ export const SetupsPanel = () => {
             </label>
           )}
 
-          <div className="max-h-[60vh] overflow-y-auto">
+          <div className="flex flex-col gap-2">
             {setups.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-white/10 px-4 py-5 text-center text-xs text-white/40">
-                No setups yet. Save the current map board to reuse or share it later.
+              <div className="ui-empty-note">
+                No setups yet. Save the camera and stickers on this map to come back to them or share them.
               </div>
             ) : filteredSetups.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-white/10 px-4 py-5 text-center text-xs text-white/40">
+              <div className="ui-empty-note">
                 No setups saved for {selectedMap}.
               </div>
             ) : (
@@ -185,7 +190,7 @@ export const SetupsPanel = () => {
                 return (
                   <div
                     key={setup.id}
-                    className="mb-2 rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                    className="ui-card"
                   >
                     {isEditing ? (
                       <div className="mb-3">
@@ -193,7 +198,8 @@ export const SetupsPanel = () => {
                           autoFocus
                           type="text"
                           value={editingName}
-                          className="w-full rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none transition-colors focus:border-white/30"
+                          aria-label="Setup name"
+                          className="ui-input w-full"
                           onChange={event => setEditingName(event.target.value)}
                           onKeyDown={event => {
                             if (event.key === 'Enter') {
@@ -208,25 +214,25 @@ export const SetupsPanel = () => {
                       </div>
                     ) : (
                       <div className="mb-3">
-                        <div className="font-medium">{setup.name}</div>
-                        <div className="mt-1 text-xs text-white/45">
+                        <div className="font-semibold">{setup.name}</div>
+                        <div className="ui-muted mt-0.5 text-xs">
                           {setup.map} · {setup.stickers.length} sticker
                           {setup.stickers.length === 1 ? '' : 's'}
                         </div>
                       </div>
                     )}
 
-                    <div className="flex flex-wrap gap-2 text-xs">
+                    <div className="flex flex-wrap gap-1.5">
                       {isEditing ? (
                         <>
                           <button
-                            className="rounded-md bg-white px-2.5 py-1.5 font-medium text-black transition-colors hover:bg-white/90"
+                            className="ui-btn ui-btn--primary ui-btn--small"
                             onClick={commitRename}
                           >
                             Save name
                           </button>
                           <button
-                            className="rounded-md bg-white/10 px-2.5 py-1.5 transition-colors hover:bg-white/15"
+                            className="ui-btn ui-btn--small"
                             onClick={() => {
                               setEditingSetupId(undefined)
                               setEditingName('')
@@ -238,25 +244,30 @@ export const SetupsPanel = () => {
                       ) : (
                         <>
                           <button
-                            className="rounded-md bg-white px-2.5 py-1.5 font-medium text-black transition-colors hover:bg-white/90"
+                            className="ui-btn ui-btn--primary ui-btn--small"
                             onClick={() => loadSetup(setup.id)}
                           >
                             Load
                           </button>
                           <button
-                            className="rounded-md bg-white/10 px-2.5 py-1.5 transition-colors hover:bg-white/15"
+                            className="ui-btn ui-btn--small"
                             onClick={() => updateSetup(setup.id)}
                           >
                             Update
                           </button>
                           <button
-                            className="rounded-md bg-white/10 px-2.5 py-1.5 transition-colors hover:bg-white/15"
+                            className="ui-btn ui-btn--small"
                             onClick={() => copySetupLink(setup.id)}
+                            aria-live="polite"
                           >
-                            Copy link
+                            {copyResult?.id !== setup.id
+                              ? 'Copy link'
+                              : copyResult.ok
+                                ? 'Copied'
+                                : "Couldn't copy"}
                           </button>
                           <button
-                            className="rounded-md bg-white/10 px-2.5 py-1.5 transition-colors hover:bg-white/15"
+                            className="ui-btn ui-btn--small"
                             onClick={() => {
                               setEditingSetupId(setup.id)
                               setEditingName(setup.name)
@@ -265,7 +276,7 @@ export const SetupsPanel = () => {
                             Rename
                           </button>
                           <button
-                            className="rounded-md bg-red-500/15 px-2.5 py-1.5 text-red-200 transition-colors hover:bg-red-500/25"
+                            className="ui-btn ui-btn--small ui-btn--danger"
                             onClick={() => deleteSetupAction(setup.id)}
                             aria-label={`Delete setup ${setup.name}`}
                           >

@@ -160,7 +160,7 @@ export const Buildings = ({ buildings }: BuildingsProps) => {
             </group>
             {nameplates?.enabled && (
               <Html
-                className="pointer-events-none select-none"
+                className="pointer-events-none select-none text-white"
                 style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
                 position={[0, 0, building.kind === 'teleporter' ? 24 : 64]}
               >

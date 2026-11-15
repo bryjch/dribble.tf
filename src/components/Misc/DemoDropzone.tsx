@@ -56,28 +56,17 @@ export const DemoDropzone = () => {
 
   return (
     <div
-      className={cn(
-        'absolute inset-0 flex items-center justify-center transition-[0.1s_ease_all]',
-        dropzoneActive ? 'bg-black/40' : 'pointer-events-none'
-      )}
+      className={cn('absolute inset-0', dropzoneActive ? 'ui-dropzone' : 'pointer-events-none')}
       {...getRootProps()}
     >
       <input {...getInputProps()} />
 
       {dropzoneActive && (
-        <div className="relative flex aspect-square flex-col items-center justify-center rounded-3xl p-20 text-center">
-          <div className="absolute h-2/3 w-2/3 animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite] rounded-full bg-white/20" />
-          <div className="absolute inset-0 h-full w-full rounded-full border-2 border-dashed border-white/30" />
-
-          <div className="relative">
-            <div className="text-2xl font-black">
-              Drop <code>.dem</code> file to parse
-            </div>
-
-            <div className="mt-2 text-lg">
-              Only <span className="font-bold">STV demos</span> are supported!
-            </div>
+        <div className="ui-dropzone__target">
+          <div className="ui-dropzone__title">
+            Drop the <code>.dem</code> to open it
           </div>
+          <div className="ui-muted">SourceTV demos only</div>
         </div>
       )}
     </div>

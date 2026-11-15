@@ -4,7 +4,6 @@ import { ClassIcon } from '@components/UI/ClassIcon'
 import { useStore, useInstance } from '@zus/store'
 
 import { parseClassHealth } from '@utils/players'
-import { cn } from '@utils/styling'
 
 export interface FocusedPlayerProps {
   players: CachedPlayer[]
@@ -29,55 +28,33 @@ export const FocusedPlayer = (props: FocusedPlayerProps) => {
   percentage = parseClassHealth(focused.classId, health).percentage
   icon = <ClassIcon classId={focused.classId} />
 
+  const hp = percentage > 100 ? 'over' : health > 0 && percentage < 40 ? 'low' : undefined
+
   return (
-    <div className="flex w-auto flex-col items-center">
-      <div className="mb-4 text-3xl">
+    <div className="hud-focused" data-team={focused.team} data-dead={health === 0} data-hp={hp}>
+      <div className="h-12">
         {health === 0 && focused.respawnTick != null && (
-          <div className="animate-pulse text-xl font-black text-[#fbff09] [text-shadow:0_0_3px_#000000]">
+          <div className="hud-focused__respawn">
             Respawning in {Math.ceil((focused.respawnTick - tick) * intervalPerTick)}
           </div>
         )}
       </div>
 
       <div className="flex items-center">
-        <div
-          className={cn(
-            'relative mr-3 flex w-[15px] justify-end text-right font-black text-white [text-shadow:0_0_3px_#000000]'
-          )}
-        >
+        <div className="relative flex w-[15px] justify-end text-right">
           {health > 0 ? (
-            <div
-              className={cn(
-                'text-[2.5rem] leading-10',
-                percentage > 100 && 'text-pp-health-overhealed',
-                percentage < 40 && 'text-pp-health-low'
-              )}
-            >
-              {health}
-            </div>
+            <div className="hud-focused__hp">{health}</div>
           ) : (
-            <div className="text-xl opacity-60">Dead</div>
+            <div className="hud-focused__hp hud-focused__hp--dead">Dead</div>
           )}
         </div>
 
-        <div
-          className={cn(
-            'flex max-w-[260px] flex-col overflow-hidden rounded-xl bg-pp-panel/70',
-            health === 0 && 'opacity-60'
-          )}
-        >
-          <div className="flex flex-1 items-center px-4 py-2">
-            <div className="overflow-hidden text-ellipsis whitespace-nowrap">{name}</div>
-            <div className="pl-2">{icon}</div>
+        <div className="hud-focused__card">
+          <div className="hud-focused__name">
+            <span className="truncate">{name}</span>
+            {icon}
           </div>
-
-          <div
-            className={cn(
-              'h-1 w-full',
-              focused.team === 'blue' && 'bg-pp-focused-background-blue',
-              focused.team === 'red' && 'bg-pp-focused-background-red'
-            )}
-          />
+          <div className="hud-focused__team" />
         </div>
       </div>
     </div>
