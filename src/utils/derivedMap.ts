@@ -840,8 +840,12 @@ async function resolve(
   if (!MAP_NAME.test(mapName))
     throw new MapResolutionError('IntegrityFailure', 'Map Name is invalid')
   const signal = abort.signal
-  const published = localOverride ? null : await publishedDescriptor(mapName, signal)
   const source = localOverride ? null : await readSourceRecord(mapName)
+  // With no source record, a map with a legacy GLB resolves to it whatever the descriptor and
+  // the catalog say (below), so neither request is made: a slow or failing Serveme or
+  // descriptor lookup cannot hold up or break a published map.
+  if (!localOverride && !source && legacyResult(mapName)) return legacyResult(mapName)!
+  const published = localOverride ? null : await publishedDescriptor(mapName, signal)
   let metadata: CatalogMetadata | null = null
   let catalogFailure: MapResolutionError | null = null
   if (!localOverride) {
