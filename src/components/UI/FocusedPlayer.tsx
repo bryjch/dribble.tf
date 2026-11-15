@@ -1,4 +1,4 @@
-import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
+import { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
 import { ClassIcon } from '@components/UI/ClassIcon'
 
 import { useStore, useInstance } from '@zus/store'

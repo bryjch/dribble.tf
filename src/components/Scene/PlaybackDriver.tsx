@@ -1,7 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
-import type { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
+import type { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
 import type { CachedProjectile } from '@components/Analyse/Data/ProjectileCache'
 import { getState } from '@zus/store'
 import { advanceClock } from '@utils/playback'

@@ -116,14 +116,14 @@ pub struct Objectives {
 impl Objectives {
     /// Looks at a snapshot (local `tick`) if a step has passed since the last one looked at.
     /// `entity_of` gives a player's entity index from their stvtf id.
-    pub fn add(&mut self, s: &Snapshot, tick: u32, interval: f64, origin: Position, entity_of: &HashMap<u16, u32>) {
+    pub fn add(&mut self, s: &Snapshot, tick: u32, interval: f64, entity_of: &HashMap<u16, u32>) {
         if tick < self.next_tick {
             return;
         }
         self.next_tick = tick + OBJECTIVE_STEP;
         self.add_round(s, tick, interval);
 
-        let relative = |p: Position| -> Vec<f64> { (0..3).map(|i| round(p[i] - origin[i], 10.0)).collect() };
+        let relative = |p: Position| -> Vec<f64> { (0..3).map(|i| round(p[i], 10.0)).collect() };
         let mut seen = Vec::with_capacity(s.objectives.len());
         for objective in &s.objectives {
             let (kind, id, sample, key) = match objective {

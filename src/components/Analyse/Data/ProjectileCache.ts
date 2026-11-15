@@ -1,10 +1,11 @@
 import { Vector } from './Types'
-import { ANGLE_FIXED_SCALE, POSITION_FIXED_SCALE } from './PositionEncoding'
 
 export interface CachedProjectile {
   entityId: number
   type: string
+  /** Source world coordinates. */
   position: Vector
+  /** Degrees about x, y, z; projectiles only have a yaw (z). */
   rotation: Vector
   teamNumber: number
 }
@@ -26,9 +27,8 @@ const BLOCK_BITS = 6
  * Projectiles, each kept only from when it appears to when it goes: a rocket lives a second or
  * two, so a whole match's worth of ticks for each would be mostly empty.
  *
- * `tracks` holds TRACK_STRIDE values per projectile, sorted by first tick. `positions` and
- * `rotations` hold 3 fixed-point values per tick of each track, track after track; positions
- * are relative to the world's boundaryMin, like the players'.
+ * `tracks` holds TRACK_STRIDE values per projectile, sorted by first tick. `positions` holds
+ * x, y, z per tick of each track and `rotations` the yaw, fixed point, track after track.
  */
 export class ProjectileCache {
   tracks: Uint32Array
@@ -37,7 +37,7 @@ export class ProjectileCache {
   positionScale: number
   angleScale: number
 
-  // Built on first use, on the main thread: not sent from the worker.
+  // Built on first use.
   private sampleStarts?: Uint32Array
   private blocks?: number[][]
 
@@ -45,8 +45,8 @@ export class ProjectileCache {
     tracks: Uint32Array = new Uint32Array(0),
     positions: Uint32Array = new Uint32Array(0),
     rotations: Uint32Array = new Uint32Array(0),
-    positionScale: number = POSITION_FIXED_SCALE,
-    angleScale: number = ANGLE_FIXED_SCALE
+    positionScale: number,
+    angleScale: number
   ) {
     this.tracks = tracks
     this.positions = positions
@@ -94,7 +94,8 @@ export class ProjectileCache {
       if (tick < first || tick >= first + tracks[t + 4]) continue
       const type = ProjectileTypeMap[tracks[t + 1]]
       if (!type) continue
-      const o = (this.sampleStarts![i] + tick - first) * 3
+      const sample = this.sampleStarts![i] + tick - first
+      const o = sample * 3
       out.push({
         entityId: tracks[t],
         type,
@@ -103,18 +104,10 @@ export class ProjectileCache {
           y: (positions[o + 1] | 0) / positionScale,
           z: (positions[o + 2] | 0) / positionScale,
         },
-        rotation: {
-          x: (rotations[o] | 0) / angleScale,
-          y: (rotations[o + 1] | 0) / angleScale,
-          z: (rotations[o + 2] | 0) / angleScale,
-        },
+        rotation: { x: 0, y: 0, z: (rotations[sample] | 0) / angleScale },
         teamNumber: tracks[t + 2],
       })
     }
     return out
-  }
-
-  static rehydrate(data: ProjectileCache) {
-    Object.setPrototypeOf(data, ProjectileCache.prototype)
   }
 }

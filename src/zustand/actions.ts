@@ -4,11 +4,11 @@ import * as THREE from 'three'
 
 import { decodeDemo } from '@components/Analyse/Data/DemoSource'
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
-import type { MapBoundaries } from '@components/Analyse/Data/PositionCache'
+import type { MapBoundaries } from '@components/Analyse/Data/Types'
 import { getMapBoundaries, getMapBoundariesKey } from '@components/Analyse/MapBoundaries'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
-import { getSceneActors, parseMapBoundaries, translatePointBetweenBoundaryMins } from '@utils/scene'
+import { getSceneActors, parseMapBoundaries } from '@utils/scene'
 import { fetchMapWorldBounds } from '@utils/game'
 import {
   buildSetupShareUrl,
@@ -18,6 +18,7 @@ import {
   deserializeSetupFromShareToken,
   normalizeStoredSetups,
   parseSetupHash,
+  toWorldSetup,
 } from '@utils/setups'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import {
@@ -85,23 +86,30 @@ export const parseDemoAction = async (fileBuffer: ArrayBuffer) => {
 // ─── SCENE ──────────────────────────────────────────────────────────────────────
 //
 
+/**
+ * Where the RTS camera should orbit on a map, if the viewer saved one: Source world coordinates.
+ * Centres saved before 2026-11 (settings.scene.rtsCenters) were relative to the map model's
+ * minimum corner and are converted here.
+ */
+async function savedRtsCenter(map: string) {
+  const key = getMapBoundariesKey(map) ?? map
+  const { worldRtsCenters, rtsCenters } = getState().settings.scene
+  if (worldRtsCenters?.[key]) return worldRtsCenters[key]
+  const legacy = rtsCenters?.[key]
+  if (!legacy) return undefined
+  const reference = (await fetchMapWorldBounds(map))?.boundaryMin ?? getMapBoundaries(map)?.boundaryMin
+  return reference
+    ? { x: legacy.x + reference.x, y: legacy.y + reference.y, z: legacy.z + reference.z }
+    : undefined
+}
+
 export const loadSceneFromDemoAction = async (match: MatchSource) => {
   try {
     toggleUIPanelAction('About', false)
-    const mapKey = getMapBoundariesKey(match.header.map) ?? match.header.map
-    const savedRtsCenter = getState().settings.scene.rtsCenters[mapKey]
-    const boundaryOverrides: Partial<MapBoundaries> = getMapBoundaries(match.header.map) ?? {}
-    const modelWorldBounds = await fetchMapWorldBounds(match.header.map)
-    const sceneBoundaries = { ...boundaryOverrides, ...match.world }
-    const referenceBoundaryMin = modelWorldBounds?.boundaryMin ?? sceneBoundaries.boundaryMin
-    const rtsCenter = savedRtsCenter ?? boundaryOverrides.rtsCenter
-    const sceneRtsCenter = rtsCenter
-      ? translatePointBetweenBoundaryMins(
-          rtsCenter,
-          referenceBoundaryMin,
-          sceneBoundaries.boundaryMin
-        )
-      : undefined
+    // The map's own bounds and camera when dribble.tf knows the map, else the demo's bounds.
+    const overrides: Partial<MapBoundaries> = getMapBoundaries(match.header.map) ?? {}
+    const sceneBoundaries = { ...match.world, ...overrides }
+    const rtsCenter = (await savedRtsCenter(match.header.map)) ?? overrides.rtsCenter
 
     // Remember to update the non-redux instances!
     useInstance.getState().setMatch(match)
@@ -116,7 +124,7 @@ export const loadSceneFromDemoAction = async (match: MatchSource) => {
           map: match.header.map,
           bounds: parseMapBoundaries({
             ...sceneBoundaries,
-            ...(sceneRtsCenter ? { rtsCenter: sceneRtsCenter } : {}),
+            ...(rtsCenter ? { rtsCenter } : {}),
           }),
           controls: {
             mode: 'rts',
@@ -144,10 +152,8 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
     const overrides = getMapBoundaries(mapName)
 
     const boundaries = worldBounds ? { ...overrides, ...worldBounds } : overrides
-    const mapKey = getMapBoundariesKey(mapName) ?? mapName
-    const savedRtsCenter = getState().settings.scene.rtsCenters[mapKey]
-    const boundariesWithCenter =
-      savedRtsCenter && boundaries ? { ...boundaries, rtsCenter: savedRtsCenter } : boundaries
+    const rtsCenter = await savedRtsCenter(mapName)
+    const boundariesWithCenter = rtsCenter && boundaries ? { ...boundaries, rtsCenter } : boundaries
 
     if (!boundariesWithCenter?.boundaryMin || !boundariesWithCenter?.boundaryMax) {
       alert('Unable to load map. Could not determine map boundaries.')
@@ -501,20 +507,14 @@ export const toggleMapCenterPickerAction = async (active?: boolean) => {
 
 export const setSceneRtsCenterAction = async (point: { x: number; y: number; z: number }) => {
   try {
-    const nextCenter = new THREE.Vector3(point.x, point.y, point.z)
     const mapName = getState().scene.map
     const mapKey = getMapBoundariesKey(mapName) ?? mapName
-    const sceneBoundaryMin = getState().scene.bounds.min
 
-    dispatch({ type: 'SET_SCENE_RTS_CENTER', payload: nextCenter })
+    dispatch({ type: 'SET_SCENE_RTS_CENTER', payload: new THREE.Vector3(point.x, point.y, point.z) })
     useInstance.getState().setMapCenterPickerActive(false)
 
-    const modelWorldBounds = await fetchMapWorldBounds(mapName)
-    const settingsCenter = modelWorldBounds
-      ? translatePointBetweenBoundaryMins(point, sceneBoundaryMin, modelWorldBounds.boundaryMin)
-      : point
-
-    await updateSettingsOptionAction(`scene.rtsCenters.${mapKey}`, settingsCenter)
+    // The scene is drawn in Source world coordinates, so the picked point is saved as it is.
+    await updateSettingsOptionAction(`scene.worldRtsCenters.${mapKey}`, { ...point })
   } catch (error) {
     console.error(error)
   }
@@ -540,8 +540,10 @@ export const toggleSettingsOptionAction = async (option: string) => {
 
 export const loadSetupsAction = async () => {
   try {
-    const setups = await localForage.getItem<SavedSetup[]>('setups')
-    dispatch({ type: 'LOAD_SETUPS', payload: normalizeStoredSetups(setups) })
+    const stored = await localForage.getItem<SavedSetup[]>('setups')
+    // Older setups are converted to world coordinates once, and saved so.
+    const setups = await Promise.all(normalizeStoredSetups(stored).map(toWorldSetup))
+    dispatch({ type: 'LOAD_SETUPS', payload: setups })
   } catch (error) {
     console.error(error)
   }
@@ -560,7 +562,8 @@ export const bootstrapSharedSetupFromHashAction = async () => {
     const token = parseSetupHash(window.location.hash)
     if (!token) return null
 
-    const setup = deserializeSetupFromShareToken(token)
+    const decoded = deserializeSetupFromShareToken(token)
+    const setup = decoded && (await toWorldSetup(decoded))
     if (!setup) {
       console.warn('Ignoring invalid or unsupported shared setup URL.')
       return null

@@ -1,6 +1,6 @@
 import { getAsset } from './misc'
 import { MAP_NAME_SEARCH_MAP, MAP_SKYBOX_MAP } from '@constants/mappings'
-import { MapBoundaries } from '@components/Analyse/Data/PositionCache'
+import { MapBoundaries } from '@components/Analyse/Data/Types'
 
 // Handle demos that have different versioned maps. We need a function that
 // can parse a given {mapName}, then determine which gltf model to use

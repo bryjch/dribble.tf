@@ -1,9 +1,9 @@
-import { CachedPlayer } from './PlayerCache'
+import { CachedPlayer } from './PlayerTracks'
 import { CachedProjectile } from './ProjectileCache'
 import { CachedBuilding } from './BuildingCache'
 import { ObjectiveState, ObjectiveTimeline } from './ObjectiveTimeline'
 import { getMapBoundaries } from '../MapBoundaries'
-import { ChatEntry, Header, PlayerRef, Round, Vector, World } from './Types'
+import { ChatEntry, Header, PlayerRef, Round, World } from './Types'
 import { CachedDeath, MatchSource, lerp, lerpAngle, roundStartsFrom } from './MatchSource'
 import type { MatchUberEvent } from '@utils/matchEvents'
 import {
@@ -109,7 +109,6 @@ export class LiveSource implements MatchSource {
   // A kill or chat line from the history replayed on a reconnect is skipped up to here.
   private lastEventTick = 0
   private slots = new Map<number, number>()
-  private origin: Vector = { x: 0, y: 0, z: 0 }
 
   /** Called when the server's ticks start over: a restarted server, or a replay looping. */
   onReset: (() => void) | null = null
@@ -138,7 +137,7 @@ export class LiveSource implements MatchSource {
     return this.world.boundaryMax.x !== this.world.boundaryMin.x
   }
 
-  /** Positions are relative to the map's boundaryMin, as the parser worker stores them. */
+  /** The map's extent: dribble.tf's own bounds for a map it knows, else the stream's. */
   setWorld(world: Vec3[] | null) {
     const known = getMapBoundaries(this.header.map)
     if (known) {
@@ -150,8 +149,6 @@ export class LiveSource implements MatchSource {
         boundaryMax: { x: max[0], y: max[1], z: max[2] },
       }
     }
-    this.origin = this.world.boundaryMin
-    this.objectives.offset = { x: -this.origin.x, y: -this.origin.y, z: -this.origin.z }
   }
 
   get latestTick() {
@@ -369,7 +366,6 @@ export class LiveSource implements MatchSource {
     const players: CachedPlayer[] = []
     if (!at) return players
     const { a, b, t } = at
-    const { origin } = this
 
     for (let slot = 0; slot < this.slots.size; slot++) {
       const ref = this.players.get(slot)
@@ -406,7 +402,7 @@ export class LiveSource implements MatchSource {
 
       const team = teamId === 2 ? 'red' : teamId === 3 ? 'blue' : ''
       players.push({
-        position: { x: x - origin.x, y: y - origin.y, z: z - origin.z },
+        position: { x, y, z },
         viewAngles: { x: pitch, y: yaw, z: 0 },
         user: { ...ref.user, team },
         health,
@@ -432,7 +428,6 @@ export class LiveSource implements MatchSource {
     const at = this.around(tick)
     if (!at) return []
     const { a, b, t } = at
-    const { origin } = this
     const next = new Map<number, number>()
     if (b) {
       for (let o = 0; o < b.buildings.length; o += B_STRIDE) next.set(b.buildings[o + B_ID], o)
@@ -455,7 +450,7 @@ export class LiveSource implements MatchSource {
         level: q[o + B_LEVEL],
         health: q[o + B_HP],
         maxHealth: q[o + B_MAX],
-        position: { x: q[o + B_X] - origin.x, y: q[o + B_Y] - origin.y, z: q[o + B_Z] - origin.z },
+        position: { x: q[o + B_X], y: q[o + B_Y], z: q[o + B_Z] },
         yaw: q[o + B_YAW],
         aim,
         target: q[o + B_TARGET] || null,
@@ -473,7 +468,6 @@ export class LiveSource implements MatchSource {
     const at = this.around(tick)
     if (!at) return []
     const { a, b, t } = at
-    const { origin } = this
     const next = new Map<number, number>()
     if (b) {
       for (let o = 0; o < b.projectiles.length; o += P_STRIDE) next.set(b.projectiles[o], o)
@@ -495,7 +489,7 @@ export class LiveSource implements MatchSource {
       out.push({
         entityId: p[o],
         type: ['', 'rocket', 'pipebomb', 'stickybomb', 'healingBolt'][p[o + 1]],
-        position: { x: x - origin.x, y: y - origin.y, z: z - origin.z },
+        position: { x, y, z },
         rotation: { x: 0, y: 0, z: p[o + 5] },
         teamNumber: p[o + 6],
       })

@@ -3,7 +3,7 @@
 //! Runs a `.dem` through stvtf (the extractor stv.tf uses for live matches) and packs what the
 //! viewer reads into typed arrays, in the layout `src/components/Analyse/Data/` expects:
 //!
-//! - per player, every tick: position and view angles, fixed point;
+//! - per player, every tick: position (x, y, z) and view angles (pitch, yaw), fixed point;
 //! - per player, every few ticks: health, class and team, connected, über, heal target;
 //! - per player, every 4 ticks: conditions (burning, cloaked, …) and medigun/über state;
 //! - per projectile, only while it exists: position and rotation, every tick;
@@ -13,7 +13,9 @@
 //! Snapshots never become JSON: there is one a tick, and as JSON a 14-minute demo is 360 MB.
 //! Only the metadata and the events the viewer uses go out as JSON.
 //!
-//! Ticks here count from 1 at the first snapshot, like a live match's in the viewer.
+//! Positions are Source world coordinates, as the game has them (format 2; format 1 made them
+//! relative to the world's minimum corner). Ticks here count from 1 at the first snapshot, like
+//! a live match's in the viewer.
 //!
 //! The browser calls the `extern "C"` functions at the bottom; see `src/libs/decoder/decoder.js`.
 
@@ -28,11 +30,14 @@ use stvtf::output::{
     Ubered,
 };
 
-/// Fixed-point scales, as `PositionEncoding.ts` decodes them.
+/// The layout of the arrays and metadata below; the viewer refuses a decoder of another format.
+const FORMAT: u32 = 2;
+
+/// Fixed-point scales, as the viewer decodes them (it reads them from the metadata).
 const POSITION_SCALE: f64 = 1024.0;
 const ANGLE_SCALE: f64 = 256.0;
 
-/// Sparse caches keep one value per `1 << n` ticks, as the viewer's caches are built.
+/// Sparse arrays keep one value per `1 << n` ticks; the metadata's `sampling` says which.
 const HEALTH_SPARSE: u32 = 2;
 const META_SPARSE: u32 = 6;
 const FLAG_SPARSE: u32 = 4;
@@ -114,17 +119,17 @@ struct PlayerSeries {
 }
 
 impl PlayerSeries {
-    fn write(&mut self, tick: u32, s: &Sample, pos: Option<Position>, pitch: f64, yaw: f64, origin: Position) {
+    fn write(&mut self, tick: u32, s: &Sample, pos: Option<Position>, pitch: f64, yaw: f64) {
         let t = tick as usize;
         if let Some(pos) = pos {
             put(&mut self.position, t * 3, 3);
             for i in 0..3 {
-                self.position[t * 3 + i] = fixed(pos[i] - origin[i], POSITION_SCALE);
+                self.position[t * 3 + i] = fixed(pos[i], POSITION_SCALE);
             }
         }
-        put(&mut self.angles, t * 3, 3);
-        self.angles[t * 3] = fixed(pitch, ANGLE_SCALE);
-        self.angles[t * 3 + 1] = fixed(yaw, ANGLE_SCALE);
+        put(&mut self.angles, t * 2, 2);
+        self.angles[t * 2] = fixed(pitch, ANGLE_SCALE);
+        self.angles[t * 2 + 1] = fixed(yaw, ANGLE_SCALE);
         set(&mut self.health, t >> HEALTH_SPARSE, s.health);
         set(&mut self.meta, t >> META_SPARSE, s.meta);
         set(&mut self.connected, t >> FLAG_SPARSE, 1);
@@ -136,7 +141,7 @@ impl PlayerSeries {
 
     /// Records a snapshot's sample, filling the ticks since the last one: in between when the
     /// player moved there, held when they jumped (a respawn, a teleport) or the gap is long.
-    fn add(&mut self, s: Sample, origin: Position) {
+    fn add(&mut self, s: Sample) {
         if let Some(p) = self.last {
             let gap = s.tick.saturating_sub(p.tick);
             let smooth = gap <= MAX_INTERP_GAP
@@ -150,13 +155,13 @@ impl PlayerSeries {
                 if smooth {
                     let (a, b) = (p.pos.unwrap_or_default(), s.pos.unwrap_or_default());
                     let pos = [lerp(a[0], b[0], f), lerp(a[1], b[1], f), lerp(a[2], b[2], f)];
-                    self.write(tick, &p, Some(pos), lerp(p.pitch, s.pitch, f), lerp_angle(p.yaw, s.yaw, f), origin);
+                    self.write(tick, &p, Some(pos), lerp(p.pitch, s.pitch, f), lerp_angle(p.yaw, s.yaw, f));
                 } else {
-                    self.write(tick, &p, p.pos, p.pitch, p.yaw, origin);
+                    self.write(tick, &p, p.pos, p.pitch, p.yaw);
                 }
             }
         }
-        self.write(s.tick, &s, s.pos, s.pitch, s.yaw, origin);
+        self.write(s.tick, &s, s.pos, s.pitch, s.yaw);
         self.last = Some(s);
     }
 }
@@ -173,29 +178,29 @@ struct Track {
     last_tick: u32,
     last_pos: Position,
     last_yaw: f64,
-    /// Fixed point, 3 a tick from `start`.
+    /// Fixed point from `start`: 3 a tick (x, y, z), and 1 a tick (yaw).
     position: Vec<u32>,
     rotation: Vec<u32>,
 }
 
 impl Track {
-    fn push(&mut self, pos: Position, yaw: f64, origin: Position) {
+    fn push(&mut self, pos: Position, yaw: f64) {
         for i in 0..3 {
-            self.position.push(fixed(pos[i] - origin[i], POSITION_SCALE));
+            self.position.push(fixed(pos[i], POSITION_SCALE));
         }
-        // Pitch, yaw, roll, as the parser2 caches have it; stvtf gives the yaw only.
-        self.rotation.extend([0, fixed(yaw, ANGLE_SCALE), 0]);
+        // stvtf gives a projectile's yaw only.
+        self.rotation.push(fixed(yaw, ANGLE_SCALE));
     }
 
-    fn add(&mut self, tick: u32, pos: Position, yaw: f64, origin: Position) {
+    fn add(&mut self, tick: u32, pos: Position, yaw: f64) {
         let gap = tick - self.last_tick;
         for t in self.last_tick + 1..tick {
             let f = f64::from(t - self.last_tick) / f64::from(gap);
             let (a, b) = (self.last_pos, pos);
             let at = [lerp(a[0], b[0], f), lerp(a[1], b[1], f), lerp(a[2], b[2], f)];
-            self.push(at, lerp_angle(self.last_yaw, yaw, f), origin);
+            self.push(at, lerp_angle(self.last_yaw, yaw, f));
         }
-        self.push(pos, yaw, origin);
+        self.push(pos, yaw);
         self.last_tick = tick;
         self.last_pos = pos;
         self.last_yaw = yaw;
@@ -237,7 +242,7 @@ fn building_kind(kind: BuildingKind) -> u32 {
 }
 
 /// A building's sample (see BUILDING_SAMPLE); `target` is the targeted player's entity.
-fn building_sample(b: &Building, origin: Position, target: u32) -> [u32; BUILDING_SAMPLE] {
+fn building_sample(b: &Building, target: u32) -> [u32; BUILDING_SAMPLE] {
     let flag = |on: bool, bit: u32| if on { 1 << bit } else { 0 };
     let flags = flag(b.sapped, 0)
         | flag(b.building.unwrap_or(false), 1)
@@ -246,9 +251,9 @@ fn building_sample(b: &Building, origin: Position, target: u32) -> [u32; BUILDIN
         | flag(b.aim.is_some(), 4)
         | flag(b.attacking.unwrap_or(false), 5);
     [
-        fixed(b.pos[0] - origin[0], POSITION_SCALE),
-        fixed(b.pos[1] - origin[1], POSITION_SCALE),
-        fixed(b.pos[2] - origin[2], POSITION_SCALE),
+        fixed(b.pos[0], POSITION_SCALE),
+        fixed(b.pos[1], POSITION_SCALE),
+        fixed(b.pos[2], POSITION_SCALE),
         fixed(b.yaw, ANGLE_SCALE),
         fixed(b.aim.unwrap_or(0.0), ANGLE_SCALE),
         u32::from(b.hp) | (u32::from(b.max_hp) << 16),
@@ -311,7 +316,6 @@ struct Decoder {
     /// The server tick of the first snapshot; ticks count from 1 there.
     base: Option<u32>,
     last_tick: u32,
-    origin: Position,
     world: Option<(Position, Position)>,
     tick_interval: Option<f64>,
     slots: HashMap<u16, usize>,
@@ -331,7 +335,6 @@ impl Decoder {
             Line::Server(s) => self.tick_interval = Some(s.tick_interval),
             Line::World(w) => {
                 if self.world.is_none() {
-                    self.origin = w.min;
                     self.world = Some((w.min, w.max));
                 }
             }
@@ -371,7 +374,6 @@ impl Decoder {
             return;
         }
         self.last_tick = tick;
-        let origin = self.origin;
 
         let entity_of: HashMap<u16, u32> = s.players.iter().map(|p| (p.id.0, p.ent)).collect();
         let mut seen = vec![false; self.players.len()];
@@ -405,7 +407,6 @@ impl Decoder {
                     conditions: conditions_mask(&p.conds),
                     charge: charge_bits(p.ubered, p.medigun.as_ref()),
                 },
-                origin,
             );
         }
         // Gone from the snapshot: disconnected, so nothing to fill towards when they return.
@@ -425,7 +426,7 @@ impl Decoder {
                 .is_some_and(|t| t.kind == kind && tick - t.last_tick <= MAX_INTERP_GAP);
             if continues {
                 if let Some(track) = self.active.get_mut(&p.id) {
-                    track.add(tick, p.pos, p.yaw, origin);
+                    track.add(tick, p.pos, p.yaw);
                 }
                 continue;
             }
@@ -443,7 +444,7 @@ impl Decoder {
                 position: Vec::new(),
                 rotation: Vec::new(),
             };
-            track.push(p.pos, p.yaw, origin);
+            track.push(p.pos, p.yaw);
             self.active.insert(p.id, track);
         }
         let gone: Vec<u32> = self.active.keys().copied().filter(|id| !alive.contains(id)).collect();
@@ -455,7 +456,7 @@ impl Decoder {
 
         self.add_buildings(s, tick, &entity_of);
         let interval = self.tick_interval.unwrap_or(f64::from(stvtf::DEFAULT_TICK_INTERVAL));
-        self.objectives.add(s, tick, interval, origin, &entity_of);
+        self.objectives.add(s, tick, interval, &entity_of);
     }
 
     fn add_buildings(&mut self, s: &Snapshot, tick: u32, entity_of: &HashMap<u16, u32>) {
@@ -469,7 +470,7 @@ impl Decoder {
                 continue;
             }
             seen.push(b.id);
-            let sample = building_sample(b, self.origin, entity(b.target.flatten()));
+            let sample = building_sample(b, entity(b.target.flatten()));
             let continues = self
                 .active_buildings
                 .get(&b.id)
@@ -526,7 +527,7 @@ impl Decoder {
         let mut players = Vec::new();
         for (slot, mut p) in self.players.into_iter().enumerate() {
             p.position.resize(t * 3, 0);
-            p.angles.resize(t * 3, 0);
+            p.angles.resize(t * 2, 0);
             p.health.resize(sparse_len(HEALTH_SPARSE), 0);
             p.meta.resize(sparse_len(META_SPARSE), 0);
             p.connected.resize(sparse_len(FLAG_SPARSE), 0);
@@ -607,6 +608,7 @@ impl Decoder {
                 "frames": header.frames,
                 "signon": header.signon_bytes,
             },
+            "format": FORMAT,
             "ticks": ticks,
             "intervalPerTick": self.tick_interval.unwrap_or(f64::from(stvtf::DEFAULT_TICK_INTERVAL)),
             "positionScale": POSITION_SCALE,
@@ -615,7 +617,15 @@ impl Decoder {
             "players": players,
             "playerBuffers": PLAYER_BUFFERS,
             "conditionFlags": CONDITIONS.iter().map(|(name, _)| *name).collect::<Vec<_>>(),
-            "statusSparse": STATUS_SPARSE,
+            "sampling": {
+                "health": HEALTH_SPARSE,
+                "meta": META_SPARSE,
+                "connected": FLAG_SPARSE,
+                "uber": FLAG_SPARSE,
+                "healTarget": FLAG_SPARSE,
+                "conditions": STATUS_SPARSE,
+                "charge": STATUS_SPARSE,
+            },
             "projectileCount": projectile_count,
             "buildingCount": building_count,
             "buildingSparse": BUILDING_SPARSE,

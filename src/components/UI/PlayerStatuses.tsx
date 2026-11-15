@@ -1,6 +1,6 @@
 import { clamp } from 'lodash'
 
-import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
+import { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
 import { ClassIcon } from '@components/UI/ClassIcon'
 import { MEDIGUN_LABELS, UBERED_LABELS } from '@components/UI/ConditionBadges'
 

@@ -24,7 +24,7 @@ import { Skybox } from '@components/Scene/Skybox'
 import { Stickers } from '@components/Scene/Stickers'
 import { PlaybackDriver, isScenePlayer } from '@components/Scene/PlaybackDriver'
 import type { MatchSource } from './Analyse/Data/MatchSource'
-import { CachedPlayer } from './Analyse/Data/PlayerCache'
+import { CachedPlayer } from './Analyse/Data/PlayerTracks'
 
 // UI Panels
 import { AboutPanel } from '@components/UI/AboutPanel'

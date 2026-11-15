@@ -1,7 +1,7 @@
-import { PlayerCache, CachedPlayer } from './PlayerCache'
+import { CachedPlayer, PlayerArrays, PlayerSampling, PlayerTracks } from './PlayerTracks'
 import { BuildingCache, CachedBuilding } from './BuildingCache'
 import { ProjectileCache, CachedProjectile } from './ProjectileCache'
-import { ObjectiveState, ObjectiveTimeline } from './ObjectiveTimeline'
+import { ObjectiveData, ObjectiveState, ObjectiveTimeline } from './ObjectiveTimeline'
 import { ChatEntry, Header, PlayerRef, Round, World } from './Types'
 import {
   CachedDeath,
@@ -17,7 +17,7 @@ export type { CachedDeath }
 export interface DecodeStats {
   /** Decoding in the worker. */
   parseMs: number
-  /** Building the caches from the decoder's arrays. */
+  /** Indexing the decoder's arrays here. */
   hydrateMs: number
   /** From the worker answering to the arrays arriving here. */
   transferMs: number
@@ -28,25 +28,31 @@ export interface DecodeStats {
   projectileCacheBytes: number
 }
 
-/** What the parse worker sends back for a demo. */
+/**
+ * What the parse worker sends back for a demo: the decoder's typed arrays as they are, and its
+ * events turned into the viewer's. Positions are Source world coordinates, fixed point.
+ */
 export interface DecodedDemo {
   header: Header
   ticks: number
   intervalPerTick: number
+  positionScale: number
+  angleScale: number
   world: World
-  playerCache: PlayerCache
-  buildingCache: BuildingCache
-  projectileCache: ProjectileCache
-  objectives: ObjectiveTimeline
+  players: { slot: number; ref: PlayerRef }[]
+  /** Per player slot. */
+  playerArrays: PlayerArrays[]
+  playerSampling: PlayerSampling
+  projectiles: { tracks: Uint32Array; positions: Uint32Array; rotations: Uint32Array }
+  buildings: { tracks: Uint32Array; samples: Uint32Array; sparse: number }
+  objectives: ObjectiveData
   chat: ChatEntry[]
   deaths: { [tick: string]: CachedDeath[] }
   rounds: Round[]
   uberPops: MatchUberEvent[]
-  /** Players by slot. */
-  players: Map<number, PlayerRef>
+  parseMs: number
   /** performance.timeOrigin + now() when the worker posted, comparable across threads. */
   postedAt: number
-  stats: DecodeStats
 }
 
 /**
@@ -77,8 +83,8 @@ export function decodeDemo(
       }
       worker.terminate()
       const decoded = event.data as DecodedDemo
-      decoded.stats.transferMs = performance.timeOrigin + performance.now() - decoded.postedAt
-      resolve(new DemoSource(decoded))
+      const transferMs = performance.timeOrigin + performance.now() - decoded.postedAt
+      resolve(new DemoSource(decoded, transferMs))
     }
   })
 }
@@ -97,14 +103,15 @@ export class DemoSource implements MatchSource {
   readonly uberPops: MatchUberEvent[]
   readonly stats: DecodeStats
 
-  private readonly playerCache: PlayerCache
+  private readonly playerTracks: PlayerTracks
   private readonly buildingCache: BuildingCache
   private readonly projectileCache: ProjectileCache
   private readonly objectives: ObjectiveTimeline
   private readonly players: Map<number, PlayerRef>
   private readonly slotCount: number
 
-  constructor(decoded: DecodedDemo) {
+  constructor(decoded: DecodedDemo, transferMs = 0) {
+    const start = performance.now()
     this.header = decoded.header
     this.intervalPerTick = decoded.intervalPerTick
     this.world = decoded.world
@@ -113,25 +120,45 @@ export class DemoSource implements MatchSource {
     this.chat = decoded.chat
     this.rounds = decoded.rounds
     this.uberPops = decoded.uberPops
-    this.stats = decoded.stats
-    this.players = decoded.players
-    this.slotCount = Math.max(0, ...decoded.players.keys()) + 1
+    this.players = new Map(decoded.players.map(({ slot, ref }) => [slot, ref]))
+    this.slotCount = Math.max(0, ...this.players.keys()) + 1
 
-    PlayerCache.rehydrate(decoded.playerCache)
-    BuildingCache.rehydrate(decoded.buildingCache)
-    ProjectileCache.rehydrate(decoded.projectileCache)
-    ObjectiveTimeline.rehydrate(decoded.objectives)
-    this.playerCache = decoded.playerCache
-    this.buildingCache = decoded.buildingCache
-    this.projectileCache = decoded.projectileCache
-    this.objectives = decoded.objectives
+    const { positionScale, angleScale } = decoded
+    this.playerTracks = new PlayerTracks(
+      decoded.playerArrays,
+      decoded.playerSampling,
+      positionScale,
+      angleScale
+    )
+    const { tracks, positions, rotations } = decoded.projectiles
+    this.projectileCache = new ProjectileCache(tracks, positions, rotations, positionScale, angleScale)
+    const { buildings } = decoded
+    this.buildingCache = new BuildingCache(
+      buildings.tracks,
+      buildings.samples,
+      buildings.sparse,
+      positionScale,
+      angleScale
+    )
+    this.objectives = new ObjectiveTimeline(decoded.objectives, decoded.intervalPerTick)
+
+    this.stats = {
+      parseMs: decoded.parseMs,
+      hydrateMs: performance.now() - start,
+      transferMs,
+      playerCount: decoded.players.length,
+      projectileCount: this.projectileCache.projectileCount,
+      ticks: decoded.ticks,
+      playerCacheBytes: this.playerTracks.byteLength,
+      projectileCacheBytes: this.projectileCache.byteLength,
+    }
   }
 
   private playersAtTick(tick: number): CachedPlayer[] {
     const players: CachedPlayer[] = []
     for (let slot = 0; slot < this.slotCount; slot++) {
       const ref = this.players.get(slot)
-      if (ref) players.push(this.playerCache.getPlayer(tick, slot, ref.user))
+      if (ref) players.push(this.playerTracks.player(tick, slot, ref.user))
     }
 
     // Fake teams in a 1v1 free-for-all, so the two can be told apart
@@ -171,7 +198,7 @@ export class DemoSource implements MatchSource {
   }
 
   slotTeamAt(slot: number, tick: number): number {
-    return this.playerCache.metaCache.getMeta(slot, Math.floor(this.clamp(tick))).teamId
+    return this.playerTracks.team(slot, Math.floor(this.clamp(tick)))
   }
 
   roundStarts(): number[] {

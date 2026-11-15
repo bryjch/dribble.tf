@@ -1,4 +1,4 @@
-import type { CachedPlayer } from './PlayerCache'
+import type { CachedPlayer } from './PlayerTracks'
 import type { CachedProjectile } from './ProjectileCache'
 import type { CachedBuilding } from './BuildingCache'
 import type { ObjectiveState } from './ObjectiveTimeline'

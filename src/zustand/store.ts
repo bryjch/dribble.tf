@@ -162,6 +162,9 @@ export type StoreState = {
     scene: {
       mode: SceneMode
       interpolateFrames: boolean
+      /** Saved RTS centres per map, Source world coordinates. */
+      worldRtsCenters: Record<string, { x: number; y: number; z: number }>
+      /** Saved before 2026-11, relative to each map model's minimum corner; read, not written. */
       rtsCenters: Record<string, { x: number; y: number; z: number }>
     }
     camera: {
@@ -253,6 +256,7 @@ export const initialState: StoreState = {
     scene: {
       mode: isMobile ? SceneMode.UNTEXTURED : SceneMode.TEXTURED,
       interpolateFrames: true,
+      worldRtsCenters: {},
       rtsCenters: {},
     },
     camera: {

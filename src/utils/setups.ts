@@ -2,11 +2,15 @@ import {
   SavedSetup,
   SavedSetupCamera,
   SETUP_STORAGE_VERSION,
+  SetupVersion,
   StickerAnnotation,
   StickerSymbol,
   StickerTeam,
 } from '@constants/types'
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string'
+
+import { getMapBoundaries } from '@components/Analyse/MapBoundaries'
+import { fetchMapWorldBounds } from '@utils/game'
 
 const SETUP_HASH_PARAM = 's'
 
@@ -19,7 +23,7 @@ type StickerWire =
   | ['s', string, [number, number, number]]
 
 type SharedSetupPayload = {
-  v: typeof SETUP_STORAGE_VERSION
+  v: SetupVersion
   n: string
   m: string
   c: CameraWire
@@ -117,7 +121,7 @@ export function deserializeSetupFromShareToken(token: string): SavedSetup | null
 
     const payload = JSON.parse(json) as SharedSetupPayload
 
-    if (payload?.v !== SETUP_STORAGE_VERSION) {
+    if (!isSetupVersion(payload?.v)) {
       return null
     }
 
@@ -136,7 +140,7 @@ export function deserializeSetupFromShareToken(token: string): SavedSetup | null
 
     return {
       id: createSetupId(),
-      version: SETUP_STORAGE_VERSION,
+      version: payload.v,
       name: payload.n,
       map: payload.m,
       camera,
@@ -147,6 +151,36 @@ export function deserializeSetupFromShareToken(token: string): SavedSetup | null
   } catch (error) {
     console.warn('Failed to decode shared setup from URL hash.', error)
     return null
+  }
+}
+
+const isSetupVersion = (value: unknown): value is SetupVersion =>
+  value === 1 || value === SETUP_STORAGE_VERSION
+
+/**
+ * A setup in Source world coordinates. Version 1 setups placed things relative to the map
+ * model's minimum corner (the scene's origin when they were made, on an empty map); they are
+ * moved by that corner, from the map's conversion.json (else dribble.tf's bounds for the map).
+ */
+export async function toWorldSetup(setup: SavedSetup): Promise<SavedSetup> {
+  if (setup.version === SETUP_STORAGE_VERSION) return setup
+  const corner =
+    (await fetchMapWorldBounds(setup.map))?.boundaryMin ?? getMapBoundaries(setup.map)?.boundaryMin
+  if (!corner) return { ...setup, version: SETUP_STORAGE_VERSION }
+  const move = ([x, y, z]: [number, number, number]): [number, number, number] => [
+    x + corner.x,
+    y + corner.y,
+    z + corner.z,
+  ]
+  const camera: SavedSetupCamera =
+    setup.camera.mode === 'rts'
+      ? { ...setup.camera, position: move(setup.camera.position), target: move(setup.camera.target) }
+      : { ...setup.camera, position: move(setup.camera.position) }
+  return {
+    ...setup,
+    version: SETUP_STORAGE_VERSION,
+    camera,
+    stickers: setup.stickers.map(sticker => ({ ...sticker, position: move(sticker.position) })),
   }
 }
 
@@ -169,7 +203,7 @@ function normalizeStoredSetup(rawValue: unknown): SavedSetup | null {
   const camera = normalizeStoredCamera(candidate.camera)
 
   if (
-    candidate.version !== SETUP_STORAGE_VERSION ||
+    !isSetupVersion(candidate.version) ||
     !isNonEmptyString(candidate.id) ||
     !isNonEmptyString(candidate.name) ||
     !isNonEmptyString(candidate.map) ||
@@ -187,7 +221,7 @@ function normalizeStoredSetup(rawValue: unknown): SavedSetup | null {
 
   return {
     id: candidate.id,
-    version: SETUP_STORAGE_VERSION,
+    version: candidate.version,
     name: candidate.name,
     map: candidate.map,
     camera,

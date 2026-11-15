@@ -4,12 +4,11 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/Addons.js'
 
-import { PLAYER_DIMENSIONS } from '@constants/mappings'
 
 import mapChunkingConfig from '@constants/mapChunking.json'
 import { MapVisibilityMetadata } from '@constants/types'
 import { addDownloadAction, finishDownloadAction, updateDownloadAction } from '@zus/actions'
-import { getState, useInstance, useStore } from '@zus/store'
+import { getState, useInstance } from '@zus/store'
 import { getMapModelUrls, getMapVisibilityUrl } from '@utils/game'
 
 const INVISIBLE_TOOL_MATERIALS = new Set([
@@ -72,7 +71,6 @@ export const World = (props: WorldProps) => {
   const [mapVisibility, setMapVisibility] = useState<MapVisibilityMetadata | null>(null)
   const { map, mode } = props
 
-  const bounds = useStore(state => state.scene.bounds)
 
   // Briefly ensure the map is cleared when the map changes
   // to prevent lingering of the previous map
@@ -288,18 +286,9 @@ export const World = (props: WorldProps) => {
     })
   }, [mapModel, mode])
 
-  // Reposition the world to the center of the scene bounds
-  useEffect(() => {
-    // Not entirely sure if this logic is correct
-    const x = bounds.center.x - bounds.max.x
-    const y = -bounds.center.y - bounds.min.y
-    const z = PLAYER_DIMENSIONS.z * 0.5
-
-    ref.current?.position.copy(bounds.center).add(new THREE.Vector3(x, y, z))
-  }, [bounds])
-
   return (
-    // Account for valve maps using different axis system
+    // The model is in Source world coordinates, as the scene is, once its glTF y-up axes are
+    // turned to Source's z-up
     <group ref={ref} name="world" rotation={[Math.PI / 2, 0, 0]}>
       {mapModel ? <primitive object={mapModel} /> : null}
     </group>

@@ -9,7 +9,7 @@ import { HealBeam } from '@components/Scene/HealBeam'
 import { Nameplate } from '@components/Scene/Nameplate'
 import { SCENE_PRIORITY, isScenePlayer, sceneFrame } from '@components/Scene/PlaybackDriver'
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
-import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
+import { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
 import { hasCondition } from '@components/Analyse/Data/StreamEvents'
 
 import { useInstance, useStore } from '@zus/store'

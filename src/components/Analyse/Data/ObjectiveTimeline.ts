@@ -201,8 +201,6 @@ const MOVING_GAP = 8
 export class ObjectiveTimeline {
   data: ObjectiveData
   intervalPerTick: number
-  /** Added to every position: a map's own bounds replacing the demo's, or a live match's origin. */
-  offset: Vector = { x: 0, y: 0, z: 0 }
 
   // A live match's key builders; not sent from the worker.
   private recorder?: Recorder
@@ -216,13 +214,8 @@ export class ObjectiveTimeline {
     return this.data.round.length === 0
   }
 
-  /** Moves every objective by an offset, in world units. */
-  shift(dx: number, dy: number, dz: number) {
-    this.offset = { x: this.offset.x + dx, y: this.offset.y + dy, z: this.offset.z + dz }
-  }
-
   private position(p: Vec3 | null): Vector | null {
-    return p ? { x: p[0] + this.offset.x, y: p[1] + this.offset.y, z: p[2] + this.offset.z } : null
+    return p ? { x: p[0], y: p[1], z: p[2] } : null
   }
 
   /** How far between key `k` and the next one a tick is, as interpolation sees it; 0 to hold. */
@@ -331,16 +324,11 @@ export class ObjectiveTimeline {
 
   /**
    * Adds a live match's snapshot (as stv.tf sends it) at a local tick. `entityOf` gives a
-   * player's entity id from their stvtf id. Positions are kept as sent: set `offset` to place
-   * them.
+   * player's entity id from their stvtf id. Positions are Source world coordinates, as sent.
    */
   record(tick: number, s: any, entityOf: (id: number) => number) {
     this.recorder ??= new Recorder(this.data, this.intervalPerTick)
     this.recorder.add(tick, s, entityOf)
-  }
-
-  static rehydrate(data: ObjectiveTimeline) {
-    Object.setPrototypeOf(data, ObjectiveTimeline.prototype)
   }
 }
 

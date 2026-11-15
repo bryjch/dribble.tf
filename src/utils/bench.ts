@@ -59,15 +59,10 @@ export const benchCount = (name: string) => {
 
 type Tuple3 = [number, number, number]
 
-/** The scene draws positions relative to the map's boundaryMin. */
-const worldToScene = ([x, y, z]: Tuple3): Tuple3 => {
-  const { min } = getState().scene.bounds
-  return [x - min.x, y - min.y, z - min.z]
-}
-const sceneToWorld = ([x, y, z]: Tuple3): Tuple3 => {
-  const { min } = getState().scene.bounds
-  return [x + min.x, y + min.y, z + min.z]
-}
+// The scene draws Source world coordinates (since 2026-11; before, positions were relative to
+// the map's boundaryMin, and these converted).
+const worldToScene = (point: Tuple3): Tuple3 => point
+const sceneToWorld = (point: Tuple3): Tuple3 => point
 
 const frames = () => new Promise(resolve => requestAnimationFrame(() => resolve(undefined)))
 
