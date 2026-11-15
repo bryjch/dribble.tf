@@ -93,7 +93,9 @@ const SliderOption = ({
   }
 
   return (
-    <Option label={label} keyCode={keyCode} leftClass="w-5/12 shrink-0" rightClass="flex-1">
+    // min-w-0: a range input's intrinsic width would otherwise push the number box out of a
+    // narrow panel (phone sheets).
+    <Option label={label} keyCode={keyCode} leftClass="w-5/12 shrink-0" rightClass="min-w-0 flex-1">
       <input
         type="range"
         className="ui-range"

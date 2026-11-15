@@ -77,12 +77,11 @@ html[data-theme='modern'] {
   --ui-chat-name-blu: 114 165 205;
   --ui-chat-location: 124 196 127;
   --ui-chat-achievement: 124 196 127;
+
+  /* Panel text is in px, so phone sheets need no scaling. */
+  --ui-sheet-zoom: 1;
 }
 
-/* The playback bar docks full width along the bottom (see below); overlays keep clear of it. */
-html[data-theme='modern'] .ui-root:has(.hud-playback) {
-  --ui-dock-clearance: calc(2.8rem + 1px);
-}
 
 html[data-theme='modern'] body {
   font-size: 13px;
@@ -495,11 +494,13 @@ html[data-theme='modern'] body {
 /* ─── HUD: playback, docked full width ──────────────────────────────────────── */
 
 [data-theme='modern'] .hud-playback {
+  /* Docked: PlaybackPanel measures it into --ui-dock-clearance for the other overlays. */
+  --ui-dock: docked;
   display: flex;
   width: 100vw;
   align-items: center;
   gap: 0.75rem;
-  margin: 0 0 -1rem;
+  margin: 0 0 calc(var(--ui-strip-clearance) - 1rem);
   padding: 0.45rem 0.75rem;
   border-top: 1px solid rgb(var(--ui-line));
   background: rgb(var(--ui-ground) / 0.92);

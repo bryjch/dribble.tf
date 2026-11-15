@@ -1297,6 +1297,10 @@
   }
 
   /* Phone: one strip along the bottom. */
+  .ui-root:has(.hud-strip) {
+    --ui-strip-clearance: 2rem;
+  }
+
   .hud-strip {
     position: absolute;
     inset: auto 0 0 0;
@@ -1563,7 +1567,7 @@
   .hud-playback {
     position: relative;
     width: min(52rem, calc(100vw - 2rem));
-    margin: 0 1rem 0.5rem;
+    margin: 0 1rem calc(0.5rem + var(--ui-strip-clearance));
     font-family: var(--ui-font-hud);
   }
 
@@ -1988,7 +1992,7 @@
   .hud-fps {
     position: fixed;
     right: 0;
-    bottom: var(--ui-dock-clearance);
+    bottom: max(var(--ui-dock-clearance), var(--ui-strip-clearance));
     z-index: 2000000000;
     padding: 0.15rem 0.5rem;
     background: rgb(var(--ui-ground) / var(--ui-hud-alpha));
