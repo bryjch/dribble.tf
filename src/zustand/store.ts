@@ -69,12 +69,10 @@ export type InstanceState = {
       currentCluster: number | null
     }>
   ) => void
-  setSetupCameraBridge: (
-    setupCameraBridge?: {
-      capture: () => SavedSetupCamera | null
-      apply: (camera: SavedSetupCamera) => void
-    }
-  ) => void
+  setSetupCameraBridge: (setupCameraBridge?: {
+    capture: () => SavedSetupCamera | null
+    apply: (camera: SavedSetupCamera) => void
+  }) => void
 }
 
 const sameOffsetVector = (
@@ -204,6 +202,11 @@ export type StoreState = {
       playerOutlines: boolean
       /** In POV, the damage the spectated player deals, over whoever they hit. */
       damageNumbers: boolean
+      /** Sentries: a line to who they are shooting at, and a ring of how far they reach. */
+      buildings: {
+        sentryTargets: boolean
+        sentryRange: boolean
+      }
       showStats: boolean
       showSkybox: boolean
       /** The score, timer and objectives HUD, and the objectives in the world. Saved settings from before lack it. */
@@ -308,6 +311,10 @@ export const initialState: StoreState = {
       },
       playerOutlines: false,
       damageNumbers: true,
+      buildings: {
+        sentryTargets: true,
+        sentryRange: false,
+      },
       showStats: true,
       showSkybox: true,
       showObjectives: true,
@@ -354,7 +361,8 @@ const { dispatch, getState } = useStore
 // Settings and setups are saved whenever they change, outside the reducers so those stay pure.
 useStore.subscribe((state, previous) => {
   if (state.settings !== previous.settings) localForage.setItem('settings', state.settings)
-  if (state.setups.items !== previous.setups.items) localForage.setItem('setups', state.setups.items)
+  if (state.setups.items !== previous.setups.items)
+    localForage.setItem('setups', state.setups.items)
 })
 
 export { useStore, dispatch, getState, useInstance }

@@ -32,7 +32,14 @@ type OptionProps = {
   onClickLabel?: () => void
 }
 
-const Option = ({ label, keyCode, children, leftClass = '', rightClass = '', onClickLabel }: OptionProps) => (
+const Option = ({
+  label,
+  keyCode,
+  children,
+  leftClass = '',
+  rightClass = '',
+  onClickLabel,
+}: OptionProps) => (
   <div className="ui-option">
     <div className={cn('ui-option__label', leftClass)}>
       <span className={cn(!!onClickLabel && 'cursor-default')} onClick={onClickLabel}>
@@ -354,6 +361,22 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
+          <Section>Buildings</Section>
+
+          <ToggleOption
+            label="Sentry targets"
+            checked={settings.ui.buildings.sentryTargets}
+            onChange={checked => updateSettingsOption('ui.buildings.sentryTargets', checked)}
+          />
+
+          <ToggleOption
+            label="Sentry range"
+            checked={settings.ui.buildings.sentryRange}
+            onChange={checked => updateSettingsOption('ui.buildings.sentryRange', checked)}
+          />
+
+          {/* ************************************************************* */}
+
           <Section>Viewmodel</Section>
 
           <ToggleOption
@@ -384,10 +407,26 @@ export const SettingsPanel = () => {
               label="Crosshair style"
               options={[
                 { label: 'None', value: CrosshairStyle.NONE },
-                { label: 'Cross', value: CrosshairStyle.CROSSHAIR, icon: <CrosshairStyleIcon className="h-3.5 w-3.5" /> },
-                { label: 'Plus', value: CrosshairStyle.CROSS, icon: <CrossStyleIcon className="h-3.5 w-3.5" /> },
-                { label: 'Circle', value: CrosshairStyle.CIRCLE, icon: <CircleStyleIcon className="h-3.5 w-3.5" /> },
-                { label: 'Dot', value: CrosshairStyle.DOT, icon: <DotStyleIcon className="h-3.5 w-3.5" /> },
+                {
+                  label: 'Cross',
+                  value: CrosshairStyle.CROSSHAIR,
+                  icon: <CrosshairStyleIcon className="h-3.5 w-3.5" />,
+                },
+                {
+                  label: 'Plus',
+                  value: CrosshairStyle.CROSS,
+                  icon: <CrossStyleIcon className="h-3.5 w-3.5" />,
+                },
+                {
+                  label: 'Circle',
+                  value: CrosshairStyle.CIRCLE,
+                  icon: <CircleStyleIcon className="h-3.5 w-3.5" />,
+                },
+                {
+                  label: 'Dot',
+                  value: CrosshairStyle.DOT,
+                  icon: <DotStyleIcon className="h-3.5 w-3.5" />,
+                },
               ]}
               value={settings.ui.crosshair.style}
               onChange={value => updateSettingsOption('ui.crosshair.style', value)}

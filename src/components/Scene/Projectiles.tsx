@@ -168,6 +168,31 @@ function modelKeyOf(projectile: CachedProjectile): string | null {
   return `${projectile.type}_${teamOf(projectile) === 'blue' ? 'blue' : 'red'}`
 }
 
+const _tail = new THREE.Vector3()
+const MIN_STEP_SQ = 1e-6
+
+/**
+ * A point behind a rocket along its flight, for the model to look at (its tail faces +Z): where
+ * it was a tick before; else, the tick it is fired, back from where it is a tick on; else, for
+ * a rocket seen for one tick only, back along its yaw.
+ */
+function rocketTail(
+  rocket: CachedProjectile,
+  at: THREE.Vector3,
+  previous: Map<number, THREE.Vector3>,
+  nextOf: (entityId: number) => CachedProjectile | undefined
+): THREE.Vector3 {
+  const from = previous.get(rocket.entityId)
+  if (from && from.distanceToSquared(at) > MIN_STEP_SQ) return _tail.copy(from)
+  const next = nextOf(rocket.entityId)
+  if (next) {
+    _tail.set(next.position.x, next.position.y, next.position.z)
+    if (_tail.distanceToSquared(at) > MIN_STEP_SQ) return _tail.subVectors(at, _tail).add(at)
+  }
+  const yaw = degreesToRadians(rocket.rotation.z)
+  return _tail.set(at.x - Math.cos(yaw), at.y - Math.sin(yaw), at.z)
+}
+
 interface ModelPart {
   mesh: THREE.InstancedMesh
   /** The part's place in its model. */
@@ -210,6 +235,12 @@ const ProjectileModels = () => {
     const previous = previousPositions.current
     previous.clear()
     for (const p of before) previous.set(p.entityId, _a.set(p.position.x, p.position.y, p.position.z).clone())
+    // A rocket fired this tick has no tick before: it points away from where it is a tick on.
+    let after: Map<number, CachedProjectile> | null = null
+    const nextOf = (entityId: number) => {
+      after ??= new Map(match ? match.projectilesAt(tick + 1).map(p => [p.entityId, p]) : [])
+      return after.get(entityId)
+    }
 
     for (const projectile of sceneFrame.projectiles) {
       const key = modelKeyOf(projectile)
@@ -224,8 +255,7 @@ const ProjectileModels = () => {
       _object.rotation.set(0, 0, 0)
       _object.quaternion.identity()
       if (projectile.type === 'rocket') {
-        const from = previous.get(projectile.entityId)
-        if (from && from.distanceToSquared(_object.position) > 1e-6) _object.lookAt(from)
+        _object.lookAt(rocketTail(projectile, _object.position, previous, nextOf))
       } else {
         _object.rotation.set(
           degreesToRadians(rotation.x),

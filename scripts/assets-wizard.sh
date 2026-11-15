@@ -253,6 +253,7 @@ AWS_READY=0
 S3_REGION_ARGS=() # --region for the bucket, once known
 UPLOAD_LOCAL=""   # local folder to upload
 UPLOAD_REMOTE=""  # where it goes in the bucket
+UPLOAD_FILTERS=() # aws s3 sync --exclude/--include, to upload part of the folder
 CDN_PATH=""       # the CloudFront path to refresh, e.g. /models/viewmodels/*
 PENDING=0         # files the dry run says would upload
 UPLOADED=0
@@ -372,7 +373,8 @@ pause "Press Enter to continue"
 # ── Stage 3 ───────────────────────────────────────────────────────────────
 stage "Rebuild the viewmodels"
 say "Rebuilds public/models/viewmodels from TF2's files: the first-person arms,"
-say "their animations and every weapon."
+say "their animations and every weapon. It also rebuilds the engineer's buildings"
+say "in public/models/buildings."
 note "Only needed after a TF2 update or a change to scripts/viewmodels/. Models that"
 note "haven't changed are skipped, so a rebuild usually takes a couple of minutes."
 printf '\n'
@@ -389,13 +391,13 @@ elif confirm "Rebuild the viewmodels now?"; then
     SKIPPED+=("rebuild the viewmodels (npm run build:viewmodels)")
   fi
 
-  CHANGED=$(git status --porcelain -- public/models/viewmodels | wc -l | tr -d ' ')
+  CHANGED=$(git status --porcelain -- public/models/viewmodels public/models/buildings | wc -l | tr -d ' ')
   if (( CHANGED > 0 )); then
     printf '\n'
-    say "$CHANGED file(s) changed in public/models/viewmodels."
+    say "$CHANGED file(s) changed in public/models/viewmodels and public/models/buildings."
     BRANCH=$(git branch --show-current)
     if confirm "Commit them on branch '$BRANCH'?"; then
-      git add public/models/viewmodels
+      git add public/models/viewmodels public/models/buildings
       if git commit -q -m "Rebuild the viewmodels"; then
         ok "committed on $BRANCH"
         COMMITTED=1
@@ -403,7 +405,7 @@ elif confirm "Rebuild the viewmodels now?"; then
         warn "the commit failed"
       fi
     else
-      SKIPPED+=("commit the rebuilt models in public/models/viewmodels")
+      SKIPPED+=("commit the rebuilt models in public/models/viewmodels and public/models/buildings")
     fi
   else
     ok "nothing changed"
@@ -552,13 +554,16 @@ stage "Choose what to upload"
 if (( ! AWS_READY )); then
   warn "No AWS access (stages 4-5), so skipping."
 else
-  printf '  %s1%s viewmodels only (public/models/viewmodels)\n' "$BOLD" "$RESET"
-  printf '  %s2%s everything in public/models (maps, players, projectiles, skyboxes, viewmodels)\n' "$BOLD" "$RESET"
+  printf '  %s1%s viewmodels and buildings only (public/models/viewmodels, public/models/buildings)\n' "$BOLD" "$RESET"
+  printf '  %s2%s everything in public/models (maps, players, projectiles, skyboxes, viewmodels, buildings)\n' "$BOLD" "$RESET"
   printf '  %s3%s nothing\n' "$BOLD" "$RESET"
   printf '  %sChoose 1-3:%s ' "$BOLD" "$RESET"
   read -r choice || true
   case "$choice" in
-    1) UPLOAD_LOCAL="public/models/viewmodels"; UPLOAD_REMOTE="models/viewmodels"; CDN_PATH="/models/viewmodels/*" ;;
+    1)
+      UPLOAD_LOCAL="public/models"; UPLOAD_REMOTE="models"; CDN_PATH="/models/*"
+      UPLOAD_FILTERS=(--exclude "*" --include "viewmodels/*" --include "buildings/*")
+      ;;
     2)
       printf '\n'
       warn "Map files are only read correctly by the code that made them. Upload"
@@ -567,7 +572,7 @@ else
       if confirm "Is the live site running this code?"; then
         UPLOAD_LOCAL="public/models"; UPLOAD_REMOTE="models"; CDN_PATH="/models/*"
       else
-        say "Then use 1 (viewmodels only) for now."
+        say "Then use 1 (viewmodels and buildings only) for now."
       fi
       ;;
   esac
@@ -576,7 +581,7 @@ else
     DEST="s3://$ASSET_S3_BUCKET/$(s3_prefix)$UPLOAD_REMOTE"
     printf '\n'
     say "Comparing $UPLOAD_LOCAL with $DEST ..."
-    DRY=$(aws s3 sync "$UPLOAD_LOCAL" "$DEST" --profile "$ASSET_AWS_PROFILE" "${S3_REGION_ARGS[@]+"${S3_REGION_ARGS[@]}"}" --dryrun --exclude "*.DS_Store" 2>&1) || {
+    DRY=$(aws s3 sync "$UPLOAD_LOCAL" "$DEST" --profile "$ASSET_AWS_PROFILE" "${S3_REGION_ARGS[@]+"${S3_REGION_ARGS[@]}"}" --dryrun "${UPLOAD_FILTERS[@]+"${UPLOAD_FILTERS[@]}"}" --exclude "*.DS_Store" 2>&1) || {
       warn "the comparison failed:"; printf '%s\n' "$DRY" | tail -5; DRY=""; UPLOAD_LOCAL=""
     }
     BYTES=0
@@ -601,7 +606,7 @@ stage "Upload"
 if (( ! AWS_READY )) || [[ -z "$UPLOAD_LOCAL" ]] || (( ! PENDING )); then
   note "Nothing to upload, skipping."
 elif confirm "Upload $PENDING file(s) to $DEST?"; then
-  if run aws s3 sync "$UPLOAD_LOCAL" "$DEST" --profile "$ASSET_AWS_PROFILE" "${S3_REGION_ARGS[@]+"${S3_REGION_ARGS[@]}"}" --exclude "*.DS_Store" --only-show-errors; then
+  if run aws s3 sync "$UPLOAD_LOCAL" "$DEST" --profile "$ASSET_AWS_PROFILE" "${S3_REGION_ARGS[@]+"${S3_REGION_ARGS[@]}"}" "${UPLOAD_FILTERS[@]+"${UPLOAD_FILTERS[@]}"}" --exclude "*.DS_Store" --only-show-errors; then
     ok "uploaded $PENDING file(s)"
     UPLOADED=1
   else
@@ -657,6 +662,7 @@ else
   say "Fetching from $BASE:"
   check "models/viewmodels/manifest.json"
   check "models/viewmodels/arms/soldier.glb"
+  check "models/buildings/sentry1_red.glb"
   check "models/players/soldier_red.glb"
   MAP=public/models/maps/cp_snakewater_final1/textured_compressed.glb
   if [[ -f "$MAP" ]]; then
