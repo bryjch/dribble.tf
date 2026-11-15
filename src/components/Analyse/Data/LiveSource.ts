@@ -1,13 +1,20 @@
 import { AsyncParser } from './AsyncParser'
 import { CachedPlayer, PlayerCache } from './PlayerCache'
 import { CachedProjectile } from './ProjectileCache'
+import { CachedBuilding } from './BuildingCache'
 import { PlayerMeta } from './PlayerMetaCache'
 import { getMapBoundaries } from '../MapBoundaries'
 import { Vector } from './Types'
 import type { MatchUberEvent } from '@utils/matchEvents'
 import {
+  BUILDING_KINDS,
+  BuildingKind,
   CLASS_IDS,
   StreamMessage,
+  chargeBits,
+  conditionBits,
+  medigunOf,
+  uberedOf,
   TEAM_IDS,
   teamName,
   toChatEntry,
@@ -33,15 +40,21 @@ export type { StreamMessage }
 //
 
 // Per player, per snapshot: present, x, y, z, pitch, yaw, health, classId, teamId, uber, heal
-// target, seconds until respawn
-const STRIDE = 12
-const [PRESENT, X, Y, Z, PITCH, YAW, HEALTH, CLASS, TEAM, UBER, HEAL, RESPAWN] = Array.from(
+// target, seconds until respawn, condition bits, charge bits (both as StreamEvents.ts packs them)
+const STRIDE = 14
+const [PRESENT, X, Y, Z, PITCH, YAW, HEALTH, CLASS, TEAM, UBER, HEAL, RESPAWN, CONDS, CHARGE] = Array.from(
   { length: STRIDE },
   (_, i) => i
 )
 
 // Per projectile, per snapshot: id, type, x, y, z, yaw, team
 const P_STRIDE = 7
+
+// Per building, per snapshot: id, kind, team, builder entity, x, y, z, yaw, aim (NaN for none),
+// health, max health, level, flags (as BuildingCache keeps them), target entity
+const B_STRIDE = 14
+const [B_ID, B_KIND, B_TEAM, B_BUILDER, B_X, B_Y, B_Z, B_YAW, B_AIM, B_HP, B_MAX, B_LEVEL, B_FLAGS, B_TARGET] =
+  Array.from({ length: B_STRIDE }, (_, i) => i)
 
 // Snapshots further apart than this (a pause in the stream) are not interpolated across.
 const MAX_INTERP_GAP_TICKS = 33
@@ -70,6 +83,7 @@ interface Frame {
   tick: number
   players: Float32Array
   projectiles: Float32Array
+  buildings: Float32Array
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
@@ -229,7 +243,33 @@ export class LiveSource extends AsyncParser {
       data[o + HEAL] = p.medigun?.target != null ? (entOf.get(p.medigun.target) ?? 0) : 0
       // stv.tf says how long a dead player has left, once the server has set it.
       data[o + RESPAWN] = p.respawn ?? NaN
+      data[o + CONDS] = conditionBits(p.conds)
+      data[o + CHARGE] = chargeBits(p.ubered, p.medigun)
     }
+
+    const placed = (m.buildings ?? []).filter((b: any) => BUILDING_KINDS.indexOf(b.kind) > 0)
+    const buildings = new Float32Array(placed.length * B_STRIDE)
+    placed.forEach((b: any, i: number) => {
+      const o = i * B_STRIDE
+      const flags =
+        (b.sapped ? 1 : 0) |
+        (b.building ? 2 : 0) |
+        (b.mini ? 4 : 0) |
+        (b.entrance ? 8 : 0) |
+        (b.attacking ? 32 : 0)
+      buildings[o + B_ID] = b.id
+      buildings[o + B_KIND] = BUILDING_KINDS.indexOf(b.kind)
+      buildings[o + B_TEAM] = TEAM_IDS[b.team] ?? 0
+      buildings[o + B_BUILDER] = b.builder != null ? (entOf.get(b.builder) ?? 0) : 0
+      buildings.set(b.pos, o + B_X)
+      buildings[o + B_YAW] = b.yaw ?? 0
+      buildings[o + B_AIM] = b.aim ?? NaN
+      buildings[o + B_HP] = b.hp
+      buildings[o + B_MAX] = b.max_hp
+      buildings[o + B_LEVEL] = b.level
+      buildings[o + B_FLAGS] = flags
+      buildings[o + B_TARGET] = b.target != null ? (entOf.get(b.target) ?? 0) : 0
+    })
 
     const kept = (m.projectiles ?? []).filter((p: any) => PROJECTILE_TYPES[p.kind] && p.pos)
     const projectiles = new Float32Array(kept.length * P_STRIDE)
@@ -242,7 +282,7 @@ export class LiveSource extends AsyncParser {
       projectiles[o + 6] = TEAM_IDS[p.team] ?? 0
     })
 
-    this.frames.push({ tick: this.localTick(m.tick), players: data, projectiles })
+    this.frames.push({ tick: this.localTick(m.tick), players: data, projectiles, buildings })
     if (this.frames.length > MAX_FRAMES + TRIM_FRAMES) this.frames.splice(0, TRIM_FRAMES)
     this.ticks = this.latestTick + 1
   }
@@ -373,9 +413,53 @@ export class LiveSource extends AsyncParser {
           present && health === 0 && !Number.isNaN(p[o + RESPAWN])
             ? a.tick + Math.round(p[o + RESPAWN] / this.intervalPerTick)
             : null,
+        conditions: present ? p[o + CONDS] : 0,
+        ubered: present ? uberedOf(p[o + CHARGE]) : null,
+        medigun: present ? medigunOf(p[o + CHARGE]) : null,
       })
     }
     return players
+  }
+
+  getBuildingAtTick(tick: number): CachedBuilding[] {
+    const at = this.around(tick)
+    if (!at) return []
+    const { a, b, t } = at
+    const { origin } = this
+    const next = new Map<number, number>()
+    if (b) {
+      for (let o = 0; o < b.buildings.length; o += B_STRIDE) next.set(b.buildings[o + B_ID], o)
+    }
+
+    const out: CachedBuilding[] = []
+    const q = a.buildings
+    for (let o = 0; o < q.length; o += B_STRIDE) {
+      let aim: number | null = Number.isNaN(q[o + B_AIM]) ? null : q[o + B_AIM]
+      const n = next.get(q[o + B_ID])
+      if (aim !== null && b && n !== undefined && !Number.isNaN(b.buildings[n + B_AIM])) {
+        aim = lerpAngle(aim, b.buildings[n + B_AIM], t)
+      }
+      const flags = q[o + B_FLAGS]
+      out.push({
+        entityId: q[o + B_ID],
+        kind: BUILDING_KINDS[q[o + B_KIND]] as BuildingKind,
+        team: q[o + B_TEAM],
+        builder: q[o + B_BUILDER],
+        level: q[o + B_LEVEL],
+        health: q[o + B_HP],
+        maxHealth: q[o + B_MAX],
+        position: { x: q[o + B_X] - origin.x, y: q[o + B_Y] - origin.y, z: q[o + B_Z] - origin.z },
+        yaw: q[o + B_YAW],
+        aim,
+        target: q[o + B_TARGET] || null,
+        sapped: (flags & 1) !== 0,
+        constructing: (flags & 2) !== 0,
+        mini: (flags & 4) !== 0,
+        entrance: (flags & 8) !== 0,
+        attacking: (flags & 32) !== 0,
+      })
+    }
+    return out
   }
 
   getProjectilesAtTick(tick: number): CachedProjectile[] {

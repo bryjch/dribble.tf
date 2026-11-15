@@ -37,15 +37,25 @@ export interface DecodedMeta {
     boundaryMax: { x: number; y: number; z: number }
   }
   players: DecodedPlayer[]
+  /** The names of each player's arrays, in the order they come. */
+  playerBuffers: string[]
+  /** The condition bits, in order (StreamEvents.ts, CONDITION_FLAGS). */
+  conditionFlags: string[]
+  /** Ticks per value in the conditions and charge arrays: 1 << statusSparse. */
+  statusSparse: number
   projectileCount: number
+  buildingCount: number
+  /** Ticks per building sample: 1 << buildingSparse. */
+  buildingSparse: number
   events: DecodedEvent[]
 }
 
 export interface DecodedDemo {
   meta: DecodedMeta
   /**
-   * Per player, in `players` order: position, view angles, health, meta, connected, über, heal
-   * target. Then the projectile tracks (5 values each), their positions and their rotations.
+   * Per player, in `players` order, the arrays `playerBuffers` names. Then the projectile tracks
+   * (5 values each), their positions and their rotations, then the building tracks (6 values
+   * each) and their samples (8 values each).
    */
   buffers: (Uint32Array | Uint16Array | Uint8Array)[]
 }

@@ -192,6 +192,8 @@ export type StoreState = {
         showName: boolean
         showHealth: boolean
         showClass: boolean
+        /** Badges for burning, Jarate, crits, über and the like. Saved settings from before lack it. */
+        showConditions?: boolean
       }
       crosshair: {
         style: CrosshairStyle
@@ -283,6 +285,7 @@ export const initialState: StoreState = {
         showName: true,
         showHealth: true,
         showClass: true,
+        showConditions: true,
       },
       crosshair: {
         style: 'crosshair' as CrosshairStyle,
