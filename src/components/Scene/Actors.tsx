@@ -114,6 +114,29 @@ interface ActorHandles {
   group: THREE.Group
   body: THREE.Group
   aim: THREE.Group
+  /** The nameplate's element while one is shown, sized by distance every frame. */
+  plate: React.RefObject<HTMLDivElement>
+}
+
+// Nameplates shrink and fade from NEAR to FAR (Hammer units from the camera), and drop the name
+// past COMPACT, so a zoomed-out RTS view is not a pile of overlapping names.
+const PLATE_NEAR = 1200
+const PLATE_FAR = 6000
+const PLATE_COMPACT = 3500
+const PLATE_MIN_SCALE = 0.6
+const PLATE_MIN_OPACITY = 0.7
+const _cameraPosition = new THREE.Vector3()
+
+function sizePlate(plate: HTMLDivElement, distance: number) {
+  const t = Math.min(Math.max((distance - PLATE_NEAR) / (PLATE_FAR - PLATE_NEAR), 0), 1)
+  // In steps, so the style is only written when it visibly changes.
+  const step = Math.round(t * 20) / 20
+  const compact = distance > PLATE_COMPACT ? 'true' : 'false'
+  if (plate.dataset.step === String(step) && plate.dataset.compact === compact) return
+  plate.dataset.step = String(step)
+  plate.dataset.compact = compact
+  plate.style.transform = `scale(${1 - (1 - PLATE_MIN_SCALE) * step})`
+  plate.style.opacity = String(1 - (1 - PLATE_MIN_OPACITY) * step)
 }
 
 export interface ActorsProps {
@@ -129,10 +152,14 @@ export const Actors = ({ match }: ActorsProps) => {
     [match, tick]
   )
 
-  useFrame(() => {
+  useFrame(({ camera }) => {
+    camera.getWorldPosition(_cameraPosition)
     for (const player of sceneFrame.players) {
       const actor = handles.current.get(player.user.entityId)
-      if (actor) placeActor(actor, player)
+      if (!actor) continue
+      placeActor(actor, player)
+      const plate = actor.plate.current
+      if (plate) sizePlate(plate, actor.group.position.distanceTo(_cameraPosition))
     }
   }, SCENE_PRIORITY)
 
@@ -169,7 +196,11 @@ function placeActor(actor: ActorHandles, player: CachedPlayer) {
   // only; the aim (and the POV camera on it) has the full view angles.
   actor.body.quaternion.copy(yawQuaternionFromDegrees(viewAngles.y))
   actor.aim.quaternion.copy(
-    cameraQuaternionFromSourceAnglesDeg({ pitch: viewAngles.x, yaw: viewAngles.y, roll: viewAngles.z })
+    cameraQuaternionFromSourceAnglesDeg({
+      pitch: viewAngles.x,
+      yaw: viewAngles.y,
+      roll: viewAngles.z,
+    })
   )
 }
 
@@ -206,6 +237,7 @@ const Actor = memo(({ player, register, positionOf }: ActorProps) => {
   const actorRef = useRef<THREE.Group>(null)
   const bodyRef = useRef<THREE.Group>(null)
   const playerAimRef = useRef<THREE.Group>(null)
+  const plateRef = useRef<HTMLDivElement>(null)
 
   const nameplate = useStore(state => state.settings.ui.nameplate)
   const focusedObject = useInstance(state => state.focusedObject)
@@ -223,7 +255,7 @@ const Actor = memo(({ player, register, positionOf }: ActorProps) => {
     const body = bodyRef.current
     const aim = playerAimRef.current
     if (!group || !body || !aim) return
-    const actor = { group, body, aim }
+    const actor = { group, body, aim, plate: plateRef }
     // Placed now, so a player who just appeared is not drawn at the origin for a frame.
     placeActor(actor, sceneFrame.playersByEntity.get(entityId) ?? player)
     register(entityId, actor)
@@ -273,17 +305,19 @@ const Actor = memo(({ player, register, positionOf }: ActorProps) => {
           style={{ bottom: 0, transform: 'translateX(-50%)', textAlign: 'center' }}
           position={[0, 0, ActorDimensions.z * 0.85]}
         >
-          {alive && (
-            <Nameplate
-              name={user.name}
-              team={team}
-              health={health}
-              classId={classId}
-              conditions={conditions}
-              ubered={ubered}
-              settings={nameplate}
-            />
-          )}
+          <div ref={plateRef} className="group/plate origin-bottom">
+            {alive && (
+              <Nameplate
+                name={user.name}
+                team={team}
+                health={health}
+                classId={classId}
+                conditions={conditions}
+                ubered={ubered}
+                settings={nameplate}
+              />
+            )}
+          </div>
         </Html>
       )}
     </group>

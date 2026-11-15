@@ -1839,6 +1839,52 @@
     transform: translate(-50%, -50%);
   }
 
+  /* Über pops: a small diamond above the track, in the medic's team colour. */
+  .hud-timeline__ubers {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .hud-timeline__uber {
+    position: absolute;
+    top: 0;
+    width: 0.4rem;
+    height: 0.4rem;
+    background: rgb(var(--team-ink, var(--ui-ink-muted)));
+    box-shadow: 0 0 0 1px rgb(var(--ui-ground) / 0.6);
+    opacity: 0.55;
+    transform: translate(-50%, -60%) rotate(45deg);
+  }
+
+  .hud-timeline__uber[data-past='true'] {
+    opacity: 1;
+  }
+
+  /* The time under the mouse. */
+  /* Above the transport (z-index 20), which floats just over the timeline in some themes. */
+  .hud-timeline__hover {
+    position: absolute;
+    bottom: 100%;
+    z-index: 30;
+    display: flex;
+    gap: 0.35rem;
+    margin-bottom: 0.4rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--ui-radius-chip);
+    background: rgb(var(--ui-ground) / 0.85);
+    color: rgb(var(--ui-ink));
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    pointer-events: none;
+    transform: translateX(-50%);
+  }
+
+  .hud-timeline__hover-tick {
+    color: rgb(var(--ui-ink-muted));
+  }
+
   .hud-timeline__meta {
     display: flex;
     align-items: center;
@@ -2058,6 +2104,121 @@
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
     pointer-events: none;
+  }
+
+  /* ─── Scoreboard ──────────────────────────────────────────────────────────── */
+
+  /* Held with Tab: both teams side by side, after stv.tf's; clear of a docked playback bar. */
+  .hud-scoreboard {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    padding-bottom: calc(1rem + max(var(--ui-dock-clearance), var(--ui-strip-clearance)));
+    background: rgb(var(--ui-scrim) / 0.3);
+  }
+
+  .hud-scoreboard__card {
+    display: grid;
+    width: min(64rem, 100%);
+    max-height: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+    gap: 0.75rem;
+    overflow: auto;
+    color: rgb(var(--ui-ink));
+    font-family: var(--ui-font-hud);
+  }
+
+  .hud-scoreboard__team {
+    min-width: 0;
+    overflow: hidden;
+    border: var(--ui-border-width) solid rgb(var(--ui-line) / var(--ui-line-alpha));
+    border-radius: var(--ui-radius-control);
+    background: rgb(var(--ui-ground) / var(--ui-panel-alpha));
+    box-shadow: var(--ui-shadow);
+  }
+
+  .hud-scoreboard__team-head {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.45rem 0.75rem;
+    background: rgb(var(--team-fill));
+    color: rgb(var(--ui-ink-on-team));
+  }
+
+  .hud-scoreboard__team-name {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: var(--ui-caps-tracking);
+  }
+
+  .hud-scoreboard__team-score {
+    flex: 1;
+    font-size: 1.4rem;
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .hud-scoreboard__team-count {
+    font-size: 0.75rem;
+    opacity: 0.85;
+  }
+
+  .hud-scoreboard__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .hud-scoreboard__table th {
+    padding: 0.4rem 0.3rem 0.25rem;
+    color: rgb(var(--ui-ink-muted));
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .hud-scoreboard__table td {
+    padding: 0.25rem 0.3rem;
+    border-top: 1px solid rgb(var(--ui-line) / var(--ui-line-alpha));
+  }
+
+  .hud-scoreboard__table .hud-scoreboard__class {
+    width: 1.6rem;
+    padding-left: 0.6rem;
+  }
+
+  .hud-scoreboard__name {
+    max-width: 9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .hud-scoreboard__table .hud-scoreboard__stat {
+    width: 1.75rem;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .hud-scoreboard__table .hud-scoreboard__stat[data-wide='true'] {
+    width: 3.4rem;
+  }
+
+  .hud-scoreboard__table .hud-scoreboard__stat:last-child {
+    padding-right: 0.75rem;
+  }
+
+  .hud-scoreboard__row[data-dead='true'] {
+    opacity: 0.55;
+  }
+
+  .hud-scoreboard__row[data-focused='true'] td {
+    background: rgb(var(--team) / 0.2);
   }
 
   /* ─── Sticker palette ─────────────────────────────────────────────────────── */

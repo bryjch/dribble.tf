@@ -276,6 +276,12 @@ const reducers = (state: StoreState, action: StoreAction) => {
         ui: { ...state.ui, activePanels: without(state.ui.activePanels, action.payload.name) },
       }
 
+    case 'SET_SCOREBOARD_OPEN':
+      return {
+        ...state,
+        ui: { ...state.ui, scoreboardOpen: !!action.payload },
+      }
+
     case 'POP_UI_PANEL':
       return {
         ...state,
@@ -532,6 +538,12 @@ const reducers = (state: StoreState, action: StoreAction) => {
       return {
         ...state,
         bookmarks: state.bookmarks.filter(t => t !== action.payload),
+      }
+
+    case 'SET_BOOKMARKS':
+      return {
+        ...state,
+        bookmarks: sortedUniq(sortBy(action.payload as number[])),
       }
 
     case 'CLEAR_BOOKMARKS':

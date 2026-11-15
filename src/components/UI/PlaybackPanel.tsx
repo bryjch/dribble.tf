@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import * as Slider from '@radix-ui/react-slider'
 import { motion } from 'framer-motion'
 
@@ -149,6 +149,18 @@ export const PlaybackPanel = () => {
     }
     return marks
   }, [match, match?.revision, liveRefresh, maxTicks])
+
+  // Each über pop, in the medic's team colour.
+  const uberMarks = useMemo(() => {
+    if (!match || maxTicks <= 1) return []
+    return match.uberPops.map(uber => ({
+      tick: uber.tick,
+      team: uber.medicTeam === 2 ? 'red' : uber.medicTeam === 3 ? 'blue' : 'none',
+      label: uber.medicName,
+    }))
+  }, [match, match?.revision, liveRefresh, maxTicks])
+
+  const timelineRef = useRef<HTMLDivElement>(null)
 
   const toPercent = (t: number) => `${(Math.max(0, t - 1) / Math.max(1, maxTicks - 1)) * 100}%`
 
@@ -364,7 +376,7 @@ export const PlaybackPanel = () => {
       </div>
 
       <div className="hud-timeline">
-        <div className="relative">
+        <div className="relative" ref={timelineRef}>
           <Slider.Root
             className="hud-timeline__slider"
             min={1}
@@ -403,6 +415,20 @@ export const PlaybackPanel = () => {
             </Slider.Track>
             <Slider.Thumb className="hud-timeline__thumb" aria-label="Playhead" />
           </Slider.Root>
+
+          <div className="hud-timeline__ubers" aria-hidden>
+            {uberMarks.map((mark, index) => (
+              <span
+                key={`uber-${index}`}
+                className="hud-timeline__uber"
+                data-team={mark.team}
+                data-past={mark.tick <= tick ? 'true' : undefined}
+                style={{ left: toPercent(mark.tick) }}
+              />
+            ))}
+          </div>
+
+          {!isMobile && <TimelineHover containerRef={timelineRef} maxTicks={maxTicks} />}
 
           {bookmarks.map(bookmarkTick => (
             <button
@@ -448,6 +474,43 @@ export const PlaybackPanel = () => {
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** The time under the mouse, over the timeline. Its own component: it renders on every move. */
+const TimelineHover = ({
+  containerRef,
+  maxTicks,
+}: {
+  containerRef: React.RefObject<HTMLDivElement>
+  maxTicks: number
+}) => {
+  const [hover, setHover] = useState<{ x: number; tick: number } | null>(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const onMove = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse') return
+      const rect = container.getBoundingClientRect()
+      const fraction = Math.min(Math.max((event.clientX - rect.left) / rect.width, 0), 1)
+      setHover({ x: fraction * rect.width, tick: Math.round(1 + fraction * Math.max(0, maxTicks - 1)) })
+    }
+    const onLeave = () => setHover(null)
+    container.addEventListener('pointermove', onMove)
+    container.addEventListener('pointerleave', onLeave)
+    return () => {
+      container.removeEventListener('pointermove', onMove)
+      container.removeEventListener('pointerleave', onLeave)
+    }
+  }, [containerRef, maxTicks])
+
+  if (!hover) return null
+  return (
+    <div className="hud-timeline__hover" style={{ left: hover.x }} aria-hidden>
+      {getDurationFromTicks(hover.tick).formatted}
+      <span className="hud-timeline__hover-tick">{hover.tick}</span>
     </div>
   )
 }

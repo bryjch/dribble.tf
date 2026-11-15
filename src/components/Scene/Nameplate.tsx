@@ -31,6 +31,8 @@ export const Nameplate = (props: NameplateProps) => {
           <div
             className={cn(
               'max-w-40 overflow-hidden text-ellipsis whitespace-nowrap px-[0.1rem] text-[0.9rem] font-bold leading-none',
+              // Far from the camera (see Actors' sizePlate): class and health only.
+              'group-data-[compact=true]/plate:hidden',
               '[text-shadow:0_0_2px_#000000,0_0_2px_#000000,0_0_2px_#000000,0_0_2px_#000000]'
             )}
           >

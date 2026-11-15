@@ -3,7 +3,7 @@ import { BsBookmarkFillIcon, FaTrashIcon } from '@components/Misc/Icons'
 
 import { useStore } from '@zus/store'
 import {
-  toggleUIPanelAction,
+  toggleOnlyUIPanelAction,
   goToTickAction,
   removeBookmarkAction,
   clearBookmarksAction,
@@ -16,13 +16,7 @@ export const BookmarksPanel = () => {
   const bookmarks = useStore(state => state.bookmarks)
   const tick = useStore(state => state.playback.tick)
 
-  const toggleUIPanel = () => {
-    toggleUIPanelAction('Settings', false)
-    toggleUIPanelAction('About', false)
-    toggleUIPanelAction('MatchKillfeed', false)
-    toggleUIPanelAction('Setups', false)
-    toggleUIPanelAction('Bookmarks')
-  }
+  const toggleUIPanel = () => toggleOnlyUIPanelAction('Bookmarks')
 
   const seekToTick = (bookmarkTick: number) => {
     goToTickAction(bookmarkTick)

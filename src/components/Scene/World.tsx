@@ -51,9 +51,81 @@ const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
   wireframe: true,
 })
 
-const MAP_UNTEXTURED_MATERIAL = new THREE.MeshStandardMaterial({
-  color: 'white',
-})
+//
+// The untextured ("Plain") look: each material drawn in one colour, its texture's average, and
+// with the map's baked lightmaps when it has them (Derived Maps), so surfaces, rooms and depth
+// still read. All-white brushes washed out, worst on phones, which default to this mode. No
+// texture is drawn, so none is uploaded to the GPU.
+//
+
+/** A Derived Map's lightmaps, kept to light its plain materials too. */
+const derivedLightmaps = new WeakMap<
+  THREE.Object3D,
+  { flat: THREE.Texture; directional: THREE.Texture[] }
+>()
+/** Each model's plain materials, by the material they stand in for. */
+const plainMaterials = new WeakMap<THREE.Object3D, Map<THREE.Material, THREE.Material>>()
+const averageColors = new WeakMap<THREE.Texture, THREE.Color | null>()
+
+function plainMaterialFor(model: THREE.Object3D, original: THREE.Material): THREE.Material {
+  let byOriginal = plainMaterials.get(model)
+  if (!byOriginal) plainMaterials.set(model, (byOriginal = new Map()))
+  const known = byOriginal.get(original)
+  if (known) return known
+
+  const source = original as THREE.MeshStandardMaterial
+  const plain = new THREE.MeshStandardMaterial({
+    color: averageTextureColor(source.map) ?? new THREE.Color('white'),
+    side: original.side,
+    transparent: original.transparent,
+    opacity: original.opacity,
+  })
+  const lightmaps = derivedLightmaps.get(model)
+  if (lightmaps && source.userData?.bspLit) {
+    installSourceMaterialShader(plain, lightmaps.flat, lightmaps.directional)
+  }
+  byOriginal.set(original, plain)
+  return plain
+}
+
+/** A texture's average colour, from a few pixels drawn off its decoded image. */
+function averageTextureColor(texture: THREE.Texture | null | undefined): THREE.Color | null {
+  if (!texture) return null
+  if (averageColors.has(texture)) return averageColors.get(texture)!
+  let color: THREE.Color | null = null
+  try {
+    const image = texture.image as CanvasImageSource & { width?: number; height?: number }
+    if (image && image.width && image.height) {
+      const size = 8
+      const canvas = document.createElement('canvas')
+      canvas.width = canvas.height = size
+      const context = canvas.getContext('2d', { willReadFrequently: true })
+      if (context) {
+        context.drawImage(image, 0, 0, size, size)
+        const { data } = context.getImageData(0, 0, size, size)
+        let r = 0
+        let g = 0
+        let b = 0
+        for (let i = 0; i < data.length; i += 4) {
+          r += data[i]
+          g += data[i + 1]
+          b += data[i + 2]
+        }
+        const count = data.length / 4
+        color = new THREE.Color().setRGB(
+          r / count / 255,
+          g / count / 255,
+          b / count / 255,
+          THREE.SRGBColorSpace
+        )
+      }
+    }
+  } catch {
+    // An image that cannot be drawn (compressed, or cross-origin): plain white.
+  }
+  averageColors.set(texture, color)
+  return color
+}
 const MAP_CHUNKING_ENABLED = mapChunkingConfig.enabled
 
 export interface WorldProps {
@@ -319,9 +391,12 @@ export const World = (props: WorldProps) => {
     mapModel.traverse(node => {
       const mesh = node as THREE.Mesh
       if (!mesh.isMesh || !mesh.userData.originalMaterial) return
+      const original = mesh.userData.originalMaterial as THREE.Material | THREE.Material[]
       mesh.material =
         mode === 'untextured'
-          ? MAP_UNTEXTURED_MATERIAL
+          ? Array.isArray(original)
+            ? original.map(material => plainMaterialFor(mapModel, material))
+            : plainMaterialFor(mapModel, original)
           : mode === 'wireframe'
             ? MAP_WIREFRAME_MATERIAL
             : mesh.userData.originalMaterial
@@ -655,6 +730,9 @@ function disposeMapModel(model: THREE.Object3D) {
     }
   }
   derivedTextures.delete(model)
+  plainMaterials.get(model)?.forEach(material => material.dispose())
+  plainMaterials.delete(model)
+  derivedLightmaps.delete(model)
 }
 
 //
@@ -790,6 +868,7 @@ async function applyDerivedPresentation(scene: THREE.Group, result: DerivedResul
         }
       }
     })
+    derivedLightmaps.set(scene, { flat, directional })
   }
   await attachSharedProps(scene, result)
   const decals = buildDecalOverlay(scene, result)
@@ -835,6 +914,7 @@ function installSourceMaterialShader(
         'vec3 bspFlat = decodeRgbExp32(texture2D(bspLightmapFlat, vBspLightmapUv)); vec3 bspDirectional = (decodeRgbExp32(texture2D(bspLightmap0, vBspLightmapUv)) + decodeRgbExp32(texture2D(bspLightmap1, vBspLightmapUv)) + decodeRgbExp32(texture2D(bspLightmap2, vBspLightmapUv))) / 3.0; outgoingLight *= max(bspFlat, bspDirectional);\n#include <opaque_fragment>'
       )
   }
+  material.userData.bspLit = true
   material.customProgramCacheKey = () => 'bsp-rgbexp32-directional-displacement-v1'
   material.needsUpdate = true
 }

@@ -8,6 +8,7 @@ import {
   DamageHit,
   DamageLog,
   MatchSource,
+  ScoreLine,
   lerpPlayers,
   lerpProjectiles,
   roundStartsFrom,
@@ -206,6 +207,16 @@ export class DemoSource implements MatchSource {
 
   damageBy(entityId: number): readonly DamageHit[] {
     return this.damage.get(entityId) ?? NO_HITS
+  }
+
+  scoresAt(tick: number): Map<number, ScoreLine> {
+    const at = Math.floor(this.clamp(tick))
+    const scores = new Map<number, ScoreLine>()
+    for (const [slot, ref] of this.players) {
+      const line = this.playerTracks.score(slot, at)
+      if (line) scores.set(ref.user.entityId, line)
+    }
+    return scores
   }
 
   slotTeamAt(slot: number, tick: number): number {

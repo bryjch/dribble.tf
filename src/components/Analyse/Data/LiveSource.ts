@@ -4,7 +4,7 @@ import { CachedBuilding } from './BuildingCache'
 import { ObjectiveState, ObjectiveTimeline } from './ObjectiveTimeline'
 import { getMapBoundaries } from '../MapBoundaries'
 import { ChatEntry, Header, PlayerRef, Round, World } from './Types'
-import { CachedDeath, DamageHit, MatchSource, lerp, lerpAngle, roundStartsFrom } from './MatchSource'
+import { CachedDeath, DamageHit, MatchSource, ScoreLine, lerp, lerpAngle, roundStartsFrom } from './MatchSource'
 import type { MatchUberEvent } from '@utils/matchEvents'
 import {
   BUILDING_KINDS,
@@ -84,9 +84,14 @@ const PROJECTILE_TYPES: Record<string, number> = {
 
 type Vec3 = [number, number, number]
 
+// Per player slot in a frame's scores: the scoreboard line and ping (NaN for no player).
+const S_STRIDE = 7
+
 interface Frame {
   tick: number
   players: Float32Array
+  /** The previous frame's own array when nothing on the scoreboard changed. */
+  scores: Float32Array
   projectiles: Float32Array
   buildings: Float32Array
 }
@@ -245,6 +250,7 @@ export class LiveSource implements MatchSource {
     for (const p of players) this.slotOf(p.id)
 
     const data = new Float32Array(this.slots.size * STRIDE)
+    const scores = new Float32Array(this.slots.size * S_STRIDE).fill(NaN)
     for (const p of players) {
       const slot = this.slotOf(p.id)
       const o = slot * STRIDE
@@ -268,6 +274,15 @@ export class LiveSource implements MatchSource {
       data[o + CONDS] = conditionBits(p.conds)
       data[o + CHARGE] = chargeBits(p.ubered, p.medigun)
       data[o + WEAPON] = p.weapon ? p.weapon.item + 1 : 0
+      const s = slot * S_STRIDE
+      const line = p.score ?? {}
+      scores[s] = line.points ?? 0
+      scores[s + 1] = line.kills ?? 0
+      scores[s + 2] = line.deaths ?? 0
+      scores[s + 3] = line.assists ?? 0
+      scores[s + 4] = line.damage ?? 0
+      scores[s + 5] = line.healing ?? 0
+      scores[s + 6] = p.ping ?? 0
 
       // Firing shows as flames, or the clip going down with the same weapon in hand.
       const before = this.lastClip.get(slot)
@@ -326,7 +341,17 @@ export class LiveSource implements MatchSource {
     })
 
     this.objectives.record(this.localTick(m.tick), m, id => entOf.get(id) ?? 0)
-    this.frames.push({ tick: this.localTick(m.tick), players: data, projectiles, buildings })
+    // Most snapshots change nothing on the scoreboard: those share the last frame's array.
+    const last = this.frames[this.frames.length - 1]?.scores
+    const sameScores =
+      last && last.length === scores.length && scores.every((v, i) => Object.is(v, last[i]))
+    this.frames.push({
+      tick: this.localTick(m.tick),
+      players: data,
+      scores: sameScores ? last : scores,
+      projectiles,
+      buildings,
+    })
     if (this.frames.length > MAX_FRAMES + TRIM_FRAMES) this.frames.splice(0, TRIM_FRAMES)
     this.ticks = this.latestTick + 1
   }
@@ -406,6 +431,27 @@ export class LiveSource implements MatchSource {
     const gap = b ? b.tick - a.tick : 0
     const t = b && gap <= MAX_INTERP_GAP_TICKS ? Math.min(1, Math.max(0, (tick - a.tick) / gap)) : 0
     return { i, a, b: t > 0 ? b : undefined, t }
+  }
+
+  scoresAt(tick: number): Map<number, ScoreLine> {
+    const result = new Map<number, ScoreLine>()
+    const frame = this.frames[this.frameIndexAt(tick)]
+    if (!frame) return result
+    const s = frame.scores
+    for (const [slot, ref] of this.players) {
+      const o = slot * S_STRIDE
+      if (o >= s.length || Number.isNaN(s[o])) continue
+      result.set(ref.user.entityId, {
+        points: s[o],
+        kills: s[o + 1],
+        deaths: s[o + 2],
+        assists: s[o + 3],
+        damage: s[o + 4],
+        healing: s[o + 5],
+        ping: s[o + 6],
+      })
+    }
+    return result
   }
 
   slotTeamAt(slot: number, tick: number): number {

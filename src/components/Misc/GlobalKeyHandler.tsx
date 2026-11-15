@@ -1,12 +1,13 @@
 import { useRef, useCallback } from 'react'
 import keycode from 'keycode'
 
-import { useStore, useInstance } from '@zus/store'
+import { useStore, useInstance, getState } from '@zus/store'
 import {
   clearStickersAction,
   deleteSelectedStickerAction,
   popUIPanelAction,
   redoStickersAction,
+  setScoreboardOpenAction,
   setStickersPanelOpenAction,
   toggleMapCenterPickerAction,
   toggleUIDrawingAction,
@@ -45,7 +46,9 @@ export const GlobalKeyHandler = () => {
 
         switch (keycode(event)) {
           case 'esc':
-            if (mapCenterPickerActive) {
+            if (getState().ui.scoreboardOpen) {
+              setScoreboardOpenAction(false)
+            } else if (mapCenterPickerActive) {
               toggleMapCenterPickerAction(false)
             } else if (activePanels.length > 0) {
               popUIPanelAction()
@@ -106,6 +109,9 @@ export const GlobalKeyHandler = () => {
     (event: KeyboardEvent) => {
       const key = keycode(event)
 
+      // The scoreboard is held open with Tab on the canvas; let go anywhere closes it.
+      if (key === 'tab') setScoreboardOpenAction(false)
+
       if (isTextEntryTarget(event.target)) {
         const wasDrawingKeyHeld = keysHeld.current.has('f')
 
@@ -141,6 +147,8 @@ export const GlobalKeyHandler = () => {
 
   useEventListener('keydown', canvasKeyDown, window)
   useEventListener('keyup', canvasKeyUp, window)
+  // Tab held while the window loses focus never sends its keyup.
+  useEventListener('blur', () => setScoreboardOpenAction(false), window)
 
   return null
 }
