@@ -374,3 +374,43 @@ export const FaTrashIcon = (props: SVGProps<SVGSVGElement>) => {
     </svg>
   )
 }
+
+const StrokeIcon = ({ children, ...props }: SVGProps<SVGSVGElement>) => (
+  <svg
+    stroke="currentColor"
+    fill="none"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    viewBox="0 0 24 24"
+    height="1rem"
+    width="1rem"
+    xmlns="http://www.w3.org/2000/svg"
+    {...props}
+  >
+    {children}
+  </svg>
+)
+
+export const FileIcon = (props: SVGProps<SVGSVGElement>) => (
+  <StrokeIcon {...props}>
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+    <path d="M14 3v5h5M12 17v-6m-3 3 3 3 3-3" />
+  </StrokeIcon>
+)
+
+
+export const PlayCircleIcon = (props: SVGProps<SVGSVGElement>) => (
+  <StrokeIcon {...props}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m10 8.5 5 3.5-5 3.5z" fill="currentColor" />
+  </StrokeIcon>
+)
+
+
+export const LinkIcon = (props: SVGProps<SVGSVGElement>) => (
+  <StrokeIcon {...props}>
+    <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1" />
+    <path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" />
+  </StrokeIcon>
+)

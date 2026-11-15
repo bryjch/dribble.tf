@@ -29,26 +29,24 @@ export const POVCameraTipPanel = () => {
 
   return (
     <motion.div
-      className="absolute w-72 rounded-3xl bg-pp-panel/80 p-6"
+      className="ui-tip absolute"
       animate={showing ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
       transition={{ duration: 0.2 }}
       initial={false}
     >
-      <div className="mb-1 flex">
+      <div className="ui-tip__title flex">
         <strong>POV Camera</strong>
       </div>
 
       <motion.div>
-        <div className="mb-1 flex">
+        <div className="ui-tip__row">
           <span>Next player</span>
-          <div className="flex-1" />
-          <kbd>1</kbd>
+                    <kbd>1</kbd>
         </div>
 
-        <div className="flex">
+        <div className="ui-tip__row">
           <span>Previous player</span>
-          <div className="flex-1" />
-          <kbd>Shift + 1</kbd>
+                    <kbd>Shift + 1</kbd>
         </div>
       </motion.div>
     </motion.div>
@@ -61,23 +59,22 @@ export const SpectatorCameraTipPanel = () => {
 
   return (
     <motion.div
-      className="w-72 rounded-3xl bg-pp-panel/80 p-6"
+      className="ui-tip"
       animate={showing ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
       transition={{ duration: 0.2 }}
       initial={false}
     >
-      <div className="mb-1 flex">
+      <div className="ui-tip__title flex">
         <strong>Spectator Camera</strong>
-        <div className="flex-1" />
-        <div>
+                <div>
           {isPointerLocked ? (
             <motion.div
               key={`on`}
               initial={{ opacity: 0, y: -2 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              style={{ color: '#4dd241' }}
-              className="px-2"
+              className="ui-status px-2"
+              data-state="on"
             >
               ON
             </motion.div>
@@ -87,8 +84,8 @@ export const SpectatorCameraTipPanel = () => {
               initial={{ opacity: 0, y: -2 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              style={{ color: '#fa9e21' }}
-              className="px-2"
+              className="ui-status px-2"
+              data-state="idle"
             >
               IDLE
             </motion.div>
@@ -98,43 +95,38 @@ export const SpectatorCameraTipPanel = () => {
 
       {!isPointerLocked && (
         <motion.div>
-          <div className="flex">
+          <div className="ui-tip__row">
             <span>Activate</span>
-            <div className="flex-1" />
-            <kbd>LMB</kbd>
+                        <kbd>LMB</kbd>
           </div>
         </motion.div>
       )}
 
       {isPointerLocked && (
         <motion.div>
-          <div className="mb-1 flex">
+          <div className="ui-tip__row">
             <span>Deactivate</span>
-            <div className="flex-1" />
-            <kbd>ESC</kbd> / <kbd>RMB</kbd>
+                        <kbd>ESC</kbd> / <kbd>RMB</kbd>
           </div>
 
-          <div className="mb-1 flex">
+          <div className="ui-tip__row">
             <span>Movement</span>
-            <div className="flex-1" />
-            <kbd className="ml-1">W</kbd>
-            <kbd className="ml-1">A</kbd>
-            <kbd className="ml-1">S</kbd>
-            <kbd className="ml-1">D</kbd>
+                        <kbd className="ml-0.5">W</kbd>
+            <kbd className="ml-0.5">A</kbd>
+            <kbd className="ml-0.5">S</kbd>
+            <kbd className="ml-0.5">D</kbd>
           </div>
 
-          <div className="mb-1 flex">
+          <div className="ui-tip__row">
             <span>Elevation</span>
-            <div className="flex-1" />
-
-            <kbd className="ml-1">E</kbd>
-            <kbd className="ml-1">C</kbd>
+            
+            <kbd className="ml-0.5">E</kbd>
+            <kbd className="ml-0.5">C</kbd>
           </div>
 
-          <div className="flex">
+          <div className="ui-tip__row">
             <span>Boost</span>
-            <div className="flex-1" />
-            <kbd>Shift</kbd>
+                        <kbd>Shift</kbd>
           </div>
         </motion.div>
       )}
@@ -147,41 +139,37 @@ export const RtsCameraTipPanel = () => {
 
   return (
     <motion.div
-      className="absolute w-72 rounded-3xl bg-pp-panel/80 p-6"
+      className="ui-tip absolute"
       animate={showing ? { opacity: 1, x: 0 } : { opacity: 0, x: 20 }}
       transition={{ duration: 0.2 }}
       initial={false}
     >
-      <div className="mb-1 flex">
+      <div className="ui-tip__title flex">
         <strong>RTS Camera</strong>
       </div>
 
       <motion.div>
-        <div className="mb-1 flex">
+        <div className="ui-tip__row">
           <span>Rotate</span>
-          <div className="flex-1" />
-          <kbd>LMB</kbd>
+                    <kbd>LMB</kbd>
         </div>
 
-        <div className="mb-1 flex">
+        <div className="ui-tip__row">
           <span>Pan</span>
-          <div className="flex-1" />
-          <kbd>RMB</kbd>
+                    <kbd>RMB</kbd>
         </div>
 
-        <div className="mb-1 flex">
+        <div className="ui-tip__row">
           <span>Movement</span>
-          <div className="flex-1" />
-          <kbd className="ml-1">W</kbd>
-          <kbd className="ml-1">A</kbd>
-          <kbd className="ml-1">S</kbd>
-          <kbd className="ml-1">D</kbd>
+                    <kbd className="ml-0.5">W</kbd>
+          <kbd className="ml-0.5">A</kbd>
+          <kbd className="ml-0.5">S</kbd>
+          <kbd className="ml-0.5">D</kbd>
         </div>
 
-        <div className="flex">
+        <div className="ui-tip__row">
           <span>Zoom</span>
-          <div className="flex-1" />
-          <kbd>Scroll</kbd>
+                    <kbd>Scroll</kbd>
         </div>
       </motion.div>
     </motion.div>

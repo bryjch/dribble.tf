@@ -3,7 +3,25 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      // Semantic tokens from src/theme/tokens.css; prefer these over raw colours in overlays.
       colors: {
+        'ui-ground': 'rgb(var(--ui-ground) / <alpha-value>)',
+        'ui-raised': 'rgb(var(--ui-raised) / <alpha-value>)',
+        'ui-line': 'rgb(var(--ui-line) / <alpha-value>)',
+        'ui-ink': 'rgb(var(--ui-ink) / <alpha-value>)',
+        'ui-ink-muted': 'rgb(var(--ui-ink-muted) / <alpha-value>)',
+        'ui-ink-faint': 'rgb(var(--ui-ink-faint) / <alpha-value>)',
+        'ui-accent': 'rgb(var(--ui-accent) / <alpha-value>)',
+        'ui-accent-ink': 'rgb(var(--ui-accent-ink) / <alpha-value>)',
+        'ui-focus': 'rgb(var(--ui-focus) / <alpha-value>)',
+        'ui-good': 'rgb(var(--ui-good) / <alpha-value>)',
+        'ui-warn': 'rgb(var(--ui-warn) / <alpha-value>)',
+        'ui-bad': 'rgb(var(--ui-bad) / <alpha-value>)',
+        'team-red': 'rgb(var(--ui-red) / <alpha-value>)',
+        'team-blu': 'rgb(var(--ui-blu) / <alpha-value>)',
+        'team-red-ink': 'rgb(var(--ui-red-ink) / <alpha-value>)',
+        'team-blu-ink': 'rgb(var(--ui-blu-ink) / <alpha-value>)',
+
         'pp-panel': 'rgb(var(--pp-panel) / <alpha-value>)',
         'pp-accent-primary': 'rgb(var(--pp-accent-primary) / <alpha-value>)',
         'pp-accent-secondary': 'rgb(var(--pp-accent-secondary) / <alpha-value>)',
@@ -24,6 +42,18 @@ export default {
         'pp-healthbar-red': 'rgb(var(--pp-healthbar-red) / <alpha-value>)',
         'pp-health-overhealed': 'rgb(var(--pp-health-overhealed) / <alpha-value>)',
         'pp-health-low': 'rgb(var(--pp-health-low) / <alpha-value>)',
+      },
+
+      borderRadius: {
+        panel: 'var(--ui-radius-panel)',
+        control: 'var(--ui-radius-control)',
+        chip: 'var(--ui-radius-chip)',
+      },
+
+      fontFamily: {
+        body: 'var(--ui-font-body)',
+        hud: 'var(--ui-font-hud)',
+        display: 'var(--ui-font-display)',
       },
 
       keyframes: {},

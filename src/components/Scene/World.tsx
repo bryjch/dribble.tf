@@ -11,6 +11,7 @@ import { addDownloadAction, finishDownloadAction, updateDownloadAction } from '@
 import { getState, useInstance } from '@zus/store'
 import { useDerivedMap } from '@components/Scene/DerivedMap'
 import { DerivedMapResult, textComponent } from '@utils/derivedMap'
+import { reportError } from '@utils/notice'
 
 const INVISIBLE_TOOL_MATERIALS = new Set([
   'toolsnodraw',
@@ -183,7 +184,7 @@ export const World = (props: WorldProps) => {
     load().catch(error => {
       console.error(error)
       if (requestId === mapLoadRequestIdRef.current) {
-        alert(`Unable to load map: ${map}\nThe project is probably missing the necessary files.`)
+        reportError("Couldn't load the map", `${map} failed to load. Try reloading.`)
       }
     })
 

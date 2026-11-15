@@ -367,6 +367,16 @@
   resolved "https://registry.yarnpkg.com/@floating-ui/utils/-/utils-0.2.11.tgz#a269e055e40e2f45873bae9d1a2fdccbd314ea3f"
   integrity sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==
 
+"@fontsource-variable/roboto-condensed@^5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource-variable/roboto-condensed/-/roboto-condensed-5.3.0.tgz#5988c08feb16389305143077fb237520c107fae7"
+  integrity sha512-RpYyF6G0h0nsVcCDLRIbZbK+l8cVDoe1PVbzvzVhtLzCiPqIEEGDs9xB9ZWPJawKS4bJzpKn42KgZFISF/AOuQ==
+
+"@fontsource-variable/rubik@^5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@fontsource-variable/rubik/-/rubik-5.3.0.tgz#de5e731145e7435d07f14f6efc083122d4e51dd0"
+  integrity sha512-yQUf8qle24MJYA+EuauyF+cqjjN6I715nGjitt3sGmwZA0XfA4fWJcLq1C/diREZl4Qzn1E80nLMc0ipC/a4Lg==
+
 "@gltf-transform/cli@^4.3.0":
   version "4.3.0"
   resolved "https://registry.npmjs.org/@gltf-transform/cli/-/cli-4.3.0.tgz"

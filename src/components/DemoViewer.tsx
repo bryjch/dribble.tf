@@ -539,46 +539,21 @@ const FocusedPlayerLayer = (props: {
 const PanelToolbar = ({ hasDemoLoaded }: { hasDemoLoaded: boolean }) => {
   const isMobile = useIsMobile()
 
-  if (isMobile) {
-    return (
-      <div className="ui-layer m-3 items-start justify-start">
-        <div className="flex items-center">
-          <SettingsPanel />
-          <AboutPanel />
-          <SetupsPanel />
-          {hasDemoLoaded && <MatchKillfeedPanel />}
-          {hasDemoLoaded && <BookmarksPanel />}
-        </div>
-      </div>
-    )
-  }
-
+  // One toolbar; each panel opens beside it, anchored to its top (see .ui-toolbar / .ui-panel).
   return (
-    <>
-      <div className="ui-layer m-4 items-start justify-start">
+    <div className={cn('ui-layer items-start justify-start', isMobile ? 'm-3' : 'm-4')}>
+      <nav
+        className={cn('ui-toolbar', isMobile && 'flex-row gap-1.5')}
+        aria-label="Panels"
+        data-mobile={isMobile ? 'true' : undefined}
+      >
         <SettingsPanel />
-      </div>
-
-      <div className="ui-layer justift-start m-4 mt-16 items-start">
         <AboutPanel />
-      </div>
-
-      <div className="ui-layer justift-start m-4 mt-28 items-start">
         <SetupsPanel />
-      </div>
-
-      {hasDemoLoaded && (
-        <div className="ui-layer m-4 mt-40 items-start justify-start">
-          <MatchKillfeedPanel />
-        </div>
-      )}
-
-      {hasDemoLoaded && (
-        <div className="ui-layer m-4 mt-52 items-start justify-start">
-          <BookmarksPanel />
-        </div>
-      )}
-    </>
+        {hasDemoLoaded && <MatchKillfeedPanel />}
+        {hasDemoLoaded && <BookmarksPanel />}
+      </nav>
+    </div>
   )
 }
 
@@ -726,9 +701,11 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
       <div className="ui-layers">
         <DoubleTapSeek />
 
-        <div className="ui-layer mb-4 items-end justify-center text-center">
-          <PlaybackPanel />
-        </div>
+        {demo && (
+          <div className="ui-layer mb-4 items-end justify-center text-center">
+            <PlaybackPanel />
+          </div>
+        )}
 
         <MatchHud match={demo} />
 

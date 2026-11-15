@@ -1,0 +1,534 @@
+/*
+ * ─── MANN CO. ───────────────────────────────────────────────────────────────────
+ *
+ * TF2's own HUD and menus. Colours are the game's, from tf/resource/clientscheme.res:
+ * TanDarker 46 43 42, TanDark 117 107 94, TanLight 235 226 202, HudOffWhite 200 187 161,
+ * HUDRedTeamSolid 180 92 77, HUDBlueTeamSolid 104 124 155, HudProgressBarActive 240 207 78
+ * (the ÜberCharge meter), and Strange quality 207 106 50 for what is selected.
+ *
+ * Signature: charge rows are the stock ÜberCharge meter, and panels, buttons and the
+ * killfeed read like the main menu and the spectator HUD, in heavy rounded caps.
+ */
+
+html[data-theme='mannco'] {
+  --ui-ground: 46 43 42;
+  --ui-panel-alpha: 0.94;
+  --ui-hud-alpha: 0.86;
+  --ui-raised: 235 226 202;
+  --ui-raised-alpha: 0.07;
+  --ui-line: 117 107 94;
+  --ui-line-alpha: 0.55;
+  --ui-scrim: 20 18 17;
+
+  --ui-ink: 235 226 202;
+  --ui-ink-muted: 175 164 142;
+  --ui-ink-faint: 128 119 104;
+  --ui-ink-on-team: 255 255 255;
+
+  --ui-accent: 207 106 50;
+  --ui-accent-ink: 255 246 230;
+  --ui-focus: 240 207 78;
+
+  --ui-red: 180 92 77;
+  --ui-blu: 104 124 155;
+  --ui-red-ink: 236 128 108;
+  --ui-blu-ink: 153 180 222;
+  --ui-red-fill: 180 92 77;
+  --ui-blu-fill: 104 124 155;
+  --ui-red-track: 98 52 44;
+  --ui-blu-track: 52 62 80;
+  --ui-track-alpha: 0.85;
+  --ui-neutral: 117 107 94;
+
+  --ui-good: 152 214 92;
+  --ui-warn: 240 207 78;
+  --ui-bad: 255 64 64;
+  --ui-live: 189 59 59;
+  --ui-overheal-wash: 235 226 202;
+
+  --ui-font-body: 'Rubik Variable', 'Verdana', sans-serif;
+  --ui-font-hud: 'Rubik Variable', 'Verdana', sans-serif;
+  --ui-font-display: 'Rubik Variable', 'Verdana', sans-serif;
+  --ui-caps-tracking: 0.04em;
+  --ui-title-case: uppercase;
+  --ui-hud-weight: 600;
+  --ui-hud-text-shadow: 1px 1px 0 rgb(0 0 0 / 0.75);
+
+  --ui-radius-panel: 8px;
+  --ui-radius-control: 5px;
+  --ui-radius-chip: 6px;
+  --ui-radius-bar: 5px;
+  --ui-radius-transport: 8px;
+  --ui-radius-point: 9999px;
+  --ui-border-width: 0px;
+  --ui-shadow: 0 6px 18px rgb(0 0 0 / 0.45), 0 1px 0 rgb(0 0 0 / 0.6);
+
+  --ui-roster-width: 14rem;
+  --ui-roster-height: 2.25rem;
+  --ui-roster-gap: 3px;
+  --ui-focus-width: 2px;
+  --ui-focus-shift: 0.6rem;
+  /* Kill icons in TanLight, as the game draws them. */
+  --ui-killicon-filter: brightness(0) invert(91%) sepia(16%);
+
+  --ui-selection: 207 106 50;
+}
+
+/* ─── Panels: the main menu's dialogs ───────────────────────────────────────── */
+
+[data-theme='mannco'] .ui-panel,
+[data-theme='mannco'] .ui-tip,
+[data-theme='mannco'] .hud-palette {
+  background:
+    linear-gradient(rgb(255 255 255 / 0.025), transparent 6rem),
+    rgb(var(--ui-ground) / var(--ui-panel-alpha));
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--ui-line) / 0.35),
+    var(--ui-shadow);
+}
+
+[data-theme='mannco'] .ui-panel__header {
+  margin: 0.5rem 0.5rem 0.25rem;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  border-radius: var(--ui-radius-control);
+  background: rgb(var(--ui-line) / 0.32);
+}
+
+[data-theme='mannco'] .ui-panel__title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-shadow: var(--ui-hud-text-shadow);
+}
+
+[data-theme='mannco'] .ui-panel__body {
+  padding: 0.75rem 1.5rem 1.5rem;
+}
+
+[data-theme='mannco'] .ui-section-title {
+  color: rgb(var(--ui-ink));
+  font-size: 0.75rem;
+  font-weight: 800;
+  opacity: 0.7;
+}
+
+[data-theme='mannco'] .ui-section-title::after {
+  display: block;
+  height: 1px;
+  margin-top: 0.35rem;
+  background: rgb(var(--ui-line) / 0.6);
+  content: '';
+}
+
+/* Buttons: TanDarker slabs with TanLight caps that go Strange orange when armed. */
+[data-theme='mannco'] .ui-btn,
+[data-theme='mannco'] .ui-toolbar-btn {
+  border: 0;
+  background: rgb(var(--ui-line) / 0.38);
+  box-shadow: inset 0 -2px 0 rgb(0 0 0 / 0.3);
+  color: rgb(var(--ui-ink));
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+[data-theme='mannco'] .ui-btn:hover,
+[data-theme='mannco'] .ui-toolbar-btn:hover,
+[data-theme='mannco'] .ui-btn--primary,
+[data-theme='mannco'] .ui-toolbar-btn[data-active='true'] {
+  background: rgb(var(--ui-accent));
+  color: rgb(var(--ui-accent-ink));
+}
+
+[data-theme='mannco'] .ui-btn--primary:hover {
+  background: rgb(222 124 66);
+}
+
+[data-theme='mannco'] .ui-btn--ghost {
+  background: transparent;
+  box-shadow: none;
+  color: rgb(var(--ui-ink-muted));
+}
+
+[data-theme='mannco'] .ui-btn--danger {
+  color: rgb(255 140 120);
+}
+
+[data-theme='mannco'] .ui-btn--danger:hover {
+  background: rgb(var(--ui-live));
+  color: #fff;
+}
+
+[data-theme='mannco'] .ui-toolbar-btn {
+  width: 2.4rem;
+  height: 2.4rem;
+  background: rgb(var(--ui-ground) / 0.9);
+  box-shadow:
+    inset 0 -2px 0 rgb(0 0 0 / 0.35),
+    0 2px 6px rgb(0 0 0 / 0.35);
+}
+
+[data-theme='mannco'] .ui-seg {
+  gap: 3px;
+  padding: 0;
+  background: transparent;
+}
+
+[data-theme='mannco'] .ui-seg__item {
+  border-radius: var(--ui-radius-control);
+  background: rgb(var(--ui-line) / 0.3);
+  color: rgb(var(--ui-ink-muted));
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+[data-theme='mannco'] .ui-seg__item[data-active='true'] {
+  background: rgb(var(--ui-accent));
+  color: rgb(var(--ui-accent-ink));
+}
+
+[data-theme='mannco'] .ui-switch {
+  background: rgb(var(--ui-line) / 0.55);
+}
+
+[data-theme='mannco'] .ui-switch[aria-checked='true'] {
+  background: rgb(var(--ui-accent));
+}
+
+[data-theme='mannco'] .ui-input {
+  border-color: rgb(var(--ui-line) / 0.6);
+  background: rgb(0 0 0 / 0.28);
+}
+
+[data-theme='mannco'] .ui-input:focus {
+  border-color: rgb(var(--ui-focus));
+}
+
+[data-theme='mannco'] .ui-range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 3px;
+  background: rgb(var(--ui-line) / 0.7);
+}
+
+[data-theme='mannco'] .ui-range::-webkit-slider-thumb {
+  width: 0.75rem;
+  height: 1.1rem;
+  margin-top: calc(-0.55rem + 3px);
+  border-radius: 3px;
+  background: rgb(var(--ui-ink));
+}
+
+[data-theme='mannco'] .ui-kbd,
+[data-theme='mannco'] kbd {
+  border-color: rgb(var(--ui-line));
+  background: rgb(var(--ui-line) / 0.45);
+  color: rgb(var(--ui-ink));
+  font-family: var(--ui-font-hud);
+  font-weight: 700;
+}
+
+[data-theme='mannco'] .ui-list-row[data-active='true'] {
+  background: rgb(var(--ui-focus) / 0.16);
+}
+
+[data-theme='mannco'] .ui-tooltip {
+  background: rgb(var(--ui-ground) / 0.97);
+  box-shadow:
+    inset 0 0 0 1px rgb(var(--ui-line) / 0.5),
+    var(--ui-shadow);
+}
+
+[data-theme='mannco'] .ui-tooltip__arrow {
+  fill: rgb(var(--ui-ground) / 0.97);
+}
+
+[data-theme='mannco'] .ui-toast__progress {
+  background: rgb(var(--ui-focus) / 0.28);
+}
+
+/* ─── HUD: the spectator GUI ────────────────────────────────────────────────── */
+
+[data-theme='mannco'] .hud-player {
+  background: rgb(var(--ui-ground) / 0.82);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.4);
+  text-shadow: var(--ui-hud-text-shadow);
+}
+
+[data-theme='mannco'] .hud-player__class {
+  background: rgb(var(--team) / 0.95);
+}
+
+[data-theme='mannco'] .hud-player[data-dead='true'] .hud-player__class {
+  background: rgb(var(--ui-neutral) / 0.6);
+}
+
+[data-theme='mannco'] .hud-player__fill {
+  background: linear-gradient(rgb(255 255 255 / 0.08), transparent), rgb(var(--team-fill) / 0.92);
+}
+
+[data-theme='mannco'] .hud-player__hp {
+  width: 2.75rem;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+[data-theme='mannco'] .hud-player[data-hp='over'] .hud-player__hp {
+  color: rgb(var(--ui-ink));
+}
+
+[data-theme='mannco'] .hud-player[data-hp='over'] .hud-player__overheal {
+  background: rgb(var(--ui-overheal-wash) / 0.35);
+}
+
+[data-theme='mannco'] .hud-player[data-hp='low'] .hud-player__hp {
+  color: rgb(255 80 80);
+}
+
+[data-theme='mannco'] .hud-player[data-focused='true'] {
+  box-shadow:
+    0 0 0 2px rgb(var(--ui-focus)),
+    0 2px 8px rgb(0 0 0 / 0.5);
+  outline: 0;
+}
+
+[data-theme='mannco'] .hud-player__tag {
+  background: rgb(var(--ui-focus));
+  color: rgb(var(--ui-ground));
+  text-shadow: none;
+}
+
+/* Charge rows are the stock ÜberCharge meter: yellow on brown, label in caps. */
+[data-theme='mannco'] .hud-player[data-kind='charge'] {
+  height: 1.9rem;
+}
+
+[data-theme='mannco'] .hud-player[data-kind='charge'] .hud-player__bar {
+  margin: 0.3rem;
+  overflow: hidden;
+  border-radius: 3px;
+  background: rgb(140 120 73 / 0.85);
+}
+
+[data-theme='mannco'] .hud-player[data-kind='charge'] .hud-player__fill {
+  background: linear-gradient(rgb(255 255 255 / 0.2), transparent 60%), rgb(240 207 78);
+}
+
+[data-theme='mannco'] .hud-player[data-kind='charge'] .hud-player__name {
+  color: rgb(var(--ui-ground));
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-shadow: none;
+  text-transform: uppercase;
+}
+
+[data-theme='mannco'] .hud-player[data-kind='charge'] .hud-player__hp {
+  color: rgb(var(--ui-ground));
+  font-size: 0.95rem;
+  text-shadow: none;
+}
+
+/* Killfeed: dark rounded slips; your own kills go TanLight, as in game. */
+[data-theme='mannco'] .hud-kill {
+  padding: 0.35rem 0.8rem;
+  border-radius: 5px;
+  background: rgb(var(--ui-ground) / 0.86);
+  font-weight: 700;
+  text-shadow: var(--ui-hud-text-shadow);
+}
+
+[data-theme='mannco'] .hud-kill[data-highlighted='true'] {
+  background: rgb(235 226 202 / 0.95);
+  text-shadow: none;
+}
+
+[data-theme='mannco'] .hud-kill[data-highlighted='true'] .hud-kill__name[data-team='red'] {
+  color: rgb(163 63 46);
+}
+
+[data-theme='mannco'] .hud-kill[data-highlighted='true'] .hud-kill__name[data-team='blue'] {
+  color: rgb(62 88 128);
+}
+
+[data-theme='mannco'] .hud-kill[data-highlighted='true'] .hud-kill__icon {
+  filter: brightness(0.25);
+}
+
+[data-theme='mannco'] .hud-kill__weapon {
+  padding: 0 0.7rem;
+}
+
+/* Score and timer: team blocks either side of the round timer. */
+[data-theme='mannco'] .hud-scorebar {
+  overflow: visible;
+  gap: 4px;
+  background: transparent;
+}
+
+[data-theme='mannco'] .hud-score {
+  min-width: 3rem;
+  border-radius: 6px;
+  box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.25), 0 2px 6px rgb(0 0 0 / 0.4);
+  font-size: 1.6rem;
+  font-weight: 900;
+  text-shadow: 2px 2px 0 rgb(0 0 0 / 0.4);
+}
+
+[data-theme='mannco'] .hud-timer-block {
+  min-width: 6.5rem;
+  border-radius: 6px;
+  background: rgb(var(--ui-ground) / 0.9);
+  box-shadow: inset 0 0 0 2px rgb(var(--ui-line) / 0.5), 0 2px 6px rgb(0 0 0 / 0.4);
+}
+
+[data-theme='mannco'] .hud-timer {
+  color: rgb(251 235 202);
+  font-size: 1.55rem;
+  font-weight: 800;
+  text-shadow: var(--ui-hud-text-shadow);
+}
+
+[data-theme='mannco'] .hud-round-label {
+  color: rgb(var(--ui-focus));
+  font-weight: 800;
+}
+
+[data-theme='mannco'] .hud-points,
+[data-theme='mannco'] .hud-subchip {
+  background: rgb(var(--ui-ground) / 0.8);
+}
+
+[data-theme='mannco'] .hud-point {
+  border: 2px solid rgb(var(--ui-ground));
+  box-shadow: 0 0 0 1px rgb(var(--ui-line));
+}
+
+[data-theme='mannco'] .hud-cart__track {
+  height: 0.6rem;
+  border-radius: 3px;
+  background: rgb(var(--ui-ground) / 0.85);
+  box-shadow: inset 0 0 0 1px rgb(var(--ui-line) / 0.6);
+}
+
+/* ─── HUD: playback, the main menu's lower bar ──────────────────────────────── */
+
+[data-theme='mannco'] .hud-transport {
+  gap: 1.25rem;
+  padding: 0.6rem 1.25rem;
+  background: rgb(var(--ui-ground) / 0.9);
+  box-shadow: inset 0 0 0 1px rgb(var(--ui-line) / 0.4), var(--ui-shadow);
+}
+
+[data-theme='mannco'] .hud-transport-btn:hover {
+  color: rgb(var(--ui-accent));
+  transform: scale(1.12);
+}
+
+[data-theme='mannco'] .hud-tick-readout__label {
+  color: rgb(var(--ui-ink-muted));
+  font-weight: 700;
+}
+
+[data-theme='mannco'] .hud-tick-readout__value {
+  font-weight: 800;
+}
+
+[data-theme='mannco'] .hud-speed-chip {
+  border-radius: 4px;
+  background: rgb(var(--ui-ink));
+  color: rgb(var(--ui-ground));
+  font-weight: 800;
+}
+
+[data-theme='mannco'] .hud-transport-btn[data-kind='stickers'][data-active='true'] > span {
+  border-radius: 6px;
+}
+
+[data-theme='mannco'] .hud-timeline__track {
+  height: 0.6rem;
+  border-radius: 4px;
+  background: rgb(var(--ui-ground) / 0.82);
+  box-shadow: inset 0 0 0 1px rgb(var(--ui-line) / 0.55);
+}
+
+[data-theme='mannco'] .hud-timeline__range {
+  border-radius: 4px;
+  background: linear-gradient(rgb(255 255 255 / 0.25), transparent 70%), rgb(var(--ui-focus));
+}
+
+[data-theme='mannco'] .hud-timeline__marker {
+  width: 0.3rem;
+  height: 1rem;
+  background: rgb(var(--ui-accent));
+  box-shadow: 0 0 0 1px rgb(var(--ui-ground));
+}
+
+[data-theme='mannco'] .hud-round {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 4px;
+  background: rgb(var(--ui-ground) / 0.82);
+  box-shadow: inset 0 0 0 1px rgb(var(--ui-line) / 0.6);
+  font-weight: 800;
+}
+
+[data-theme='mannco'] .hud-round[data-reached='true'] {
+  background: rgb(var(--ui-ink));
+  color: rgb(var(--ui-ground));
+}
+
+[data-theme='mannco'] .hud-round::after {
+  right: auto;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  transform: none;
+}
+
+[data-theme='mannco'] .hud-round[data-winner='red']::after {
+  background: rgb(var(--ui-red));
+}
+
+[data-theme='mannco'] .hud-round[data-winner='blue']::after {
+  background: rgb(var(--ui-blu));
+}
+
+[data-theme='mannco'] .hud-clock,
+[data-theme='mannco'] .hud-rounds__label {
+  font-weight: 700;
+  text-shadow: 1px 1px 0 rgb(0 0 0 / 0.9), 0 0 3px rgb(0 0 0 / 0.6);
+}
+
+/* Focused player: the stock target ID. */
+[data-theme='mannco'] .hud-focused__hp {
+  font-size: 2.75rem;
+  font-weight: 900;
+  text-shadow: 2px 2px 0 rgb(0 0 0 / 0.65);
+}
+
+[data-theme='mannco'] .hud-focused__card {
+  border-radius: 6px;
+  background: rgb(var(--team) / 0.88);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.45);
+  font-weight: 700;
+  text-shadow: var(--ui-hud-text-shadow);
+}
+
+[data-theme='mannco'] .hud-focused__team {
+  height: 3px;
+  background: rgb(0 0 0 / 0.25);
+}
+
+[data-theme='mannco'] .hud-focused__respawn {
+  color: rgb(var(--ui-focus));
+  text-transform: uppercase;
+}
+
+/* Chat in TF2's own chat font colours is left alone; it only takes the drop shadow. */
+[data-theme='mannco'] .hud-chat {
+  font-weight: 500;
+  text-shadow: 1px 1px 0 rgb(0 0 0 / 0.9);
+}

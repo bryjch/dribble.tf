@@ -1,4 +1,5 @@
 import { downloadFileAction, parseDemoAction } from '@zus/actions'
+import { setUrlDemoStatus } from '@utils/notice'
 
 //
 // ─── LOADING A DEMO FROM THE URL ────────────────────────────────────────────────
@@ -18,45 +19,45 @@ import { downloadFileAction, parseDemoAction } from '@zus/actions'
 
 const DEMOS_TF_API = 'https://api.demos.tf/demos'
 
-// ?demoUrl= is attacker-controllable, so the hosts it may point at are restricted. Nothing
-// here can reach a private network (it's a browser fetch, not server-side), but an
-// unrestricted version would turn any dribble.tf link into "fetch this arbitrary URL with
-// dribble.tf as the referrer". Extend this if you self-host demos elsewhere.
-const ALLOWED_DEMO_HOSTS = [/(^|\.)demos\.tf$/i]
-
-const isAllowedDemoUrl = (url: string): boolean => {
+// ?demoUrl= takes any http(s) link; there is no host allowlist, so demos hosted anywhere open.
+// What protects visitors is the browser: the fetch runs as them, under CORS, so a host has to
+// opt in before its files can be read, and nothing here can reach a private network that
+// the visitor's browser would not let any other site reach. What comes back is checked to
+// be a SourceTV demo before it is parsed.
+const isFetchableUrl = (url: string): boolean => {
   try {
     const parsed = new URL(url, window.location.origin)
-    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false
-    if (parsed.origin === window.location.origin) return true
-    return ALLOWED_DEMO_HOSTS.some(pattern => pattern.test(parsed.hostname))
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:'
   } catch {
     return false
   }
 }
 
-export type UrlDemoStatus =
-  | { state: 'idle' }
-  | { state: 'resolving'; message?: string }
-  | { state: 'notice'; message: string }
-  | { state: 'error'; title?: string; message: string; link?: { href: string; label: string } }
+// Every SourceTV demo starts with this.
+const DEMO_MAGIC = 'HL2DEMO'
 
-type UrlDemoStatusListener = (status: UrlDemoStatus) => void
+const isDemoFile = (buffer: ArrayBuffer) =>
+  buffer.byteLength > DEMO_MAGIC.length &&
+  String.fromCharCode(...new Uint8Array(buffer, 0, DEMO_MAGIC.length)) === DEMO_MAGIC
 
-let urlDemoStatus: UrlDemoStatus = { state: 'idle' }
-const listeners = new Set<UrlDemoStatusListener>()
-
-export const getUrlDemoStatus = () => urlDemoStatus
-
-export const subscribeToUrlDemoStatus = (listener: UrlDemoStatusListener) => {
-  listeners.add(listener)
-  return () => listeners.delete(listener)
+/** Why a download failed, in words someone can act on. */
+const describeDownloadError = (error: unknown, url: string): string => {
+  let host = 'that site'
+  try {
+    host = new URL(url, window.location.origin).hostname
+  } catch {}
+  // fetch rejects with a TypeError when it never got a response: offline, or blocked by CORS.
+  if (error instanceof TypeError) {
+    return `Couldn't download from ${host}. It may be offline, or it may not let other sites load its files.`
+  }
+  const status = error instanceof Error ? Number(error.message.match(/: (\d{3})$/)?.[1]) : NaN
+  if (status === 404) return `${host} has no file at that link.`
+  if (status) return `${host} refused the download (${status}).`
+  return error instanceof Error && error.message ? error.message : 'Could not load this demo.'
 }
 
-export const setUrlDemoStatus = (status: UrlDemoStatus) => {
-  urlDemoStatus = status
-  listeners.forEach(listener => listener(status))
-}
+export type { UrlDemoStatus } from '@utils/notice'
+export { getUrlDemoStatus, subscribeToUrlDemoStatus, setUrlDemoStatus } from '@utils/notice'
 
 export interface UrlDemoRequest {
   url: string
@@ -120,13 +121,17 @@ export const resolveUrlDemoAction = async (): Promise<UrlDemoRequest | null> => 
       request = { url, name: decodeURIComponent(url.split('/').pop() ?? 'demo.dem'), tick }
     }
 
-    if (!isAllowedDemoUrl(request.url)) throw new Error('That demo host is not allowed')
+    if (!isFetchableUrl(request.url)) throw new Error("That isn't a web link.")
 
     setUrlDemoStatus({ state: 'idle' })
 
     return request
   } catch (error) {
-    reportUrlDemoError(error, demoId ?? undefined)
+    const notFound = error instanceof Error && /: 404$/.test(error.message)
+    reportUrlDemoError(
+      notFound ? new Error(`demos.tf has no demo ${demoId}.`) : error,
+      demoId ?? undefined
+    )
     return null
   }
 }
@@ -140,14 +145,27 @@ export const resolveUrlDemoAction = async (): Promise<UrlDemoRequest | null> => 
 export const loadUrlDemoAction = async (
   request: UrlDemoRequest
 ): Promise<{ tick: number } | null> => {
+  let fileBuffer: ArrayBuffer
   try {
-    const fileBuffer = await downloadFileAction({ type: 'demo', url: request.url, name: request.name })
-
-    await parseDemoAction(fileBuffer)
-
-    return { tick: request.tick }
+    fileBuffer = await downloadFileAction({ type: 'demo', url: request.url, name: request.name })
   } catch (error) {
-    reportUrlDemoError(error, request.demoId)
+    reportUrlDemoError(new Error(describeDownloadError(error, request.url)), request.demoId)
+    return null
+  }
+
+  if (!isDemoFile(fileBuffer)) {
+    reportUrlDemoError(
+      new Error("That link didn't lead to a SourceTV demo (.dem) file."),
+      request.demoId
+    )
+    return null
+  }
+
+  try {
+    await parseDemoAction(fileBuffer)
+    return { tick: request.tick }
+  } catch {
+    // parseDemoAction reports its own failure.
     return null
   }
 }

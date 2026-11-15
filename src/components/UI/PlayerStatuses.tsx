@@ -6,7 +6,6 @@ import { MEDIGUN_LABELS, UBERED_LABELS } from '@components/UI/ConditionBadges'
 
 import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
 import { focusMainCanvas } from '@utils/misc'
-import { cn } from '@utils/styling'
 import { useIsMobile } from '@utils/hooks'
 
 import { useInstance } from '@zus/store'
@@ -37,37 +36,24 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
 
   if (isMobile) {
     return (
-      <div className="absolute inset-x-0 bottom-0 flex h-8 items-stretch">
-        {/* Blue team - left half */}
-        <div className="flex flex-1 items-stretch gap-px">
-          {bluePlayers.sort(sortPlayersByClassId).map((player, index) => (
-            <MobileStatusItem
-              key={`blue-mobile-${index}`}
-              player={player}
-              team="blue"
-              focused={focusedEntityId === player.user.entityId}
-              tick={tick}
-              intervalPerTick={intervalPerTick}
-            />
-          ))}
-        </div>
-
-        {/* Divider */}
-        <div className="w-px bg-white/20" />
-
-        {/* Red team - right half */}
-        <div className="flex flex-1 items-stretch gap-px">
-          {redPlayers.sort(sortPlayersByClassId).map((player, index) => (
-            <MobileStatusItem
-              key={`red-mobile-${index}`}
-              player={player}
-              team="red"
-              focused={focusedEntityId === player.user.entityId}
-              tick={tick}
-              intervalPerTick={intervalPerTick}
-            />
-          ))}
-        </div>
+      <div className="hud-strip">
+        {(['blue', 'red'] as const).map((team, teamIndex) => (
+          <div key={team} className="contents">
+            {teamIndex === 1 && <div className="hud-strip__divider" />}
+            <div className="hud-strip__team" data-team={team}>
+              {(team === 'blue' ? bluePlayers : redPlayers).sort(sortPlayersByClassId).map((player, index) => (
+                <MobileStatusItem
+                  key={`${team}-mobile-${index}`}
+                  player={player}
+                  team={team}
+                  focused={focusedEntityId === player.user.entityId}
+                  tick={tick}
+                  intervalPerTick={intervalPerTick}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     )
   }
@@ -77,63 +63,40 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
 
   return (
     <>
-      <div className="absolute left-0 mx-[1.5px] flex flex-col items-start gap-[1.5px]">
-        {bluePlayers.sort(sortPlayersByClassId).map((player, index) => (
-          <StatusItem
-            key={`blue-player-status-item-${index}`}
-            type="player"
-            player={player}
-            team="blue"
-            alignment="left"
-            focused={focusedEntityId === player.user.entityId}
-            tick={tick}
-            intervalPerTick={intervalPerTick}
-          />
-        ))}
+      {(['blue', 'red'] as const).map(team => {
+        const roster = (team === 'blue' ? bluePlayers : redPlayers).sort(sortPlayersByClassId)
+        const medics = team === 'blue' ? blueMedics : redMedics
+        return (
+          <div key={team} className="hud-roster" data-team={team} aria-label={`${team === 'blue' ? 'BLU' : 'RED'} players`}>
+            {roster.map((player, index) => (
+              <StatusItem
+                key={`${team}-player-status-item-${index}`}
+                type="player"
+                player={player}
+                team={team}
+                alignment={team === 'blue' ? 'left' : 'right'}
+                focused={focusedEntityId === player.user.entityId}
+                tick={tick}
+                intervalPerTick={intervalPerTick}
+              />
+            ))}
 
-        {blueMedics.length > 0 ? <div className="h-2" /> : null}
+            {medics.length > 0 ? <div className="hud-roster__break" /> : null}
 
-        {blueMedics.map((player, index) => (
-          <StatusItem
-            key={`blue-uber-status-item-${index}`}
-            type="uber"
-            player={player}
-            team="blue"
-            alignment="left"
-            tick={tick}
-            intervalPerTick={intervalPerTick}
-          />
-        ))}
-      </div>
-
-      <div className="absolute right-0 mx-[1.5px] flex flex-col items-end gap-[1.5px]">
-        {redPlayers.sort(sortPlayersByClassId).map((player, index) => (
-          <StatusItem
-            key={`red-player-status-item-${index}`}
-            type="player"
-            player={player}
-            team="red"
-            alignment="right"
-            focused={focusedEntityId === player.user.entityId}
-            tick={tick}
-            intervalPerTick={intervalPerTick}
-          />
-        ))}
-
-        {redMedics.length > 0 ? <div className="h-2" /> : null}
-
-        {redMedics.map((player, index) => (
-          <StatusItem
-            key={`red-uber-status-item-${index}`}
-            type="uber"
-            player={player}
-            team="red"
-            alignment="right"
-            tick={tick}
-            intervalPerTick={intervalPerTick}
-          />
-        ))}
-      </div>
+            {medics.map((player, index) => (
+              <StatusItem
+                key={`${team}-uber-status-item-${index}`}
+                type="uber"
+                player={player}
+                team={team}
+                alignment={team === 'blue' ? 'left' : 'right'}
+                tick={tick}
+                intervalPerTick={intervalPerTick}
+              />
+            ))}
+          </div>
+        )
+      })}
     </>
   )
 }
@@ -163,41 +126,37 @@ const MobileStatusItem = (props: MobileStatusItemProps) => {
 
   return (
     <div
-      className={cn(
-        'flex flex-1 cursor-pointer items-center justify-center gap-0.5 text-xs font-semibold',
-        team === 'blue' && 'bg-pp-healthbar-blue/40',
-        team === 'red' && 'bg-pp-healthbar-red/40',
-        health === 0 && 'opacity-40',
-        focused && 'outline outline-1 outline-white'
-      )}
+      className="hud-mini"
+      data-team={team}
+      data-dead={health === 0}
+      data-focused={focused}
+      data-hp={hpState(percentage, health)}
       onClick={onClickItem}
     >
       <div className="flex h-5 w-5 shrink-0 items-center justify-center">
         <ClassIcon classId={player.classId} />
       </div>
-      <span
-        className={cn(
-          'font-bold',
-          percentage > 100 && 'text-pp-health-overhealed',
-          percentage < 40 && health > 0 && 'text-pp-health-low'
-        )}
-      >
-        {health > 0 ? health : (
-          player.respawnTick != null
+      <span>
+        {health > 0
+          ? health
+          : player.respawnTick != null
             ? Math.ceil((player.respawnTick - tick) * intervalPerTick)
-            : ''
-        )}
+            : ''}
       </span>
     </div>
   )
 }
 
+/** Overhealed, low, or neither: themes colour the number from this. */
+const hpState = (percentage: number, health: number, isPlayer = true) => {
+  if (percentage > 100) return 'over'
+  if (isPlayer && health > 0 && percentage < 40) return 'low'
+  return undefined
+}
+
 //
 // ─── STATUS ITEM ────────────────────────────────────────────────────────────────
 //
-
-const STATUS_ITEM_WIDTH = 'w-52'
-const STATUS_ITEM_HEIGHT = 'h-9'
 
 export interface StatusItemProps {
   player: CachedPlayer
@@ -238,110 +197,43 @@ export const StatusItem = (props: StatusItemProps) => {
     focusMainCanvas()
   }
 
+  const respawnSecs =
+    player.respawnTick != null ? Math.ceil((player.respawnTick - tick) * intervalPerTick) : null
+
   return (
-    <>
-      <div
-        className={cn(
-          'flex cursor-pointer items-center bg-pp-panel/40 text-[0.9rem] font-semibold',
-          'overflow-hidden rounded-xl transition-all',
-          STATUS_ITEM_WIDTH,
-          STATUS_ITEM_HEIGHT,
-          alignment === 'left' && 'flex-row',
-          alignment === 'right' && 'flex-row-reverse',
-          focused && 'z-10 outline outline-[3px] outline-white',
-          focused && alignment === 'left' && 'translate-x-3',
-          focused && alignment === 'right' && '-translate-x-3',
-          health === 0 && 'opacity-60'
-        )}
-        onClick={onClickItem}
-      >
-        {/* Class Icon */}
-        {icon && (
-          <div
-            className={cn(
-              'flex aspect-square shrink-0 items-center justify-center bg-pp-panel/20',
-              STATUS_ITEM_HEIGHT
-            )}
-          >
-            {icon}
-          </div>
-        )}
+    <div
+      className="hud-player"
+      data-kind={type === 'uber' ? 'charge' : 'player'}
+      data-team={team}
+      data-side={alignment}
+      data-dead={health === 0 && type === 'player'}
+      data-focused={focused ? 'true' : undefined}
+      data-charged={charged ? 'true' : undefined}
+      data-hp={hpState(percentage, health, type === 'player')}
+      onClick={onClickItem}
+      title={type === 'player' ? `Watch ${player.user.name}'s POV` : undefined}
+    >
+      {icon && <div className="hud-player__class">{icon}</div>}
 
-        <div
-          className={cn(
-            'relative flex h-full w-full items-center overflow-hidden',
-            health > 0 && team === 'red' && 'bg-pp-healthbar-red/50',
-            health > 0 && team === 'blue' && 'bg-pp-healthbar-blue/50',
-            alignment === 'left' && 'flex-row',
-            alignment === 'right' && 'flex-row-reverse'
+      <div className="hud-player__bar">
+        <div className="hud-player__fill" style={{ width: `${clamp(percentage, 0, 100)}%` }} />
+        {charged && <div className="hud-player__stripes" />}
+        <div className="hud-player__overheal" style={{ width: `${clamp(percentage - 100, 0, 100)}%` }} />
+
+        <div className="hud-player__name">{name}</div>
+
+        {type === 'player' && charged && <div className="hud-player__tag">{UBERED_LABELS[charged]}</div>}
+
+        <div className="hud-player__spacer" />
+
+        <div className="hud-player__hp">
+          {health > 0 && (type === 'uber' ? `${Math.floor(health)}%` : health)}
+          {health === 0 && type === 'uber' && '0%'}
+          {health === 0 && type === 'player' && (
+            <span className="hud-player__respawn">{respawnSecs != null ? respawnSecs : 'Dead'}</span>
           )}
-        >
-          {/* Fill */}
-          <div
-            className={cn(
-              'absolute h-full',
-              team === 'red' && 'bg-pp-healthbar-red',
-              team === 'blue' && 'bg-pp-healthbar-blue'
-            )}
-            style={{ width: `${percentage}%` }}
-          />
-
-          {/* Charge stripes */}
-          {charged && (
-            <div
-              className="absolute inset-0 animate-pulse"
-              style={{
-                backgroundImage:
-                  'repeating-linear-gradient(135deg, rgba(255,255,255,0.28) 0 6px, transparent 6px 14px)',
-              }}
-            />
-          )}
-
-          {/* Overheal */}
-          <div
-            className="absolute h-full bg-white/40"
-            style={{ width: `${clamp(percentage - 100, 0, 100)}%` }}
-          ></div>
-
-          {/* Name */}
-          <div className="relative overflow-hidden text-ellipsis whitespace-nowrap px-2">
-            {name}
-          </div>
-
-          {/* The charge they are under */}
-          {type === 'player' && charged && (
-            <div className="relative shrink-0 rounded-sm bg-white/85 px-1 text-[0.6rem] font-bold leading-[0.9rem] text-black">
-              {UBERED_LABELS[charged]}
-            </div>
-          )}
-
-          {/* Spacer */}
-          <div className="flex-1"></div>
-
-          {/* Health */}
-          <div
-            className={cn(
-              'relative w-8 flex-shrink-0 text-center text-[1.1rem] font-bold text-white',
-              percentage > 100 && 'text-pp-health-overhealed',
-              type === 'player' && percentage < 40 && 'text-pp-health-low'
-            )}
-          >
-            {health > 0 && health}
-            {health === 0 && type === 'player' && (
-              player.respawnTick != null ? (
-                <span className="text-xs text-white opacity-70">
-                  {Math.ceil((player.respawnTick - tick) * intervalPerTick)}
-                </span>
-              ) : (
-                <span className="text-xs text-white opacity-70">Dead</span>
-              )
-            )}
-          </div>
-
-          {/* Spacer */}
-          <div className="w-1.5" />
         </div>
       </div>
-    </>
+    </div>
   )
 }

@@ -23,6 +23,7 @@ import {
 } from '@constants/types'
 import { DrawingState, createInitialDrawingState } from './drawing'
 import rootReducer from './reducer'
+import { DEFAULT_THEME, ThemeId } from '@theme/themes'
 
 // This "Instance Store" is meant to be used for larger objects that are problematic
 // to keep in the "Standard Store". (e.g. the match being watched (MatchSource), three.js objects)
@@ -207,6 +208,8 @@ export type StoreState = {
       showObjectives?: boolean
       viewDistance: number
       killfeedSeekBuffer: number
+      /** Which look the overlays use; see @theme/themes. Saved settings from before lack it. */
+      theme?: ThemeId
     }
   }
   bookmarks: number[]
@@ -300,6 +303,7 @@ export const initialState: StoreState = {
       showObjectives: true,
       viewDistance: 15000,
       killfeedSeekBuffer: 2,
+      theme: DEFAULT_THEME,
     },
   },
 
