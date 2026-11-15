@@ -159,14 +159,7 @@ const ToggleOption = ({ label, keyCode, checked, disabled, onChange }: ToggleOpt
 
 export const SettingsPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('Settings'))
-  const scene = useStore(state => state.scene)
-  const settings = useStore(state => state.settings)
-  const isMobile = useIsMobile()
-
   const toggleUIPanel = () => toggleOnlyUIPanelAction('Settings')
-  const updateSettingsOption = (option: string, value: any) => {
-    updateSettingsOptionAction(option, value)
-  }
 
   return (
     <div className="flex items-start">
@@ -181,355 +174,370 @@ export const SettingsPanel = () => {
         isOpen={isOpen}
         onClickClose={toggleUIPanel}
       >
-        <div>
-          <Section>Theme</Section>
-
-          <Option label="Look">
-            <Segmented
-              label="Theme"
-              options={THEMES.map(theme => ({ label: theme.label, value: theme.id }))}
-              value={isThemeId(settings.ui.theme) ? settings.ui.theme : DEFAULT_THEME}
-              onChange={value => updateSettingsOption('ui.theme', value)}
-            />
-          </Option>
-
-          {/* ************************************************************* */}
-
-          <Section>Camera</Section>
-
-          <Option label="POV Camera (next)" keyCode="1" />
-          <Option label="POV Camera (prev)" keyCode="Shift + 1" />
-
-          {!isMobile && <Option label="Spectator Camera" keyCode="2" />}
-          {isMobile && (
-            <Option label="Spectator Camera">
-              <span className="ui-option__hint">Desktop only</span>
-            </Option>
-          )}
-
-          {scene.controls.mode === 'spectator' && !isMobile && (
-            <OptionGroup>
-              <SliderOption
-                label="FOV"
-                min={50}
-                max={120}
-                step={1}
-                value={settings.camera.fov}
-                onChange={value => updateSettingsOption('camera.fov', value)}
-              />
-
-              <SliderOption
-                label="Look Sensitivity"
-                value={settings.controls.lookSpeed}
-                onChange={value => updateSettingsOption('controls.lookSpeed', value)}
-              />
-
-              <SliderOption
-                label="Move Speed"
-                value={settings.controls.moveSpeed}
-                onChange={value => updateSettingsOption('controls.moveSpeed', value)}
-              />
-            </OptionGroup>
-          )}
-
-          <Option label="RTS Camera" keyCode="3" />
-
-          {scene.controls.mode === 'rts' && (
-            <OptionGroup>
-              <SliderOption
-                label="FOV"
-                min={50}
-                max={120}
-                step={1}
-                value={settings.camera.fov}
-                onChange={value => updateSettingsOption('camera.fov', value)}
-              />
-
-              <SliderOption
-                label="Pan speed"
-                value={settings.controls.panSpeed}
-                onChange={value => updateSettingsOption('controls.panSpeed', value)}
-              />
-
-              <SliderOption
-                label="Rotate speed"
-                value={settings.controls.rotateSpeed}
-                onChange={value => updateSettingsOption('controls.rotateSpeed', value)}
-              />
-
-              <SliderOption
-                label="Zoom speed"
-                value={settings.controls.zoomSpeed}
-                onChange={value => updateSettingsOption('controls.zoomSpeed', value)}
-              />
-
-              <ToggleOption
-                label="Inertia enabled"
-                checked={settings.controls.enableDamping}
-                onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
-              />
-            </OptionGroup>
-          )}
-
-          {/* ************************************************************* */}
-
-          <Section>Scene</Section>
-
-          <Option label="Material" keyCode="M">
-            <Segmented
-              label="Material"
-              options={[
-                { label: 'Wireframe', value: 'wireframe' },
-                { label: 'Plain', value: 'untextured' },
-                { label: 'Textured', value: 'textured' },
-              ]}
-              value={settings.scene.mode}
-              onChange={value => updateSettingsOption('scene.mode', value)}
-            />
-          </Option>
-
-          <ToggleOption
-            label="Frame smoothing"
-            checked={settings.scene.interpolateFrames}
-            onChange={checked => updateSettingsOption('scene.interpolateFrames', checked)}
-          />
-
-          <SliderOption
-            label="View distance"
-            min={2000}
-            max={30000}
-            step={500}
-            value={settings.ui.viewDistance}
-            onChange={value => updateSettingsOption('ui.viewDistance', value)}
-          />
-
-          {/* ************************************************************* */}
-
-          <Section>Players</Section>
-
-          <ToggleOption
-            label="Player outlines"
-            keyCode="O"
-            checked={settings.ui.playerOutlines}
-            onChange={checked => updateSettingsOption('ui.playerOutlines', checked)}
-          />
-
-          <ToggleOption
-            label="Damage numbers in POV"
-            checked={settings.ui.damageNumbers}
-            onChange={checked => updateSettingsOption('ui.damageNumbers', checked)}
-          />
-
-          <ToggleOption
-            label="Show nameplates"
-            keyCode="N"
-            checked={settings.ui.nameplate.enabled}
-            onChange={checked => updateSettingsOption('ui.nameplate.enabled', checked)}
-          />
-
-          {settings.ui.nameplate.enabled && (
-            <OptionGroup>
-              <ToggleOption
-                label="Name"
-                checked={settings.ui.nameplate.showName}
-                disabled={!settings.ui.nameplate.enabled}
-                onChange={checked => updateSettingsOption('ui.nameplate.showName', checked)}
-              />
-
-              <ToggleOption
-                label="Health"
-                checked={settings.ui.nameplate.showHealth}
-                disabled={!settings.ui.nameplate.enabled}
-                onChange={checked => updateSettingsOption('ui.nameplate.showHealth', checked)}
-              />
-
-              <ToggleOption
-                label="Class"
-                checked={settings.ui.nameplate.showClass}
-                disabled={!settings.ui.nameplate.enabled}
-                onChange={checked => updateSettingsOption('ui.nameplate.showClass', checked)}
-              />
-
-              <ToggleOption
-                label="Conditions"
-                checked={settings.ui.nameplate.showConditions !== false}
-                disabled={!settings.ui.nameplate.enabled}
-                onChange={checked => updateSettingsOption('ui.nameplate.showConditions', checked)}
-              />
-            </OptionGroup>
-          )}
-
-          {/* ************************************************************* */}
-
-          <Section>Buildings</Section>
-
-          <ToggleOption
-            label="Sentry targets"
-            checked={settings.ui.buildings.sentryTargets}
-            onChange={checked => updateSettingsOption('ui.buildings.sentryTargets', checked)}
-          />
-
-          <ToggleOption
-            label="Sentry range"
-            checked={settings.ui.buildings.sentryRange}
-            onChange={checked => updateSettingsOption('ui.buildings.sentryRange', checked)}
-          />
-
-          {/* ************************************************************* */}
-
-          <Section>Viewmodel</Section>
-
-          <ToggleOption
-            label="Show weapon in POV"
-            checked={settings.ui.viewmodel?.enabled !== false}
-            onChange={checked => updateSettingsOption('ui.viewmodel.enabled', checked)}
-          />
-
-          {settings.ui.viewmodel?.enabled !== false && (
-            <OptionGroup>
-              <SliderOption
-                label="Viewmodel FOV"
-                min={54}
-                max={90}
-                step={1}
-                value={settings.ui.viewmodel?.fov ?? 70}
-                onChange={value => updateSettingsOption('ui.viewmodel.fov', value)}
-              />
-            </OptionGroup>
-          )}
-
-          {/* ************************************************************* */}
-
-          <Section>Crosshair</Section>
-
-          <Option label="Style">
-            <Segmented
-              label="Crosshair style"
-              options={[
-                { label: 'None', value: CrosshairStyle.NONE },
-                {
-                  label: 'Cross',
-                  value: CrosshairStyle.CROSSHAIR,
-                  icon: <CrosshairStyleIcon className="h-3.5 w-3.5" />,
-                },
-                {
-                  label: 'Plus',
-                  value: CrosshairStyle.CROSS,
-                  icon: <CrossStyleIcon className="h-3.5 w-3.5" />,
-                },
-                {
-                  label: 'Circle',
-                  value: CrosshairStyle.CIRCLE,
-                  icon: <CircleStyleIcon className="h-3.5 w-3.5" />,
-                },
-                {
-                  label: 'Dot',
-                  value: CrosshairStyle.DOT,
-                  icon: <DotStyleIcon className="h-3.5 w-3.5" />,
-                },
-              ]}
-              value={settings.ui.crosshair.style}
-              onChange={value => updateSettingsOption('ui.crosshair.style', value)}
-            />
-          </Option>
-
-          {settings.ui.crosshair.style !== 'none' && (
-            <>
-              <SliderOption
-                label="Size"
-                min={10}
-                max={60}
-                step={1}
-                value={settings.ui.crosshair.size}
-                onChange={value => updateSettingsOption('ui.crosshair.size', value)}
-              />
-
-              <SliderOption
-                label="Opacity"
-                min={0.1}
-                max={1}
-                step={0.05}
-                value={settings.ui.crosshair.opacity}
-                onChange={value => updateSettingsOption('ui.crosshair.opacity', value)}
-              />
-
-              <Option label="Color">
-                <div className="flex items-center gap-1.5">
-                  {BRUSH_COLOR_OPTIONS.map(({ color }) => (
-                    <button
-                      type="button"
-                      key={`crosshair-color-${color}`}
-                      className="ui-swatch"
-                      data-active={settings.ui.crosshair.color === color}
-                      aria-label={`Crosshair colour ${color}`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => updateSettingsOption('ui.crosshair.color', color)}
-                    />
-                  ))}
-                </div>
-              </Option>
-            </>
-          )}
-
-          {/* ************************************************************* */}
-
-          <Section>Drawing</Section>
-
-          <Option label="Activate" keyCode="F" />
-          <Option label="Clear active tool" keyCode="C" />
-          <Option label="Undo active tool" keyCode="Z" />
-          <Option label="Redo stickers" keyCode="Shift + Z" />
-          <Option label="Delete selected sticker" keyCode="Delete" />
-
-          <Option label="Activation method" rightClass="col-auto">
-            <Segmented
-              label="Activation method"
-              options={[
-                { label: 'Hold', value: 'hold' },
-                { label: 'Toggle', value: 'toggle' },
-              ]}
-              value={settings.drawing.activation}
-              onChange={value => updateSettingsOption('drawing.activation', value)}
-            />
-          </Option>
-
-          <ToggleOption
-            label="Auto clear when dismissed"
-            checked={settings.drawing.autoClear}
-            onChange={checked => updateSettingsOption('drawing.autoClear', checked)}
-          />
-
-          {/* ************************************************************* */}
-
-          <Section>Misc</Section>
-
-          <ToggleOption
-            label="Show FPS"
-            checked={settings.ui.showStats}
-            onChange={checked => updateSettingsOption('ui.showStats', checked)}
-          />
-          <ToggleOption
-            label="Show Skybox"
-            checked={settings.ui.showSkybox}
-            onChange={checked => updateSettingsOption('ui.showSkybox', checked)}
-          />
-
-          <ToggleOption
-            label="Show objectives and score"
-            checked={settings.ui.showObjectives !== false}
-            onChange={checked => updateSettingsOption('ui.showObjectives', checked)}
-          />
-
-          <SliderOption
-            label="Killfeed seek buffer"
-            min={1}
-            max={10}
-            step={1}
-            value={settings.ui.killfeedSeekBuffer}
-            onChange={value => updateSettingsOption('ui.killfeedSeekBuffer', value)}
-          />
-        </div>
+        <SettingsContent />
       </TogglePanel>
+    </div>
+  )
+}
+
+/** Every setting, shared by the desktop panel and the phone sheets. */
+export const SettingsContent = () => {
+  const scene = useStore(state => state.scene)
+  const settings = useStore(state => state.settings)
+  const isMobile = useIsMobile()
+
+  const updateSettingsOption = (option: string, value: any) => {
+    updateSettingsOptionAction(option, value)
+  }
+
+  return (
+    <div>
+      <Section>Theme</Section>
+
+      <Option label="Look">
+        <Segmented
+          label="Theme"
+          options={THEMES.map(theme => ({ label: theme.label, value: theme.id }))}
+          value={isThemeId(settings.ui.theme) ? settings.ui.theme : DEFAULT_THEME}
+          onChange={value => updateSettingsOption('ui.theme', value)}
+        />
+      </Option>
+
+      {/* ************************************************************* */}
+
+      <Section>Camera</Section>
+
+      <Option label="POV Camera (next)" keyCode="1" />
+      <Option label="POV Camera (prev)" keyCode="Shift + 1" />
+
+      {!isMobile && <Option label="Spectator Camera" keyCode="2" />}
+      {isMobile && (
+        <Option label="Spectator Camera">
+          <span className="ui-option__hint">Desktop only</span>
+        </Option>
+      )}
+
+      {scene.controls.mode === 'spectator' && !isMobile && (
+        <OptionGroup>
+          <SliderOption
+            label="FOV"
+            min={50}
+            max={120}
+            step={1}
+            value={settings.camera.fov}
+            onChange={value => updateSettingsOption('camera.fov', value)}
+          />
+
+          <SliderOption
+            label="Look Sensitivity"
+            value={settings.controls.lookSpeed}
+            onChange={value => updateSettingsOption('controls.lookSpeed', value)}
+          />
+
+          <SliderOption
+            label="Move Speed"
+            value={settings.controls.moveSpeed}
+            onChange={value => updateSettingsOption('controls.moveSpeed', value)}
+          />
+        </OptionGroup>
+      )}
+
+      <Option label="RTS Camera" keyCode="3" />
+
+      {scene.controls.mode === 'rts' && (
+        <OptionGroup>
+          <SliderOption
+            label="FOV"
+            min={50}
+            max={120}
+            step={1}
+            value={settings.camera.fov}
+            onChange={value => updateSettingsOption('camera.fov', value)}
+          />
+
+          <SliderOption
+            label="Pan speed"
+            value={settings.controls.panSpeed}
+            onChange={value => updateSettingsOption('controls.panSpeed', value)}
+          />
+
+          <SliderOption
+            label="Rotate speed"
+            value={settings.controls.rotateSpeed}
+            onChange={value => updateSettingsOption('controls.rotateSpeed', value)}
+          />
+
+          <SliderOption
+            label="Zoom speed"
+            value={settings.controls.zoomSpeed}
+            onChange={value => updateSettingsOption('controls.zoomSpeed', value)}
+          />
+
+          <ToggleOption
+            label="Inertia enabled"
+            checked={settings.controls.enableDamping}
+            onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
+          />
+        </OptionGroup>
+      )}
+
+      {/* ************************************************************* */}
+
+      <Section>Scene</Section>
+
+      <Option label="Material" keyCode="M">
+        <Segmented
+          label="Material"
+          options={[
+            { label: 'Wireframe', value: 'wireframe' },
+            { label: 'Plain', value: 'untextured' },
+            { label: 'Textured', value: 'textured' },
+          ]}
+          value={settings.scene.mode}
+          onChange={value => updateSettingsOption('scene.mode', value)}
+        />
+      </Option>
+
+      <ToggleOption
+        label="Frame smoothing"
+        checked={settings.scene.interpolateFrames}
+        onChange={checked => updateSettingsOption('scene.interpolateFrames', checked)}
+      />
+
+      <SliderOption
+        label="View distance"
+        min={2000}
+        max={30000}
+        step={500}
+        value={settings.ui.viewDistance}
+        onChange={value => updateSettingsOption('ui.viewDistance', value)}
+      />
+
+      {/* ************************************************************* */}
+
+      <Section>Players</Section>
+
+      <ToggleOption
+        label="Player outlines"
+        keyCode="O"
+        checked={settings.ui.playerOutlines}
+        onChange={checked => updateSettingsOption('ui.playerOutlines', checked)}
+      />
+
+      <ToggleOption
+        label="Damage numbers in POV"
+        checked={settings.ui.damageNumbers}
+        onChange={checked => updateSettingsOption('ui.damageNumbers', checked)}
+      />
+
+      <ToggleOption
+        label="Show nameplates"
+        keyCode="N"
+        checked={settings.ui.nameplate.enabled}
+        onChange={checked => updateSettingsOption('ui.nameplate.enabled', checked)}
+      />
+
+      {settings.ui.nameplate.enabled && (
+        <OptionGroup>
+          <ToggleOption
+            label="Name"
+            checked={settings.ui.nameplate.showName}
+            disabled={!settings.ui.nameplate.enabled}
+            onChange={checked => updateSettingsOption('ui.nameplate.showName', checked)}
+          />
+
+          <ToggleOption
+            label="Health"
+            checked={settings.ui.nameplate.showHealth}
+            disabled={!settings.ui.nameplate.enabled}
+            onChange={checked => updateSettingsOption('ui.nameplate.showHealth', checked)}
+          />
+
+          <ToggleOption
+            label="Class"
+            checked={settings.ui.nameplate.showClass}
+            disabled={!settings.ui.nameplate.enabled}
+            onChange={checked => updateSettingsOption('ui.nameplate.showClass', checked)}
+          />
+
+          <ToggleOption
+            label="Conditions"
+            checked={settings.ui.nameplate.showConditions !== false}
+            disabled={!settings.ui.nameplate.enabled}
+            onChange={checked => updateSettingsOption('ui.nameplate.showConditions', checked)}
+          />
+        </OptionGroup>
+      )}
+
+      {/* ************************************************************* */}
+
+      <Section>Buildings</Section>
+
+      <ToggleOption
+        label="Sentry targets"
+        checked={settings.ui.buildings.sentryTargets}
+        onChange={checked => updateSettingsOption('ui.buildings.sentryTargets', checked)}
+      />
+
+      <ToggleOption
+        label="Sentry range"
+        checked={settings.ui.buildings.sentryRange}
+        onChange={checked => updateSettingsOption('ui.buildings.sentryRange', checked)}
+      />
+
+      {/* ************************************************************* */}
+
+      <Section>Viewmodel</Section>
+
+      <ToggleOption
+        label="Show weapon in POV"
+        checked={settings.ui.viewmodel?.enabled !== false}
+        onChange={checked => updateSettingsOption('ui.viewmodel.enabled', checked)}
+      />
+
+      {settings.ui.viewmodel?.enabled !== false && (
+        <OptionGroup>
+          <SliderOption
+            label="Viewmodel FOV"
+            min={54}
+            max={90}
+            step={1}
+            value={settings.ui.viewmodel?.fov ?? 70}
+            onChange={value => updateSettingsOption('ui.viewmodel.fov', value)}
+          />
+        </OptionGroup>
+      )}
+
+      {/* ************************************************************* */}
+
+      <Section>Crosshair</Section>
+
+      <Option label="Style">
+        <Segmented
+          label="Crosshair style"
+          options={[
+            { label: 'None', value: CrosshairStyle.NONE },
+            {
+              label: 'Cross',
+              value: CrosshairStyle.CROSSHAIR,
+              icon: <CrosshairStyleIcon className="h-3.5 w-3.5" />,
+            },
+            {
+              label: 'Plus',
+              value: CrosshairStyle.CROSS,
+              icon: <CrossStyleIcon className="h-3.5 w-3.5" />,
+            },
+            {
+              label: 'Circle',
+              value: CrosshairStyle.CIRCLE,
+              icon: <CircleStyleIcon className="h-3.5 w-3.5" />,
+            },
+            {
+              label: 'Dot',
+              value: CrosshairStyle.DOT,
+              icon: <DotStyleIcon className="h-3.5 w-3.5" />,
+            },
+          ]}
+          value={settings.ui.crosshair.style}
+          onChange={value => updateSettingsOption('ui.crosshair.style', value)}
+        />
+      </Option>
+
+      {settings.ui.crosshair.style !== 'none' && (
+        <>
+          <SliderOption
+            label="Size"
+            min={10}
+            max={60}
+            step={1}
+            value={settings.ui.crosshair.size}
+            onChange={value => updateSettingsOption('ui.crosshair.size', value)}
+          />
+
+          <SliderOption
+            label="Opacity"
+            min={0.1}
+            max={1}
+            step={0.05}
+            value={settings.ui.crosshair.opacity}
+            onChange={value => updateSettingsOption('ui.crosshair.opacity', value)}
+          />
+
+          <Option label="Color">
+            <div className="flex items-center gap-1.5">
+              {BRUSH_COLOR_OPTIONS.map(({ color }) => (
+                <button
+                  type="button"
+                  key={`crosshair-color-${color}`}
+                  className="ui-swatch"
+                  data-active={settings.ui.crosshair.color === color}
+                  aria-label={`Crosshair colour ${color}`}
+                  style={{ backgroundColor: color }}
+                  onClick={() => updateSettingsOption('ui.crosshair.color', color)}
+                />
+              ))}
+            </div>
+          </Option>
+        </>
+      )}
+
+      {/* ************************************************************* */}
+
+      <Section>Drawing</Section>
+
+      <Option label="Activate" keyCode="F" />
+      <Option label="Clear active tool" keyCode="C" />
+      <Option label="Undo active tool" keyCode="Z" />
+      <Option label="Redo stickers" keyCode="Shift + Z" />
+      <Option label="Delete selected sticker" keyCode="Delete" />
+
+      <Option label="Activation method" rightClass="col-auto">
+        <Segmented
+          label="Activation method"
+          options={[
+            { label: 'Hold', value: 'hold' },
+            { label: 'Toggle', value: 'toggle' },
+          ]}
+          value={settings.drawing.activation}
+          onChange={value => updateSettingsOption('drawing.activation', value)}
+        />
+      </Option>
+
+      <ToggleOption
+        label="Auto clear when dismissed"
+        checked={settings.drawing.autoClear}
+        onChange={checked => updateSettingsOption('drawing.autoClear', checked)}
+      />
+
+      {/* ************************************************************* */}
+
+      <Section>Misc</Section>
+
+      <ToggleOption
+        label="Show FPS"
+        checked={settings.ui.showStats}
+        onChange={checked => updateSettingsOption('ui.showStats', checked)}
+      />
+      <ToggleOption
+        label="Show Skybox"
+        checked={settings.ui.showSkybox}
+        onChange={checked => updateSettingsOption('ui.showSkybox', checked)}
+      />
+
+      <ToggleOption
+        label="Show objectives and score"
+        checked={settings.ui.showObjectives !== false}
+        onChange={checked => updateSettingsOption('ui.showObjectives', checked)}
+      />
+
+      <SliderOption
+        label="Killfeed seek buffer"
+        min={1}
+        max={10}
+        step={1}
+        value={settings.ui.killfeedSeekBuffer}
+        onChange={value => updateSettingsOption('ui.killfeedSeekBuffer', value)}
+      />
     </div>
   )
 }

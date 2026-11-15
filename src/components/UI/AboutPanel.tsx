@@ -121,17 +121,18 @@ const CONTROLS: [string[], string][] = [
   [['Space'], 'Play / pause'],
   [['←', '→'], 'Seek 50 ticks'],
   [['B'], 'Bookmark'],
-  [['Tab'], 'Scoreboard (hold)'],
+  [['Tab'], 'Scoreboard (hold, or click the score)'],
   [['F'], 'Drawing tools'],
 ]
 
-// On a touch screen: the RTS camera's gestures (RtsControls) and DoubleTapSeek.
+// On a touch screen: the RTS camera's gestures (RtsControls) and the phone layout's taps (Mobile/).
 const TOUCH_CONTROLS: [string[], string][] = [
   [['Drag'], 'Rotate camera'],
   [['Pinch'], 'Zoom and pan'],
-  [['Double-tap'], 'Seek 50 ticks (left or right half)'],
-  [['Tap'], 'Show the playback bar'],
-  [['⚙'], 'Camera mode, in Settings'],
+  [['Double-tap'], 'Seek 5 seconds (left or right half)'],
+  [['Tap'], 'Show the controls'],
+  [['Score'], 'Scoreboard'],
+  [['Player'], 'Watch their POV'],
 ]
 
 const isTouchScreen = () =>
@@ -236,6 +237,15 @@ const AboutBody = () => {
   )
 }
 
+/** Opening a demo, then the controls and maps: shared by the desktop panel and the phone sheets. */
+export const AboutContent = () => (
+  <>
+    <AboutBody />
+    <Reference />
+    <Footer />
+  </>
+)
+
 //
 // ─── PANEL ──────────────────────────────────────────────────────────────────────
 //
@@ -264,10 +274,7 @@ export const AboutPanel = () => {
         isOpen={isOpen}
         onClickClose={toggleUIPanel}
       >
-        <AboutBody />
-
-        <Reference />
-        <Footer />
+        <AboutContent />
       </TogglePanel>
     </div>
   )
