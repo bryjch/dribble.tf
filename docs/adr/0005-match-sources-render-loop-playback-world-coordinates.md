@@ -30,11 +30,11 @@ dribble.tf's data and playback layers were built around parser2, an older parser
   - The HUD shows the drawn tick rather than two ahead, and the tick readout is the match's tick, not doubled.
   - Round chips start where play begins, at tick 679 instead of a guessed 300 on the sample demo.
 
-![Front faces only: the sign shows its near (RED) face](0001/front-side-sign.jpg)
+![Front faces only: the sign shows its near (RED) face](0005/front-side-sign.jpg)
 
 ## Verification
 
-`scripts/render-check.mjs` drives a production build in headless Chrome on the real GPU (ANGLE/Metal, Apple M2 Max). It works through `?bench` (`src/utils/bench.ts`), a small surface that stays the same across refactors. The surface seeks to a tick, places the camera in world coordinates, plays, and reads counters. Every step of the refactor was checked against the baseline as it landed. The final figures below come from the baseline (commit 415228e: `dev` plus the harness) and the result, served side by side and run alternately three times. Each cell gives the median and the range. The sample is `i52_snakewater_gc.dem` (7 min, 13 players), and the scenarios are in `0001/scenarios.json`. The raw results of the full runs are in `0001/results-*.json`.
+`scripts/render-check.mjs` drives a production build in headless Chrome on the real GPU (ANGLE/Metal, Apple M2 Max). It works through `?bench` (`src/utils/bench.ts`), a small surface that stays the same across refactors. The surface seeks to a tick, places the camera in world coordinates, plays, and reads counters. Every step of the refactor was checked against the baseline as it landed. The final figures below come from the baseline (commit 415228e: `dev` plus the harness) and the result, served side by side and run alternately three times. Each cell gives the median and the range. The sample is `i52_snakewater_gc.dem` (7 min, 13 players), and the scenarios are in `0005/scenarios.json`. The raw results of the full runs are in `0005/results-*.json`.
 
 ### Rendering
 
@@ -54,8 +54,8 @@ Steps that should not change the picture were checked shot by shot: the match so
 
 | Before | After | Difference |
 |---|---|---|
-| ![](0001/03-overview-t9000-before.jpg) | ![](0001/03-overview-t9000-after.jpg) | ![](0001/03-overview-t9000-diff.jpg) |
-| ![](0001/05-pov-t12000-before.jpg) | ![](0001/05-pov-t12000-after.jpg) | ![](0001/05-pov-t12000-diff.jpg) |
+| ![](0005/03-overview-t9000-before.jpg) | ![](0005/03-overview-t9000-after.jpg) | ![](0005/03-overview-t9000-diff.jpg) |
+| ![](0005/05-pov-t12000-before.jpg) | ![](0005/05-pov-t12000-after.jpg) | ![](0005/05-pov-t12000-diff.jpg) |
 
 Playback speed is unchanged. Over 8 s it moves 535 ticks at 1× and 1609 at 3×; the baseline moved 536 and 1606.
 

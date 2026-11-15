@@ -17,7 +17,7 @@ import { ControlsMode, SavedSetupCamera } from '@constants/types'
 //
 // `?bench` exposes window.__dribble, the small, stable surface scripts/render-check.mjs drives:
 // seek to a tick, place the camera, play, and read counters. It is the same across refactors so
-// before/after runs are comparable; see docs/adr/0001-*.md.
+// before/after runs are comparable; see docs/adr/0005-*.md.
 //
 
 export const benchEnabled = (): boolean => {
