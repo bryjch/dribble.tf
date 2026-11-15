@@ -544,12 +544,12 @@ const PanelToolbar = ({ hasDemoLoaded }: { hasDemoLoaded: boolean }) => {
   return (
     <div className={cn('ui-layer items-start justify-start', isMobile ? 'm-3' : 'm-4')}>
       <nav
-        className={cn('ui-toolbar', isMobile && 'flex-row gap-1.5')}
+        className="ui-toolbar"
         aria-label="Panels"
         data-mobile={isMobile ? 'true' : undefined}
       >
-        <SettingsPanel />
         <AboutPanel />
+        <SettingsPanel />
         <SetupsPanel />
         {hasDemoLoaded && <MatchKillfeedPanel />}
         {hasDemoLoaded && <BookmarksPanel />}

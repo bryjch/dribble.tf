@@ -39,9 +39,14 @@ onmessage = async (event: MessageEvent) => {
   try {
     const buffer = event.data.buffer as ArrayBuffer
     const parseStart = performance.now()
-    const { meta, buffers } = await decodeWithStvtf(buffer, fraction =>
-      postMessage({ progress: fraction })
-    )
+    // The decoder reports 0 → 1; the store (and the "Reading demo" toast) counts whole percent.
+    let lastPercent = -1
+    const { meta, buffers } = await decodeWithStvtf(buffer, (fraction: number) => {
+      const percent = Math.min(100, Math.max(0, Math.floor(fraction * 100)))
+      if (percent === lastPercent) return
+      lastPercent = percent
+      postMessage({ progress: percent })
+    })
     const parseMs = performance.now() - parseStart
 
     // The decoder's own list of each player's arrays; a mismatch is a decoder from another build.

@@ -123,10 +123,12 @@ const ViewerPage = () => {
 
       {/* Camera tip panels overlays - hidden on mobile (keyboard shortcuts not relevant) */}
       {!isMobile && (
-        <div className="ui-layer pointer-events-none bottom-0 right-0 items-end justify-end overflow-hidden p-4 [&>div]:pointer-events-none">
-          <POVCameraTipPanel />
-          <SpectatorCameraTipPanel />
-          <RtsCameraTipPanel />
+        <div className="ui-layer ui-tips pointer-events-none items-end justify-end overflow-hidden">
+          <div className="ui-tips__stack pointer-events-none">
+            <POVCameraTipPanel />
+            <SpectatorCameraTipPanel />
+            <RtsCameraTipPanel />
+          </div>
         </div>
       )}
 

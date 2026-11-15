@@ -40,8 +40,9 @@ export const FocusedPlayer = (props: FocusedPlayerProps) => {
         )}
       </div>
 
-      <div className="flex items-center">
-        <div className="relative flex w-[15px] justify-end text-right">
+      {/* The card is centred; the health number hangs off its left edge. */}
+      <div className="relative flex items-center">
+        <div className="absolute right-full top-1/2 -translate-y-1/2 whitespace-nowrap">
           {health > 0 ? (
             <div className="hud-focused__hp">{health}</div>
           ) : (

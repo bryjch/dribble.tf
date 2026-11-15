@@ -1,0 +1,101 @@
+/*
+ * ─── PHONES AND SHORT SCREENS ───────────────────────────────────────────────────
+ *
+ * Layout fixes for every theme, loaded after the themes so they win over desktop sizes.
+ *
+ * Under 768px wide (useIsMobile's breakpoint) the root font is 8px (index.scss) so the HUD fits,
+ * which leaves rem-sized controls too small to tap: those below are in px.
+ *
+ * A short screen (a phone held sideways, a small window) keeps the desktop layout, where the
+ * rosters are centred down the sides and the toolbar and camera tips ran into them.
+ */
+
+/* Short: the toolbar runs along the top instead of down the side, its panels open below it. */
+@media (min-width: 768px) and (max-height: 600px) {
+  .ui-toolbar {
+    flex-direction: row;
+  }
+
+  .ui-toolbar .ui-panel {
+    top: calc(100% + 0.5rem);
+    left: 0;
+    max-height: calc(100vh - 5rem - var(--ui-dock-clearance));
+  }
+}
+
+/* Keyboard tips are no use on a touch screen, and on a short one they cover the red roster. */
+@media (max-height: 600px), (pointer: coarse) {
+  .ui-tips {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  /* The toolbar stays a column, as on desktop: a row ran into the scoreboard. */
+  .ui-toolbar[data-mobile='true'] {
+    gap: 6px;
+  }
+
+  .ui-toolbar[data-mobile='true'] .ui-toolbar-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ui-toolbar[data-mobile='true'] .ui-toolbar-btn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  [data-theme] .hud-transport-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  [data-theme] .hud-transport-btn svg,
+  [data-theme] .hud-transport-btn[data-size='small'] svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  [data-theme] .hud-transport-btn[data-kind='play'] svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  [data-theme] .hud-transport-btn[data-kind='stickers'] > span {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Panel sheets span the screen (the panels' desktop width classes apply to them too), scaled
+     up so rem-sized text reads; zoom scales lengths, so width and height are divided by it. */
+  .ui-sheet {
+    right: auto;
+    width: calc(100vw / var(--ui-sheet-zoom));
+    max-height: calc(85vh / var(--ui-sheet-zoom));
+    zoom: var(--ui-sheet-zoom);
+  }
+
+  /* Modern's docked bar: the timeline (with the rounds and clock) gets its own row, above the
+     buttons, instead of being squeezed between them. */
+  [data-theme='modern'] .hud-playback {
+    flex-wrap: wrap;
+    row-gap: 2px;
+    padding: 6px 8px 4px;
+  }
+
+  [data-theme='modern'] .hud-timeline {
+    order: -1;
+    flex-basis: 100%;
+    gap: 8px;
+  }
+
+  [data-theme='modern'] .hud-transport-row {
+    flex: 1;
+  }
+
+  [data-theme='modern'] .hud-transport {
+    width: 100%;
+    justify-content: space-between;
+  }
+}

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useLayoutEffect, useMemo, useRef } from 'react'
 import * as Slider from '@radix-ui/react-slider'
 import { motion } from 'framer-motion'
 
@@ -28,6 +28,41 @@ import { focusMainCanvas } from '@utils/misc'
 import { cn } from '@utils/styling'
 import { getDurationFromTicks } from '@utils/parser'
 import { useIsMobile } from '@utils/hooks'
+
+/**
+ * A theme that docks the playback bar along the bottom edge (`--ui-dock: docked` on
+ * .hud-playback) gets --ui-dock-clearance set to how far the bar reaches up the screen, so
+ * chat, camera tips, the FPS counter and panels keep clear of it. Measured, not a constant: the
+ * bar's height changes with the theme, the screen width (it wraps on phones) and the strip.
+ */
+const useDockClearance = (theme: string | undefined) => {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useLayoutEffect(() => {
+    const bar = ref.current
+    const root = bar?.closest<HTMLElement>('.ui-root')
+    if (!bar || !root) return
+
+    const update = () => {
+      const docked = getComputedStyle(bar).getPropertyValue('--ui-dock').trim() === 'docked'
+      if (!docked) return root.style.removeProperty('--ui-dock-clearance')
+      const reach = Math.max(0, Math.ceil(window.innerHeight - bar.getBoundingClientRect().top))
+      root.style.setProperty('--ui-dock-clearance', `${reach}px`)
+    }
+
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(bar)
+    window.addEventListener('resize', update)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', update)
+      root.style.removeProperty('--ui-dock-clearance')
+    }
+  }, [theme])
+
+  return ref
+}
 
 export const PLAYBACK_SPEED_OPTIONS = [
   { label: '3×', value: 3 },
@@ -87,6 +122,8 @@ export const PlaybackPanel = () => {
   const { playing, speed, tick, maxTicks, forceShowPanel } = playback
   const isBookmarked = bookmarks.includes(tick)
   const isMobile = useIsMobile()
+  const theme = useStore(state => state.settings.ui.theme)
+  const dockRef = useDockClearance(theme)
 
   // A live match's rounds grow while it is watched: look again every ten seconds or so.
   const liveRefresh = match?.kind === 'live' ? Math.floor(maxTicks / 660) : 0
@@ -142,7 +179,7 @@ export const PlaybackPanel = () => {
   const dimmed = playing && !forceShowPanel && !stickersOpen
 
   return (
-    <div className="hud-playback group" data-playing={playing ? 'true' : undefined}>
+    <div ref={dockRef} className="hud-playback group" data-playing={playing ? 'true' : undefined}>
       {lastEventHistory && (
         <div className={cn('transition-all', playing ? '-mb-16 delay-700 group-hover:mb-0' : '')}>
           <motion.div

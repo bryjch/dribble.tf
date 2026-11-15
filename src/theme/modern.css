@@ -5,8 +5,8 @@
  * face, the big health number first. Team colours and their worked-out shades are stv.tf's
  * (#d0453f / #4f8fc0, d70/d45 fills, w55 overheal), so a match looks the same in both.
  *
- * Signature: the playback bar docks full width along the bottom, and its track is the match
- * at a glance: each round tinted by who won it, every kill a tick in the killer's colour.
+ * Signature: the playback bar docks full width along the bottom, its track the match at a
+ * glance (rounds by winner, kills by killer; base.css) in stv.tf's team shades.
  */
 
 html[data-theme='modern'] {
@@ -69,7 +69,19 @@ html[data-theme='modern'] {
   --ui-killicon-filter: brightness(600%);
 
   --ui-selection: 79 143 192;
+
+  /* Chat in the HUD's own inks rather than TF2's saturated chat colours. */
+  --ui-chat-normal: 216 218 221;
+  --ui-chat-name: 138 144 153;
+  --ui-chat-name-red: 217 106 101;
+  --ui-chat-name-blu: 114 165 205;
+  --ui-chat-location: 124 196 127;
+  --ui-chat-achievement: 124 196 127;
+
+  /* Panel text is in px, so phone sheets need no scaling. */
+  --ui-sheet-zoom: 1;
 }
+
 
 html[data-theme='modern'] body {
   font-size: 13px;
@@ -98,8 +110,6 @@ html[data-theme='modern'] body {
 }
 
 [data-theme='modern'] .ui-panel {
-  /* Clear of the playback dock. */
-  max-height: calc(100vh - 4.5rem);
   font-size: 13px;
 }
 
@@ -274,7 +284,7 @@ html[data-theme='modern'] body {
 
 [data-theme='modern'] .hud-player {
   background: rgb(var(--ui-ground) / 0.8);
-  font-size: 15px;
+  font-size: 14px;
 }
 
 [data-theme='modern'] .hud-player__class {
@@ -321,10 +331,10 @@ html[data-theme='modern'] body {
 
 [data-theme='modern'] .hud-player__hp {
   width: auto;
-  min-width: 3rem;
-  padding: 0 0.55rem;
+  min-width: 2.75rem;
+  padding: 0 0.5rem;
   color: #fff;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.01em;
   text-shadow: 0 2px 0 rgb(0 0 0 / 0.65);
@@ -353,11 +363,6 @@ html[data-theme='modern'] body {
   font-size: 10px;
 }
 
-[data-theme='modern'] .hud-player[data-focused='true'] {
-  box-shadow: inset 0 0 0 2px rgb(var(--ui-focus));
-  outline: 0;
-}
-
 [data-theme='modern'] .hud-player[data-kind='charge'] {
   height: 1.5rem;
 }
@@ -374,7 +379,7 @@ html[data-theme='modern'] body {
 }
 
 [data-theme='modern'] .hud-player[data-kind='charge'] .hud-player__hp {
-  font-size: 15px;
+  font-size: 13px;
 }
 
 /* ─── HUD: killfeed ─────────────────────────────────────────────────────────── */
@@ -387,7 +392,7 @@ html[data-theme='modern'] body {
   padding: 0.25rem 0.55rem;
   border-radius: 2px;
   background: rgb(var(--ui-ground) / 0.82);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
 }
 
@@ -428,7 +433,7 @@ html[data-theme='modern'] body {
   gap: 0.5rem;
   padding: 0 0.6rem;
   border-radius: 2px;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
 }
 
@@ -449,7 +454,7 @@ html[data-theme='modern'] body {
 
 [data-theme='modern'] .hud-timer {
   color: #fff;
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   line-height: 1.05;
   text-shadow: 0 2px 0 rgb(0 0 0 / 0.65);
@@ -489,11 +494,13 @@ html[data-theme='modern'] body {
 /* ─── HUD: playback, docked full width ──────────────────────────────────────── */
 
 [data-theme='modern'] .hud-playback {
+  /* Docked: PlaybackPanel measures it into --ui-dock-clearance for the other overlays. */
+  --ui-dock: docked;
   display: flex;
   width: 100vw;
   align-items: center;
   gap: 0.75rem;
-  margin: 0 0 -1rem;
+  margin: 0 0 calc(var(--ui-strip-clearance) - 1rem);
   padding: 0.45rem 0.75rem;
   border-top: 1px solid rgb(var(--ui-line));
   background: rgb(var(--ui-ground) / 0.92);
@@ -618,11 +625,6 @@ html[data-theme='modern'] body {
   background: rgb(255 255 255 / 0.05);
 }
 
-[data-theme='modern'] .hud-timeline__rounds,
-[data-theme='modern'] .hud-timeline__kills {
-  display: block;
-}
-
 [data-theme='modern'] .hud-timeline__round {
   box-shadow: inset 1px 0 0 rgb(var(--ui-ground));
 }
@@ -736,16 +738,39 @@ html[data-theme='modern'] body {
   letter-spacing: 0.06em;
 }
 
-/* With the dock along the bottom, the chat sits just above it. */
+/* Chat: one dark slip per line, like the killfeed, names in the team inks. */
 [data-theme='modern'] .hud-chat {
-  margin-bottom: 2.75rem;
+  max-width: min(34rem, 45vw);
+  gap: 2px;
   font-size: 13px;
+  font-weight: 500;
+  text-shadow: none;
+}
+
+[data-theme='modern'] .hud-chat__line {
+  padding: 0.2rem 0.55rem;
+  border-radius: 2px;
+  background: rgb(var(--ui-ground) / 0.72);
+  line-height: 1.3;
+  white-space: normal;
+}
+
+[data-theme='modern'] .hud-chat__name {
+  font-weight: 700;
+}
+
+[data-theme='modern'] .hud-chat__prefix {
+  margin-right: 0.35rem;
+  color: rgb(var(--ui-ink-muted));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
 }
 
 /* ─── HUD: focused player ───────────────────────────────────────────────────── */
 
 [data-theme='modern'] .hud-focused__hp {
-  font-size: 2.6rem;
+  font-size: 2.2rem;
   font-weight: 800;
   text-shadow: 0 2px 0 rgb(0 0 0 / 0.65);
 }
@@ -753,7 +778,7 @@ html[data-theme='modern'] body {
 [data-theme='modern'] .hud-focused__card {
   border-radius: 0;
   background: rgb(var(--ui-ground) / 0.82);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 
