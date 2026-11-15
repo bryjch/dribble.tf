@@ -1434,7 +1434,7 @@
   }
 
   .hud-damage__value {
-    color: rgb(255 64 64);
+    color: #fff;
     font-size: 1.75rem;
     font-variant-numeric: tabular-nums;
   }
