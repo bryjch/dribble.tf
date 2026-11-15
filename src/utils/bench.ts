@@ -99,6 +99,17 @@ export const installBench = () => {
       programs: renderer?.info.programs?.length ?? 0,
     }),
     counters: () => ({ ...counters }),
+    /** Textures reachable from the scene's materials, against what the renderer holds. */
+    textureAudit: () => {
+      const seen = new Set<unknown>()
+      useInstance.getState().threeScene.traverse(node => {
+        const material = (node as THREE.Mesh).material
+        for (const m of Array.isArray(material) ? material : material ? [material] : []) {
+          for (const value of Object.values(m)) if ((value as THREE.Texture)?.isTexture) seen.add(value)
+        }
+      })
+      return { reachable: seen.size, renderer: renderer?.info.memory.textures ?? 0 }
+    },
     resetCounters: () => {
       for (const key of Object.keys(counters)) delete counters[key]
     },

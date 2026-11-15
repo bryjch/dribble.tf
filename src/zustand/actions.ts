@@ -35,6 +35,7 @@ import { StickerDragKind } from './drawing'
 
 import { dispatch, getState, initialState, StoreState, useInstance } from './store'
 import { isMobile } from 'react-device-detect'
+import { setClockTick } from '@utils/playback'
 
 //
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
@@ -320,6 +321,7 @@ export const goToTickAction = async (tick: number) => {
   try {
     const maxTicks = getState().playback.maxTicks
 
+    setClockTick(Math.min(tick, maxTicks))
     dispatch({ type: 'GO_TO_TICK', payload: tick })
 
     // Automatically pause playback once it has reached the last tick (a live match keeps

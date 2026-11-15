@@ -1,225 +1,78 @@
-import { useRef, useState, useEffect, useMemo, useCallback, Suspense } from 'react'
+import { useRef, useState, useEffect, useMemo, Suspense } from 'react'
 
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
-import { Sphere, Trail, useGLTF } from '@react-three/drei'
-import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js'
+import { Trail, useGLTF } from '@react-three/drei'
 
-import { CachedProjectile } from '@components/Analyse/Data/ProjectileCache'
-import { useStore, useInstance, getState } from '@zus/store'
+import type { CachedProjectile } from '@components/Analyse/Data/ProjectileCache'
+import { SCENE_PRIORITY, sceneFrame } from '@components/Scene/PlaybackDriver'
+import { useStore } from '@zus/store'
 
 import { TEAM_MAP } from '@constants/mappings'
-import { objCoordsToVector3, eulerizeVector, createStaleFrameGuard, guardedLerpProgress } from '@utils/geometry'
+import { degreesToRadians } from '@utils/geometry'
 import { getAsset } from '@utils/misc'
 
 //
-// ─── CONSTANTS ──────────────────────────────────────────────────────────────────
+// ─── PROJECTILES ────────────────────────────────────────────────────────────────
+//
+// Drawn from sceneFrame in frame callbacks, never by re-rendering React: models are instanced
+// (one InstancedMesh per part of each model), rocket smoke and explosions are pools shared by
+// every projectile, and the ribbon trails behind pipes, stickies and bolts are the only part
+// with a React element per projectile, added and removed as projectiles come and go.
 //
 
-const TELEPORT_LERP_DISTANCE = 4096
-const PROJECTILE_POSITION_SMOOTH_SECONDS = 0.05
-const PROJECTILE_ROTATION_SMOOTH_SECONDS = 0.08
+const MAX_PROJECTILES = 96
 const EXPLOSION_DURATION_MS = 200
 const EXPLOSION_MAX_RADIUS = 40
 const EXPLOSION_MAX_OPACITY = 0.4
+const MAX_EXPLOSIONS = 48
 
-// Team colors for trails/explosions
+/** Up to this many ticks between frames is playback moving on; more is a seek. */
+const MAX_FORWARD_STEP_TICKS = 8
+
 const TEAM_COLORS: Record<string, string> = {
   red: '#cf4a2e',
   blue: '#5885a2',
 }
-
 const TRAIL_FALLBACK_COLOR = '#999999'
-const DEFAULT_EXPLOSION_COLOR = '#cccccc'
+const DEFAULT_EXPLOSION_COLOR = new THREE.Color('#cccccc')
 
-// Trail config per projectile type (MeshLine trails — not used for rockets)
+// Ribbon trails per projectile type (rockets leave smoke instead)
 const TRAIL_CONFIG: Record<string, { baseWidth: number; length: number; opacity: number }> = {
   pipebomb: { baseWidth: 10, length: 1, opacity: 1 },
   stickybomb: { baseWidth: 10, length: 2, opacity: 1 },
   healingBolt: { baseWidth: 10, length: 2, opacity: 1 },
-  default: { baseWidth: 10, length: 2, opacity: 1 },
 }
+/** A trail stays this long after its projectile goes, or stops moving, so it can fade. */
+const TRAIL_LINGER_MS = 1500
 
-// How long to keep a frozen trail target alive so the trail can decay (ms).
-const FROZEN_TRAIL_DURATION_MS = 1500
-
-// All projectile types that should have trails (smoke or MeshLine)
-const TRAILABLE_TYPES = new Set(['rocket', ...Object.keys(TRAIL_CONFIG)])
-
-// Rocket smoke trail config
-const SMOKE_MAX_PUFFS = 64
+// Rocket smoke
+const MAX_SMOKE_PUFFS = 2048
 const SMOKE_PUFF_LIFETIME_MS = 800
-const SMOKE_SPAWN_INTERVAL = 8 // spawn a puff every N units of travel
+const SMOKE_SPAWN_INTERVAL = 8 // a puff every N units of travel
 const SMOKE_PUFF_START_SCALE = 6
 const SMOKE_PUFF_END_SCALE = 4
-const SMOKE_PUFF_START_OPACITY = 1.0
 const SMOKE_PUFF_COLOR_START = new THREE.Color('#c8c8c8')
 const SMOKE_PUFF_COLOR_END = new THREE.Color('#707070')
 
-//
-// ─── INTERPOLATION HELPERS ──────────────────────────────────────────────────────
-//
-
-function smoothingAlpha(smoothSeconds: number, delta: number): number {
-  return 1 - Math.exp(-delta / Math.max(smoothSeconds, 0.0001))
+/** How the frame moved playback on: forward a little, a seek, or not at all. */
+function playbackStep(): 'forward' | 'seek' | 'still' {
+  const delta = sceneFrame.tick - sceneFrame.previousTick
+  if (delta === 0) return 'still'
+  return delta > 0 && delta <= MAX_FORWARD_STEP_TICKS ? 'forward' : 'seek'
 }
 
-function interpolatePosition(
-  current: THREE.Vector3,
-  next: THREE.Vector3,
-  progress: number,
-  out: THREE.Vector3
-): THREE.Vector3 {
-  if (current.distanceTo(next) > TELEPORT_LERP_DISTANCE) {
-    return out.copy(current)
-  }
-  return out.copy(current).lerp(next, progress)
-}
+const teamOf = (projectile: CachedProjectile) => TEAM_MAP[projectile.teamNumber]
 
-//
-// ─── PROJECTILE MODEL ───────────────────────────────────────────────────────────
-//
+// Shared scratch objects for the frame callbacks below
+const _object = new THREE.Object3D()
+const _matrix = new THREE.Matrix4()
+const _color = new THREE.Color()
+const _a = new THREE.Vector3()
+const _b = new THREE.Vector3()
 
-const PROJECTILE_MODEL_KEYS: Record<string, string[]> = {
-  rocket: ['rocket_shared'],
-  pipebomb: ['pipebomb_red', 'pipebomb_blue'],
-  stickybomb: ['stickybomb_red', 'stickybomb_blue'],
-}
-
-function normalizeProjectileModelKey(type: string, team: string): string {
-  const key = `${type}_${team}`
-  const validKeys = PROJECTILE_MODEL_KEYS[type]
-  if (validKeys && validKeys.includes(key)) return key
-  if (validKeys && validKeys.length > 0) return validKeys[0]
-  return key
-}
-
-export interface ProjectileModelProps {
-  type: 'rocket' | 'pipebomb' | 'stickybomb'
-  team: string
-  backface?: boolean
-}
-
-export const ProjectileModel = (props: ProjectileModelProps) => {
-  const [cachedScene, setCachedScene] = useState<any>()
-
-  const modelKey = normalizeProjectileModelKey(props.type, props.team)
-  const model = getAsset(`/models/projectiles/${modelKey}.glb`)
-  const gltf = useGLTF(model, true)
-
-  if (!cachedScene) {
-    const cloned = SkeletonUtils.clone(gltf.scene)
-    setCachedScene(cloned)
-  }
-
-  return <group>{cachedScene && <primitive object={cachedScene} />}</group>
-}
-
-const ProjectileFallback = ({ color = TRAIL_FALLBACK_COLOR }: { color?: string }) => (
-  <Sphere args={[4]}>
-    <meshBasicMaterial color={color} />
-  </Sphere>
-)
-
-//
-// ─── INTERPOLATED PROJECTILE ────────────────────────────────────────────────────
-//
-
-export interface InterpolatedProjectile extends CachedProjectile {
-  positionPrev: CachedProjectile['position']
-  positionNext: CachedProjectile['position']
-  positionNext2: CachedProjectile['position']
-  rotationNext: CachedProjectile['rotation']
-}
-
-//
-// ─── EXPLOSION EFFECT ───────────────────────────────────────────────────────────
-//
-
-interface Explosion {
-  id: number
-  position: THREE.Vector3
-  type: string
-  teamNumber: number
-  startTime: number
-}
-
-const ExplosionEffect = ({
-  explosion,
-  onComplete,
-}: {
-  explosion: Explosion
-  onComplete: (id: number) => void
-}) => {
-  const meshRef = useRef<THREE.Mesh>(null)
-  const materialRef = useRef<THREE.MeshBasicMaterial>(null)
-
-  const color = useMemo(() => {
-    return DEFAULT_EXPLOSION_COLOR
-  }, [explosion.type, explosion.teamNumber])
-
-  useFrame(() => {
-    if (!meshRef.current || !materialRef.current) return
-
-    const elapsed = performance.now() - explosion.startTime
-    const progress = Math.min(elapsed / EXPLOSION_DURATION_MS, 1)
-
-    const scale = EXPLOSION_MAX_RADIUS * (1 - Math.pow(1 - progress, 3))
-    meshRef.current.scale.setScalar(scale)
-
-    materialRef.current.opacity = EXPLOSION_MAX_OPACITY * (1 - progress)
-
-    if (progress >= 1) {
-      onComplete(explosion.id)
-    }
-  })
-
-  return (
-    <mesh ref={meshRef} position={explosion.position}>
-      <sphereGeometry args={[1, 12, 8]} />
-      <meshBasicMaterial
-        ref={materialRef}
-        color={color}
-        transparent
-        blending={THREE.AdditiveBlending}
-        depthWrite={false}
-        opacity={EXPLOSION_MAX_OPACITY}
-      />
-    </mesh>
-  )
-}
-
-// Shared interface for trail target data (used by both smoke trails and MeshLine trails)
-interface TrailTargetData {
-  entityId: number
-  type: string
-  teamNumber: number
-  position: CachedProjectile['position']
-  positionNext: CachedProjectile['position']
-  frozen: boolean
-  frozenAt: number
-}
-
-//
-// ─── ROCKET SMOKE TRAIL ─────────────────────────────────────────────────────────
-//
-// Particle-based smoke trail for rockets. Uses InstancedMesh with a ring buffer
-// of smoke puffs. Puffs are spawned at intervals along the rocket's path, expand
-// over their lifetime, and fade out. When the rocket detonates, existing puffs
-// continue their lifecycle naturally.
-//
-
-interface SmokePuff {
-  position: THREE.Vector3
-  spawnTime: number
-  alive: boolean
-}
-
-const _smokeMatrix = new THREE.Matrix4()
-const _smokeScale = new THREE.Vector3()
-const _smokeColor = new THREE.Color()
-
-const smokeVertexShader = /* glsl */ `
+// Instanced spheres with a colour and an opacity each (smoke puffs, explosions)
+const fadingVertexShader = /* glsl */ `
   attribute float instanceOpacity;
   varying vec3 vColor;
   varying float vOpacity;
@@ -241,7 +94,7 @@ const smokeVertexShader = /* glsl */ `
   }
 `
 
-const smokeFragmentShader = /* glsl */ `
+const fadingFragmentShader = /* glsl */ `
   varying vec3 vColor;
   varying float vOpacity;
 
@@ -250,675 +103,438 @@ const smokeFragmentShader = /* glsl */ `
   }
 `
 
-const RocketSmokeTrail = ({ data }: { data: TrailTargetData }) => {
-  const meshRef = useRef<THREE.InstancedMesh>(null)
-  const puffsRef = useRef<SmokePuff[]>([])
-  const lastSpawnPos = useRef<THREE.Vector3 | null>(null)
-  const interpolatedPos = useRef(new THREE.Vector3())
-  const smoothedPos = useRef(new THREE.Vector3())
-  const hasInit = useRef(false)
-  const opacityArray = useRef(new Float32Array(SMOKE_MAX_PUFFS))
-  const opacityAttr = useRef<THREE.InstancedBufferAttribute | null>(null)
-  const staleGuard = useRef(createStaleFrameGuard(data.position))
-
-  // Keep latest position data in refs
-  const posRef = useRef(data.position)
-  const posNextRef = useRef(data.positionNext)
-  const frozenRef = useRef(data.frozen)
-  posRef.current = data.position
-  posNextRef.current = data.positionNext
-  frozenRef.current = data.frozen
-
-  const geometry = useMemo(() => new THREE.SphereGeometry(1, 6, 4), [])
-  const material = useMemo(() => {
-    return new THREE.ShaderMaterial({
+/** An InstancedMesh of fading spheres, with its per-instance opacity array. */
+function useFadingSpheres(count: number, segments: [number, number], blending: THREE.Blending) {
+  const pool = useMemo(() => {
+    const geometry = new THREE.SphereGeometry(1, segments[0], segments[1])
+    const opacity = new THREE.InstancedBufferAttribute(new Float32Array(count), 1)
+    opacity.setUsage(THREE.DynamicDrawUsage)
+    geometry.setAttribute('instanceOpacity', opacity)
+    const material = new THREE.ShaderMaterial({
       transparent: true,
       depthWrite: false,
-      vertexShader: smokeVertexShader,
-      fragmentShader: smokeFragmentShader,
+      blending,
+      vertexShader: fadingVertexShader,
+      fragmentShader: fadingFragmentShader,
     })
+    const mesh = new THREE.InstancedMesh(geometry, material, count)
+    mesh.frustumCulled = false
+    mesh.count = 0
+    mesh.setColorAt(0, _color.set('#ffffff'))
+    return { mesh, opacity }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(
     () => () => {
-      geometry.dispose()
-      material.dispose()
+      pool.mesh.geometry.dispose()
+      ;(pool.mesh.material as THREE.Material).dispose()
+      pool.mesh.dispose()
     },
-    [geometry, material]
+    [pool]
   )
+  return pool
+}
 
-  // Attach per-instance opacity attribute and initialize mesh
-  useEffect(() => {
-    if (meshRef.current) {
-      meshRef.current.count = 0
-      const attr = new THREE.InstancedBufferAttribute(opacityArray.current, 1)
-      attr.setUsage(THREE.DynamicDrawUsage)
-      meshRef.current.geometry.setAttribute('instanceOpacity', attr)
-      opacityAttr.current = attr
-    }
-  }, [])
+function commit(mesh: THREE.InstancedMesh, opacity: THREE.InstancedBufferAttribute, count: number) {
+  mesh.count = count
+  mesh.instanceMatrix.needsUpdate = true
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+  opacity.needsUpdate = true
+}
 
-  useFrame((_, delta) => {
-    if (!meshRef.current || !opacityAttr.current) return
+export const Projectiles = () => (
+  <group name="projectiles">
+    <Suspense fallback={null}>
+      <ProjectileModels />
+    </Suspense>
+    <HealingBolts />
+    <RocketSmoke />
+    <Explosions />
+    <RibbonTrails />
+  </group>
+)
 
-    const now = performance.now()
-    const frameProgress = useInstance.getState().frameProgress
-    const playing = getState().playback.playing
-    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, data.position, playing)
-    const alpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
+//
+// ─── MODELS ─────────────────────────────────────────────────────────────────────
+//
 
-    // Update current position (same logic as TrailTarget)
-    if (!frozenRef.current) {
-      const pos = objCoordsToVector3(posRef.current)
-      const posNext = objCoordsToVector3(posNextRef.current)
-      interpolatePosition(pos, posNext, lerpProgress, interpolatedPos.current)
+const MODEL_FILES = ['rocket_shared', 'pipebomb_red', 'pipebomb_blue', 'stickybomb_red', 'stickybomb_blue']
 
-      if (!hasInit.current) {
-        smoothedPos.current.copy(interpolatedPos.current)
-        hasInit.current = true
+/** The model a projectile is drawn with; teams without their own model use RED's. */
+function modelKeyOf(projectile: CachedProjectile): string | null {
+  if (projectile.type === 'rocket') return 'rocket_shared'
+  if (projectile.type !== 'pipebomb' && projectile.type !== 'stickybomb') return null
+  return `${projectile.type}_${teamOf(projectile) === 'blue' ? 'blue' : 'red'}`
+}
+
+interface ModelPart {
+  mesh: THREE.InstancedMesh
+  /** The part's place in its model. */
+  local: THREE.Matrix4
+}
+
+const ProjectileModels = () => {
+  const gltfs = useGLTF(MODEL_FILES.map(name => getAsset(`/models/projectiles/${name}.glb`)), true)
+
+  const models = useMemo(() => {
+    const byKey = new Map<string, ModelPart[]>()
+    MODEL_FILES.forEach((name, i) => {
+      const root = gltfs[i].scene
+      root.updateMatrixWorld(true)
+      const parts: ModelPart[] = []
+      root.traverse(node => {
+        const source = node as THREE.Mesh
+        if (!source.isMesh) return
+        const mesh = new THREE.InstancedMesh(source.geometry, source.material, MAX_PROJECTILES)
+        mesh.frustumCulled = false
+        mesh.count = 0
+        parts.push({ mesh, local: source.matrixWorld.clone() })
+      })
+      byKey.set(name, parts)
+    })
+    return byKey
+  }, [gltfs])
+
+  // The meshes share the cached models' geometry and materials, so only their own buffers go.
+  useEffect(() => () => models.forEach(parts => parts.forEach(part => part.mesh.dispose())), [models])
+
+  const previousPositions = useRef(new Map<number, THREE.Vector3>())
+
+  useFrame(() => {
+    const counts = new Map<string, number>()
+    const { match, tick } = sceneFrame
+    // A rocket points along its flight: from where it was a tick before.
+    const hasRockets = sceneFrame.projectiles.some(p => p.type === 'rocket')
+    const before = hasRockets && match ? match.projectilesAt(tick - 1) : []
+    const previous = previousPositions.current
+    previous.clear()
+    for (const p of before) previous.set(p.entityId, _a.set(p.position.x, p.position.y, p.position.z).clone())
+
+    for (const projectile of sceneFrame.projectiles) {
+      const key = modelKeyOf(projectile)
+      const parts = key && models.get(key)
+      if (!key || !parts) continue
+      const index = counts.get(key) ?? 0
+      if (index >= MAX_PROJECTILES) continue
+      counts.set(key, index + 1)
+
+      const { position, rotation } = projectile
+      _object.position.set(position.x, position.y, position.z)
+      _object.rotation.set(0, 0, 0)
+      _object.quaternion.identity()
+      if (projectile.type === 'rocket') {
+        const from = previous.get(projectile.entityId)
+        if (from && from.distanceToSquared(_object.position) > 1e-6) _object.lookAt(from)
       } else {
-        smoothedPos.current.lerp(interpolatedPos.current, alpha)
+        _object.rotation.set(
+          degreesToRadians(rotation.x),
+          degreesToRadians(rotation.y),
+          degreesToRadians(rotation.z)
+        )
       }
-
-      // Spawn puffs based on travel distance
-      const currentPos = smoothedPos.current
-      if (lastSpawnPos.current === null) {
-        lastSpawnPos.current = currentPos.clone()
-      }
-
-      const distSinceLastSpawn = currentPos.distanceTo(lastSpawnPos.current)
-      if (distSinceLastSpawn >= SMOKE_SPAWN_INTERVAL) {
-        const numPuffs = Math.floor(distSinceLastSpawn / SMOKE_SPAWN_INTERVAL)
-        const dir = currentPos.clone().sub(lastSpawnPos.current).normalize()
-
-        for (let i = 0; i < numPuffs && puffsRef.current.length < SMOKE_MAX_PUFFS; i++) {
-          const spawnPos = lastSpawnPos.current
-            .clone()
-            .add(dir.clone().multiplyScalar(SMOKE_SPAWN_INTERVAL * (i + 1)))
-
-          puffsRef.current.push({
-            position: spawnPos,
-            spawnTime: now,
-            alive: true,
-          })
-        }
-
-        if (puffsRef.current.length >= SMOKE_MAX_PUFFS) {
-          puffsRef.current = puffsRef.current.filter(p => p.alive)
-        }
-
-        lastSpawnPos.current.copy(currentPos)
+      _object.updateMatrix()
+      for (const part of parts) {
+        part.mesh.setMatrixAt(index, _matrix.multiplyMatrices(_object.matrix, part.local))
       }
     }
 
-    // Update all puffs
-    const mesh = meshRef.current
-    let visibleCount = 0
-
-    for (let i = 0; i < puffsRef.current.length; i++) {
-      const puff = puffsRef.current[i]
-      const age = now - puff.spawnTime
-      const lifeProgress = age / SMOKE_PUFF_LIFETIME_MS
-
-      if (lifeProgress >= 1) {
-        puff.alive = false
-        continue
+    models.forEach((parts, key) => {
+      const count = counts.get(key) ?? 0
+      for (const part of parts) {
+        part.mesh.count = count
+        part.mesh.instanceMatrix.needsUpdate = true
       }
-
-      // Scale: expand over lifetime
-      const scale =
-        SMOKE_PUFF_START_SCALE +
-        (SMOKE_PUFF_END_SCALE - SMOKE_PUFF_START_SCALE) * lifeProgress
-
-      // Opacity: true alpha fade from 1 → 0
-      const opacity = SMOKE_PUFF_START_OPACITY * (1 - lifeProgress)
-
-      _smokeScale.setScalar(scale)
-      _smokeMatrix.makeScale(_smokeScale.x, _smokeScale.y, _smokeScale.z)
-      _smokeMatrix.setPosition(puff.position)
-
-      mesh.setMatrixAt(visibleCount, _smokeMatrix)
-
-      // Color: lerp from light grey → darker grey
-      _smokeColor.copy(SMOKE_PUFF_COLOR_START).lerp(SMOKE_PUFF_COLOR_END, lifeProgress)
-      mesh.setColorAt(visibleCount, _smokeColor)
-
-      // Per-instance opacity
-      opacityArray.current[visibleCount] = opacity
-
-      visibleCount++
-    }
-
-    // Clean up dead puffs periodically
-    if (puffsRef.current.length > SMOKE_MAX_PUFFS * 0.75) {
-      puffsRef.current = puffsRef.current.filter(p => p.alive)
-    }
-
-    mesh.count = visibleCount
-    if (mesh.instanceMatrix) mesh.instanceMatrix.needsUpdate = true
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
-    opacityAttr.current.needsUpdate = true
-  })
-
-  return (
-    <instancedMesh
-      ref={meshRef}
-      args={[geometry, material, SMOKE_MAX_PUFFS]}
-      frustumCulled={false}
-    />
-  )
-}
-
-//
-// ─── TRAIL TARGET ───────────────────────────────────────────────────────────────
-//
-// Trail targets are decoupled from projectile model components. Each trail target
-// is an invisible Object3D whose position is updated to match its projectile.
-// The Trail component uses the `target` prop to follow this Object3D.
-// When a projectile disappears, its trail target freezes in place (stops moving)
-// and the Trail naturally decays. The trail target component is never unmounted
-// during this transition, so the Trail's internal point buffer is preserved.
-//
-
-function resolveTrailColor(type: string, teamNumber: number): string {
-  if (type === 'healingBolt') return '#e8d44d'
-  const team = TEAM_MAP[teamNumber]
-  return TEAM_COLORS[team] ?? TRAIL_FALLBACK_COLOR
-}
-
-function useTrailConfig(baseWidth: number = 10) {
-  const controlsMode = useStore(state => state.scene.controls.mode)
-  const isPov = controlsMode === 'pov'
-
-  return useMemo(() => {
-    const width = isPov ? baseWidth : baseWidth * 0.9
-    const attenuation = (t: number) => 0.5 * width * t
-
-    return { width, attenuation, isPov }
-  }, [isPov, baseWidth])
-}
-
-const TrailTarget = ({ data }: { data: TrailTargetData }) => {
-  const targetRef = useRef<THREE.Object3D>(null)
-  const trailRef = useRef<any>(null)
-  const interpolatedPos = useRef(new THREE.Vector3())
-  const smoothedPos = useRef(new THREE.Vector3())
-  const hasInit = useRef(false)
-  const staleGuard = useRef(createStaleFrameGuard(data.position))
-
-  // Keep latest position data in refs so useFrame always has current values
-  const posRef = useRef(data.position)
-  const posNextRef = useRef(data.positionNext)
-  posRef.current = data.position
-  posNextRef.current = data.positionNext
-
-  const config = TRAIL_CONFIG[data.type] ?? TRAIL_CONFIG.default
-  const trailConfig = useTrailConfig(config.baseWidth)
-  const color = resolveTrailColor(data.type, data.teamNumber)
-
-  // Make trail semi-transparent
-  useEffect(() => {
-    if (!trailRef.current?.material) return
-    const mat = trailRef.current.material
-    mat.transparent = true
-    mat.opacity = config.opacity
-    mat.depthWrite = false
-  }, [])
-
-  useFrame((_, delta) => {
-    if (!targetRef.current) return
-
-    const frameProgress = useInstance.getState().frameProgress
-    const playing = getState().playback.playing
-    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, data.position, playing)
-    const alpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
-
-    const pos = objCoordsToVector3(posRef.current)
-    const posNext = objCoordsToVector3(posNextRef.current)
-
-    interpolatePosition(pos, posNext, lerpProgress, interpolatedPos.current)
-
-    if (!hasInit.current) {
-      smoothedPos.current.copy(interpolatedPos.current)
-      targetRef.current.position.copy(interpolatedPos.current)
-      hasInit.current = true
-    } else {
-      smoothedPos.current.lerp(interpolatedPos.current, alpha)
-      targetRef.current.position.copy(smoothedPos.current)
-    }
-  })
-
-  const initialPos = objCoordsToVector3(data.position)
+    })
+  }, SCENE_PRIORITY)
 
   return (
     <>
-      <group ref={targetRef as any} position={initialPos} />
-      <Trail
-        ref={trailRef}
-        target={targetRef as any}
-        width={trailConfig.width}
-        length={config.length}
-        color={color}
-        attenuation={trailConfig.attenuation}
-      />
+      {[...models.values()].flat().map(part => (
+        <primitive key={part.mesh.uuid} object={part.mesh} />
+      ))}
     </>
   )
 }
 
-//
-// ─── PROJECTILES ────────────────────────────────────────────────────────────────
-//
-
-export interface ProjectilesProps {
-  projectiles: InterpolatedProjectile[]
-  tick: number
-  intervalPerTick: number
-}
-
-let nextEffectId = 0
-
-export const Projectiles = (props: ProjectilesProps) => {
-  const { projectiles = [], tick, intervalPerTick } = props
-
-  const prevTick = useRef<number>(tick)
-  const prevProjectileData = useRef<Map<number, InterpolatedProjectile>>(new Map())
-  const [trailTargets, setTrailTargets] = useState<Map<number, TrailTargetData>>(new Map())
-  const [explosions, setExplosions] = useState<Explosion[]>([])
-
-  useEffect(() => {
-    const currentIds = new Set(projectiles.map(p => p.entityId))
-    const tickChanged = tick !== prevTick.current
-    const tickDelta = tick - prevTick.current
-    const isForwardStep = tickChanged && tickDelta >= 1 && tickDelta <= 3
-    const isScrubbedOrJumped = tickChanged && !isForwardStep
-    const now = performance.now()
-
-    setTrailTargets(prev => {
-      const next = new Map(prev)
-      let changed = false
-
-      // Update/create trail targets for live projectiles
-      // Rockets use smoke trails, others use MeshLine trails — both managed here
-      projectiles.forEach(p => {
-        if (!TRAILABLE_TYPES.has(p.type)) return // skip types without any trail
-        const existing = next.get(p.entityId)
-        if (!existing) {
-          next.set(p.entityId, {
-            entityId: p.entityId,
-            type: p.type,
-            teamNumber: p.teamNumber,
-            position: p.position,
-            positionNext: p.positionNext,
-            frozen: false,
-            frozenAt: 0,
-          })
-          changed = true
-        } else {
-          next.set(p.entityId, {
-            ...existing,
-            type: p.type, // update type in case entityId was reused by a different projectile
-            teamNumber: p.teamNumber,
-            position: p.position,
-            positionNext: p.positionNext,
-            // Unfreeze if entityId reappeared
-            frozen: false,
-            frozenAt: 0,
-          })
-          changed = true
-        }
-      })
-
-      // Freeze trail targets for disappeared projectiles (forward step only)
-      if (isForwardStep) {
-        next.forEach((data, entityId) => {
-          if (!currentIds.has(entityId) && !data.frozen) {
-            next.set(entityId, {
-              ...data,
-              positionNext: data.position, // freeze in place
-              frozen: true,
-              frozenAt: now,
-            })
-            changed = true
-          }
-        })
-      }
-
-      // Expire old frozen trail targets
-      next.forEach((data, entityId) => {
-        if (data.frozen && now - data.frozenAt >= FROZEN_TRAIL_DURATION_MS) {
-          next.delete(entityId)
-          changed = true
-        }
-      })
-
-      // Clear frozen targets on scrub/jump (tick changed but not a single forward step)
-      if (isScrubbedOrJumped) {
-        next.forEach((data, entityId) => {
-          if (data.frozen) {
-            next.delete(entityId)
-            changed = true
-          }
-        })
-      }
-
-      return changed ? next : prev
-    })
-
-    // Detect explosions
-    if (isForwardStep && prevProjectileData.current.size > 0) {
-      const newExplosions: Explosion[] = []
-      prevProjectileData.current.forEach((lastData, entityId) => {
-        if (!currentIds.has(entityId)) {
-          if (
-            lastData.type === 'rocket' ||
-            lastData.type === 'stickybomb' ||
-            lastData.type === 'pipebomb'
-          ) {
-            newExplosions.push({
-              id: nextEffectId++,
-              position: objCoordsToVector3(lastData.position),
-              type: lastData.type,
-              teamNumber: lastData.teamNumber,
-              startTime: now,
-            })
-          }
-        }
-      })
-      if (newExplosions.length > 0) {
-        setExplosions(prev => [...prev, ...newExplosions])
-      }
-    }
-
-    // Clear explosions on scrub
-    if (isScrubbedOrJumped) {
-      setExplosions([])
-    }
-
-    // Update tracking refs only when tick actually changes
-    if (tickChanged) {
-      const nextMap = new Map<number, InterpolatedProjectile>()
-      projectiles.forEach(p => nextMap.set(p.entityId, p))
-      prevProjectileData.current = nextMap
-      prevTick.current = tick
-    }
-  }, [tick, projectiles])
-
-  const removeExplosion = useCallback((id: number) => {
-    setExplosions(prev => prev.filter(e => e.id !== id))
+const HealingBolts = () => {
+  const mesh = useMemo(() => {
+    const instanced = new THREE.InstancedMesh(
+      new THREE.SphereGeometry(5, 32, 16),
+      new THREE.MeshLambertMaterial({ color: 'yellow' }),
+      MAX_PROJECTILES
+    )
+    instanced.frustumCulled = false
+    instanced.count = 0
+    return instanced
   }, [])
 
-  // Collect trail targets into an array for rendering
-  const trailTargetArray = useMemo(
-    () => Array.from(trailTargets.values()),
-    [trailTargets]
+  useEffect(
+    () => () => {
+      mesh.geometry.dispose()
+      ;(mesh.material as THREE.Material).dispose()
+      mesh.dispose()
+    },
+    [mesh]
   )
 
+  useFrame(() => {
+    let count = 0
+    for (const { type, position } of sceneFrame.projectiles) {
+      if (type !== 'healingBolt' || count >= MAX_PROJECTILES) continue
+      mesh.setMatrixAt(count++, _matrix.makeTranslation(position.x, position.y, position.z))
+    }
+    mesh.count = count
+    mesh.instanceMatrix.needsUpdate = true
+  }, SCENE_PRIORITY)
+
+  return <primitive object={mesh} />
+}
+
+//
+// ─── ROCKET SMOKE ───────────────────────────────────────────────────────────────
+//
+// Puffs dropped every few units along each rocket's flight, growing paler and fading over
+// their lifetime; a puff outlives its rocket. One pool for every rocket.
+//
+
+const RocketSmoke = () => {
+  const { mesh, opacity } = useFadingSpheres(MAX_SMOKE_PUFFS, [6, 4], THREE.NormalBlending)
+  const puffs = useRef({
+    positions: new Float32Array(MAX_SMOKE_PUFFS * 3),
+    born: new Float64Array(MAX_SMOKE_PUFFS).fill(-Infinity),
+    next: 0,
+  })
+  const lastSpawn = useRef(new Map<number, THREE.Vector3>())
+
+  useFrame(() => {
+    const now = performance.now()
+    const pool = puffs.current
+    const step = playbackStep()
+
+    if (step === 'seek') {
+      pool.born.fill(-Infinity)
+      lastSpawn.current.clear()
+    } else if (step === 'forward') {
+      const seen = new Set<number>()
+      for (const projectile of sceneFrame.projectiles) {
+        if (projectile.type !== 'rocket') continue
+        seen.add(projectile.entityId)
+        const { x, y, z } = projectile.position
+        const current = _a.set(x, y, z)
+        const last = lastSpawn.current.get(projectile.entityId)
+        if (!last) {
+          lastSpawn.current.set(projectile.entityId, current.clone())
+          continue
+        }
+        const distance = current.distanceTo(last)
+        const count = Math.floor(distance / SMOKE_SPAWN_INTERVAL)
+        if (count === 0) continue
+        _b.copy(current).sub(last).normalize()
+        for (let i = 1; i <= count; i++) {
+          const at = pool.next
+          pool.positions[at * 3] = last.x + _b.x * SMOKE_SPAWN_INTERVAL * i
+          pool.positions[at * 3 + 1] = last.y + _b.y * SMOKE_SPAWN_INTERVAL * i
+          pool.positions[at * 3 + 2] = last.z + _b.z * SMOKE_SPAWN_INTERVAL * i
+          pool.born[at] = now
+          pool.next = (at + 1) % MAX_SMOKE_PUFFS
+        }
+        last.copy(current)
+      }
+      for (const id of lastSpawn.current.keys()) if (!seen.has(id)) lastSpawn.current.delete(id)
+    }
+
+    let visible = 0
+    for (let i = 0; i < MAX_SMOKE_PUFFS; i++) {
+      const life = (now - pool.born[i]) / SMOKE_PUFF_LIFETIME_MS
+      if (!(life >= 0 && life < 1)) continue
+      const scale = SMOKE_PUFF_START_SCALE + (SMOKE_PUFF_END_SCALE - SMOKE_PUFF_START_SCALE) * life
+      _matrix.makeScale(scale, scale, scale)
+      _matrix.setPosition(pool.positions[i * 3], pool.positions[i * 3 + 1], pool.positions[i * 3 + 2])
+      mesh.setMatrixAt(visible, _matrix)
+      mesh.setColorAt(visible, _color.copy(SMOKE_PUFF_COLOR_START).lerp(SMOKE_PUFF_COLOR_END, life))
+      opacity.setX(visible, 1 - life)
+      visible++
+    }
+    commit(mesh, opacity, visible)
+  }, SCENE_PRIORITY)
+
+  return <primitive object={mesh} />
+}
+
+//
+// ─── EXPLOSIONS ─────────────────────────────────────────────────────────────────
+//
+// A quick flash where a rocket, pipe or sticky stops existing while playback moves forward.
+//
+
+const EXPLODING = new Set(['rocket', 'pipebomb', 'stickybomb'])
+
+const Explosions = () => {
+  const { mesh, opacity } = useFadingSpheres(MAX_EXPLOSIONS, [12, 8], THREE.AdditiveBlending)
+  const explosions = useRef<{ x: number; y: number; z: number; born: number }[]>([])
+  const last = useRef(new Map<number, CachedProjectile>())
+
+  useFrame(() => {
+    const now = performance.now()
+    const step = playbackStep()
+    const current = new Map(sceneFrame.projectiles.map(p => [p.entityId, p]))
+
+    if (step === 'seek') {
+      explosions.current = []
+    } else if (step === 'forward') {
+      last.current.forEach((projectile, id) => {
+        const still = current.get(id)
+        if (EXPLODING.has(projectile.type) && (!still || still.type !== projectile.type)) {
+          explosions.current.push({ ...projectile.position, born: now })
+        }
+      })
+    }
+    if (step !== 'still') last.current = current
+
+    explosions.current = explosions.current.filter(e => now - e.born < EXPLOSION_DURATION_MS)
+    let count = 0
+    for (const explosion of explosions.current.slice(-MAX_EXPLOSIONS)) {
+      const progress = (now - explosion.born) / EXPLOSION_DURATION_MS
+      const scale = Math.max(0.001, EXPLOSION_MAX_RADIUS * (1 - Math.pow(1 - progress, 3)))
+      _matrix.makeScale(scale, scale, scale)
+      _matrix.setPosition(explosion.x, explosion.y, explosion.z)
+      mesh.setMatrixAt(count, _matrix)
+      mesh.setColorAt(count, DEFAULT_EXPLOSION_COLOR)
+      opacity.setX(count, EXPLOSION_MAX_OPACITY * (1 - progress))
+      count++
+    }
+    commit(mesh, opacity, count)
+  }, SCENE_PRIORITY)
+
+  return <primitive object={mesh} />
+}
+
+//
+// ─── RIBBON TRAILS ──────────────────────────────────────────────────────────────
+//
+// drei's Trail behind each pipe, sticky and healing bolt, following an object moved to the
+// projectile every frame. When the projectile goes or comes to rest (a sticky on a wall), its
+// trail fades for a moment and is then removed, so resting stickies do not keep a trail going.
+//
+
+interface TrailEntry {
+  key: string
+  entityId: number
+  type: string
+  color: string
+  target: THREE.Object3D
+  /** When it last moved, and when its projectile went (0 while it exists). */
+  movedAt: number
+  goneAt: number
+}
+
+function trailColor(projectile: CachedProjectile): string {
+  if (projectile.type === 'healingBolt') return '#e8d44d'
+  return TEAM_COLORS[teamOf(projectile)] ?? TRAIL_FALLBACK_COLOR
+}
+
+let nextTrailKey = 0
+
+const RibbonTrails = () => {
+  const entries = useRef(new Map<number, TrailEntry>())
+  const [shown, setShown] = useState<TrailEntry[]>([])
+  const controlsMode = useStore(state => state.scene.controls.mode)
+
+  useFrame(() => {
+    const now = performance.now()
+    const step = playbackStep()
+    const map = entries.current
+    let changed = false
+
+    if (step === 'seek') {
+      map.forEach((entry, id) => {
+        if (entry.goneAt) {
+          map.delete(id)
+          changed = true
+        }
+      })
+    }
+
+    const present = new Set<number>()
+    for (const projectile of sceneFrame.projectiles) {
+      if (!TRAIL_CONFIG[projectile.type]) continue
+      present.add(projectile.entityId)
+      const { x, y, z } = projectile.position
+      let entry = map.get(projectile.entityId)
+      if (entry && entry.type !== projectile.type) {
+        map.delete(projectile.entityId)
+        entry = undefined
+      }
+      if (!entry) {
+        const target = new THREE.Object3D()
+        target.position.set(x, y, z)
+        entry = {
+          key: `trail-${nextTrailKey++}`,
+          entityId: projectile.entityId,
+          type: projectile.type,
+          color: trailColor(projectile),
+          target,
+          movedAt: now,
+          goneAt: 0,
+        }
+        map.set(projectile.entityId, entry)
+        changed = true
+      }
+      if (entry.target.position.distanceToSquared(_a.set(x, y, z)) > 0.25) entry.movedAt = now
+      entry.target.position.set(x, y, z)
+      entry.goneAt = 0
+    }
+
+    map.forEach((entry, id) => {
+      if (!present.has(id) && !entry.goneAt && step === 'forward') entry.goneAt = now
+      const resting = now - entry.movedAt >= TRAIL_LINGER_MS
+      const faded = entry.goneAt > 0 && now - entry.goneAt >= TRAIL_LINGER_MS
+      const stale = !present.has(id) && !entry.goneAt
+      if (resting || faded || stale) {
+        map.delete(id)
+        changed = true
+      }
+    })
+
+    if (changed) setShown([...map.values()])
+  }, SCENE_PRIORITY)
+
+  const isPov = controlsMode === 'pov'
   return (
-    <group name="projectiles">
-      {/* Projectile models */}
-      {projectiles.map(projectile => {
-        let Projectile
-
-        if (projectile.type === 'rocket') Projectile = RocketProjectile
-        if (projectile.type === 'pipebomb') Projectile = PipebombProjectile
-        if (projectile.type === 'stickybomb') Projectile = StickybombProjectile
-        if (projectile.type === 'healingBolt') Projectile = HealingBoltProjectile
-        if (!Projectile) return null
-
-        return (
-          <Projectile
-            key={`projectile-${projectile.entityId}`}
-            {...projectile}
-            renderTick={tick}
-            intervalPerTick={intervalPerTick}
-          />
-        )
-      })}
-
-      {/* Trail targets (decoupled from projectile models) */}
-      {trailTargetArray.map(data =>
-        data.type === 'rocket' ? (
-          <RocketSmokeTrail key={`smoke-${data.entityId}`} data={data} />
-        ) : (
-          <TrailTarget key={`trail-${data.entityId}`} data={data} />
-        )
-      )}
-
-      {/* Explosions */}
-      {explosions.map(explosion => (
-        <ExplosionEffect key={explosion.id} explosion={explosion} onComplete={removeExplosion} />
+    <>
+      {shown.map(entry => (
+        <RibbonTrail key={entry.key} entry={entry} isPov={isPov} />
       ))}
-    </group>
+    </>
   )
 }
 
-//
-// ─── BASE PROJECTILE ────────────────────────────────────────────────────────────
-//
-
-export interface BaseProjectileProps extends InterpolatedProjectile {
-  renderTick: number
-  intervalPerTick: number
-}
-
-//
-// ─── ROCKET PROJECTILE ──────────────────────────────────────────────────────────
-//
-
-export const RocketProjectile = (props: BaseProjectileProps) => {
-  const ref = useRef<THREE.Group>(null)
-  const prevLookAtPosition = useRef<THREE.Vector3>(objCoordsToVector3(props.position))
-  const interpolatedPosition = useRef(new THREE.Vector3())
-  const smoothedPosition = useRef(new THREE.Vector3())
-  const position = objCoordsToVector3(props.position)
-  const positionNext = objCoordsToVector3(props.positionNext)
-  const hasRenderInit = useRef(false)
-  const staleGuard = useRef(createStaleFrameGuard(props.position))
+const RibbonTrail = ({ entry, isPov }: { entry: TrailEntry; isPov: boolean }) => {
+  const config = TRAIL_CONFIG[entry.type]
+  const width = isPov ? config.baseWidth : config.baseWidth * 0.9
+  const target = useMemo(() => ({ current: entry.target }), [entry.target])
+  const trailRef = useRef<any>(null)
 
   useEffect(() => {
-    if (!prevLookAtPosition.current?.equals(position)) {
-      ref.current?.lookAt(prevLookAtPosition.current)
-      prevLookAtPosition.current = objCoordsToVector3(position)
-    }
-  }, [position])
-
-  useFrame((_, delta) => {
-    const frameProgress = useInstance.getState().frameProgress
-    if (!ref.current) return
-
-    const playing = getState().playback.playing
-    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, props.position, playing)
-    const alpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
-
-    interpolatePosition(position, positionNext, lerpProgress, interpolatedPosition.current)
-
-    if (!hasRenderInit.current) {
-      smoothedPosition.current.copy(interpolatedPosition.current)
-      ref.current.position.copy(interpolatedPosition.current)
-      hasRenderInit.current = true
-    } else {
-      smoothedPosition.current.lerp(interpolatedPosition.current, alpha)
-      ref.current.position.copy(smoothedPosition.current)
-    }
+    const material = trailRef.current?.material
+    if (!material) return
+    material.transparent = true
+    material.opacity = config.opacity
+    material.depthWrite = false
   })
 
   return (
-    <group name="rocket" ref={ref} position={position}>
-      <Suspense fallback={<ProjectileFallback />}>
-        <ProjectileModel type="rocket" team="shared" />
-      </Suspense>
-    </group>
-  )
-}
-
-//
-// ─── PIPEBOMB PROJECTILE ────────────────────────────────────────────────────────
-//
-
-export const PipebombProjectile = (props: BaseProjectileProps) => {
-  const team = TEAM_MAP[props.teamNumber]
-  const teamColor = TEAM_COLORS[team] ?? TRAIL_FALLBACK_COLOR
-  const ref = useRef<THREE.Group>(null)
-  const interpolatedPosition = useRef(new THREE.Vector3())
-  const smoothedPosition = useRef(new THREE.Vector3())
-  const position = objCoordsToVector3(props.position)
-  const positionNext = objCoordsToVector3(props.positionNext)
-  const rotation = eulerizeVector(props.rotation)
-  const rotationNext = eulerizeVector(props.rotationNext)
-  const currentQuat = useRef(new THREE.Quaternion())
-  const nextQuat = useRef(new THREE.Quaternion())
-  const interpolatedQuat = useRef(new THREE.Quaternion())
-  const hasRenderInit = useRef(false)
-  const staleGuard = useRef(createStaleFrameGuard(props.position))
-
-  useFrame((_, delta) => {
-    const frameProgress = useInstance.getState().frameProgress
-    if (!ref.current) return
-
-    const playing = getState().playback.playing
-    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, props.position, playing)
-    const posAlpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
-    const rotAlpha = smoothingAlpha(PROJECTILE_ROTATION_SMOOTH_SECONDS, delta)
-
-    const didTeleport = position.distanceTo(positionNext) > TELEPORT_LERP_DISTANCE
-
-    if (didTeleport) {
-      ref.current.position.copy(position)
-      ref.current.rotation.copy(rotation)
-      smoothedPosition.current.copy(position)
-      hasRenderInit.current = true
-      return
-    }
-
-    interpolatePosition(position, positionNext, lerpProgress, interpolatedPosition.current)
-    currentQuat.current.setFromEuler(rotation)
-    nextQuat.current.setFromEuler(rotationNext)
-    interpolatedQuat.current.copy(currentQuat.current).slerp(nextQuat.current, lerpProgress)
-
-    if (!hasRenderInit.current) {
-      smoothedPosition.current.copy(interpolatedPosition.current)
-      ref.current.position.copy(interpolatedPosition.current)
-      ref.current.quaternion.copy(interpolatedQuat.current)
-      hasRenderInit.current = true
-    } else {
-      smoothedPosition.current.lerp(interpolatedPosition.current, posAlpha)
-      ref.current.position.copy(smoothedPosition.current)
-      ref.current.quaternion.slerp(interpolatedQuat.current, rotAlpha)
-    }
-  })
-
-  return (
-    <group name="pipebomb" ref={ref} position={position} rotation={rotation}>
-      <Suspense fallback={<ProjectileFallback color={teamColor} />}>
-        {team && <ProjectileModel type="pipebomb" team={team} />}
-      </Suspense>
-    </group>
-  )
-}
-
-//
-// ─── STICKYBOMB PROJECTILE ──────────────────────────────────────────────────────
-//
-
-export const StickybombProjectile = (props: BaseProjectileProps) => {
-  const team = TEAM_MAP[props.teamNumber]
-  const teamColor = TEAM_COLORS[team] ?? TRAIL_FALLBACK_COLOR
-  const ref = useRef<THREE.Group>(null)
-  const interpolatedPosition = useRef(new THREE.Vector3())
-  const smoothedPosition = useRef(new THREE.Vector3())
-  const position = objCoordsToVector3(props.position)
-  const positionNext = objCoordsToVector3(props.positionNext)
-  const rotation = eulerizeVector(props.rotation)
-  const rotationNext = eulerizeVector(props.rotationNext)
-  const currentQuat = useRef(new THREE.Quaternion())
-  const nextQuat = useRef(new THREE.Quaternion())
-  const interpolatedQuat = useRef(new THREE.Quaternion())
-  const hasRenderInit = useRef(false)
-  const staleGuard = useRef(createStaleFrameGuard(props.position))
-
-  useFrame((_, delta) => {
-    const frameProgress = useInstance.getState().frameProgress
-    if (!ref.current) return
-
-    const playing = getState().playback.playing
-    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, props.position, playing)
-    const posAlpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
-    const rotAlpha = smoothingAlpha(PROJECTILE_ROTATION_SMOOTH_SECONDS, delta)
-
-    const didTeleport = position.distanceTo(positionNext) > TELEPORT_LERP_DISTANCE
-
-    if (didTeleport) {
-      ref.current.position.copy(position)
-      ref.current.rotation.copy(rotation)
-      smoothedPosition.current.copy(position)
-      hasRenderInit.current = true
-      return
-    }
-
-    interpolatePosition(position, positionNext, lerpProgress, interpolatedPosition.current)
-    currentQuat.current.setFromEuler(rotation)
-    nextQuat.current.setFromEuler(rotationNext)
-    interpolatedQuat.current.copy(currentQuat.current).slerp(nextQuat.current, lerpProgress)
-
-    if (!hasRenderInit.current) {
-      smoothedPosition.current.copy(interpolatedPosition.current)
-      ref.current.position.copy(interpolatedPosition.current)
-      ref.current.quaternion.copy(interpolatedQuat.current)
-      hasRenderInit.current = true
-    } else {
-      smoothedPosition.current.lerp(interpolatedPosition.current, posAlpha)
-      ref.current.position.copy(smoothedPosition.current)
-      ref.current.quaternion.slerp(interpolatedQuat.current, rotAlpha)
-    }
-  })
-
-  return (
-    <group name="stickybomb" ref={ref} position={position} rotation={rotation}>
-      <Suspense fallback={<ProjectileFallback color={teamColor} />}>
-        {team && <ProjectileModel type="stickybomb" team={team} />}
-      </Suspense>
-    </group>
-  )
-}
-
-//
-// ─── HEALING BOLT PROJECTILE ────────────────────────────────────────────────────
-//
-
-export const HealingBoltProjectile = (props: BaseProjectileProps) => {
-  const ref = useRef<THREE.Group>(null)
-  const interpolatedPosition = useRef(new THREE.Vector3())
-  const smoothedPosition = useRef(new THREE.Vector3())
-  const position = objCoordsToVector3(props.position)
-  const positionNext = objCoordsToVector3(props.positionNext)
-  const hasRenderInit = useRef(false)
-  const staleGuard = useRef(createStaleFrameGuard(props.position))
-
-  useFrame((_, delta) => {
-    const frameProgress = useInstance.getState().frameProgress
-    if (!ref.current) return
-
-    const playing = getState().playback.playing
-    const lerpProgress = guardedLerpProgress(staleGuard.current, frameProgress, props.position, playing)
-    const alpha = smoothingAlpha(PROJECTILE_POSITION_SMOOTH_SECONDS, delta)
-
-    interpolatePosition(position, positionNext, lerpProgress, interpolatedPosition.current)
-
-    if (!hasRenderInit.current) {
-      smoothedPosition.current.copy(interpolatedPosition.current)
-      ref.current.position.copy(interpolatedPosition.current)
-      hasRenderInit.current = true
-    } else {
-      smoothedPosition.current.lerp(interpolatedPosition.current, alpha)
-      ref.current.position.copy(smoothedPosition.current)
-    }
-  })
-
-  return (
-    <group name="healingBolt" ref={ref} position={position}>
-      <Sphere args={[5]}>
-        <meshLambertMaterial attach="material" color="yellow" />
-      </Sphere>
-    </group>
+    <>
+      <primitive object={entry.target} />
+      <Trail
+        ref={trailRef}
+        target={target as any}
+        width={width}
+        length={config.length}
+        color={entry.color}
+        attenuation={(t: number) => 0.5 * width * t}
+      />
+    </>
   )
 }

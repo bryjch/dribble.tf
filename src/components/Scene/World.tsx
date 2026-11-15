@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/Addons.js'
 
-import { ActorDimensions } from '@components/Scene/Actors'
+import { PLAYER_DIMENSIONS } from '@constants/mappings'
 
 import mapChunkingConfig from '@constants/mapChunking.json'
 import { MapVisibilityMetadata } from '@constants/types'
@@ -126,11 +126,9 @@ export const World = (props: WorldProps) => {
     }
   }, [map])
 
-  // Load the map's model once per map; the scene mode only swaps materials (below). The model is
-  // a <primitive>, which react-three-fiber never disposes, so it is freed here when replaced.
+  // Load the map's model once per map; the scene mode only swaps materials (below).
   useEffect(() => {
     const requestId = ++mapLoadRequestIdRef.current
-    let loaded: THREE.Group | undefined
 
     const mapModelFileUrls = getMapModelUrls(map)
     if (!mapModelFileUrls) {
@@ -144,9 +142,8 @@ export const World = (props: WorldProps) => {
           disposeMapModel(gltf.scene)
           return
         }
-        loaded = gltf.scene
-        prepareMapModel(loaded)
-        setMapModel(loaded)
+        prepareMapModel(gltf.scene)
+        setMapModel(gltf.scene)
       })
       .catch(error => {
         console.error(error)
@@ -159,9 +156,16 @@ export const World = (props: WorldProps) => {
       if (mapLoadRequestIdRef.current === requestId) {
         mapLoadRequestIdRef.current += 1
       }
-      if (loaded) disposeMapModel(loaded)
     }
   }, [map])
+
+  // The model is a <primitive>, which react-three-fiber never disposes, so it is freed here once
+  // replaced. This cleanup runs after the commit that took it out of the scene: freed any
+  // earlier, it could be drawn once more and uploaded again, and then never freed.
+  useEffect(() => {
+    if (!mapModel) return
+    return () => disposeMapModel(mapModel)
+  }, [mapModel])
 
   useEffect(() => {
     if (!mapModel || !MAP_CHUNKING_ENABLED) {
@@ -289,7 +293,7 @@ export const World = (props: WorldProps) => {
     // Not entirely sure if this logic is correct
     const x = bounds.center.x - bounds.max.x
     const y = -bounds.center.y - bounds.min.y
-    const z = ActorDimensions.z * 0.5
+    const z = PLAYER_DIMENSIONS.z * 0.5
 
     ref.current?.position.copy(bounds.center).add(new THREE.Vector3(x, y, z))
   }, [bounds])

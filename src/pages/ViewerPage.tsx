@@ -14,6 +14,8 @@ import {
   RtsCameraTipPanel,
 } from '@components/UI/CameraTipPanels'
 
+import { useShallow } from 'zustand/react/shallow'
+
 import { useStore, useInstance } from '@zus/store'
 import { applySetupAction } from '@zus/actions'
 import { useIsMobile } from '@utils/hooks'
@@ -26,8 +28,11 @@ const ViewerPage = () => {
   const pendingSharedSetup = useStore(state => state.setups.pendingSharedSetup)
   const isMobile = useIsMobile()
 
-  const loadingDownloads = useStore(state =>
-    Array.from(state.downloads.values()).filter(({ status }) => status === 'loading')
+  // Shallow: the selector builds a new array every time, which would re-render on any change.
+  const loadingDownloads = useStore(
+    useShallow(state =>
+      Array.from(state.downloads.values()).filter(({ status }) => status === 'loading')
+    )
   )
 
   //

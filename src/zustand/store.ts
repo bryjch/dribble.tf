@@ -43,7 +43,6 @@ export type InstanceState = {
   focusedObject?: THREE.Object3D
   lastFocusedPOV?: THREE.Object3D
   drawingCanvas?: CanvasDraw
-  frameProgress: number
   runtimePerf: {
     renderCalls: number
     renderTriangles: number
@@ -59,7 +58,6 @@ export type InstanceState = {
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => void
   setFocusedObject: (focusedObject?: THREE.Object3D) => void
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => void
-  setFrameProgress: (frameProgress: number) => void
   setMapCenterPickerActive: (mapCenterPickerActive: boolean) => void
   setMapOffsetDebug: (mapOffsetDebug: { cameraOffset: { x: number; y: number; z: number } }) => void
   setRuntimePerf: (
@@ -93,7 +91,6 @@ const useInstance = create<InstanceState>()(set => ({
   focusedObject: undefined,
   lastFocusedPOV: undefined,
   drawingCanvas: undefined,
-  frameProgress: 0,
   runtimePerf: {
     renderCalls: 0,
     renderTriangles: 0,
@@ -106,7 +103,6 @@ const useInstance = create<InstanceState>()(set => ({
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => set({ drawingCanvas }),
   setFocusedObject: (focusedObject?: THREE.Object3D) => set({ focusedObject }),
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => set({ lastFocusedPOV }),
-  setFrameProgress: (frameProgress: number) => set({ frameProgress }),
   setMapCenterPickerActive: (mapCenterPickerActive: boolean) => set({ mapCenterPickerActive }),
   setMapOffsetDebug: mapOffsetDebug =>
     set(state => {

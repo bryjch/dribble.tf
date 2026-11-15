@@ -1,7 +1,7 @@
 import * as THREE from 'three'
 import { first, last } from 'lodash'
 
-import { ActorDimensions } from '@components/Scene/Actors'
+import { PLAYER_DIMENSIONS } from '@constants/mappings'
 import { MapBoundaries } from '@components/Analyse/Data/PositionCache'
 
 import { objCoordsToVector3 } from './geometry'
@@ -68,7 +68,7 @@ export function parseMapBoundaries(boundaries: MapBoundaries) {
   const center = new THREE.Vector3(
     0.5 * (boundaries.boundaryMax.x - boundaries.boundaryMin.x),
     0.5 * (boundaries.boundaryMax.y - boundaries.boundaryMin.y),
-    -boundaries.boundaryMin.z - 0.5 * ActorDimensions.z
+    -boundaries.boundaryMin.z - 0.5 * PLAYER_DIMENSIONS.z
   )
 
   return {
