@@ -11,6 +11,7 @@ import {
 import { getState } from '@zus/store'
 import { loadUrlDemoAction, resolveUrlDemoAction } from '@utils/embed'
 import { connectLiveAction, listenForPastedLiveLinks, resolveLiveAction } from '@utils/live'
+import { installBench } from '@utils/bench'
 
 class App extends React.Component {
   state = {
@@ -22,6 +23,7 @@ class App extends React.Component {
   //
 
   async componentDidMount() {
+    installBench()
     await loadSettingsAction()
     await loadSetupsAction()
     const sharedSetup = await bootstrapSharedSetupFromHashAction()

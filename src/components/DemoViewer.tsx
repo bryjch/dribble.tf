@@ -61,6 +61,7 @@ import { useIsMobile } from '@utils/hooks'
 import { cn } from '@utils/styling'
 import { ControlsMode, DrawingTool, SavedSetupCamera } from '@constants/types'
 import { getWorldIntersectionFromScreen } from '@utils/raycast'
+import { benchCount, setBenchRenderer, setBenchSceneDelay } from '@utils/bench'
 
 //
 // ─── THREE SETTINGS & ELEMENTS ──────────────────────────────────────────────────
@@ -733,6 +734,8 @@ class DemoViewer extends Component<DemoViewerProps> {
     const { playback, settings } = this.state
     const { demo, map } = this.props
     const INTERP_DELAY_TICKS = 2
+    benchCount('viewerRender')
+    setBenchSceneDelay(INTERP_DELAY_TICKS)
     const renderTick = Math.max(1, playback.tick - INTERP_DELAY_TICKS)
     const MAX_PROJECTILES_FOR_HIGH_QUALITY_INTERPOLATION = 16
     // Cap Retina/high-density DPR so fill-rate does not erase later draw-call wins.
@@ -807,6 +810,7 @@ class DemoViewer extends Component<DemoViewerProps> {
           id="main-canvas"
           gl={{ alpha: true }}
           dpr={canvasDpr}
+          onCreated={({ gl }) => setBenchRenderer(gl)}
           onContextMenu={e => e.preventDefault()}
           onPointerDown={this.onPointerDown}
           onPointerUp={this.onPointerUp}
