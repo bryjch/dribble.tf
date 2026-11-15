@@ -487,7 +487,9 @@ function prepareMapModel(model: THREE.Object3D) {
     }
     const mesh = node as THREE.Mesh
     if (!mesh.isMesh) return
-    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    const materials = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).map(
+      simplifyMapMaterial
+    )
     for (const material of materials) {
       // Hide invisible tool materials (nodraw, clip, trigger, etc.)
       if (isInvisibleToolMaterial(material.name)) mesh.visible = false
@@ -495,8 +497,29 @@ function prepareMapModel(model: THREE.Object3D) {
       ;(material as THREE.MeshStandardMaterial).vertexColors = false
       material.needsUpdate = true
     }
+    mesh.material = Array.isArray(mesh.material) ? materials : materials[0]
     mesh.userData.originalMaterial = mesh.material
   })
+}
+
+const simplified = new WeakMap<THREE.Material, THREE.Material>()
+
+/**
+ * The converter marks every map material double-sided and specular (KHR_materials_specular,
+ * which makes three use MeshPhysicalMaterial). Solid brushes are seen from one side, and the
+ * maps' specular is flat, so opaque materials draw front faces only, as MeshStandardMaterial.
+ */
+function simplifyMapMaterial(material: THREE.Material): THREE.Material {
+  const known = simplified.get(material)
+  if (known) return known
+  let next = material
+  if ((material as THREE.MeshPhysicalMaterial).isMeshPhysicalMaterial) {
+    next = new THREE.MeshStandardMaterial().copy(material as THREE.MeshStandardMaterial)
+    material.dispose()
+  }
+  if (!next.transparent && !next.alphaTest) next.side = THREE.FrontSide
+  simplified.set(material, next)
+  return next
 }
 
 /** Frees a map model's geometry, materials and textures on the GPU. */
