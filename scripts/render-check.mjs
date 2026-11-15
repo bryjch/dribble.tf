@@ -14,7 +14,14 @@
 //
 
 import { spawn, execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync, existsSync, readdirSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+  existsSync,
+  readdirSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -198,7 +205,7 @@ async function measurePlayback(page, speed, cpuThrottle = 1) {
   const sorted = [...sample.deltas].sort((a, b) => a - b)
   const pct = p => +sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p))].toFixed(2)
   const avg = list => (list.length ? Math.round(list.reduce((a, b) => a + b, 0) / list.length) : 0)
-  const perSecond = key => +(((after[key] ?? 0) - (before[key] ?? 0)) * 1000 / seconds).toFixed(1)
+  const perSecond = key => +((((after[key] ?? 0) - (before[key] ?? 0)) * 1000) / seconds).toFixed(1)
   return {
     speed,
     cpuThrottle,
@@ -298,40 +305,44 @@ async function run(args) {
       results.screenshots.push({ name, renderInfo: await call(page, 'renderInfo') })
     }
     const overview = () => call(page, 'camera', scenarios.defaultCamera)
-    await call(page, 'rts')
-    // The camera the viewer puts itself in after loading the demo (nothing has moved it yet).
-    await shoot('01-default-rts-t800', () => call(page, 'seek', 800))
-    await shoot('02-overview-busiest', async () => {
-      await overview()
-      await call(page, 'seek', scenarios.busiestTick)
-    })
-    await shoot('03-overview-t9000', async () => {
-      await overview()
-      await call(page, 'seek', 9000)
-    })
-    await shoot('04-close-t15000', async () => {
-      await call(page, 'camera', scenarios.close)
-      await call(page, 'seek', 15000)
-    })
-    await shoot('05-pov-t12000', async () => {
-      await call(page, 'seek', 12000)
-      await call(page, 'pov', scenarios.povEntityId)
-      await call(page, 'seek', 12000)
-    })
-    await shoot('06-pov-busiest', async () => {
-      await call(page, 'seek', scenarios.busiestTick)
-      await call(page, 'pov', scenarios.povEntityId)
-      await call(page, 'seek', scenarios.busiestTick)
-    })
-    await call(page, 'rts')
-    await shoot('07-untextured-t9000', async () => {
-      await call(page, 'setting', 'scene.mode', 'untextured')
+    // --perf-only: loading and playback only, for repeated runs
+    const perfOnly = args['perf-only'] === 'true'
+    if (!perfOnly) {
+      await call(page, 'rts')
+      // The camera the viewer puts itself in after loading the demo (nothing has moved it yet).
+      await shoot('01-default-rts-t800', () => call(page, 'seek', 800))
+      await shoot('02-overview-busiest', async () => {
+        await overview()
+        await call(page, 'seek', scenarios.busiestTick)
+      })
+      await shoot('03-overview-t9000', async () => {
+        await overview()
+        await call(page, 'seek', 9000)
+      })
+      await shoot('04-close-t15000', async () => {
+        await call(page, 'camera', scenarios.close)
+        await call(page, 'seek', 15000)
+      })
+      await shoot('05-pov-t12000', async () => {
+        await call(page, 'seek', 12000)
+        await call(page, 'pov', scenarios.povEntityId)
+        await call(page, 'seek', 12000)
+      })
+      await shoot('06-pov-busiest', async () => {
+        await call(page, 'seek', scenarios.busiestTick)
+        await call(page, 'pov', scenarios.povEntityId)
+        await call(page, 'seek', scenarios.busiestTick)
+      })
+      await call(page, 'rts')
+      await shoot('07-untextured-t9000', async () => {
+        await call(page, 'setting', 'scene.mode', 'untextured')
+        await waitForScene(page)
+        await overview()
+        await call(page, 'seek', 9000)
+      })
+      await call(page, 'setting', 'scene.mode', 'textured')
       await waitForScene(page)
-      await overview()
-      await call(page, 'seek', 9000)
-    })
-    await call(page, 'setting', 'scene.mode', 'textured')
-    await waitForScene(page)
+    }
 
     // ── Playback ──
     await overview()
@@ -353,31 +364,39 @@ async function run(args) {
     results.playback.pov1xCpu4 = await measurePlayback(page, 1, 4)
     await call(page, 'rts')
 
-    // ── GPU memory across map and mode changes ──
-    const memory = { start: await call(page, 'renderInfo') }
-    for (const mode of ['untextured', 'textured', 'untextured', 'textured']) {
-      await call(page, 'setting', 'scene.mode', mode)
-      await waitForScene(page)
+    if (!perfOnly) {
+      // ── GPU memory across map and mode changes ──
+      const memory = { start: await call(page, 'renderInfo') }
+      for (const mode of ['untextured', 'textured', 'untextured', 'textured']) {
+        await call(page, 'setting', 'scene.mode', mode)
+        await waitForScene(page)
+      }
+      memory.afterModeToggles = await call(page, 'renderInfo')
+      // Two round trips: growth on the first can be caches filling; growth on the second is a leak.
+      memory.mapRoundTrips = []
+      for (let i = 0; i < 2; i++) {
+        await call(page, 'loadMap', OTHER_MAP)
+        await waitForScene(page)
+        await call(page, 'loadMap', DEMO_MAP)
+        await waitForScene(page)
+        memory.mapRoundTrips.push(await call(page, 'renderInfo'))
+      }
+      memory.afterMapSwitches = await call(page, 'renderInfo')
+      memory.heapMbAfterMapSwitches = await heapMb(page)
+      results.memory = memory
     }
-    memory.afterModeToggles = await call(page, 'renderInfo')
-    // Two round trips: growth on the first can be caches filling; growth on the second is a leak.
-    memory.mapRoundTrips = []
-    for (let i = 0; i < 2; i++) {
-      await call(page, 'loadMap', OTHER_MAP)
-      await waitForScene(page)
-      await call(page, 'loadMap', DEMO_MAP)
-      await waitForScene(page)
-      memory.mapRoundTrips.push(await call(page, 'renderInfo'))
-    }
-    memory.afterMapSwitches = await call(page, 'renderInfo')
-    memory.heapMbAfterMapSwitches = await heapMb(page)
-    results.memory = memory
     results.consoleErrors = page.consoleErrors.slice(0, 50)
   } finally {
     writeFileSync(join(out, 'results.json'), JSON.stringify(results, null, 2))
     page.close()
   }
-  console.log(JSON.stringify({ load: results.load, playback: results.playback, memory: results.memory }, null, 2))
+  console.log(
+    JSON.stringify(
+      { load: results.load, playback: results.playback, memory: results.memory },
+      null,
+      2
+    )
+  )
 }
 
 // ─── compare ────────────────────────────────────────────────────────────────────
@@ -387,7 +406,9 @@ function compare(args) {
   const out = args.out ?? join(afterDir, 'diff')
   mkdirSync(out, { recursive: true })
   const rows = []
-  for (const file of readdirSync(join(beforeDir, 'shots')).filter(f => f.endsWith('.png')).sort()) {
+  for (const file of readdirSync(join(beforeDir, 'shots'))
+    .filter(f => f.endsWith('.png'))
+    .sort()) {
     const a = join(beforeDir, 'shots', file)
     const b = join(afterDir, 'shots', file)
     if (!existsSync(b)) {
@@ -396,9 +417,13 @@ function compare(args) {
     }
     const metric = name => {
       try {
-        return execFileSync('magick', ['compare', '-metric', name, '-fuzz', '10%', a, b, join(out, file)], {
-          stdio: ['ignore', 'pipe', 'pipe'],
-        }).toString()
+        return execFileSync(
+          'magick',
+          ['compare', '-metric', name, '-fuzz', '10%', a, b, join(out, file)],
+          {
+            stdio: ['ignore', 'pipe', 'pipe'],
+          }
+        ).toString()
       } catch (error) {
         // compare exits 1 when the images differ; the metric is on stderr.
         return error.stderr.toString()
@@ -411,29 +436,74 @@ function compare(args) {
   const before = JSON.parse(readFileSync(join(beforeDir, 'results.json'), 'utf8'))
   const after = JSON.parse(readFileSync(join(afterDir, 'results.json'), 'utf8'))
   const line = (label, a, b) => {
-    const delta = typeof a === 'number' && typeof b === 'number' && a !== 0 ? ` (${(((b - a) / a) * 100).toFixed(0)}%)` : ''
+    const delta =
+      typeof a === 'number' && typeof b === 'number' && a !== 0
+        ? ` (${(((b - a) / a) * 100).toFixed(0)}%)`
+        : ''
     return `| ${label} | ${a ?? '–'} | ${b ?? '–'}${delta} |`
   }
   const perf = [
     line('Demo ready (ms)', before.load?.demoReadyMs, after.load?.demoReadyMs),
     line('Scene ready (ms)', before.load?.sceneReadyMs, after.load?.sceneReadyMs),
-    line('Decode (ms)', before.load?.parse?.parseMs && Math.round(before.load.parse.parseMs), after.load?.parse?.parseMs && Math.round(after.load.parse.parseMs)),
+    line(
+      'Decode (ms)',
+      before.load?.parse?.parseMs && Math.round(before.load.parse.parseMs),
+      after.load?.parse?.parseMs && Math.round(after.load.parse.parseMs)
+    ),
     line('JS heap after load (MB)', before.load?.heapMbAfterLoad, after.load?.heapMbAfterLoad),
   ]
   for (const key of Object.keys(before.playback ?? {})) {
     const a = before.playback[key]
     const b = after.playback?.[key] ?? {}
-    for (const metricKey of ['fps', 'frameMsP50', 'frameMsP95', 'frameMsP99', 'framesOver20ms', 'longTasks', 'scriptMsPerSec', 'taskMsPerSec', 'sceneRenderMsAvg', 'nonRenderMsPerSec', 'viewerRendersPerSec', 'drawCallsAvg', 'ticksAdvanced']) {
+    for (const metricKey of [
+      'fps',
+      'frameMsP50',
+      'frameMsP95',
+      'frameMsP99',
+      'framesOver20ms',
+      'longTasks',
+      'scriptMsPerSec',
+      'taskMsPerSec',
+      'sceneRenderMsAvg',
+      'nonRenderMsPerSec',
+      'viewerRendersPerSec',
+      'drawCallsAvg',
+      'ticksAdvanced',
+    ]) {
       perf.push(line(`${key} ${metricKey}`, a[metricKey], b[metricKey]))
     }
   }
   for (const key of ['geometries', 'textures']) {
     perf.push(line(`GPU ${key}: start`, before.memory?.start?.[key], after.memory?.start?.[key]))
-    perf.push(line(`GPU ${key}: after 4 mode toggles`, before.memory?.afterModeToggles?.[key], after.memory?.afterModeToggles?.[key]))
-    perf.push(line(`GPU ${key}: after 1st map round trip`, before.memory?.mapRoundTrips?.[0]?.[key], after.memory?.mapRoundTrips?.[0]?.[key]))
-    perf.push(line(`GPU ${key}: after 2nd map round trip`, before.memory?.afterMapSwitches?.[key], after.memory?.afterMapSwitches?.[key]))
+    perf.push(
+      line(
+        `GPU ${key}: after 4 mode toggles`,
+        before.memory?.afterModeToggles?.[key],
+        after.memory?.afterModeToggles?.[key]
+      )
+    )
+    perf.push(
+      line(
+        `GPU ${key}: after 1st map round trip`,
+        before.memory?.mapRoundTrips?.[0]?.[key],
+        after.memory?.mapRoundTrips?.[0]?.[key]
+      )
+    )
+    perf.push(
+      line(
+        `GPU ${key}: after 2nd map round trip`,
+        before.memory?.afterMapSwitches?.[key],
+        after.memory?.afterMapSwitches?.[key]
+      )
+    )
   }
-  perf.push(line('JS heap after map switches (MB)', before.memory?.heapMbAfterMapSwitches, after.memory?.heapMbAfterMapSwitches))
+  perf.push(
+    line(
+      'JS heap after map switches (MB)',
+      before.memory?.heapMbAfterMapSwitches,
+      after.memory?.heapMbAfterMapSwitches
+    )
+  )
 
   const markdown = [
     '## Screenshots (pixels differing by more than 10%)',
@@ -457,6 +527,8 @@ const { command, args } = parseArgs(process.argv.slice(2))
 if (command === 'run') await run(args)
 else if (command === 'compare') compare(args)
 else {
-  console.error('usage: render-check.mjs run --url <url> --out <dir> [--scenarios <file>] | compare <before> <after>')
+  console.error(
+    'usage: render-check.mjs run --url <url> --out <dir> [--scenarios <file>] | compare <before> <after>'
+  )
   process.exit(1)
 }
