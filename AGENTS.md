@@ -12,14 +12,17 @@
 - **Headless browser validation**: Chrome remote debugging currently needs both `--user-data-dir=<tmp>` and `--remote-allow-origins=*`, and WebGL-backed validation in headless mode needed `--use-angle=swiftshader --enable-unsafe-swiftshader --enable-webgl --ignore-gpu-blocklist`; runtime perf logs are enabled with `?perf=true`
 - **WASM support**: Vite 5 handles `.wasm` via `new URL('./file.wasm', import.meta.url)` natively — no `vite-plugin-wasm` or `vite-plugin-top-level-await` needed; wasm-bindgen's JS glue uses this pattern and has its own MIME-type fallback
 - **Demo decoder**: `decoder/` is a small Rust crate around stvtf (pinned by git rev in `decoder/Cargo.toml`); `npm run build:decoder` rebuilds `src/libs/decoder/decoder.wasm`, which is committed so `npm run build` needs no Rust. rustup installs the toolchain pinned in `decoder/rust-toolchain.toml`.
+- **Render/perf check**: `npm run build && npx vite preview --port 4173`, then `node scripts/render-check.mjs run --url http://localhost:4173 --out bench/<name> --scenarios docs/adr/0001/scenarios.json` and `node scripts/render-check.mjs compare bench/<a> bench/<b>`; it drives `?bench` (`src/utils/bench.ts`) in headless Chrome on the real GPU. Single runs are noisy: compare builds served side by side, alternated, several times (`--perf-only true` skips screenshots and memory). See docs/adr/0001
+- **Decoder format**: `decoder/src/lib.rs` `FORMAT` and `ParseWorker.ts` `DECODER_FORMAT` must match; bump both when the arrays or metadata change
+- **Map models**: meshopt FILTER via `scripts/meshopt-map.mjs` (a converter step); not the gltf-transform CLI's `meshopt`, whose quantization misplaces instanced props
 - **Framework**: React + Three.js (react-three-fiber) + Zustand + Tailwind
 
 ## Project Structure
 
 - `src/utils/parser.ts` — Duration/tick utilities
-- `src/components/Analyse/Data/` — Demo parsing (ParseWorker, AsyncParser, PlayerCache, ProjectileCache)
+- `src/components/Analyse/Data/` — Match sources (MatchSource, DemoSource + ParseWorker, LiveSource) and the decoder's arrays (PlayerTracks, ProjectileCache, BuildingCache, ObjectiveTimeline)
 - `src/components/Scene/` — 3D scene rendering (World, Actors, Projectiles, Skybox, Lights)
-- `src/components/DemoViewer.tsx` — Main playback engine
+- `src/components/DemoViewer.tsx` — The viewer; playback runs in `Scene/PlaybackDriver.tsx` + `utils/playback.ts`
 - `src/components/UI/` — UI panels (PlaybackPanel, SettingsPanel)
 - `src/zustand/store.ts` — Global state store
 - `public/models/players/` — Player model GLB files

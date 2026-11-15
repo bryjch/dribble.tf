@@ -1,0 +1,31 @@
+{
+  "busiestTick": 20678,
+  "busiest": 24,
+  "defaultCamera": {
+    "mode": "rts",
+    "position": [
+      1464,
+      -358,
+      659
+    ],
+    "target": [
+      526,
+      208,
+      66
+    ]
+  },
+  "close": {
+    "mode": "rts",
+    "target": [
+      526,
+      208,
+      66
+    ],
+    "position": [
+      876,
+      -492,
+      366
+    ]
+  },
+  "povEntityId": 2
+}
