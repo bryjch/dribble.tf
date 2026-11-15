@@ -8,6 +8,9 @@
 //   node scripts/render-check.mjs run --url http://localhost:4173 --out bench/after --scenarios bench/before/scenarios.json
 //   node scripts/render-check.mjs compare bench/before bench/after
 //
+// --settings '<json>' applies viewer settings (paths as in the store) before measuring, and
+// --uncapped true turns off vsync so GPU cost shows in the frame rate.
+//
 // Uses the installed Google Chrome with its GPU (ANGLE/Metal on macOS) and ImageMagick's
 // `compare` for image diffs. Run it against a production build (`npm run build && npx vite
 // preview`) so timings are not dev-server timings.
@@ -48,7 +51,7 @@ function parseArgs(argv) {
 
 // ─── Chrome over CDP ────────────────────────────────────────────────────────────
 
-async function launchChrome(port) {
+async function launchChrome(port, { uncapped = false } = {}) {
   const userDataDir = mkdtempSync(join(tmpdir(), 'render-check-'))
   const proc = spawn(
     CHROME,
@@ -65,6 +68,8 @@ async function launchChrome(port) {
       `--window-size=${WIDTH},${HEIGHT}`,
       '--hide-scrollbars',
       '--mute-audio',
+      // --uncapped: no vsync, so GPU-bound work shows in the frame rate instead of hiding at 60 fps
+      ...(uncapped ? ['--disable-gpu-vsync', '--disable-frame-rate-limit'] : []),
       'about:blank',
     ],
     { stdio: 'ignore' }
@@ -237,7 +242,9 @@ async function run(args) {
   const base = args.url ?? 'http://localhost:4173'
   const out = args.out ?? 'bench/run'
   mkdirSync(join(out, 'shots'), { recursive: true })
-  const page = await launchChrome(Number(args.port ?? 9340))
+  const page = await launchChrome(Number(args.port ?? 9340), {
+    uncapped: args.uncapped === 'true',
+  })
   const results = { url: base, startedAt: new Date().toISOString(), screenshots: [], playback: {} }
 
   try {
@@ -264,6 +271,10 @@ async function run(args) {
     results.load.maxTicks = status.maxTicks
     await call(page, 'pause')
     await call(page, 'setting', 'ui.showStats', false)
+    // --settings '{"ui.playerOutlines":true}': settings applied for the whole run
+    const settings = args.settings ? JSON.parse(args.settings) : {}
+    for (const [path, value] of Object.entries(settings)) await call(page, 'setting', path, value)
+    results.settings = settings
     results.load.heapMbAfterLoad = await heapMb(page)
     results.sceneDelayTicks = await call(page, 'sceneDelayTicks')
 

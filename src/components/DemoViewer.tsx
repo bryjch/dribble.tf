@@ -4,8 +4,7 @@ import { memo, useRef, useEffect, useMemo, useState, useCallback, Suspense } fro
 import * as THREE from 'three'
 import { Canvas, useFrame, useThree, extend } from '@react-three/fiber'
 import { PerspectiveCamera } from '@react-three/drei'
-import { EffectComposer, Outline, Selection } from '@react-three/postprocessing'
-import { BlendFunction } from 'postprocessing'
+import { PlayerOutlines } from '@components/Scene/PlayerOutlines'
 
 // Scene items
 // @ts-ignore
@@ -668,18 +667,9 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
         {/* Actors */}
 
         <Suspense fallback={null}>
-          <Selection>
+          <PlayerOutlines enabled={playerOutlines}>
             <Actors match={demo} />
-
-            <EffectComposer enabled={playerOutlines} autoClear={false}>
-              <Outline
-                blendFunction={BlendFunction.SCREEN}
-                visibleEdgeColor={0xffffff}
-                hiddenEdgeColor={0xffffff}
-                xRay={true}
-              />
-            </EffectComposer>
-          </Selection>
+          </PlayerOutlines>
         </Suspense>
 
         {/* Buildings, control points, carts, flags */}

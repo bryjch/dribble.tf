@@ -2,11 +2,11 @@ import { useRef, useEffect, useLayoutEffect, useMemo, useCallback, memo, Suspens
 
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
-import { Select } from '@react-three/postprocessing'
 import { Html, useGLTF, Clone } from '@react-three/drei'
 
 import { HealBeam } from '@components/Scene/HealBeam'
 import { Nameplate } from '@components/Scene/Nameplate'
+import { markOutlined } from '@components/Scene/PlayerOutlines'
 import { SCENE_PRIORITY, isScenePlayer, sceneFrame } from '@components/Scene/PlaybackDriver'
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
@@ -82,7 +82,11 @@ export const PlayerModel = (props: PlayerModelProps) => {
   const modelUrl = getAsset(`/models/players/${CLASS_MAP[props.classId]}_${props.team}.glb`)
   const gltf = useGLTF(modelUrl, true, false)
   const ref = useRef<THREE.Group>(null)
-  const { cloaked = false, tint = null, visible } = props
+  const { cloaked = false, tint = null, visible, team } = props
+
+  useLayoutEffect(() => {
+    if (ref.current) markOutlined(ref.current, team)
+  }, [team, gltf.scene])
 
   useLayoutEffect(() => {
     if (ref.current) applyModelEffects(ref.current, cloaked, tint)
@@ -90,10 +94,8 @@ export const PlayerModel = (props: PlayerModelProps) => {
 
   return (
     <group ref={ref} visible={visible} rotation={[Math.PI * 0.5, Math.PI * 0.5, 0]}>
-      <Select enabled={!!gltf.scene}>
-        {/* Each model its own materials, so one's cloak or tint is not everyone's. */}
-        <Clone object={gltf.scene} deep="materialsOnly" />
-      </Select>
+      {/* Each model its own materials, so one's cloak or tint is not everyone's. */}
+      <Clone object={gltf.scene} deep="materialsOnly" />
     </group>
   )
 }

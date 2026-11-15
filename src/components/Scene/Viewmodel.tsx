@@ -122,7 +122,7 @@ export const Viewmodel = () => {
   const entityId: number | undefined = focusedObject?.userData?.entityId
 
   return (
-    // The outline pass renders the world at priority 1 when on; otherwise the HUD renders it.
+    // Player outlines draw the world at priority 1 when on; otherwise the HUD draws it.
     <Hud renderPriority={outlines ? 2 : 1}>
       <PerspectiveCamera makeDefault fov={verticalFov(settings.fov)} near={1} far={256} />
       <ambientLight intensity={2.2} />
