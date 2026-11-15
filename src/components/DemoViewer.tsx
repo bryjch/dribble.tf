@@ -548,8 +548,8 @@ const PanelToolbar = ({ hasDemoLoaded }: { hasDemoLoaded: boolean }) => {
         aria-label="Panels"
         data-mobile={isMobile ? 'true' : undefined}
       >
-        <SettingsPanel />
         <AboutPanel />
+        <SettingsPanel />
         <SetupsPanel />
         {hasDemoLoaded && <MatchKillfeedPanel />}
         {hasDemoLoaded && <BookmarksPanel />}

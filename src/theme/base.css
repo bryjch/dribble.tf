@@ -1130,6 +1130,7 @@
   }
 
   .hud-player {
+    position: relative;
     display: flex;
     width: var(--ui-roster-width);
     height: var(--ui-roster-height);
@@ -1159,8 +1160,18 @@
 
   .hud-player[data-focused='true'] {
     z-index: 10;
-    outline: var(--ui-focus-width) solid rgb(var(--ui-focus));
-    outline-offset: calc(var(--ui-focus-width) * -1);
+  }
+
+  /* The ring over the row's own layers: an outline or inset shadow on the row itself is painted
+     under the class tile and the (positioned) health bar, so only scraps of it showed. */
+  .hud-player[data-focused='true']::after {
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: inset 0 0 0 var(--ui-focus-width) rgb(var(--ui-focus));
+    content: '';
+    pointer-events: none;
   }
 
   .hud-roster[data-team='blue'] .hud-player[data-focused='true'] {
@@ -1688,18 +1699,21 @@
 
   .hud-timeline__track {
     position: relative;
-    height: 0.5rem;
+    height: 0.75rem;
     flex-grow: 1;
     overflow: hidden;
     border-radius: 9999px;
     background: rgb(var(--ui-ground) / 0.3);
   }
 
+  /* What has been played: a wash ending in a hard playhead, so the rounds and kills under and
+     over it still read. */
   .hud-timeline__range {
     position: absolute;
     height: 100%;
-    border-radius: 9999px;
-    background: rgb(var(--ui-ink));
+    border-radius: 9999px 0 0 9999px;
+    background: rgb(var(--ui-ink) / 0.22);
+    box-shadow: inset -2px 0 0 rgb(var(--ui-ink));
   }
 
   .hud-timeline__thumb {
@@ -1717,12 +1731,8 @@
     box-shadow: 0 0 0 3px rgb(var(--ui-focus) / 0.5);
   }
 
-  /* Who won each round, and the kills, drawn under the playhead. Off in Legacy. */
-  .hud-timeline__rounds,
-  .hud-timeline__kills {
-    display: none;
-  }
-
+  /* The match at a glance: each round tinted by who won it, every kill a tick in the killer's
+     colour (bright once played). */
   .hud-timeline__rounds,
   .hud-timeline__kills {
     position: absolute;
@@ -1734,6 +1744,7 @@
     position: absolute;
     top: 0;
     bottom: 0;
+    box-shadow: inset 1px 0 0 rgb(var(--ui-ground) / 0.6);
   }
 
   .hud-timeline__round[data-winner='blue'] {
@@ -1746,10 +1757,15 @@
 
   .hud-timeline__kill {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 1px;
-    background: rgb(var(--team, var(--ui-neutral)));
+    top: 20%;
+    bottom: 20%;
+    width: 2px;
+    background: rgb(var(--team-ink, var(--ui-ink-muted)));
+    opacity: 0.5;
+  }
+
+  .hud-timeline__kill[data-past='true'] {
+    opacity: 1;
   }
 
   .hud-timeline__marker {

@@ -5,8 +5,8 @@
  * face, the big health number first. Team colours and their worked-out shades are stv.tf's
  * (#d0453f / #4f8fc0, d70/d45 fills, w55 overheal), so a match looks the same in both.
  *
- * Signature: the playback bar docks full width along the bottom, and its track is the match
- * at a glance: each round tinted by who won it, every kill a tick in the killer's colour.
+ * Signature: the playback bar docks full width along the bottom, its track the match at a
+ * glance (rounds by winner, kills by killer; base.css) in stv.tf's team shades.
  */
 
 html[data-theme='modern'] {
@@ -364,11 +364,6 @@ html[data-theme='modern'] body {
   font-size: 10px;
 }
 
-[data-theme='modern'] .hud-player[data-focused='true'] {
-  box-shadow: inset 0 0 0 2px rgb(var(--ui-focus));
-  outline: 0;
-}
-
 [data-theme='modern'] .hud-player[data-kind='charge'] {
   height: 1.5rem;
 }
@@ -627,11 +622,6 @@ html[data-theme='modern'] body {
   overflow: hidden;
   border-radius: 2px;
   background: rgb(255 255 255 / 0.05);
-}
-
-[data-theme='modern'] .hud-timeline__rounds,
-[data-theme='modern'] .hud-timeline__kills {
-  display: block;
 }
 
 [data-theme='modern'] .hud-timeline__round {
