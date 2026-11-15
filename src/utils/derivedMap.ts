@@ -564,11 +564,7 @@ function legacyResult(mapName: string): DerivedMapResult | null {
   }
 }
 
-async function loadSharedAssets(
-  manifest: Pick<DerivedMapManifest, 'dependencies'> | BspInspection,
-  signal: AbortSignal,
-  stage: (stage: MapLoadStage) => void
-): Promise<{ index: SharedAssetPackIndex; assets: Map<string, Uint8Array> }> {
+async function fetchSharedIndex(signal: AbortSignal): Promise<SharedAssetPackIndex> {
   const indexResponse = await fetch(`/shared-assets/${SHARED_ASSET_PACK_VERSION}/index.json`, {
     signal,
   })
@@ -578,13 +574,21 @@ async function loadSharedAssets(
       `Shared Asset Pack index returned HTTP ${indexResponse.status}`
     )
   }
-  let index: SharedAssetPackIndex
   try {
-    index = validateSharedIndex(await indexResponse.json())
+    return validateSharedIndex(await indexResponse.json())
   } catch (error) {
     if (error instanceof MapResolutionError) throw error
     throw new MapResolutionError('MissingSharedAsset', 'Shared Asset Pack index is unavailable')
   }
+}
+
+async function loadSharedAssets(
+  manifest: Pick<DerivedMapManifest, 'dependencies'> | BspInspection,
+  signal: AbortSignal,
+  stage: (stage: MapLoadStage) => void,
+  knownIndex?: SharedAssetPackIndex
+): Promise<{ index: SharedAssetPackIndex; assets: Map<string, Uint8Array> }> {
+  const index = knownIndex ?? (await fetchSharedIndex(signal))
   const dependencies = 'dependencies' in manifest ? manifest.dependencies : manifest
   const embedded = new Set(dependencies.embedded)
   const pending = [
@@ -900,6 +904,18 @@ async function resolve(
       'This browser requires a Published Derived Map'
     )
 
+  // Every conversion needs the Shared Asset Pack, so its index is read before the BSP (often
+  // tens of MB) is downloaded: without it, the download would only end in this same failure.
+  const sharedIndex = await fetchSharedIndex(signal).catch(error => {
+    if (signal.aborted) throw new MapResolutionError('Cancelled', 'map load was superseded')
+    throw error instanceof MapResolutionError && error.code === 'MissingSharedAsset'
+      ? new MapResolutionError(
+          'MissingSharedAsset',
+          `${mapName} has no 3D model yet, and maps can't be built in the browser until the shared TF2 assets are published`
+        )
+      : error
+  })
+
   const bsp = localOverride
     ? new Uint8Array(await localOverride.arrayBuffer())
     : await downloadBsp(mapName, signal, stage)
@@ -946,7 +962,7 @@ async function resolve(
         'IntegrityFailure',
         'native browser hash and converter hash differ'
       )
-    const shared = await loadSharedAssets(inspection, signal, stage)
+    const shared = await loadSharedAssets(inspection, signal, stage, sharedIndex)
     stage({ name: 'convert' })
     const converted = parsePackage(
       await worker.convert(resourceBundle(shared.assets, shared.index), mapName)
