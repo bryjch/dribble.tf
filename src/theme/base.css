@@ -1145,6 +1145,7 @@
     font-weight: var(--ui-hud-weight);
     text-shadow: var(--ui-hud-text-shadow);
     transition:
+      width 0.2s ease,
       transform 0.15s,
       opacity 0.15s;
   }
@@ -2106,119 +2107,85 @@
     pointer-events: none;
   }
 
-  /* ─── Scoreboard ──────────────────────────────────────────────────────────── */
+  /* ─── Scoreboard: the rosters opened out ───────────────────────────────────── */
 
-  /* Held with Tab: both teams side by side, after stv.tf's; clear of a docked playback bar. */
-  .hud-scoreboard {
+  /* Tab (held) or a click on the score: each row widens to the name and the match stats, in
+     place of the health. The stats are one item, so RED's mirrored rows read left to right too. */
+  .hud-objective-btn {
+    cursor: pointer;
+  }
+
+  /* Over the scene, under the HUD (.ui-layer), which stays lit and usable. */
+  .hud-scoreboard-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1999999999;
+    background: rgb(var(--ui-scrim) / 0.55);
+    animation: hud-scrim-in 0.2s ease;
+  }
+
+  @keyframes hud-scrim-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  .hud-roster[data-expanded='true'] {
+    --ui-roster-width: min(30rem, 46vw);
+  }
+
+  .hud-roster[data-expanded='true'] .hud-player[data-kind='player'] .hud-player__hp {
+    display: none;
+  }
+
+  .hud-roster__head {
     display: flex;
-    width: 100%;
-    height: 100%;
     align-items: center;
-    justify-content: center;
-    padding: 1rem;
-    padding-bottom: calc(1rem + max(var(--ui-dock-clearance), var(--ui-strip-clearance)));
-    background: rgb(var(--ui-scrim) / 0.3);
-  }
-
-  .hud-scoreboard__card {
-    display: grid;
-    width: min(64rem, 100%);
-    max-height: 100%;
-    grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
-    gap: 0.75rem;
-    overflow: auto;
-    color: rgb(var(--ui-ink));
+    width: var(--ui-roster-width);
+    height: 1.75rem;
+    padding-left: calc(var(--ui-roster-height) + 0.5rem);
+    border-radius: var(--ui-radius-bar);
+    background: rgb(var(--ui-ground) / var(--ui-hud-alpha));
+    color: rgb(var(--ui-ink-muted));
     font-family: var(--ui-font-hud);
-  }
-
-  .hud-scoreboard__team {
-    min-width: 0;
-    overflow: hidden;
-    border: var(--ui-border-width) solid rgb(var(--ui-line) / var(--ui-line-alpha));
-    border-radius: var(--ui-radius-control);
-    background: rgb(var(--ui-ground) / var(--ui-panel-alpha));
-    box-shadow: var(--ui-shadow);
-  }
-
-  .hud-scoreboard__team-head {
-    display: flex;
-    align-items: baseline;
-    gap: 0.6rem;
-    padding: 0.45rem 0.75rem;
-    background: rgb(var(--team-fill));
-    color: rgb(var(--ui-ink-on-team));
-  }
-
-  .hud-scoreboard__team-name {
-    font-size: 1.1rem;
-    font-weight: 800;
+    font-size: 0.75rem;
+    font-weight: 700;
     letter-spacing: var(--ui-caps-tracking);
   }
 
-  .hud-scoreboard__team-score {
+  .hud-roster[data-team='red'] .hud-roster__head {
+    flex-direction: row-reverse;
+    padding-right: calc(var(--ui-roster-height) + 0.5rem);
+    padding-left: 0;
+  }
+
+  .hud-roster__team {
     flex: 1;
-    font-size: 1.4rem;
-    font-variant-numeric: tabular-nums;
+    color: rgb(var(--team-ink));
+    font-size: 0.9rem;
     font-weight: 800;
-    line-height: 1;
   }
 
-  .hud-scoreboard__team-count {
-    font-size: 0.75rem;
-    opacity: 0.85;
-  }
-
-  .hud-scoreboard__table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.8rem;
-  }
-
-  .hud-scoreboard__table th {
-    padding: 0.4rem 0.3rem 0.25rem;
-    color: rgb(var(--ui-ink-muted));
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-align: left;
-  }
-
-  .hud-scoreboard__table td {
-    padding: 0.25rem 0.3rem;
-    border-top: 1px solid rgb(var(--ui-line) / var(--ui-line-alpha));
-  }
-
-  .hud-scoreboard__table .hud-scoreboard__class {
-    width: 1.6rem;
-    padding-left: 0.6rem;
-  }
-
-  .hud-scoreboard__name {
-    max-width: 9rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .hud-scoreboard__table .hud-scoreboard__stat {
-    width: 1.75rem;
-    font-variant-numeric: tabular-nums;
+  .hud-roster[data-team='red'] .hud-roster__team {
     text-align: right;
   }
 
-  .hud-scoreboard__table .hud-scoreboard__stat[data-wide='true'] {
-    width: 3.4rem;
+  .hud-player__stats {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: row;
+    padding: 0 0.25rem;
   }
 
-  .hud-scoreboard__table .hud-scoreboard__stat:last-child {
-    padding-right: 0.75rem;
+  .hud-player__stat {
+    width: 2rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
   }
 
-  .hud-scoreboard__row[data-dead='true'] {
-    opacity: 0.55;
-  }
-
-  .hud-scoreboard__row[data-focused='true'] td {
-    background: rgb(var(--team) / 0.2);
+  .hud-player__stat[data-wide='true'] {
+    width: 3.25rem;
   }
 
   /* ─── Sticker palette ─────────────────────────────────────────────────────── */

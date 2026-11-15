@@ -19,6 +19,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { useStore, useInstance } from '@zus/store'
 import { applySetupAction } from '@zus/actions'
 import { useIsMobile } from '@utils/hooks'
+import { useMobileLayout } from '@components/Mobile/useMobileLayout'
 import { applyTheme } from '@theme/themes'
 
 const ViewerPage = () => {
@@ -28,6 +29,7 @@ const ViewerPage = () => {
   const setupCameraBridge = useInstance(state => state.setupCameraBridge)
   const pendingSharedSetup = useStore(state => state.setups.pendingSharedSetup)
   const isMobile = useIsMobile()
+  const mobileLayout = useMobileLayout()
   const theme = useStore(state => state.settings.ui.theme)
 
   // Shallow: the selector builds a new array every time, which would re-render on any change.
@@ -81,7 +83,10 @@ const ViewerPage = () => {
                 className="ui-toast pointer-events-none min-w-64"
                 role="status"
               >
-                <div className="ui-toast__progress" style={{ width: `${download.progress.toFixed(1)}%` }} />
+                <div
+                  className="ui-toast__progress"
+                  style={{ width: `${download.progress.toFixed(1)}%` }}
+                />
 
                 <div className="relative flex items-center gap-2.5">
                   <IoArrowForwardSharpIcon className="rotate-90 animate-bounce" />
@@ -122,7 +127,7 @@ const ViewerPage = () => {
       <UrlDemoNotice />
 
       {/* Camera tip panels overlays - hidden on mobile (keyboard shortcuts not relevant) */}
-      {!isMobile && (
+      {!isMobile && !mobileLayout.active && (
         <div className="ui-layer ui-tips pointer-events-none items-end justify-end overflow-hidden">
           <div className="ui-tips__stack pointer-events-none">
             <POVCameraTipPanel />

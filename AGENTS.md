@@ -27,6 +27,7 @@
 - `src/components/Scene/` — 3D scene rendering (World, Actors, Projectiles, Skybox, Lights)
 - `src/components/DemoViewer.tsx` — The viewer; playback runs in `Scene/PlaybackDriver.tsx` + `utils/playback.ts`
 - `src/components/UI/` — UI panels (PlaybackPanel, SettingsPanel)
+- `src/components/Mobile/` — the phone interface (Theater: team rails, Vaul sheets), in place of the desktop HUD on phones either way up; `?mobile` forces it at any size, `?mobile=off` keeps the desktop HUD (remembered in localStorage)
 - `src/zustand/store.ts` — Global state store
 - `public/models/players/` — Player model GLB files
 

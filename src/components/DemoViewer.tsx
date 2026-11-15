@@ -38,7 +38,6 @@ import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 import { MatchKillfeedPanel } from '@components/UI/MatchKillfeedPanel'
 import { BookmarksPanel } from '@components/UI/BookmarksPanel'
-import { Scoreboard } from '@components/UI/Scoreboard'
 import { SetupsPanel } from '@components/UI/SetupsPanel'
 import { FpsCounter } from '@components/UI/FpsCounter'
 import { Crosshair } from '@components/UI/Crosshair'
@@ -54,9 +53,12 @@ import {
   forceShowPanelAction,
   playbackJumpAction,
   setSceneRtsCenterAction,
+  setScoreboardOpenAction,
 } from '@zus/actions'
 import { isPerfLoggingEnabled, readJsHeapMemoryMb } from '@utils/misc'
 import { useIsMobile } from '@utils/hooks'
+import { MobileShell } from '@components/Mobile/MobileShell'
+import { useMobileLayout } from '@components/Mobile/useMobileLayout'
 import { cn } from '@utils/styling'
 import { ControlsMode, DrawingTool, SavedSetupCamera } from '@constants/types'
 import { getWorldIntersectionFromScreen } from '@utils/raycast'
@@ -544,11 +546,7 @@ const PanelToolbar = ({ hasDemoLoaded }: { hasDemoLoaded: boolean }) => {
   // One toolbar; each panel opens beside it, anchored to its top (see .ui-toolbar / .ui-panel).
   return (
     <div className={cn('ui-layer items-start justify-start', isMobile ? 'm-3' : 'm-4')}>
-      <nav
-        className="ui-toolbar"
-        aria-label="Panels"
-        data-mobile={isMobile ? 'true' : undefined}
-      >
+      <nav className="ui-toolbar" aria-label="Panels" data-mobile={isMobile ? 'true' : undefined}>
         <AboutPanel />
         <SettingsPanel />
         <SetupsPanel />
@@ -586,6 +584,8 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
   const showSkybox = useStore(state => state.settings.ui.showSkybox)
   const playerOutlines = useStore(state => state.settings.ui.playerOutlines)
   const showStats = useStore(state => state.settings.ui.showStats)
+  // Phones get their own interface in place of the HUD, toolbar and playback bar.
+  const mobile = useMobileLayout()
 
   // Force tabIndex (r3f seems to ignore it if provided in props) as this is how
   // we can ensure separation of Global and Canvas-only keyboard events when certain
@@ -700,17 +700,23 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
       </div>
 
       <div className="ui-layers">
-        <DoubleTapSeek />
+        {mobile.active ? (
+          <MobileShell landscape={mobile.landscape} match={demo} />
+        ) : (
+          <>
+            <DoubleTapSeek />
 
-        {demo && (
-          <div className="ui-layer mb-4 items-end justify-center text-center">
-            <PlaybackPanel />
-          </div>
+            {demo && (
+              <div className="ui-layer mb-4 items-end justify-center text-center">
+                <PlaybackPanel />
+              </div>
+            )}
+
+            <MatchHud match={demo} />
+
+            <PanelToolbar hasDemoLoaded={!!demo} />
+          </>
         )}
-
-        <MatchHud match={demo} />
-
-        <PanelToolbar hasDemoLoaded={!!demo} />
       </div>
     </div>
   )
@@ -735,6 +741,7 @@ const MatchHud = ({ match }: { match?: MatchSource }) => {
   benchCount('hudRender')
   const tick = useStore(state => state.playback.tick)
   const showObjectives = useStore(state => state.settings.ui.showObjectives !== false)
+  const scoreboardOpen = useStore(state => state.ui.scoreboardOpen)
   if (!match) return null
 
   const players = match.playersAt(tick).filter(isScenePlayer)
@@ -743,9 +750,23 @@ const MatchHud = ({ match }: { match?: MatchSource }) => {
 
   return (
     <>
+      {/* The scene dimmed behind the opened-out rosters; a click on it closes them */}
+      {scoreboardOpen && (
+        <div className="hud-scoreboard-scrim" onClick={() => setScoreboardOpenAction(false)} />
+      )}
+
       {objectives && (
         <div className="ui-layer m-4 items-start justify-center">
-          <ObjectiveHud state={objectives} players={players} />
+          {/* The score opens the rosters out into the scoreboard, as holding Tab does */}
+          <button
+            type="button"
+            className="hud-objective-btn"
+            title="Scoreboard (Tab)"
+            aria-label="Scoreboard"
+            onClick={() => setScoreboardOpenAction()}
+          >
+            <ObjectiveHud state={objectives} players={players} />
+          </button>
         </div>
       )}
 
@@ -762,17 +783,18 @@ const MatchHud = ({ match }: { match?: MatchSource }) => {
 
       {players.length > 0 && (
         <div className="ui-layer items-center justify-stretch">
-          <PlayerStatuses players={players} tick={tick} intervalPerTick={intervalPerTick} />
+          <PlayerStatuses
+            match={match}
+            players={players}
+            tick={tick}
+            intervalPerTick={intervalPerTick}
+          />
         </div>
       )}
 
       {players.length > 0 && (
         <FocusedPlayerLayer players={players} tick={tick} intervalPerTick={intervalPerTick} />
       )}
-
-      <div className="ui-layer">
-        <Scoreboard match={match} players={players} />
-      </div>
     </>
   )
 }

@@ -1,0 +1,830 @@
+/*
+ * ─── PHONE INTERFACE ────────────────────────────────────────────────────────────
+ *
+ * Everything here is drawn from the theme's tokens (tokens.css): surfaces, lines, corners,
+ * type and shadows, so Modern stays square and condensed, Mann Co. stays tan, Legacy stays
+ * round. The score, killfeed, team rails, POV card and scoreboard are the themes' own HUD
+ * pieces; this file only places and sizes them for a phone. Touch targets are px (40px and up).
+ */
+
+.m-shell {
+  --m-safe-t: env(safe-area-inset-top, 0px);
+  --m-safe-r: env(safe-area-inset-right, 0px);
+  --m-safe-b: env(safe-area-inset-bottom, 0px);
+  --m-safe-l: env(safe-area-inset-left, 0px);
+  --m-gutter: 8px;
+  --m-hud: rgb(var(--ui-ground) / var(--ui-hud-alpha));
+  --m-panel: rgb(var(--ui-ground) / var(--ui-panel-alpha));
+  --m-border: var(--ui-border-width) solid rgb(var(--ui-line) / var(--ui-line-alpha));
+
+  position: absolute;
+  inset: 0;
+  z-index: 2000000000;
+  pointer-events: none;
+  color: rgb(var(--ui-ink));
+  font-family: var(--ui-font-hud);
+  font-size: 14px;
+  line-height: 1.25;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.m-shell button,
+.m-shell [role='button'] {
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────────────── */
+
+.m-btn {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--m-btn);
+  height: var(--m-btn);
+  border-radius: var(--ui-radius-control);
+  color: rgb(var(--ui-ink));
+  font-family: var(--ui-font-hud);
+  font-weight: var(--ui-hud-weight);
+  transition:
+    transform 0.12s ease,
+    background-color 0.15s ease;
+}
+
+.m-btn:active {
+  transform: scale(0.93);
+}
+
+.m-btn svg {
+  width: calc(var(--m-btn) * 0.42);
+  height: calc(var(--m-btn) * 0.42);
+}
+
+.m-btn[data-size='sm'] {
+  --m-btn: 40px;
+}
+.m-btn[data-size='md'] {
+  --m-btn: 48px;
+}
+.m-btn[data-size='lg'] {
+  --m-btn: 60px;
+}
+.m-btn[data-size='xl'] {
+  --m-btn: 72px;
+}
+
+.m-btn[data-variant='solid'] {
+  border: var(--m-border);
+  background: var(--m-hud);
+  box-shadow: var(--ui-shadow);
+}
+
+/* Play and seek: the theme's transport shape (round in Legacy, square in Modern). */
+.m-btn[data-variant='accent'],
+.m-theater__center .m-btn {
+  border-radius: var(--ui-radius-transport);
+}
+
+.m-btn[data-variant='accent'] {
+  background: rgb(var(--ui-accent));
+  color: rgb(var(--ui-accent-ink));
+  box-shadow: var(--ui-shadow);
+}
+
+.m-btn[data-variant='ghost'] {
+  text-shadow: var(--ui-hud-text-shadow);
+}
+
+.m-btn[data-variant='ghost'] svg {
+  filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.6));
+}
+
+.m-btn[data-variant='ghost']:active {
+  background: rgb(var(--ui-raised) / 0.12);
+}
+
+.m-btn[data-active='true'] {
+  color: rgb(var(--ui-warn));
+}
+
+.m-btn:has(.m-camera-chip) {
+  width: auto;
+  padding: 0 12px;
+}
+
+.m-camera-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  letter-spacing: var(--ui-caps-tracking);
+  text-transform: uppercase;
+}
+
+.m-btn .m-camera-chip svg {
+  width: 18px;
+  height: 18px;
+}
+
+.m-speed {
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.m-seek-icon {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.m-seek-icon > span {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* ─── Segmented control ───────────────────────────────────────────────────────── */
+
+.m-seg {
+  display: inline-flex;
+  padding: 3px;
+  border: var(--m-border);
+  border-radius: var(--ui-radius-control);
+  background: var(--m-hud);
+  box-shadow: var(--ui-shadow);
+  pointer-events: auto;
+}
+
+.m-seg__item {
+  min-width: 52px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: calc(var(--ui-radius-control) * 0.75);
+  color: rgb(var(--ui-ink-muted));
+  font-family: var(--ui-font-hud);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: var(--ui-caps-tracking);
+  text-transform: uppercase;
+}
+
+.m-seg__item[data-active='true'] {
+  background: rgb(var(--ui-accent));
+  color: rgb(var(--ui-accent-ink));
+}
+
+/* ─── Scrubber: rounds by winner, kills by killer, as the theme's timeline ──── */
+
+.m-scrub {
+  position: relative;
+  min-width: 0;
+  pointer-events: auto;
+}
+
+.m-scrub__root {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 36px; /* the hit area: the track inside is thin */
+  touch-action: none;
+}
+
+.m-scrub__track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  overflow: visible;
+  border-radius: var(--ui-radius-chip);
+  background: rgb(var(--ui-raised) / 0.2);
+  transition: height 0.15s ease;
+}
+
+.m-scrub[data-dragging='true'] .m-scrub__track {
+  height: 10px;
+}
+
+.m-scrub__round {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 2px solid rgb(var(--ui-ground));
+}
+
+.m-scrub__round:first-child {
+  border-left: 0;
+}
+
+.m-scrub__round[data-winner='blue'] {
+  background: rgb(var(--ui-blu-fill) / 0.45);
+}
+.m-scrub__round[data-winner='red'] {
+  background: rgb(var(--ui-red-fill) / 0.5);
+}
+
+.m-scrub__range {
+  position: absolute;
+  height: 100%;
+  border-radius: var(--ui-radius-chip);
+  background: rgb(var(--ui-accent) / 0.85);
+}
+
+.m-scrub__kill {
+  position: absolute;
+  top: 50%;
+  width: 2px;
+  height: 10px;
+  transform: translate(-1px, -50%);
+  background: rgb(var(--ui-ink-faint));
+  pointer-events: none;
+}
+
+.m-scrub__kill[data-team='blue'] {
+  background: rgb(var(--ui-blu-ink));
+}
+.m-scrub__kill[data-team='red'] {
+  background: rgb(var(--ui-red-ink));
+}
+
+.m-scrub__bookmark {
+  position: absolute;
+  top: -7px;
+  width: 6px;
+  height: 6px;
+  transform: translateX(-3px) rotate(45deg);
+  background: rgb(var(--ui-warn));
+}
+
+.m-scrub__thumb {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--ui-radius-point);
+  background: rgb(var(--ui-accent));
+  box-shadow:
+    0 0 0 4px rgb(var(--ui-accent) / 0.25),
+    0 2px 6px rgb(0 0 0 / 0.5);
+  outline: none;
+  transition: transform 0.12s ease;
+}
+
+.m-scrub[data-dragging='true'] .m-scrub__thumb {
+  transform: scale(1.25);
+}
+
+.m-scrub__bubble {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  padding: 4px 8px;
+  transform: translateX(-50%);
+  border: var(--m-border);
+  border-radius: var(--ui-radius-chip);
+  background: var(--m-panel);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.m-time {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-shadow: var(--ui-hud-text-shadow);
+  white-space: nowrap;
+}
+
+.m-time__total {
+  color: rgb(var(--ui-ink-muted));
+  font-weight: 600;
+}
+
+.m-rounds {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.m-rounds__chip {
+  flex-shrink: 0;
+  min-width: 32px;
+  height: 32px;
+  border-radius: var(--ui-radius-chip);
+  background: var(--m-hud);
+  color: rgb(var(--ui-ink-muted));
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.m-rounds__chip[data-reached='true'] {
+  color: rgb(var(--ui-ink-on-team));
+}
+.m-rounds__chip[data-winner='blue'][data-reached='true'] {
+  background: rgb(var(--ui-blu));
+}
+.m-rounds__chip[data-winner='red'][data-reached='true'] {
+  background: rgb(var(--ui-red));
+}
+
+/* ─── Team rails: the theme's roster rows, narrowed ───────────────────────────── */
+
+/* Doubled class: beats a theme's own .hud-roster margin (Modern's 10px). */
+.m-shell .hud-roster.m-rail {
+  justify-content: center;
+  margin: 0 2px;
+  pointer-events: none;
+}
+
+.m-rail[data-team='blue'] {
+  left: var(--m-safe-l);
+}
+.m-rail[data-team='red'] {
+  right: var(--m-safe-r);
+}
+
+/* Collapsed: class and health only, in either orientation. Names come with the scoreboard. */
+.m-rail:not([data-expanded]) {
+  --ui-roster-width: 80px;
+}
+
+.m-rail:not([data-expanded]) .hud-player__name,
+.m-rail:not([data-expanded]) .hud-player__tag {
+  display: none;
+}
+
+.m-shell .m-rail[data-expanded] {
+  --ui-roster-width: min(42vw, 360px);
+}
+
+@media (orientation: portrait) {
+  .m-shell .m-rail[data-expanded] {
+    --ui-roster-width: calc(50vw - 6px);
+  }
+}
+
+.m-rail .hud-player {
+  font-size: 13px;
+  transition:
+    width 0.22s ease,
+    transform 0.15s,
+    opacity 0.15s;
+}
+
+.m-rail .hud-player .hud-player__hp {
+  width: auto;
+  min-width: 0;
+  padding: 0 6px;
+  font-size: clamp(13px, calc(var(--ui-roster-height) * 0.5), 19px);
+}
+
+.m-rail .hud-player .hud-player__respawn {
+  font-size: 12px;
+}
+
+/* Medics' charge, shorter rows under the team. */
+.m-rail .hud-player[data-kind='charge'] {
+  height: calc(var(--ui-roster-height) * 0.62);
+}
+
+.m-rail .hud-player[data-kind='charge'] .hud-player__name,
+.m-rail .hud-player[data-kind='charge'] .hud-player__hp {
+  font-size: 11px;
+}
+
+.m-rail__break {
+  height: 4px;
+}
+
+/* Opened out: the shared scoreboard hooks (base.css), sized for a phone. */
+.m-rail .hud-roster__head {
+  height: 24px;
+  font-size: 11px;
+}
+
+.m-rail .hud-roster__team {
+  font-size: 13px;
+}
+
+.m-rail .hud-player__stat {
+  width: 26px;
+  font-size: 13px;
+}
+
+.m-rail .hud-player__stat[data-wide='true'] {
+  width: 44px;
+}
+
+/* Healing doesn't fit beside damage on a phone; upright, only kills and deaths do. */
+.m-rail .hud-player__stat[data-col='healing'] {
+  display: none;
+}
+
+@media (orientation: portrait) {
+  .m-rail .hud-player__stat[data-col='assists'],
+  .m-rail .hud-player__stat[data-col='damage'] {
+    display: none;
+  }
+}
+
+/* ─── Score, killfeed, POV card ───────────────────────────────────────────────── */
+
+.m-score-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  outline: none;
+  -webkit-touch-callout: none;
+}
+
+.m-score-btn:active .hud-objective {
+  transform: scale(0.96);
+}
+
+.m-score-btn .hud-objective {
+  transition: transform 0.12s ease;
+}
+
+.m-score-btn__hint {
+  color: rgb(var(--ui-ink-muted));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: var(--ui-caps-tracking);
+  text-shadow: var(--ui-hud-text-shadow);
+  text-transform: uppercase;
+  transition: opacity 0.25s ease;
+}
+
+.m-score-fallback {
+  padding: 6px 12px;
+  border-radius: var(--ui-radius-chip);
+  background: var(--m-hud);
+}
+
+/* Top right, as on desktop. Sideways it starts at the top edge, under the camera switch (which
+   is only up while the controls are), and stays clear of the score; upright the score leaves no
+   room beside it, so it starts just under the top row, above the RED rail. */
+.m-theater__killfeed {
+  position: absolute;
+  top: calc(var(--m-safe-t) + 84px);
+  right: calc(var(--m-safe-r) + var(--m-gutter));
+  left: calc(var(--m-safe-l) + var(--m-gutter));
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+[data-landscape] .m-theater__killfeed {
+  top: calc(var(--m-safe-t) + var(--m-gutter));
+  left: auto;
+  width: calc(50vw - 110px);
+}
+
+.m-theater__killfeed .hud-killfeed {
+  align-items: flex-end;
+  max-width: 100%;
+  gap: 3px;
+  font-size: 12px;
+}
+
+.m-theater__killfeed .hud-kill {
+  max-width: 100%;
+  padding: 3px 8px;
+  pointer-events: auto;
+}
+
+.m-theater__killfeed .hud-kill__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.m-theater__killfeed .hud-kill:nth-last-child(n + 4) {
+  display: none;
+}
+
+/* ─── Sheet (Vaul), dressed as the theme's panels ─────────────────────────────── */
+
+.m-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000000002;
+  background: rgb(var(--ui-scrim) / 0.5);
+}
+
+.m-sheet {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 2000000003;
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 680px);
+  max-height: 88dvh;
+  margin-inline: auto;
+  border-top: var(--ui-border-width) solid rgb(var(--ui-line) / var(--ui-line-alpha));
+  border-radius: var(--ui-radius-panel) var(--ui-radius-panel) 0 0;
+  background: rgb(var(--ui-ground) / var(--ui-panel-alpha));
+  box-shadow: 0 -12px 40px rgb(0 0 0 / 0.45);
+  color: rgb(var(--ui-ink));
+  font-family: var(--ui-font-body);
+  font-size: 14px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+[data-theme='modern'] .m-sheet {
+  background: rgb(30 33 37 / 0.98); /* stv.tf's sidebar, as Modern's panels */
+}
+
+.m-sheet--snapping {
+  /* Vaul measures snap offsets from the top of the screen, so the sheet must start there. */
+  height: 100dvh;
+  max-height: none;
+}
+
+.m-sheet__grip {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: center;
+  height: 18px;
+  padding-top: 7px;
+}
+
+.m-sheet__handle {
+  width: 40px;
+  height: 5px;
+  border-radius: 999px;
+  background: rgb(var(--ui-ink) / 0.3);
+}
+
+.m-sheet__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 10px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.m-tabs {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 4px 10px 0;
+  overflow-x: auto;
+  border-bottom: 1px solid rgb(var(--ui-line) / var(--ui-line-alpha));
+  scrollbar-width: none;
+}
+
+.m-tabs__tab {
+  flex-shrink: 0;
+  height: 42px;
+  padding: 0 12px;
+  border-bottom: 2px solid transparent;
+  color: rgb(var(--ui-ink-muted));
+  font-family: var(--ui-font-hud);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: var(--ui-caps-tracking);
+  text-transform: uppercase;
+}
+
+.m-tabs__tab[data-active='true'] {
+  border-bottom-color: rgb(var(--ui-accent));
+  color: rgb(var(--ui-ink));
+}
+
+.m-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.m-field__label {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ─── Double-tap ripple ───────────────────────────────────────────────────────── */
+
+.m-ripple {
+  position: absolute;
+  inset: 0 50% 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.m-ripple[data-side='right'] {
+  inset: 0 0 0 50%;
+}
+
+.m-ripple__bubble {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 18px 22px;
+  border-radius: var(--ui-radius-transport);
+  background: rgb(var(--ui-ground) / 0.55);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.m-ripple__bubble svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* ─── No demo yet ─────────────────────────────────────────────────────────────── */
+
+.m-nodemo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.m-nodemo__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 52px;
+  padding: 0 22px;
+  border-radius: var(--ui-radius-control);
+  background: rgb(var(--ui-accent));
+  color: rgb(var(--ui-accent-ink));
+  font-family: var(--ui-font-hud);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* ═══ THEATER ═══════════════════════════════════════════════════════════════════ */
+
+[data-variant='theater'] {
+  --m-rail-w: 80px;
+}
+
+[data-variant='theater'] .m-fade {
+  transition: opacity 0.25s ease;
+}
+
+[data-variant='theater']:not([data-chrome]) .m-fade,
+[data-variant='theater']:not([data-chrome]) .m-score-btn__hint {
+  opacity: 0;
+  pointer-events: none;
+}
+
+[data-variant='theater']:not([data-chrome]) .m-fade * {
+  pointer-events: none;
+}
+
+.m-theater__scrim {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(rgb(0 0 0 / 0.4), transparent 20%),
+    linear-gradient(transparent 62%, rgb(0 0 0 / 0.55));
+  opacity: 0;
+  transition:
+    opacity 0.25s ease,
+    background-color 0.25s ease;
+}
+
+[data-variant='theater'][data-chrome] .m-theater__scrim {
+  opacity: 1;
+}
+
+/* Rails opened out: dim the match behind them. */
+[data-variant='theater'][data-expanded] .m-theater__scrim {
+  background-color: rgb(var(--ui-scrim) / 0.55);
+  opacity: 1;
+}
+
+[data-variant='theater'][data-expanded] .m-theater__center,
+[data-variant='theater'][data-expanded] .m-theater__killfeed,
+[data-variant='theater'][data-expanded] .m-theater__focused {
+  visibility: hidden;
+}
+
+.m-theater__top {
+  position: absolute;
+  inset: calc(var(--m-safe-t) + var(--m-gutter)) calc(var(--m-safe-r) + var(--m-gutter)) auto
+    calc(var(--m-safe-l) + var(--m-gutter));
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 8px;
+}
+
+.m-theater__top > :last-child {
+  justify-self: end;
+}
+
+.m-theater__center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transform: translate(-50%, -50%);
+}
+
+[data-landscape] .m-theater__center {
+  gap: 28px;
+}
+
+.m-theater__center .m-btn[data-variant='ghost'] {
+  background: rgb(var(--ui-ground) / 0.45);
+}
+
+.m-theater__bottom {
+  position: absolute;
+  inset: auto calc(var(--m-safe-r) + var(--m-gutter)) var(--m-safe-b)
+    calc(var(--m-safe-l) + var(--m-gutter));
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The bar folds away when the controls hide, so what sits above it (the POV card) drops down. */
+.m-theater__bar-wrap {
+  display: grid;
+  grid-template-rows: 1fr;
+  align-self: stretch;
+  transition: grid-template-rows 0.25s ease;
+}
+
+[data-variant='theater']:not([data-chrome]) .m-theater__bar-wrap {
+  grid-template-rows: 0fr;
+}
+
+.m-theater__bar {
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 12px;
+}
+
+/* The desktop's POV card (.hud-focused), kept clear of the bottom edge and the hairline. */
+.m-theater__focused {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 4px;
+  pointer-events: none;
+}
+
+[data-variant='theater']:not([data-chrome]) .m-theater__focused {
+  padding-bottom: 14px;
+}
+
+/* Its empty respawn line would push it up for nothing; keep the room only while respawning. */
+.m-theater__focused .hud-focused > .h-12:empty {
+  display: none;
+}
+
+/* The card is centred with the health hanging off its left: on an upright phone, centre the pair. */
+@media (orientation: portrait) {
+  .m-theater__focused .hud-focused {
+    transform: translateX(1.5rem);
+  }
+}
+
+.m-theater__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.m-theater__hairline {
+  position: absolute;
+  inset: auto calc(-1 * var(--m-gutter)) 0;
+  height: 3px;
+  background: rgb(var(--ui-raised) / 0.2);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.m-theater__hairline i {
+  display: block;
+  height: 100%;
+  background: rgb(var(--ui-accent));
+}
+
+[data-variant='theater']:not([data-chrome]) .m-theater__hairline {
+  opacity: 1;
+}

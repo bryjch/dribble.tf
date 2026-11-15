@@ -15,7 +15,6 @@ import {
 import { getDurationFromTicks } from '@utils/parser'
 import { killIconUrl } from '@utils/killIcons'
 
-
 const teamIdToName = (teamId: number): string => {
   if (teamId === 2) return 'red'
   if (teamId === 3) return 'blue'
@@ -29,15 +28,13 @@ type PanelEvent = AnnotatedMatchKillEvent | MatchUberEvent
 /** 2K, 3K, 4K+: how hot a streak row runs (see .ui-event-row[data-streak]). */
 const streakLevel = (streakCount: number) => (streakCount >= 4 ? 4 : streakCount)
 
-export const MatchKillfeedPanel = () => {
-  const isOpen = useStore(state => state.ui.activePanels.includes('MatchKillfeed'))
+/** Every kill and über of the match, filtered by a player name, for the events list. */
+export const useMatchEvents = () => {
   const parser = useInstance(state => state.match)
 
   const [filterText, setFilterText] = useState('')
 
   const tickRate = parser?.intervalPerTick ? 1 / parser.intervalPerTick : 66.67
-
-  const toggleUIPanel = () => toggleOnlyUIPanelAction('MatchKillfeed')
 
   const events = useMemo(() => {
     if (!parser) return []
@@ -69,6 +66,16 @@ export const MatchKillfeedPanel = () => {
     jumpToPlayerPOVCamera(entityId)
   }
 
+  return { events, filteredEvents, filterText, setFilterText, seekToPlayer, tickRate }
+}
+
+export const MatchKillfeedPanel = () => {
+  const isOpen = useStore(state => state.ui.activePanels.includes('MatchKillfeed'))
+  const matchEvents = useMatchEvents()
+  const { events, filteredEvents, filterText } = matchEvents
+
+  const toggleUIPanel = () => toggleOnlyUIPanelAction('MatchKillfeed')
+
   return (
     <div className="flex items-start">
       <TogglePanelButton onClick={toggleUIPanel} active={isOpen} label="Match events">
@@ -83,49 +90,67 @@ export const MatchKillfeedPanel = () => {
         isOpen={isOpen}
         onClickClose={toggleUIPanel}
       >
-        <div className="relative mb-3">
-          <input
-            type="text"
-            placeholder="Filter by player name"
-            aria-label="Filter by player name"
-            value={filterText}
-            onChange={e => setFilterText(e.target.value)}
-            className="ui-input w-full pr-8"
-          />
-          {filterText && (
-            <button
-              className="ui-icon-btn absolute right-1.5 top-1/2 -translate-y-1/2"
-              aria-label="Clear filter"
-              onClick={() => setFilterText('')}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
-                <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-              </svg>
-            </button>
-          )}
-        </div>
-
-        {filteredEvents.length === 0 && (
-          <div className="ui-empty-note">
-            {filterText ? `No kills or ubers involve “${filterText}”.` : 'No kills or ubers yet.'}
-          </div>
-        )}
-
-        <div className="flex flex-col gap-px">
-          {filteredEvents.map((event, index) => (
-            <MatchEventRow
-              key={`${event.type}-${event.tick}-${index}`}
-              event={event}
-              tickRate={tickRate}
-              onSeek={seekToPlayer}
-              onFilter={setFilterText}
-            />
-          ))}
-        </div>
+        <MatchEventsList {...matchEvents} />
       </TogglePanel>
     </div>
   )
 }
+
+/** The filter box and the rows; the state lives in useMatchEvents so a header can show the count. */
+export const MatchEventsList = ({
+  filteredEvents,
+  filterText,
+  setFilterText,
+  seekToPlayer,
+  tickRate,
+}: ReturnType<typeof useMatchEvents>) => (
+  <>
+    <div className="relative mb-3">
+      <input
+        type="text"
+        placeholder="Filter by player name"
+        aria-label="Filter by player name"
+        value={filterText}
+        onChange={e => setFilterText(e.target.value)}
+        className="ui-input w-full pr-8"
+      />
+      {filterText && (
+        <button
+          className="ui-icon-btn absolute right-1.5 top-1/2 -translate-y-1/2"
+          aria-label="Clear filter"
+          onClick={() => setFilterText('')}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-4 w-4"
+          >
+            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+          </svg>
+        </button>
+      )}
+    </div>
+
+    {filteredEvents.length === 0 && (
+      <div className="ui-empty-note">
+        {filterText ? `No kills or ubers involve “${filterText}”.` : 'No kills or ubers yet.'}
+      </div>
+    )}
+
+    <div className="flex flex-col gap-px">
+      {filteredEvents.map((event, index) => (
+        <MatchEventRow
+          key={`${event.type}-${event.tick}-${index}`}
+          event={event}
+          tickRate={tickRate}
+          onSeek={seekToPlayer}
+          onFilter={setFilterText}
+        />
+      ))}
+    </div>
+  </>
+)
 
 // ─── EVENT ROW ──────────────────────────────────────────────────────────────────
 
@@ -174,7 +199,11 @@ const KillRow = ({ event, timestamp, onSeek, onFilter }: KillRowProps) => {
   const filterName = killer && killer !== victim ? killer.user.name : victim.user.name
 
   return (
-    <div className="ui-event-row" data-kind="kill" data-streak={streak ? streakLevel(streak.streakCount) : undefined}>
+    <div
+      className="ui-event-row"
+      data-kind="kill"
+      data-streak={streak ? streakLevel(streak.streakCount) : undefined}
+    >
       <span className="ui-time w-12">{timestamp}</span>
       <FilterButton onClick={() => onFilter(filterName)} />
 

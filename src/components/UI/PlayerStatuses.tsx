@@ -1,5 +1,6 @@
 import { clamp } from 'lodash'
 
+import type { MatchSource, ScoreLine } from '@components/Analyse/Data/MatchSource'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
 import { ClassIcon } from '@components/UI/ClassIcon'
 import { MEDIGUN_LABELS, UBERED_LABELS } from '@components/UI/ConditionBadges'
@@ -8,14 +9,79 @@ import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
 import { focusMainCanvas } from '@utils/misc'
 import { useIsMobile } from '@utils/hooks'
 
-import { useInstance } from '@zus/store'
+import { useInstance, useStore } from '@zus/store'
 import { jumpToPlayerPOVCamera } from '@zus/actions'
 
 //
 // ─── PLAYER STATUSES ────────────────────────────────────────────────────────────
 //
 
+//
+// Tab (held), or a click on the score, opens the rosters out into a scoreboard: each row
+// widens to the player's name and their kills, deaths, assists, damage and healing, in place
+// of their health. The phone's team rails (Mobile/Rails) are these rosters too.
+//
+
+export interface StatColumn {
+  key: keyof ScoreLine
+  label: string
+  title: string
+  wide?: boolean
+}
+
+const STAT_COLUMNS: (StatColumn & { counted?: boolean })[] = [
+  { key: 'kills', label: 'K', title: 'Kills' },
+  { key: 'deaths', label: 'D', title: 'Deaths' },
+  { key: 'assists', label: 'A', title: 'Assists' },
+  // Counted from damage and heal events, which older SourceTV demos do not record.
+  { key: 'damage', label: 'DMG', title: 'Damage dealt', wide: true, counted: true },
+  { key: 'healing', label: 'HEAL', title: 'Healing given', wide: true, counted: true },
+]
+
+export const EMPTY_LINE: ScoreLine = {
+  points: 0,
+  kills: 0,
+  deaths: 0,
+  assists: 0,
+  damage: 0,
+  healing: 0,
+  ping: 0,
+}
+
+/** Whether the match has any damage or healing by its last tick: older demos have none. */
+const hasCountedColumns = (match: MatchSource) => {
+  for (const line of match.scoresAt(match.ticks - 1).values()) {
+    if (line.damage > 0 || line.healing > 0) return true
+  }
+  return false
+}
+
+/** The columns an opened-out roster shows for this match. */
+export const statColumns = (match: MatchSource): StatColumn[] =>
+  hasCountedColumns(match) ? STAT_COLUMNS : STAT_COLUMNS.filter(column => !column.counted)
+
+/** The labels over an opened-out roster's columns, in line with its rows. */
+export const RosterHead = ({ team, columns }: { team: 'blue' | 'red'; columns: StatColumn[] }) => (
+  <div className="hud-roster__head" aria-hidden>
+    <span className="hud-roster__team">{team === 'blue' ? 'BLU' : 'RED'}</span>
+    <span className="hud-player__stats">
+      {columns.map(column => (
+        <span
+          key={column.key}
+          className="hud-player__stat"
+          data-col={column.key}
+          data-wide={column.wide ? 'true' : undefined}
+          title={column.title}
+        >
+          {column.label}
+        </span>
+      ))}
+    </span>
+  </div>
+)
+
 export interface PlayerStatusesProps {
+  match: MatchSource
   players: CachedPlayer[]
   tick: number
   intervalPerTick: number
@@ -26,8 +92,11 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
   const bluePlayers: CachedPlayer[] = []
   const redPlayers: CachedPlayer[] = []
 
-  const { players, tick, intervalPerTick } = props
+  const { match, players, tick, intervalPerTick } = props
   const focusedEntityId = useInstance(state => state?.focusedObject?.userData?.entityId)
+  const expanded = useStore(state => state.ui.scoreboardOpen)
+  const columns = expanded ? statColumns(match) : undefined
+  const scores = expanded ? match.scoresAt(tick) : null
 
   for (const player of players) {
     if (player.team === 'blue') bluePlayers.push(player)
@@ -41,16 +110,18 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
           <div key={team} className="contents">
             {teamIndex === 1 && <div className="hud-strip__divider" />}
             <div className="hud-strip__team" data-team={team}>
-              {(team === 'blue' ? bluePlayers : redPlayers).sort(sortPlayersByClassId).map((player, index) => (
-                <MobileStatusItem
-                  key={`${team}-mobile-${index}`}
-                  player={player}
-                  team={team}
-                  focused={focusedEntityId === player.user.entityId}
-                  tick={tick}
-                  intervalPerTick={intervalPerTick}
-                />
-              ))}
+              {(team === 'blue' ? bluePlayers : redPlayers)
+                .sort(sortPlayersByClassId)
+                .map((player, index) => (
+                  <MobileStatusItem
+                    key={`${team}-mobile-${index}`}
+                    player={player}
+                    team={team}
+                    focused={focusedEntityId === player.user.entityId}
+                    tick={tick}
+                    intervalPerTick={intervalPerTick}
+                  />
+                ))}
             </div>
           </div>
         ))}
@@ -67,7 +138,15 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
         const roster = (team === 'blue' ? bluePlayers : redPlayers).sort(sortPlayersByClassId)
         const medics = team === 'blue' ? blueMedics : redMedics
         return (
-          <div key={team} className="hud-roster" data-team={team} aria-label={`${team === 'blue' ? 'BLU' : 'RED'} players`}>
+          <div
+            key={team}
+            className="hud-roster"
+            data-team={team}
+            data-expanded={expanded ? 'true' : undefined}
+            aria-label={`${team === 'blue' ? 'BLU' : 'RED'} players`}
+          >
+            {columns && <RosterHead team={team} columns={columns} />}
+
             {roster.map((player, index) => (
               <StatusItem
                 key={`${team}-player-status-item-${index}`}
@@ -78,6 +157,8 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
                 focused={focusedEntityId === player.user.entityId}
                 tick={tick}
                 intervalPerTick={intervalPerTick}
+                columns={columns}
+                line={scores?.get(player.user.entityId) ?? EMPTY_LINE}
               />
             ))}
 
@@ -166,10 +247,16 @@ export interface StatusItemProps {
   focused?: boolean
   tick: number
   intervalPerTick: number
+  /** Opened out: these stats from line, in place of the health. */
+  columns?: StatColumn[]
+  line?: ScoreLine
+  /** The class icon's size, px; the theme's default if left out. */
+  iconSize?: number
 }
 
 export const StatusItem = (props: StatusItemProps) => {
-  const { player, type, team, alignment, focused, tick, intervalPerTick } = props
+  const { player, type, team, alignment, focused, tick, intervalPerTick, columns, line, iconSize } =
+    props
   let name, health, percentage, icon
 
   switch (type) {
@@ -177,7 +264,7 @@ export const StatusItem = (props: StatusItemProps) => {
       name = player.user.name
       health = player.health
       percentage = parseClassHealth(player.classId, health).percentage
-      icon = <ClassIcon classId={player.classId} />
+      icon = <ClassIcon classId={player.classId} size={iconSize} />
       break
 
     case 'uber':
@@ -189,7 +276,8 @@ export const StatusItem = (props: StatusItemProps) => {
       break
   }
   // A charge in use: the player's card (and the medic's charge bar while releasing) is striped.
-  const charged = type === 'player' ? player.ubered : player.medigun?.releasing ? player.ubered : null
+  const charged =
+    type === 'player' ? player.ubered : player.medigun?.releasing ? player.ubered : null
 
   const onClickItem = async () => {
     const entityId = player?.user?.entityId || null
@@ -218,19 +306,42 @@ export const StatusItem = (props: StatusItemProps) => {
       <div className="hud-player__bar">
         <div className="hud-player__fill" style={{ width: `${clamp(percentage, 0, 100)}%` }} />
         {charged && <div className="hud-player__stripes" />}
-        <div className="hud-player__overheal" style={{ width: `${clamp(percentage - 100, 0, 100)}%` }} />
+        <div
+          className="hud-player__overheal"
+          style={{ width: `${clamp(percentage - 100, 0, 100)}%` }}
+        />
 
         <div className="hud-player__name">{name}</div>
 
-        {type === 'player' && charged && <div className="hud-player__tag">{UBERED_LABELS[charged]}</div>}
+        {type === 'player' && charged && (
+          <div className="hud-player__tag">{UBERED_LABELS[charged]}</div>
+        )}
 
         <div className="hud-player__spacer" />
+
+        {/* One item, so the columns read left to right on RED's mirrored rows too */}
+        {type === 'player' && columns && line && (
+          <span className="hud-player__stats">
+            {columns.map(column => (
+              <span
+                key={column.key}
+                className="hud-player__stat"
+                data-col={column.key}
+                data-wide={column.wide ? 'true' : undefined}
+              >
+                {line[column.key]}
+              </span>
+            ))}
+          </span>
+        )}
 
         <div className="hud-player__hp">
           {health > 0 && (type === 'uber' ? `${Math.floor(health)}%` : health)}
           {health === 0 && type === 'uber' && '0%'}
           {health === 0 && type === 'player' && (
-            <span className="hud-player__respawn">{respawnSecs != null ? respawnSecs : 'Dead'}</span>
+            <span className="hud-player__respawn">
+              {respawnSecs != null ? respawnSecs : 'Dead'}
+            </span>
           )}
         </div>
       </div>
