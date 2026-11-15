@@ -1,0 +1,4 @@
+[toolchain]
+# stvtf follows the latest stable Rust; move this with it.
+channel = "1.100.0"
+targets = ["wasm32-unknown-unknown"]

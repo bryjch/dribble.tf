@@ -1,10 +1,22 @@
-import { AsyncParser, CachedDeath } from './AsyncParser'
+import { AsyncParser } from './AsyncParser'
 import { CachedPlayer, PlayerCache } from './PlayerCache'
 import { CachedProjectile } from './ProjectileCache'
 import { PlayerMeta } from './PlayerMetaCache'
 import { getMapBoundaries } from '../MapBoundaries'
-import { ChatEntry, PlayerRef, TeamName, Vector } from './Types'
+import { Vector } from './Types'
 import type { MatchUberEvent } from '@utils/matchEvents'
+import {
+  CLASS_IDS,
+  StreamMessage,
+  TEAM_IDS,
+  teamName,
+  toChatEntry,
+  toDeath,
+  toRound,
+  toUberPop,
+} from './StreamEvents'
+
+export type { StreamMessage }
 
 //
 // ─── LIVE MATCH SOURCE ──────────────────────────────────────────────────────────
@@ -42,20 +54,6 @@ const TRIM_FRAMES = 60 * 17
 // Server ticks going back this far are a new map or a server restart, not jitter.
 const TICK_RESET = 200
 
-const CLASS_IDS: Record<string, number> = {
-  scout: 1,
-  sniper: 2,
-  soldier: 3,
-  demoman: 4,
-  medic: 5,
-  heavy: 6,
-  pyro: 7,
-  spy: 8,
-  engineer: 9,
-}
-
-const TEAM_IDS: Record<string, number> = { spectator: 1, red: 2, blue: 3 }
-
 // Only what dribble.tf has models for; see ProjectileTypeMap.
 const PROJECTILE_TYPES: Record<string, number> = {
   Rocket: 1,
@@ -66,17 +64,7 @@ const PROJECTILE_TYPES: Record<string, number> = {
   HealingArrow: 4,
 }
 
-const CHAT_PREFIXES: Record<string, string> = {
-  ChatTeam: '(TEAM) ',
-  ChatAllDead: '*DEAD* ',
-  ChatTeamDead: '*DEAD*(TEAM) ',
-  ChatAllSpec: '*SPEC* ',
-}
-
 type Vec3 = [number, number, number]
-
-/** One line of stv.tf's event stream; see the stvtf README for the fields of each type. */
-export type StreamMessage = { type: string; tick?: number; history?: boolean; [key: string]: any }
 
 interface Frame {
   tick: number
@@ -87,9 +75,6 @@ interface Frame {
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 const lerpAngle = (a: number, b: number, t: number) =>
   a + (((((b - a) % 360) + 540) % 360) - 180) * t
-const teamName = (team: string): TeamName =>
-  team === 'red' || team === 'blue' || team === 'spectator' ? team : ''
-
 export class LiveSource extends AsyncParser {
   frames: Frame[] = []
   uberPops: MatchUberEvent[] = []
@@ -188,7 +173,7 @@ export class LiveSource extends AsyncParser {
       case 'uber':
         return this.addUber(tick, m)
       case 'round_win':
-        this.rounds = [...this.rounds, { winner: m.team, length: m.round_time ?? 0, endTick: tick }]
+        this.rounds = [...this.rounds, toRound(tick, m)]
         this.revision++
         return
     }
@@ -262,7 +247,7 @@ export class LiveSource extends AsyncParser {
     this.ticks = this.latestTick + 1
   }
 
-  private playerRef(id: number | null, names?: Record<string, { name: string; team: string }>) {
+  private playerRef(id: number | null | undefined, names?: Record<string, { name: string; team: string }>) {
     if (id == null) return null
     const slot = this.slots.get(id)
     const known = slot !== undefined ? this.entityPlayerMap.get(slot) : undefined
@@ -275,48 +260,23 @@ export class LiveSource extends AsyncParser {
   }
 
   private addKill(tick: number, m: StreamMessage) {
-    const victim = this.playerRef(m.victim, m.names)
-    if (!victim) return
-    const killer = this.playerRef(m.attacker, m.names)
-    const assister = this.playerRef(m.assister, m.names)
-    const teamId = (p: PlayerRef | null) => (p ? (TEAM_IDS[p.user.team] ?? 0) : 0)
-    const death: CachedDeath = {
-      tick,
-      victim,
-      killer,
-      assister,
-      weapon: m.weapon ?? '',
-      victimTeam: teamId(victim),
-      killerTeam: teamId(killer),
-      assisterTeam: teamId(assister),
-    }
+    const death = toDeath(tick, m, id => this.playerRef(id, m.names))
+    if (!death) return
     // A new object, so memos keyed on it see the change.
     this.deaths = { ...this.deaths, [tick]: [...(this.deaths[tick] ?? []), death] }
     this.revision++
   }
 
   private addChat(tick: number, m: StreamMessage) {
-    if (m.kind === 'Empty' || m.kind === 'NameChange' || !m.text) return
-    const slot = m.player != null ? this.slots.get(m.player) : undefined
-    // In-game chat colour codes: 1 normal, 3 the sender's team colour.
-    const rawText =
-      m.player == null || m.kind === 'SayText'
-        ? `\x01${m.text}`
-        : `\x01${CHAT_PREFIXES[m.kind] ?? ''}\x03${m.name}\x01 :  ${m.text}`
-    const entry: ChatEntry = { tick, kind: m.kind, rawText, clientPlayerId: slot ?? null }
-    this.chat.push(entry)
+    const slot = m.player != null ? (this.slots.get(m.player) ?? null) : null
+    const entry = toChatEntry(tick, m, slot)
+    if (entry) this.chat.push(entry)
   }
 
   private addUber(tick: number, m: StreamMessage) {
-    const medic = this.playerRef(m.medic)
-    if (!medic) return
-    this.uberPops.push({
-      type: 'uber',
-      tick,
-      medicName: medic.user.name,
-      medicTeam: TEAM_IDS[medic.user.team] ?? 0,
-      medicEntityId: medic.user.entityId,
-    })
+    const pop = toUberPop(tick, m, id => this.playerRef(id))
+    if (!pop) return
+    this.uberPops.push(pop)
     this.revision++
   }
 

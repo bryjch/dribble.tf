@@ -53,6 +53,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:decoder": "node scripts/build-decoder.mjs",
     "preview": "vite preview",
     "convert:map": "node scripts/convert-map.mjs",
     "update:map-bounds": "node scripts/update-map-bounds.mjs"
