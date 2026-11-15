@@ -204,6 +204,8 @@ export type StoreState = {
       playerOutlines: boolean
       showStats: boolean
       showSkybox: boolean
+      /** The score, timer and objectives HUD, and the objectives in the world. Saved settings from before lack it. */
+      showObjectives?: boolean
       viewDistance: number
       killfeedSeekBuffer: number
     }
@@ -296,6 +298,7 @@ export const initialState: StoreState = {
       playerOutlines: false,
       showStats: true,
       showSkybox: true,
+      showObjectives: true,
       viewDistance: 15000,
       killfeedSeekBuffer: 2,
     },

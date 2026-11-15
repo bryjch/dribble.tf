@@ -1,6 +1,7 @@
 import { PlayerCache, CachedPlayer } from './PlayerCache'
 import { BuildingCache, CachedBuilding } from './BuildingCache'
 import { ProjectileCache, CachedProjectile } from './ProjectileCache'
+import { ObjectiveState, ObjectiveTimeline } from './ObjectiveTimeline'
 import { ChatEntry, Header, PlayerRef, Round, World } from './Types'
 import type { MatchUberEvent } from '@utils/matchEvents'
 
@@ -48,6 +49,8 @@ export interface CachedDemo {
   uberPops?: MatchUberEvent[]
   buildingCache: BuildingCache
   projectileCache: ProjectileCache
+  /** Control points, carts, flags and the round state; empty when the decoder has none. */
+  objectives: ObjectiveTimeline
   intervalPerTick: number
   world: World
   nextMappedPlayer: number
@@ -69,6 +72,7 @@ export class AsyncParser {
   uberPops?: MatchUberEvent[]
   buildingCache!: BuildingCache
   projectileCache!: ProjectileCache
+  objectives!: ObjectiveTimeline
   intervalPerTick!: number
   world!: World
   progressCallback: (progress: number) => void
@@ -88,6 +92,7 @@ export class AsyncParser {
       this.playerCache = cachedData.playerCache
       this.buildingCache = cachedData.buildingCache
       this.projectileCache = cachedData.projectileCache
+      this.objectives = cachedData.objectives
       this.chat = cachedData.chat
       this.deaths = cachedData.deaths
       this.rounds = cachedData.rounds
@@ -153,6 +158,7 @@ export class AsyncParser {
         PlayerCache.rehydrate(cachedData.playerCache)
         BuildingCache.rehydrate(cachedData.buildingCache)
         ProjectileCache.rehydrate(cachedData.projectileCache)
+        ObjectiveTimeline.rehydrate(cachedData.objectives)
 
         // Compute transfer time (worker posted at cachedData.now)
         if (cachedData.perf) {
@@ -189,5 +195,10 @@ export class AsyncParser {
 
   getProjectilesAtTick(tick: number): CachedProjectile[] {
     return this.projectileCache.getProjectiles(tick)
+  }
+
+  /** The objectives and round state at a tick; null when the demo has none (parser2's). */
+  getObjectivesAtTick(tick: number): ObjectiveState | null {
+    return this.objectives?.at(tick) ?? null
   }
 }

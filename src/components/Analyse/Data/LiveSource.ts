@@ -2,6 +2,7 @@ import { AsyncParser } from './AsyncParser'
 import { CachedPlayer, PlayerCache } from './PlayerCache'
 import { CachedProjectile } from './ProjectileCache'
 import { CachedBuilding } from './BuildingCache'
+import { ObjectiveTimeline } from './ObjectiveTimeline'
 import { PlayerMeta } from './PlayerMetaCache'
 import { getMapBoundaries } from '../MapBoundaries'
 import { Vector } from './Types'
@@ -131,6 +132,7 @@ export class LiveSource extends AsyncParser {
     } as unknown as PlayerCache
     this.buildingCache = { getBuildings: () => [] } as any
     this.projectileCache = { getProjectiles: () => [] } as any
+    this.objectives = new ObjectiveTimeline(undefined, intervalPerTick)
     this.world = { boundaryMin: { x: 0, y: 0, z: 0 }, boundaryMax: { x: 0, y: 0, z: 0 } }
     this.setWorld(world)
   }
@@ -153,6 +155,7 @@ export class LiveSource extends AsyncParser {
       }
     }
     this.origin = this.world.boundaryMin
+    this.objectives.offset = { x: -this.origin.x, y: -this.origin.y, z: -this.origin.z }
   }
 
   get latestTick() {
@@ -282,6 +285,7 @@ export class LiveSource extends AsyncParser {
       projectiles[o + 6] = TEAM_IDS[p.team] ?? 0
     })
 
+    this.objectives.record(this.localTick(m.tick), m, id => entOf.get(id) ?? 0)
     this.frames.push({ tick: this.localTick(m.tick), players: data, projectiles, buildings })
     if (this.frames.length > MAX_FRAMES + TRIM_FRAMES) this.frames.splice(0, TRIM_FRAMES)
     this.ticks = this.latestTick + 1

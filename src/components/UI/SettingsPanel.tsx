@@ -472,6 +472,12 @@ export const SettingsPanel = () => {
             onChange={checked => updateSettingsOption('ui.showSkybox', checked)}
           />
 
+          <ToggleOption
+            label="Show objectives and score"
+            checked={settings.ui.showObjectives !== false}
+            onChange={checked => updateSettingsOption('ui.showObjectives', checked)}
+          />
+
           <SliderOption
             label="Killfeed seek buffer"
             min={1}

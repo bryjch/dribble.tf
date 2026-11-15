@@ -23,6 +23,14 @@ _Avoid_: parser (a match source need not parse anything)
 **Tick**:
 One step of the game's simulation, 66.67 a second; a match's ticks start at 1.
 
+**Objective**:
+What a game mode makes teams fight over: a control point, a payload cart, or an intelligence flag.
+_Avoid_: point (for a cart or flag), intel (for any objective)
+
+**Round state**:
+Where the current round stands: setup, running, won or stalemated, with its timers, the rounds won and the stopwatch.
+_Avoid_: game state, match state
+
 ## Relationships
 
 - A **Match** comes from exactly one **Match source**
