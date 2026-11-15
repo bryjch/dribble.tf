@@ -13,6 +13,7 @@ import {
   changeSceneModeAction,
   toggleSettingsOptionAction,
   toggleBookmarkAction,
+  setScoreboardOpenAction,
 } from '@zus/actions'
 
 import { useEventListener } from '@utils/hooks'
@@ -73,6 +74,14 @@ export const CanvasKeyHandler = () => {
 
           case 'b':
             toggleBookmarkAction()
+            break
+
+          case 'tab':
+            // Held for the scoreboard (let go: GlobalKeyHandler). Tab away from the canvas
+            // with Shift+Tab, or from anything that is not the canvas, as usual.
+            if (event.shiftKey) break
+            event.preventDefault()
+            setScoreboardOpenAction(true)
             break
 
           case '1':

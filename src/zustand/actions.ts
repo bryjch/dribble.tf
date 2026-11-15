@@ -114,6 +114,7 @@ export const loadSceneFromDemoAction = async (match: MatchSource) => {
     const rtsCenter = (await savedRtsCenter(match.header.map)) ?? overrides.rtsCenter
 
     // Remember to update the non-redux instances!
+    bookmarksMatchKey = matchBookmarksKey(match)
     useInstance.getState().setMatch(match)
     useInstance.getState().setFocusedObject(undefined)
     useInstance.getState().setLastFocusedPOV(undefined)
@@ -141,6 +142,8 @@ export const loadSceneFromDemoAction = async (match: MatchSource) => {
         },
       },
     })
+
+    await restoreBookmarks(match)
   } catch (error) {
     console.error(error)
   }
@@ -165,6 +168,7 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
         : initialState.scene.bounds
 
     // Remember to update the non-redux instances!
+    bookmarksMatchKey = null
     useInstance.getState().setMatch(undefined)
     useInstance.getState().setFocusedObject(undefined)
     useInstance.getState().setLastFocusedPOV(undefined)
@@ -811,6 +815,24 @@ export const toggleUIPanelAction = async (name: UIPanelType, active?: boolean) =
   }
 }
 
+export const setScoreboardOpenAction = (open?: boolean) => {
+  const next = open ?? !getState().ui.scoreboardOpen
+  if (next !== getState().ui.scoreboardOpen) dispatch({ type: 'SET_SCOREBOARD_OPEN', payload: next })
+}
+
+/** Opens a toolbar panel and closes the others, or closes it if it is open. */
+export const toggleOnlyUIPanelAction = async (name: UIPanelType) => {
+  try {
+    const wasOpen = getState().ui.activePanels.includes(name)
+    for (const other of Object.values(UIPanelType)) {
+      if (other !== name) dispatch({ type: 'SET_UI_PANEL_INACTIVE', payload: { name: other } })
+    }
+    dispatch({ type: wasOpen ? 'SET_UI_PANEL_INACTIVE' : 'SET_UI_PANEL_ACTIVE', payload: { name } })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 export const popUIPanelAction = async () => {
   try {
     dispatch({ type: 'POP_UI_PANEL' })
@@ -983,6 +1005,62 @@ export const redoStickersAction = async () => {
 //
 // ─── BOOKMARKS ──────────────────────────────────────────────────────────────────
 //
+// Kept per demo in localForage ('bookmarks'), so they are there again when the same demo is
+// opened later. A demo is known by its header; a live match has no lasting identity, so its
+// bookmarks last as long as it is watched.
+//
+
+interface SavedBookmarks {
+  [matchKey: string]: { ticks: number[]; map: string; savedAt: number }
+}
+
+const SAVED_BOOKMARKS_KEY = 'bookmarks'
+/** Demos whose bookmarks are kept; the least recently changed go first. */
+const SAVED_BOOKMARKS_LIMIT = 100
+
+/** The demo being watched, as SavedBookmarks knows it; null for none or a live match. */
+let bookmarksMatchKey: string | null = null
+/** Saves one after another, so two quick changes cannot write over each other. */
+let bookmarksWrite: Promise<unknown> = Promise.resolve()
+
+export function matchBookmarksKey(match: MatchSource): string | null {
+  if (match.kind !== 'demo') return null
+  const { map, server, nick, ticks, duration } = match.header
+  return [map, server, nick, ticks, duration].join('|')
+}
+
+async function restoreBookmarks(match: MatchSource) {
+  const key = matchBookmarksKey(match)
+  if (!key) return
+  try {
+    const saved = await localForage.getItem<SavedBookmarks>(SAVED_BOOKMARKS_KEY)
+    const ticks = saved?.[key]?.ticks
+    // Unless another match was opened meanwhile.
+    if (ticks?.length && bookmarksMatchKey === key) {
+      dispatch({ type: 'SET_BOOKMARKS', payload: ticks })
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+function saveBookmarks() {
+  const key = bookmarksMatchKey
+  if (!key) return
+  const ticks = getState().bookmarks
+  const map = getState().scene.map
+  bookmarksWrite = bookmarksWrite
+    .then(async () => {
+      const saved = (await localForage.getItem<SavedBookmarks>(SAVED_BOOKMARKS_KEY)) ?? {}
+      if (ticks.length) saved[key] = { ticks, map, savedAt: Date.now() }
+      else delete saved[key]
+      const kept = Object.entries(saved)
+        .sort(([, a], [, b]) => b.savedAt - a.savedAt)
+        .slice(0, SAVED_BOOKMARKS_LIMIT)
+      await localForage.setItem(SAVED_BOOKMARKS_KEY, Object.fromEntries(kept))
+    })
+    .catch(error => console.error(error))
+}
 
 export const toggleBookmarkAction = async (tick?: number) => {
   try {
@@ -996,6 +1074,7 @@ export const toggleBookmarkAction = async (tick?: number) => {
       dispatch({ type: 'ADD_BOOKMARK', payload: currentTick })
       addEventHistoryAction('addBookmark', `Tick ${currentTick}`)
     }
+    saveBookmarks()
   } catch (error) {
     console.error(error)
   }
@@ -1004,6 +1083,7 @@ export const toggleBookmarkAction = async (tick?: number) => {
 export const removeBookmarkAction = async (tick: number) => {
   try {
     dispatch({ type: 'REMOVE_BOOKMARK', payload: tick })
+    saveBookmarks()
   } catch (error) {
     console.error(error)
   }
@@ -1013,6 +1093,7 @@ export const clearBookmarksAction = async () => {
   try {
     dispatch({ type: 'CLEAR_BOOKMARKS' })
     addEventHistoryAction('clearBookmarks')
+    saveBookmarks()
   } catch (error) {
     console.error(error)
   }
