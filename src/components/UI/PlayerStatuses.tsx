@@ -2,6 +2,7 @@ import { clamp } from 'lodash'
 
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
 import { ClassIcon } from '@components/UI/ClassIcon'
+import { MEDIGUN_LABELS, UBERED_LABELS } from '@components/UI/ConditionBadges'
 
 import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
 import { focusMainCanvas } from '@utils/misc'
@@ -221,11 +222,15 @@ export const StatusItem = (props: StatusItemProps) => {
       break
 
     case 'uber':
-      name = 'Charge' // TODO: display medi gun type (requires additional parsing)
+      // parser2's demos do not say which medigun; stvtf's and live matches do.
+      name = player.medigun ? MEDIGUN_LABELS[player.medigun.kind] : 'Charge'
+      if (player.medigun?.resist) name += ` · ${player.medigun.resist.toUpperCase()}`
       health = player.chargeLevel || 0
       percentage = player.chargeLevel || 0
       break
   }
+  // A charge in use: the player's card (and the medic's charge bar while releasing) is striped.
+  const charged = type === 'player' ? player.ubered : player.medigun?.releasing ? player.ubered : null
 
   const onClickItem = async () => {
     const entityId = player?.user?.entityId || null
@@ -281,6 +286,17 @@ export const StatusItem = (props: StatusItemProps) => {
             style={{ width: `${percentage}%` }}
           />
 
+          {/* Charge stripes */}
+          {charged && (
+            <div
+              className="absolute inset-0 animate-pulse"
+              style={{
+                backgroundImage:
+                  'repeating-linear-gradient(135deg, rgba(255,255,255,0.28) 0 6px, transparent 6px 14px)',
+              }}
+            />
+          )}
+
           {/* Overheal */}
           <div
             className="absolute h-full bg-white/40"
@@ -291,6 +307,13 @@ export const StatusItem = (props: StatusItemProps) => {
           <div className="relative overflow-hidden text-ellipsis whitespace-nowrap px-2">
             {name}
           </div>
+
+          {/* The charge they are under */}
+          {type === 'player' && charged && (
+            <div className="relative shrink-0 rounded-sm bg-white/85 px-1 text-[0.6rem] font-bold leading-[0.9rem] text-black">
+              {UBERED_LABELS[charged]}
+            </div>
+          )}
 
           {/* Spacer */}
           <div className="flex-1"></div>

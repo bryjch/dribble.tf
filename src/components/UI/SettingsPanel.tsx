@@ -343,6 +343,13 @@ export const SettingsPanel = () => {
                 disabled={!settings.ui.nameplate.enabled}
                 onChange={checked => updateSettingsOption('ui.nameplate.showClass', checked)}
               />
+
+              <ToggleOption
+                label="- Conditions"
+                checked={settings.ui.nameplate.showConditions !== false}
+                disabled={!settings.ui.nameplate.enabled}
+                onChange={checked => updateSettingsOption('ui.nameplate.showConditions', checked)}
+              />
             </div>
           )}
 

@@ -16,6 +16,8 @@ import { CanvasKeyHandler } from '@components/Scene/CanvasKeyHandler'
 import { Lights } from '@components/Scene/Lights'
 import { Actors } from '@components/Scene/Actors'
 import { Projectiles } from '@components/Scene/Projectiles'
+import { Buildings } from '@components/Scene/Buildings'
+import { CachedBuilding } from '@components/Analyse/Data/BuildingCache'
 import { World } from '@components/Scene/World'
 import { Skybox } from '@components/Scene/Skybox'
 import { Stickers } from '@components/Scene/Stickers'
@@ -738,6 +740,7 @@ class DemoViewer extends Component<DemoViewerProps> {
     let playersNextTick: CachedPlayer[] = []
     let actorsThisTick: ActorProps[] = []
     let projectilesThisTick: InterpolatedProjectile[] = []
+    let buildingsThisTick: CachedBuilding[] = []
 
     if (!!demo) {
       playersThisTick = demo
@@ -758,6 +761,8 @@ class DemoViewer extends Component<DemoViewerProps> {
           viewAnglesNext: next?.viewAngles ?? player.viewAngles,
         }
       })
+
+      buildingsThisTick = demo.getBuildingAtTick(renderTick)
 
       const projectilesCurrentTick = demo.getProjectilesAtTick(renderTick)
       const projectilesNextTick = demo.getProjectilesAtTick(renderTick + 1)
@@ -837,6 +842,10 @@ class DemoViewer extends Component<DemoViewerProps> {
               </EffectComposer>
             </Selection>
           </Suspense>
+
+          {/* Buildings */}
+
+          <Buildings buildings={buildingsThisTick} />
 
           {/* Projectiles */}
 

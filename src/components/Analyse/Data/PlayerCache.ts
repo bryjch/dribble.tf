@@ -5,6 +5,7 @@ import { ViewAnglesCache } from './ViewAnglesCache'
 import { PlayerMetaCache } from './PlayerMetaCache'
 import { HealthCache } from './HealthCache'
 import { SparseDataCache } from './SparseDataCache'
+import { MedigunState, UberedKind, medigunOf, uberedOf } from './StreamEvents'
 
 export class CachedPlayer {
   position!: Vector
@@ -18,7 +19,16 @@ export class CachedPlayer {
   chargeLevel!: number | null
   healTarget!: number | null
   respawnTick!: number | null
+  /** Condition bits (burning, cloaked, …); read them with hasCondition. 0 when unknown. */
+  conditions!: number
+  /** The medigun charge the player is under (theirs, or their medic's). */
+  ubered!: UberedKind | null
+  /** A medic's medigun: its kind, whether it is releasing, the vaccinator's resistance. */
+  medigun!: MedigunState | null
 }
+
+/** Ticks per value in the conditions and charge caches: one every 4 ticks. */
+export const STATUS_SPARSE = 2
 
 export class PlayerCache {
   tickCount: number
@@ -29,6 +39,9 @@ export class PlayerCache {
   uberCache: SparseDataCache
   healTargetCache: SparseDataCache
   connectedCache: SparseDataCache
+  /** Empty for parser2's demos, which do not have them. */
+  conditionsCache: SparseDataCache
+  chargeCache: SparseDataCache
   respawnTickCache: Map<string, number | null> = new Map()
 
   constructor(tickCount: number, positionOffset: Vector) {
@@ -40,6 +53,8 @@ export class PlayerCache {
     this.uberCache = new SparseDataCache(tickCount, 1, 8, 4)
     this.healTargetCache = new SparseDataCache(tickCount, 1, 8, 4)
     this.connectedCache = new SparseDataCache(tickCount, 1, 8, 4)
+    this.conditionsCache = new SparseDataCache(tickCount, 1, 32, STATUS_SPARSE)
+    this.chargeCache = new SparseDataCache(tickCount, 1, 16, STATUS_SPARSE)
   }
 
   getRespawnTick(playerId: number, tick: number): number | null {
@@ -73,6 +88,7 @@ export class PlayerCache {
     const meta = this.metaCache.getMeta(playerId, tick)
     const team = meta.teamId === 2 ? 'red' : meta.teamId === 3 ? 'blue' : ''
     const health = this.healthCache.get(playerId, tick)
+    const charge = this.chargeCache.get(playerId, tick) ?? 0
     return {
       position: this.positionCache.getPosition(playerId, tick),
       viewAngles: this.viewAnglesCache.getAngles(playerId, tick),
@@ -85,6 +101,9 @@ export class PlayerCache {
       chargeLevel: this.uberCache.getOrNull(playerId, tick),
       healTarget: this.healTargetCache.getOrNull(playerId, tick),
       respawnTick: health === 0 ? this.getRespawnTick(playerId, tick) : null,
+      conditions: this.conditionsCache.get(playerId, tick) ?? 0,
+      ubered: uberedOf(charge),
+      medigun: medigunOf(charge),
     }
   }
 
@@ -96,6 +115,8 @@ export class PlayerCache {
     SparseDataCache.rehydrate(data.uberCache)
     SparseDataCache.rehydrate(data.healTargetCache)
     SparseDataCache.rehydrate(data.connectedCache)
+    SparseDataCache.rehydrate(data.conditionsCache)
+    SparseDataCache.rehydrate(data.chargeCache)
 
     data.respawnTickCache = new Map()
     Object.setPrototypeOf(data, PlayerCache.prototype)

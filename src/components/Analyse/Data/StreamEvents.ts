@@ -96,3 +96,109 @@ export const toRound = (tick: number, m: StreamMessage): Round => ({
   length: m.round_time ?? 0,
   endTick: tick,
 })
+
+//
+// ─── PLAYER STATUS ──────────────────────────────────────────────────────────────
+//
+
+/**
+ * The player conditions kept, one bit each in this order (decoder/src/lib.rs, CONDITIONS, has
+ * the same list), with the TF2 conditions that count as each; a trailing * matches any
+ * condition starting so.
+ */
+export const CONDITION_FLAGS = [
+  ['burning', ['Burning', 'BurningPyro']],
+  ['jarate', ['Urine']],
+  ['milk', ['MadMilk']],
+  ['bleeding', ['Bleeding']],
+  ['marked', ['MarkedForDeath*']],
+  ['cloaked', ['Stealthed', 'StealthedBlink']],
+  ['disguised', ['Disguised']],
+  ['crits', ['CritBoosted*']],
+  ['minicrits', ['OffensiveBuff', 'EnergyBuff']],
+  ['defense', ['DefensiveBuff', 'DefenseBuffNoCritBlock', 'DefenseBuffHigh']],
+  ['regen', ['RegenOnDamageBuff']],
+  ['speed', ['SpeedBoost']],
+  ['stunned', ['Stunned']],
+  ['overhealed', ['HealthOverHealed']],
+  ['blastJumping', ['BlastJumping']],
+  ['zoomed', ['Zoomed']],
+  ['taunting', ['Taunting']],
+  ['ubered', ['Invulnerable*']],
+  ['bonk', ['Phase']],
+] as const
+
+export type ConditionFlag = (typeof CONDITION_FLAGS)[number][0]
+
+const CONDITION_BIT = Object.fromEntries(CONDITION_FLAGS.map(([flag], bit) => [flag, 1 << bit])) as Record<
+  ConditionFlag,
+  number
+>
+
+/** Whether a player's condition bits (CachedPlayer.conditions) include a flag. */
+export const hasCondition = (conditions: number, flag: ConditionFlag) =>
+  (conditions & CONDITION_BIT[flag]) !== 0
+
+/** The bits for stvtf's condition names, as the decoder packs them. */
+export function conditionBits(conds: readonly string[] | undefined): number {
+  let bits = 0
+  for (const name of conds ?? []) {
+    CONDITION_FLAGS.forEach(([, names], bit) => {
+      const hit = names.some(n => (n.endsWith('*') ? name.startsWith(n.slice(0, -1)) : name === n))
+      if (hit) bits |= 1 << bit
+    })
+  }
+  return bits
+}
+
+export type UberedKind =
+  | 'uber'
+  | 'kritz'
+  | 'quickfix'
+  | 'vaccinator_bullet'
+  | 'vaccinator_blast'
+  | 'vaccinator_fire'
+export type MedigunKind = 'medigun' | 'kritzkrieg' | 'quickfix' | 'vaccinator'
+export type Resist = 'bullet' | 'blast' | 'fire'
+
+export interface MedigunState {
+  kind: MedigunKind
+  releasing: boolean
+  resist: Resist | null
+}
+
+const UBERED: (UberedKind | null)[] = [
+  null,
+  'uber',
+  'kritz',
+  'quickfix',
+  'vaccinator_bullet',
+  'vaccinator_blast',
+  'vaccinator_fire',
+]
+const MEDIGUNS: (MedigunKind | null)[] = [null, 'medigun', 'kritzkrieg', 'quickfix', 'vaccinator']
+const RESISTS: (Resist | null)[] = [null, 'bullet', 'blast', 'fire']
+
+/**
+ * The medigun charge state in 16 bits, as the decoder packs it: bits 0-2 the charge a player
+ * is under, 4-6 a medic's medigun, 7 releasing, 8-9 the vaccinator's resistance.
+ */
+export function chargeBits(ubered: string | null | undefined, medigun: any): number {
+  const under = Math.max(0, UBERED.indexOf((ubered ?? null) as UberedKind | null))
+  if (!medigun) return under
+  const kind = Math.max(0, MEDIGUNS.indexOf(medigun.kind))
+  const resist = Math.max(0, RESISTS.indexOf(medigun.resist ?? null))
+  return under | (kind << 4) | (medigun.releasing ? 1 << 7 : 0) | (resist << 8)
+}
+
+export const uberedOf = (bits: number): UberedKind | null => UBERED[bits & 0x7] ?? null
+
+export function medigunOf(bits: number): MedigunState | null {
+  const kind = MEDIGUNS[(bits >> 4) & 0x7]
+  if (!kind) return null
+  return { kind, releasing: (bits & 0x80) !== 0, resist: RESISTS[(bits >> 8) & 0x3] ?? null }
+}
+
+/** stvtf's building kinds, as numbered in the decoder's building tracks. */
+export const BUILDING_KINDS = ['', 'sentry', 'dispenser', 'teleporter'] as const
+export type BuildingKind = Exclude<(typeof BUILDING_KINDS)[number], ''>

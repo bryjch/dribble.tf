@@ -7,7 +7,7 @@ import { ProjectileCache, tracksFromSlots } from './ProjectileCache'
 import { getMapBoundaries } from '../MapBoundaries'
 import { ChatEntry, PlayerRef, Round } from './Types'
 import { POSITION_FIXED_SCALE } from './PositionEncoding'
-import { toChatEntry, toDeath, toRound, toUberPop } from './StreamEvents'
+import { CONDITION_FLAGS, toChatEntry, toDeath, toRound, toUberPop } from './StreamEvents'
 import type { MatchUberEvent } from '@utils/matchEvents'
 
 declare function postMessage(message: any, transfer?: any[]): void
@@ -37,7 +37,22 @@ interface PlayerArrays {
   connected: Uint8Array[]
   uber: Uint16Array[]
   healTarget: Uint16Array[]
+  /** Empty from parser2, which has neither. */
+  conditions: Uint32Array[]
+  charge: Uint16Array[]
 }
+
+const PLAYER_ARRAYS = [
+  'position',
+  'viewAngles',
+  'health',
+  'meta',
+  'connected',
+  'uber',
+  'healTarget',
+  'conditions',
+  'charge',
+] as const satisfies readonly (keyof PlayerArrays)[]
 
 /** What either decoder hands over, before it becomes a CachedDemo. */
 interface Decoded {
@@ -50,6 +65,7 @@ interface Decoded {
   players: DecodedPlayer[]
   playerArrays: PlayerArrays
   projectiles: { tracks: Uint32Array; positions: Uint32Array; rotations: Uint32Array }
+  buildings: { tracks: Uint32Array; samples: Uint32Array; sparse: number }
   chat: ChatEntry[]
   deaths: CachedDemo['deaths']
   rounds: Round[]
@@ -77,26 +93,20 @@ const refFor = (p: DecodedPlayer): PlayerRef => ({
 async function decodeWithStvtf(buffer: ArrayBuffer, progress: Progress): Promise<Decoded> {
   const { meta, buffers } = await decodeDemo(buffer, fraction => progress(fraction))
 
-  const playerArrays: PlayerArrays = {
-    position: [],
-    viewAngles: [],
-    health: [],
-    meta: [],
-    connected: [],
-    uber: [],
-    healTarget: [],
+  // The decoder's own list of each player's arrays; a mismatch is a decoder from another build.
+  const order = meta.playerBuffers
+  const flags = CONDITION_FLAGS.map(([flag]) => flag)
+  if (PLAYER_ARRAYS.some(name => !order.includes(name)) || meta.conditionFlags.join() !== flags.join()) {
+    throw new Error('decoder.wasm does not match this build of dribble.tf; run npm run build:decoder')
   }
+  const playerArrays = Object.fromEntries(PLAYER_ARRAYS.map(name => [name, []])) as unknown as PlayerArrays
   meta.players.forEach((_, slot) => {
-    const at = slot * 7
-    playerArrays.position.push(buffers[at] as Uint32Array)
-    playerArrays.viewAngles.push(buffers[at + 1] as Uint32Array)
-    playerArrays.health.push(buffers[at + 2] as Uint16Array)
-    playerArrays.meta.push(buffers[at + 3] as Uint8Array)
-    playerArrays.connected.push(buffers[at + 4] as Uint8Array)
-    playerArrays.uber.push(buffers[at + 5] as Uint16Array)
-    playerArrays.healTarget.push(buffers[at + 6] as Uint16Array)
+    for (const name of PLAYER_ARRAYS) {
+      ;(playerArrays[name] as ArrayBufferView[]).push(buffers[slot * order.length + order.indexOf(name)])
+    }
   })
-  const [tracks, positions, rotations] = buffers.slice(meta.players.length * 7) as Uint32Array[]
+  const rest = buffers.slice(meta.players.length * order.length) as Uint32Array[]
+  const [tracks, positions, rotations, buildingTracks, buildingSamples] = rest
 
   // Events name players by stvtf's id (their userid).
   const byUserId = new Map(meta.players.map(p => [p.userId, p]))
@@ -144,6 +154,7 @@ async function decodeWithStvtf(buffer: ArrayBuffer, progress: Progress): Promise
     players: meta.players,
     playerArrays,
     projectiles: { tracks, positions, rotations },
+    buildings: { tracks: buildingTracks, samples: buildingSamples, sparse: meta.buildingSparse },
     chat,
     deaths,
     rounds,
@@ -200,9 +211,12 @@ async function decodeWithParser2(buffer: ArrayBuffer, progress: Progress): Promi
       connected: r.playerCache.connected,
       uber: r.playerCache.uber,
       healTarget: r.playerCache.healTarget,
+      conditions: [],
+      charge: [],
     },
     // The projectile caches' team and type keep one value per 64 ticks.
     projectiles: tracksFromSlots(p.ids, p.position, p.rotation, p.team, p.type, 6),
+    buildings: { tracks: new Uint32Array(0), samples: new Uint32Array(0), sparse: 2 },
     chat: r.chat ?? [],
     deaths: r.deaths,
     rounds: r.rounds,
@@ -252,9 +266,17 @@ function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseSt
   playerCache.connectedCache.data = a.connected as any
   playerCache.uberCache.data = a.uber as any
   playerCache.healTargetCache.data = a.healTarget as any
+  playerCache.conditionsCache.data = a.conditions as any
+  playerCache.chargeCache.data = a.charge as any
 
-  // Neither decoder's buildings are cached yet.
-  const buildingCache = new BuildingCache(ticks, world.boundaryMin)
+  const { buildings } = d
+  const buildingCache = new BuildingCache(
+    buildings.tracks,
+    buildings.samples,
+    buildings.sparse,
+    positionScale,
+    angleScale
+  )
 
   const { tracks, positions, rotations } = d.projectiles
   const projectileCache = new ProjectileCache(tracks, positions, rotations, positionScale, angleScale)
@@ -265,6 +287,7 @@ function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseSt
     const shift = (axis: 'x' | 'y' | 'z') =>
       Math.trunc(Math.trunc(world.boundaryMin[axis] - boundaryOverride.boundaryMin[axis]) * positionScale)
     shiftVectorCache([...a.position, positions], shift('x'), shift('y'), shift('z'))
+    buildingCache.shift(shift('x'), shift('y'), shift('z'))
     world.boundaryMin = boundaryOverride.boundaryMin
     world.boundaryMax = boundaryOverride.boundaryMax
   }
@@ -276,7 +299,7 @@ function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseSt
     nextMappedPlayer = Math.max(nextMappedPlayer, player.id + 1)
   }
 
-  const playerArrays = Object.values(a).flat() as ArrayBufferView[]
+  const playerArrays = PLAYER_ARRAYS.flatMap(name => a[name] as ArrayBufferView[])
   const playerCacheBytes = sumBytes(playerArrays)
   const projectileCacheBytes = projectileCache.byteLength
   const perf: ParserPerformanceStats = {
@@ -312,7 +335,11 @@ function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseSt
     perf,
   }
   // Zero-copy: the arrays move to the main thread rather than being cloned.
-  const transfers = [...new Set([...playerArrays, tracks, positions, rotations].map(arr => arr.buffer))]
+  const transfers = [
+    ...new Set(
+      [...playerArrays, tracks, positions, rotations, buildings.tracks, buildings.samples].map(arr => arr.buffer)
+    ),
+  ]
   return { cachedDemo, transfers }
 }
 

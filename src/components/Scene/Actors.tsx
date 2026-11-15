@@ -1,4 +1,4 @@
-import { useRef, useEffect, Suspense, useState } from 'react'
+import { useRef, useEffect, useLayoutEffect, Suspense, useState } from 'react'
 
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
@@ -9,6 +9,7 @@ import { Vector } from '@components/Analyse/Data/Types'
 import { HealBeam } from '@components/Scene/HealBeam'
 import { Nameplate } from '@components/Scene/Nameplate'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerCache'
+import { hasCondition } from '@components/Analyse/Data/StreamEvents'
 
 import { useInstance, useStore } from '@zus/store'
 import { CLASS_MAP } from '@constants/mappings'
@@ -55,6 +56,42 @@ export interface PlayerModelProps {
   classId: number
   visible?: boolean
   backface?: boolean
+  /** A cloaked spy: drawn faintly. */
+  cloaked?: boolean
+  /** A glow over the model, such as an über's team colour. */
+  tint?: string | null
+}
+
+const CLOAKED_OPACITY = 0.2
+const TINT_INTENSITY = 0.55
+
+type EffectMaterial = THREE.Material & { emissive?: THREE.Color; emissiveIntensity?: number }
+
+/** Sets a model's own materials (cloned per model) for its cloak and tint, keeping the originals. */
+function applyModelEffects(root: THREE.Object3D, cloaked: boolean, tint: string | null) {
+  root.traverse(object => {
+    const mesh = object as THREE.Mesh
+    if (!mesh.isMesh) return
+    const materials = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) as EffectMaterial[]
+    for (const material of materials) {
+      const original = (material.userData.original ??= {
+        transparent: material.transparent,
+        opacity: material.opacity,
+        depthWrite: material.depthWrite,
+        emissive: material.emissive?.clone(),
+        emissiveIntensity: material.emissiveIntensity,
+      })
+      material.transparent = cloaked || original.transparent
+      material.opacity = cloaked ? CLOAKED_OPACITY : original.opacity
+      material.depthWrite = cloaked ? false : original.depthWrite
+      if (material.emissive && original.emissive) {
+        if (tint) material.emissive.set(tint)
+        else material.emissive.copy(original.emissive)
+        material.emissiveIntensity = tint ? TINT_INTENSITY : original.emissiveIntensity
+      }
+      material.needsUpdate = true
+    }
+  })
 }
 
 export const PlayerModel = (props: PlayerModelProps) => {
@@ -65,11 +102,18 @@ export const PlayerModel = (props: PlayerModelProps) => {
   // so it's no longer as huge a deal. They're are also cached by the GLTF loader.
   const modelUrl = getAsset(`/models/players/${CLASS_MAP[props.classId]}_${props.team}.glb`)
   const gltf = useGLTF(modelUrl, true, false)
+  const ref = useRef<THREE.Group>(null)
+  const { cloaked = false, tint = null, visible } = props
+
+  useLayoutEffect(() => {
+    if (ref.current) applyModelEffects(ref.current, cloaked, tint)
+  }, [cloaked, tint, gltf.scene])
 
   return (
-    <group {...props} visible={props.visible} rotation={[Math.PI * 0.5, Math.PI * 0.5, 0]}>
+    <group ref={ref} visible={visible} rotation={[Math.PI * 0.5, Math.PI * 0.5, 0]}>
       <Select enabled={!!gltf.scene}>
-        <Clone object={gltf.scene} />
+        {/* Each model its own materials, so one's cloak or tint is not everyone's. */}
+        <Clone object={gltf.scene} deep="materialsOnly" />
       </Select>
     </group>
   )
@@ -114,7 +158,9 @@ export const Actor = (props: ActorProps) => {
   const settings = useStore(state => state.settings)
   const focusedObject = useInstance(state => state.focusedObject)
 
-  const { classId, health, team, user, healTarget } = props
+  const { classId, health, team, user, healTarget, conditions, ubered } = props
+  const cloaked = hasCondition(conditions, 'cloaked')
+  const tint = ubered ? (team === 'red' ? '#ff3b3b' : '#3b8bff') : null
   const isFocusedPOV = focusedObject?.userData?.entityId === user.entityId
   let { position, viewAngles, positionNext, viewAnglesNext } = props
 
@@ -237,7 +283,13 @@ export const Actor = (props: ActorProps) => {
       <group name="playerBody" ref={bodyRef}>
         <Suspense fallback={null}>
           {team && classId && !changing ? (
-            <PlayerModel visible={alive && !isFocusedPOV} team={team} classId={classId} />
+            <PlayerModel
+              visible={alive && !isFocusedPOV}
+              team={team}
+              classId={classId}
+              cloaked={cloaked}
+              tint={tint}
+            />
           ) : null}
         </Suspense>
       </group>
@@ -275,6 +327,8 @@ export const Actor = (props: ActorProps) => {
               team={team}
               health={health}
               classId={classId}
+              conditions={conditions}
+              ubered={ubered}
               settings={settings.ui.nameplate}
             />
           )}

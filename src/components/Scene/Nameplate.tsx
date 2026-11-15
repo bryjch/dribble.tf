@@ -1,6 +1,8 @@
 import { clamp } from 'lodash'
 
 import { ClassIcon } from '@components/UI/ClassIcon'
+import { ConditionBadges } from '@components/UI/ConditionBadges'
+import { UberedKind } from '@components/Analyse/Data/StreamEvents'
 
 import { parseClassHealth } from '@utils/players'
 import { cn } from '@utils/styling'
@@ -10,11 +12,13 @@ export interface NameplateProps {
   classId: number
   name: string
   team: string
+  conditions?: number
+  ubered?: UberedKind | null
   settings: Object | any
 }
 
 export const Nameplate = (props: NameplateProps) => {
-  const { health, classId, name, team, settings } = props
+  const { health, classId, name, team, conditions = 0, ubered = null, settings } = props
 
   const { percentage } = parseClassHealth(classId, health)
 
@@ -50,6 +54,10 @@ export const Nameplate = (props: NameplateProps) => {
               style={{ width: `${clamp(percentage - 100, 0, 100)}%` }}
             />
           </div>
+        )}
+
+        {settings.showConditions !== false && (
+          <ConditionBadges className="mt-1" conditions={conditions} ubered={ubered} team={team} />
         )}
 
         {settings.showClass && (
