@@ -1,4 +1,4 @@
-import { CachedPlayer } from './PlayerTracks'
+import { CachedPlayer, lastAtOrBefore } from './PlayerTracks'
 import { CachedProjectile } from './ProjectileCache'
 import { CachedBuilding } from './BuildingCache'
 import { ObjectiveState, ObjectiveTimeline } from './ObjectiveTimeline'
@@ -40,9 +40,10 @@ export type { StreamMessage }
 //
 
 // Per player, per snapshot: present, x, y, z, pitch, yaw, health, classId, teamId, uber, heal
-// target, seconds until respawn, condition bits, charge bits (both as StreamEvents.ts packs them)
-const STRIDE = 14
-const [PRESENT, X, Y, Z, PITCH, YAW, HEALTH, CLASS, TEAM, UBER, HEAL, RESPAWN, CONDS, CHARGE] = Array.from(
+// target, seconds until respawn, condition bits, charge bits (both as StreamEvents.ts packs them),
+// the item in hand plus one (0 for none)
+const STRIDE = 15
+const [PRESENT, X, Y, Z, PITCH, YAW, HEALTH, CLASS, TEAM, UBER, HEAL, RESPAWN, CONDS, CHARGE, WEAPON] = Array.from(
   { length: STRIDE },
   (_, i) => i
 )
@@ -66,6 +67,9 @@ const MAX_FRAMES = 30 * 60 * 17
 const TRIM_FRAMES = 60 * 17
 // Server ticks going back this far are a new map or a server restart, not jitter.
 const TICK_RESET = 200
+// One shot is often seen more than once (the bullets, the clip, the projectile) and flames on
+// every snapshot; shots this close to the last one kept are merged, as the demo decoder does.
+const SHOT_MERGE_TICKS = 3
 
 // Only what dribble.tf has models for; see ProjectileTypeMap.
 const PROJECTILE_TYPES: Record<string, number> = {
@@ -109,6 +113,11 @@ export class LiveSource implements MatchSource {
   // A kill or chat line from the history replayed on a reconnect is skipped up to here.
   private lastEventTick = 0
   private slots = new Map<number, number>()
+  // Per slot, the ticks they fired on (sorted), and their weapon and clip in the last snapshot.
+  private shots: number[][] = []
+  private lastClip = new Map<number, [number, number]>()
+  // Every projectile in the last snapshot, by id, to see new ones fired.
+  private inFlight = new Map<number, string>()
 
   /** Called when the server's ticks start over: a restarted server, or a replay looping. */
   onReset: (() => void) | null = null
@@ -186,7 +195,20 @@ export class LiveSource implements MatchSource {
         this.rounds = [...this.rounds, toRound(tick, m)]
         this.revision++
         return
+      case 'shot':
+        if (m.player != null) this.addShot(this.slotOf(m.player), tick)
+        return
     }
+  }
+
+  /** Records a shot, merged with one just before or after it. */
+  private addShot(slot: number, tick: number) {
+    const ticks = (this.shots[slot] ??= [])
+    let i = ticks.length
+    while (i > 0 && ticks[i - 1] > tick) i--
+    if (i > 0 && tick - ticks[i - 1] <= SHOT_MERGE_TICKS) return
+    if (i < ticks.length && ticks[i] - tick <= SHOT_MERGE_TICKS) return
+    ticks.splice(i, 0, tick)
   }
 
   private localTick(serverTick: number) {
@@ -240,7 +262,28 @@ export class LiveSource implements MatchSource {
       data[o + RESPAWN] = p.respawn ?? NaN
       data[o + CONDS] = conditionBits(p.conds)
       data[o + CHARGE] = chargeBits(p.ubered, p.medigun)
+      data[o + WEAPON] = p.weapon ? p.weapon.item + 1 : 0
+
+      // Firing shows as flames, or the clip going down with the same weapon in hand.
+      const before = this.lastClip.get(slot)
+      const clip: [number, number] | null =
+        p.weapon?.clip != null ? [p.weapon.item, p.weapon.clip] : null
+      if (p.alive && (p.flames || (before && clip && before[0] === clip[0] && clip[1] < before[1]))) {
+        this.addShot(slot, this.localTick(m.tick))
+      }
+      if (clip) this.lastClip.set(slot, clip)
+      else this.lastClip.delete(slot)
     }
+
+    // A projectile not in the last snapshot was just fired by its owner.
+    const inFlight = new Map<number, string>()
+    for (const p of m.projectiles ?? []) {
+      if (this.inFlight.get(p.id) !== p.kind && p.owner != null) {
+        this.addShot(this.slotOf(p.owner), this.localTick(m.tick))
+      }
+      inFlight.set(p.id, p.kind)
+    }
+    this.inFlight = inFlight
 
     const placed = (m.buildings ?? []).filter((b: any) => BUILDING_KINDS.indexOf(b.kind) > 0)
     const buildings = new Float32Array(placed.length * B_STRIDE)
@@ -419,6 +462,8 @@ export class LiveSource implements MatchSource {
         conditions: present ? p[o + CONDS] : 0,
         ubered: present ? uberedOf(p[o + CHARGE]) : null,
         medigun: present ? medigunOf(p[o + CHARGE]) : null,
+        weapon: present && p[o + WEAPON] > 0 ? p[o + WEAPON] - 1 : null,
+        lastShotTick: lastAtOrBefore(this.shots[slot], tick),
       })
     }
     return players

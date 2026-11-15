@@ -21,9 +21,13 @@ export interface CachedPlayer {
   ubered: UberedKind | null
   /** A medic's medigun: its kind, whether it is releasing, the vaccinator's resistance. */
   medigun: MedigunState | null
+  /** The item definition index of the weapon in hand; null when unknown. */
+  weapon: number | null
+  /** The last tick at or before this one that they fired on; null if none. */
+  lastShotTick: number | null
 }
 
-/** Each player's arrays, as the decoder sends them (see decoder/src/lib.rs, format 2). */
+/** Each player's arrays, as the decoder sends them (see decoder/src/lib.rs, format 3). */
 export interface PlayerArrays {
   /** x, y, z per tick, fixed point. */
   position: Uint32Array
@@ -37,11 +41,15 @@ export interface PlayerArrays {
   healTarget: Uint16Array
   conditions: Uint32Array
   charge: Uint16Array
+  /** The item definition index in hand plus one; 0 for none. */
+  weapon: Uint16Array
+  /** The ticks the player fired on, sorted (not one per tick). */
+  shots: Uint32Array
 }
 
 /** The arrays kept one value per `1 << n` ticks, and their n; the decoder's metadata says. */
 export type PlayerSampling = Record<
-  'health' | 'meta' | 'connected' | 'uber' | 'healTarget' | 'conditions' | 'charge',
+  'health' | 'meta' | 'connected' | 'uber' | 'healTarget' | 'conditions' | 'charge' | 'weapon',
   number
 >
 
@@ -97,6 +105,7 @@ export class PlayerTracks {
     const charge = arrays ? this.sampled(arrays, 'charge', tick) : 0
     const uber = arrays ? this.sampled(arrays, 'uber', tick) : 0
     const healTarget = arrays ? this.sampled(arrays, 'healTarget', tick) : 0
+    const weapon = arrays ? this.sampled(arrays, 'weapon', tick) : 0
     return {
       position: arrays
         ? {
@@ -120,6 +129,8 @@ export class PlayerTracks {
       conditions: arrays ? this.sampled(arrays, 'conditions', tick) : 0,
       ubered: uberedOf(charge),
       medigun: medigunOf(charge),
+      weapon: weapon > 0 ? weapon - 1 : null,
+      lastShotTick: lastAtOrBefore(arrays?.shots, tick),
     }
   }
 
@@ -131,4 +142,17 @@ export class PlayerTracks {
     }
     return total
   }
+}
+
+/** The last value at or before `tick` in a sorted list of ticks. */
+export function lastAtOrBefore(ticks: ArrayLike<number> | undefined, tick: number): number | null {
+  if (!ticks || ticks.length === 0 || ticks[0] > tick) return null
+  let lo = 0
+  let hi = ticks.length - 1
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1
+    if (ticks[mid] <= tick) lo = mid
+    else hi = mid - 1
+  }
+  return ticks[lo]
 }

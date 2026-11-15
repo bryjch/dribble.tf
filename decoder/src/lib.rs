@@ -5,7 +5,9 @@
 //!
 //! - per player, every tick: position (x, y, z) and view angles (pitch, yaw), fixed point;
 //! - per player, every few ticks: health, class and team, connected, über, heal target;
-//! - per player, every 4 ticks: conditions (burning, cloaked, …) and medigun/über state;
+//! - per player, every 4 ticks: conditions (burning, cloaked, …), medigun/über state and the
+//!   weapon in hand;
+//! - per player, the ticks they fired on (bullets, a new projectile, flames, a clip going down);
 //! - per projectile, only while it exists: position and rotation, every tick;
 //! - per building, only while it exists: where it is and its state, every 4 ticks;
 //! - objectives and the round state, as keys where they change (`objectives.rs`).
@@ -31,7 +33,7 @@ use stvtf::output::{
 };
 
 /// The layout of the arrays and metadata below; the viewer refuses a decoder of another format.
-const FORMAT: u32 = 2;
+const FORMAT: u32 = 3;
 
 /// Fixed-point scales, as the viewer decodes them (it reads them from the metadata).
 const POSITION_SCALE: f64 = 1024.0;
@@ -96,6 +98,8 @@ struct Sample {
     heal_target: u16,
     conditions: u32,
     charge: u16,
+    /// The item definition index in hand plus one; 0 for none.
+    weapon: u16,
 }
 
 #[derive(Default)]
@@ -114,6 +118,11 @@ struct PlayerSeries {
     heal_target: Vec<u16>,
     conditions: Vec<u32>,
     charge: Vec<u16>,
+    weapon: Vec<u16>,
+    /// Ticks they fired on, in the order found (sorted and merged at the end).
+    shots: Vec<u32>,
+    /// The weapon and its clip in the last snapshot, to see the clip go down.
+    last_clip: Option<(i64, i64)>,
     /// The sample of the last snapshot, if the player was in it.
     last: Option<Sample>,
 }
@@ -137,6 +146,7 @@ impl PlayerSeries {
         set(&mut self.heal_target, t >> FLAG_SPARSE, s.heal_target);
         set(&mut self.conditions, t >> STATUS_SPARSE, s.conditions);
         set(&mut self.charge, t >> STATUS_SPARSE, s.charge);
+        set(&mut self.weapon, t >> STATUS_SPARSE, s.weapon);
     }
 
     /// Records a snapshot's sample, filling the ticks since the last one: in between when the
@@ -321,6 +331,8 @@ struct Decoder {
     slots: HashMap<u16, usize>,
     players: Vec<PlayerSeries>,
     active: HashMap<u32, Track>,
+    /// Every projectile in the last snapshot, of any kind, to see new ones fired.
+    in_flight: HashMap<u32, std::mem::Discriminant<ProjectileKind>>,
     tracks: Vec<Track>,
     active_buildings: HashMap<u32, BuildingTrack>,
     buildings: Vec<BuildingTrack>,
@@ -339,6 +351,15 @@ impl Decoder {
                 }
             }
             Line::Snapshot(s) => self.snapshot(&s),
+            Line::Shot(shot) => {
+                if let (Some(player), Some(base)) = (shot.player, self.base) {
+                    if shot.tick >= base {
+                        let tick = self.local(shot.tick);
+                        let slot = self.slot(player);
+                        self.players[slot].shots.push(tick);
+                    }
+                }
+            }
             other => {
                 let Some(tick) = other.tick() else { return };
                 let Ok(value) = serde_json::to_value(&other) else { return };
@@ -394,6 +415,16 @@ impl Decoder {
                 .and_then(|m| m.target)
                 .and_then(|t| entity_of.get(&t.0))
                 .map_or(0, |&e| e as u16);
+            // Firing shows as flames, or the clip going down with the same weapon in hand.
+            let clip = p.weapon.as_ref().and_then(|w| w.clip.map(|c| (w.item, c)));
+            let clip_dropped = matches!(
+                (series.last_clip, clip),
+                (Some((item, before)), Some((now_item, now))) if item == now_item && now < before
+            );
+            if p.alive && (p.flames.is_some() || clip_dropped) {
+                series.shots.push(tick);
+            }
+            series.last_clip = clip;
             series.add(
                 Sample {
                     tick,
@@ -406,6 +437,7 @@ impl Decoder {
                     heal_target,
                     conditions: conditions_mask(&p.conds),
                     charge: charge_bits(p.ubered, p.medigun.as_ref()),
+                    weapon: p.weapon.as_ref().and_then(|w| u16::try_from(w.item + 1).ok()).unwrap_or(0),
                 },
             );
         }
@@ -415,6 +447,20 @@ impl Decoder {
                 self.players[slot].last = None;
             }
         }
+
+        // A projectile not in the last snapshot was just fired by its owner.
+        let mut in_flight = HashMap::with_capacity(s.projectiles.len());
+        for p in &s.projectiles {
+            let kind = std::mem::discriminant(&p.kind);
+            if self.in_flight.get(&p.id) != Some(&kind) {
+                if let Some(owner) = p.owner {
+                    let slot = self.slot(owner);
+                    self.players[slot].shots.push(tick);
+                }
+            }
+            in_flight.insert(p.id, kind);
+        }
+        self.in_flight = in_flight;
 
         let mut alive = Vec::with_capacity(s.projectiles.len());
         for p in &s.projectiles {
@@ -535,6 +581,8 @@ impl Decoder {
             p.heal_target.resize(sparse_len(FLAG_SPARSE), 0);
             p.conditions.resize(sparse_len(STATUS_SPARSE), 0);
             p.charge.resize(sparse_len(STATUS_SPARSE), 0);
+            p.weapon.resize(sparse_len(STATUS_SPARSE), 0);
+            let shots = merge_shots(p.shots, ticks);
             players.push(json!({
                 "id": slot,
                 "entityId": p.entity_id,
@@ -553,6 +601,8 @@ impl Decoder {
                 Buffer::U16(p.heal_target),
                 Buffer::U32(p.conditions),
                 Buffer::U16(p.charge),
+                Buffer::U16(p.weapon),
+                Buffer::U32(shots),
             ]);
         }
 
@@ -625,6 +675,7 @@ impl Decoder {
                 "healTarget": FLAG_SPARSE,
                 "conditions": STATUS_SPARSE,
                 "charge": STATUS_SPARSE,
+                "weapon": STATUS_SPARSE,
             },
             "projectileCount": projectile_count,
             "buildingCount": building_count,
@@ -637,8 +688,35 @@ impl Decoder {
 }
 
 /// Each player's typed arrays, in order; the metadata lists them as `playerBuffers`.
-const PLAYER_BUFFERS: &[&str] =
-    &["position", "viewAngles", "health", "meta", "connected", "uber", "healTarget", "conditions", "charge"];
+const PLAYER_BUFFERS: &[&str] = &[
+    "position",
+    "viewAngles",
+    "health",
+    "meta",
+    "connected",
+    "uber",
+    "healTarget",
+    "conditions",
+    "charge",
+    "weapon",
+    "shots",
+];
+
+/// One shot is often seen more than once (the bullets, the clip, the projectile, a tick or two
+/// apart), and flames every tick; shots closer than this to the last one kept are merged.
+const SHOT_MERGE_TICKS: u32 = 3;
+
+/// The ticks a player fired on, sorted, within the demo, and merged (SHOT_MERGE_TICKS).
+fn merge_shots(mut shots: Vec<u32>, ticks: u32) -> Vec<u32> {
+    shots.sort_unstable();
+    let mut out: Vec<u32> = Vec::with_capacity(shots.len());
+    for tick in shots.into_iter().filter(|&t| t >= 1 && t < ticks) {
+        if out.last().is_none_or(|&last| tick - last > SHOT_MERGE_TICKS) {
+            out.push(tick);
+        }
+    }
+    out
+}
 
 /// A decoded demo: its metadata as JSON, and its typed arrays: each player's (`PLAYER_BUFFERS`),
 /// then the projectile tracks, their positions and rotations, then the building tracks
