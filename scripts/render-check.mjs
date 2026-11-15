@@ -165,6 +165,7 @@ const metricsMap = metrics => Object.fromEntries(metrics.metrics.map(m => [m.nam
 async function measurePlayback(page, speed, cpuThrottle = 1) {
   await page.send('Emulation.setCPUThrottlingRate', { rate: cpuThrottle })
   await call(page, 'resetCounters')
+  const startTick = (await call(page, 'status')).tick
   const before = metricsMap(await page.send('Performance.getMetrics'))
   await call(page, 'play', speed)
   const sample = await page.evaluate(`new Promise(resolve => {
@@ -189,6 +190,7 @@ async function measurePlayback(page, speed, cpuThrottle = 1) {
   })`)
   const after = metricsMap(await page.send('Performance.getMetrics'))
   const counters = await call(page, 'counters')
+  const endTick = (await call(page, 'status')).tick
   await call(page, 'pause')
   await page.send('Emulation.setCPUThrottlingRate', { rate: 1 })
 
@@ -200,6 +202,8 @@ async function measurePlayback(page, speed, cpuThrottle = 1) {
   return {
     speed,
     cpuThrottle,
+    // At 66.67 ticks a second, PLAYBACK_MS of playback should move this far (× speed).
+    ticksAdvanced: endTick - startTick,
     frames: sample.deltas.length,
     fps: +(sample.deltas.length / seconds).toFixed(1),
     frameMsP50: pct(0.5),
@@ -419,7 +423,7 @@ function compare(args) {
   for (const key of Object.keys(before.playback ?? {})) {
     const a = before.playback[key]
     const b = after.playback?.[key] ?? {}
-    for (const metricKey of ['fps', 'frameMsP50', 'frameMsP95', 'frameMsP99', 'framesOver20ms', 'longTasks', 'scriptMsPerSec', 'taskMsPerSec', 'sceneRenderMsAvg', 'nonRenderMsPerSec', 'viewerRendersPerSec', 'drawCallsAvg']) {
+    for (const metricKey of ['fps', 'frameMsP50', 'frameMsP95', 'frameMsP99', 'framesOver20ms', 'longTasks', 'scriptMsPerSec', 'taskMsPerSec', 'sceneRenderMsAvg', 'nonRenderMsPerSec', 'viewerRendersPerSec', 'drawCallsAvg', 'ticksAdvanced']) {
       perf.push(line(`${key} ${metricKey}`, a[metricKey], b[metricKey]))
     }
   }
