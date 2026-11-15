@@ -1,0 +1,26 @@
+[package]
+name = "dribble-decoder"
+version = "0.1.0"
+edition = "2024"
+description = "Decodes a TF2 demo in the browser with stvtf and packs it into the viewer's typed arrays"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Pinned: a new stvtf is taken on purpose, by moving this rev and rebuilding (npm run build:decoder).
+stvtf = { git = "https://github.com/Arie/stvtf", rev = "d3c08a66086dce5c3e44058860a971b6448f3f5f" }
+serde_json = "1"
+
+[patch.crates-io]
+# stvtf depends on ctrlc for its CLI, which does not build for wasm32 and is never called when
+# decoding a demo. Remove once stvtf makes it optional.
+ctrlc = { path = "ctrlc-stub" }
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"

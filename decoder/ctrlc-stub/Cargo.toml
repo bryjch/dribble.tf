@@ -1,0 +1,8 @@
+[package]
+name = "ctrlc"
+version = "3.5.2"
+edition = "2021"
+publish = false
+
+[features]
+termination = []

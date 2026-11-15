@@ -1,15 +1,35 @@
 import init, { parse_demo_cache_with_progress } from '../../../libs/parser2/parser2.js'
-import { CachedDemo, ParserPerformanceStats } from './AsyncParser'
+import { decodeDemo } from '../../../libs/decoder/decoder.js'
+import { CachedDeath, CachedDemo, DemoDecoder, ParserPerformanceStats } from './AsyncParser'
 import { PlayerCache } from './PlayerCache'
 import { BuildingCache } from './BuildingCache'
-import { ProjectileCache } from './ProjectileCache'
+import { ProjectileCache, tracksFromSlots } from './ProjectileCache'
 import { getMapBoundaries } from '../MapBoundaries'
-import { ChatEntry, PlayerRef } from './Types'
+import { ChatEntry, PlayerRef, Round } from './Types'
 import { POSITION_FIXED_SCALE } from './PositionEncoding'
+import { toChatEntry, toDeath, toRound, toUberPop } from './StreamEvents'
+import type { MatchUberEvent } from '@utils/matchEvents'
 
 declare function postMessage(message: any, transfer?: any[]): void
 
-type WasmPlayerCache = {
+//
+// ─── DEMO DECODING ──────────────────────────────────────────────────────────────
+//
+// Two decoders produce the same thing: stvtf (decoder/, the default), which stv.tf also uses
+// for live matches, and parser2 (the tf2jump build), kept as a fallback with ?decoder=parser2.
+//
+
+interface DecodedPlayer {
+  id: number
+  entityId: number
+  userId: number
+  steamId: string
+  name: string
+  team: string
+}
+
+/** Per player slot, the typed arrays the PlayerCache reads. */
+interface PlayerArrays {
   position: Uint32Array[]
   viewAngles: Uint32Array[]
   health: Uint16Array[]
@@ -19,46 +39,177 @@ type WasmPlayerCache = {
   healTarget: Uint16Array[]
 }
 
-type WasmProjectileCache = {
-  ids: number[]
-  position: Uint32Array[]
-  rotation: Uint32Array[]
-  team: Uint8Array[]
-  type: Uint8Array[]
+/** What either decoder hands over, before it becomes a CachedDemo. */
+interface Decoded {
+  header: CachedDemo['header']
+  ticks: number
+  intervalPerTick: number
+  positionScale: number
+  angleScale: number
+  world: CachedDemo['world']
+  players: DecodedPlayer[]
+  playerArrays: PlayerArrays
+  projectiles: { tracks: Uint32Array; positions: Uint32Array; rotations: Uint32Array }
+  chat: ChatEntry[]
+  deaths: CachedDemo['deaths']
+  rounds: Round[]
+  /** When the decoder is told about übers; parser2's demos find them from the charge instead. */
+  uberPops?: MatchUberEvent[]
 }
 
-type WasmPlayer = {
-  id: number
-  entityId: number
-  userId: number
-  steamId: string
-  name: string
-  team: string
+type Progress = (progress: number) => void
+
+const finiteOr = (value: number | undefined, fallback: number) =>
+  Number.isFinite(value) && value! > 0 ? value! : fallback
+
+const refFor = (p: DecodedPlayer): PlayerRef => ({
+  user: {
+    name: p.name,
+    userId: p.userId,
+    steamId: p.steamId,
+    entityId: p.entityId,
+    team: p.team as PlayerRef['user']['team'],
+  },
+})
+
+// ─── stvtf ──────────────────────────────────────────────────────────────────────
+
+async function decodeWithStvtf(buffer: ArrayBuffer, progress: Progress): Promise<Decoded> {
+  const { meta, buffers } = await decodeDemo(buffer, fraction => progress(fraction))
+
+  const playerArrays: PlayerArrays = {
+    position: [],
+    viewAngles: [],
+    health: [],
+    meta: [],
+    connected: [],
+    uber: [],
+    healTarget: [],
+  }
+  meta.players.forEach((_, slot) => {
+    const at = slot * 7
+    playerArrays.position.push(buffers[at] as Uint32Array)
+    playerArrays.viewAngles.push(buffers[at + 1] as Uint32Array)
+    playerArrays.health.push(buffers[at + 2] as Uint16Array)
+    playerArrays.meta.push(buffers[at + 3] as Uint8Array)
+    playerArrays.connected.push(buffers[at + 4] as Uint8Array)
+    playerArrays.uber.push(buffers[at + 5] as Uint16Array)
+    playerArrays.healTarget.push(buffers[at + 6] as Uint16Array)
+  })
+  const [tracks, positions, rotations] = buffers.slice(meta.players.length * 7) as Uint32Array[]
+
+  // Events name players by stvtf's id (their userid).
+  const byUserId = new Map(meta.players.map(p => [p.userId, p]))
+  const refOf = (id: number | null | undefined) => {
+    const p = id != null ? byUserId.get(id) : undefined
+    return p ? refFor(p) : null
+  }
+
+  const deaths: Record<string, CachedDeath[]> = {}
+  const chat: ChatEntry[] = []
+  const rounds: Round[] = []
+  const uberPops: MatchUberEvent[] = []
+  for (const m of meta.events) {
+    switch (m.type) {
+      case 'kill': {
+        const death = toDeath(m.tick, m, refOf)
+        if (death) (deaths[m.tick] ??= []).push(death)
+        break
+      }
+      case 'chat':
+      case 'server_text': {
+        const slot = m.player != null ? (byUserId.get(m.player)?.id ?? null) : null
+        const entry = toChatEntry(m.tick, m, slot)
+        if (entry) chat.push(entry)
+        break
+      }
+      case 'uber': {
+        const pop = toUberPop(m.tick, m, refOf)
+        if (pop) uberPops.push(pop)
+        break
+      }
+      case 'round_win':
+        rounds.push(toRound(m.tick, m))
+        break
+    }
+  }
+
+  return {
+    header: meta.header,
+    ticks: meta.ticks,
+    intervalPerTick: meta.intervalPerTick,
+    positionScale: meta.positionScale,
+    angleScale: meta.angleScale,
+    world: meta.world,
+    players: meta.players,
+    playerArrays,
+    projectiles: { tracks, positions, rotations },
+    chat,
+    deaths,
+    rounds,
+    uberPops,
+  }
 }
 
-type WasmResult = {
+// ─── parser2 ────────────────────────────────────────────────────────────────────
+
+type Parser2Result = {
   header: CachedDemo['header']
   ticks: number
   intervalPerTick: number
   positionScale?: number
   angleScale?: number
   world: CachedDemo['world']
-  players: WasmPlayer[]
-  playerCache: WasmPlayerCache
-  projectileCache: WasmProjectileCache
+  players: DecodedPlayer[]
+  playerCache: PlayerArrays
+  projectileCache: {
+    ids: number[]
+    position: Uint32Array[]
+    rotation: Uint32Array[]
+    team: Uint8Array[]
+    type: Uint8Array[]
+  }
   chat: ChatEntry[]
   deaths: CachedDemo['deaths']
   rounds: CachedDemo['rounds']
 }
 
-let wasmReady: Promise<unknown> | null = null
+let parser2Ready: Promise<unknown> | null = null
 
-const ensureWasm = () => {
-  if (!wasmReady) {
-    wasmReady = init()
+async function decodeWithParser2(buffer: ArrayBuffer, progress: Progress): Promise<Decoded> {
+  parser2Ready ??= init()
+  await parser2Ready
+  const result = parse_demo_cache_with_progress(new Uint8Array(buffer), progress)
+  if (typeof result === 'string' || !result) throw new Error(result || 'Failed to parse demo.')
+  const r = result as Parser2Result
+  const p = r.projectileCache
+  return {
+    header: r.header,
+    ticks: r.ticks,
+    intervalPerTick: r.intervalPerTick,
+    positionScale: finiteOr(r.positionScale, POSITION_FIXED_SCALE),
+    angleScale: finiteOr(r.angleScale, 1),
+    world: r.world,
+    players: r.players,
+    // parser2 also has weapon and duck caches, which the viewer does not read.
+    playerArrays: {
+      position: r.playerCache.position,
+      viewAngles: r.playerCache.viewAngles,
+      health: r.playerCache.health,
+      meta: r.playerCache.meta,
+      connected: r.playerCache.connected,
+      uber: r.playerCache.uber,
+      healTarget: r.playerCache.healTarget,
+    },
+    // The projectile caches' team and type keep one value per 64 ticks.
+    projectiles: tracksFromSlots(p.ids, p.position, p.rotation, p.team, p.type, 6),
+    chat: r.chat ?? [],
+    deaths: r.deaths,
+    rounds: r.rounds,
   }
-  return wasmReady
 }
+
+// ─── Both ───────────────────────────────────────────────────────────────────────
 
 const shiftVectorCache = (
   arrays: Uint32Array[],
@@ -81,16 +232,88 @@ const shiftVectorCache = (
   }
 }
 
-const pushBuffers = (target: ArrayBufferLike[], arrays: ArrayBufferView[]) => {
-  for (const arr of arrays) {
-    target.push(arr.buffer)
-  }
-}
-
 const sumBytes = (arrays: ArrayBufferView[]) => {
   let total = 0
   for (const arr of arrays) total += arr.byteLength
   return total
+}
+
+function toCachedDemo(d: Decoded, decoder: DemoDecoder, parseMs: number, parseStart: number) {
+  const hydrateStart = performance.now()
+  const { header, ticks, positionScale, angleScale, world, playerArrays: a } = d
+
+  const playerCache = new PlayerCache(ticks, world.boundaryMin)
+  playerCache.positionCache.data = a.position
+  playerCache.positionCache.scale = positionScale
+  playerCache.viewAnglesCache.data = a.viewAngles
+  playerCache.viewAnglesCache.scale = angleScale
+  playerCache.healthCache.data = a.health as any
+  playerCache.metaCache.data = a.meta as any
+  playerCache.connectedCache.data = a.connected as any
+  playerCache.uberCache.data = a.uber as any
+  playerCache.healTargetCache.data = a.healTarget as any
+
+  // Neither decoder's buildings are cached yet.
+  const buildingCache = new BuildingCache(ticks, world.boundaryMin)
+
+  const { tracks, positions, rotations } = d.projectiles
+  const projectileCache = new ProjectileCache(tracks, positions, rotations, positionScale, angleScale)
+
+  // Maps dribble.tf has converted carry their own bounds; positions follow them.
+  const boundaryOverride = getMapBoundaries(header.map)
+  if (boundaryOverride) {
+    const shift = (axis: 'x' | 'y' | 'z') =>
+      Math.trunc(Math.trunc(world.boundaryMin[axis] - boundaryOverride.boundaryMin[axis]) * positionScale)
+    shiftVectorCache([...a.position, positions], shift('x'), shift('y'), shift('z'))
+    world.boundaryMin = boundaryOverride.boundaryMin
+    world.boundaryMax = boundaryOverride.boundaryMax
+  }
+
+  const entityPlayerMap = new Map<number, PlayerRef>()
+  let nextMappedPlayer = 0
+  for (const player of d.players) {
+    entityPlayerMap.set(player.id, refFor(player))
+    nextMappedPlayer = Math.max(nextMappedPlayer, player.id + 1)
+  }
+
+  const playerArrays = Object.values(a).flat() as ArrayBufferView[]
+  const playerCacheBytes = sumBytes(playerArrays)
+  const projectileCacheBytes = projectileCache.byteLength
+  const perf: ParserPerformanceStats = {
+    decoder,
+    workerTotalMs: performance.now() - parseStart,
+    parseMs,
+    hydrateMs: performance.now() - hydrateStart,
+    transferMs: 0, // Filled in by AsyncParser after message transfer
+    playerCount: d.players.length,
+    projectileCount: projectileCache.projectileCount,
+    ticks,
+    playerCacheBytes,
+    projectileCacheBytes,
+    transferBytes: playerCacheBytes + projectileCacheBytes,
+    totalBytes: playerCacheBytes + projectileCacheBytes,
+  }
+
+  const cachedDemo: CachedDemo = {
+    ticks,
+    header,
+    playerCache,
+    buildingCache,
+    projectileCache,
+    chat: d.chat,
+    deaths: d.deaths,
+    rounds: d.rounds,
+    uberPops: d.uberPops,
+    intervalPerTick: d.intervalPerTick,
+    world,
+    nextMappedPlayer,
+    entityPlayerMap,
+    now: performance.now(),
+    perf,
+  }
+  // Zero-copy: the arrays move to the main thread rather than being cloned.
+  const transfers = [...new Set([...playerArrays, tracks, positions, rotations].map(arr => arr.buffer))]
+  return { cachedDemo, transfers }
 }
 
 /**
@@ -99,188 +322,21 @@ const sumBytes = (arrays: ArrayBufferView[]) => {
  */
 onmessage = async (event: MessageEvent) => {
   try {
-    await ensureWasm()
-
     const buffer = event.data.buffer as ArrayBuffer
+    const decoder: DemoDecoder = event.data.decoder === 'parser2' ? 'parser2' : 'stvtf'
+    const progress: Progress = p => postMessage({ progress: p })
+
     const parseStart = performance.now()
-
-    const result = parse_demo_cache_with_progress(
-      new Uint8Array(buffer),
-      (progress: number) => {
-        postMessage({ progress })
-      }
-    )
-
+    const decoded =
+      decoder === 'parser2'
+        ? await decodeWithParser2(buffer, progress)
+        : await decodeWithStvtf(buffer, progress)
     const parseMs = performance.now() - parseStart
 
-    if (typeof result === 'string' || !result) {
-      postMessage({ error: result || 'Failed to parse demo.' })
-      return
-    }
-
-    const hydrateStart = performance.now()
-
-    const {
-      header,
-      ticks,
-      positionScale = POSITION_FIXED_SCALE,
-      angleScale = 1,
-      intervalPerTick,
-      world,
-      players,
-      playerCache: wasmPlayerCache,
-      projectileCache: wasmProjectileCache,
-      chat = [],
-      deaths,
-      rounds,
-    } = result as WasmResult
-
-    // Hydrate player cache with WASM typed arrays
-    const playerCache = new PlayerCache(ticks, world.boundaryMin)
-    playerCache.positionCache.data = wasmPlayerCache.position
-    playerCache.positionCache.scale =
-      Number.isFinite(positionScale) && positionScale > 0
-        ? positionScale
-        : POSITION_FIXED_SCALE
-    playerCache.viewAnglesCache.data = wasmPlayerCache.viewAngles
-    playerCache.viewAnglesCache.scale = Number.isFinite(angleScale) ? angleScale : 1
-    playerCache.healthCache.data = wasmPlayerCache.health as any
-    playerCache.metaCache.data = wasmPlayerCache.meta as any
-    playerCache.connectedCache.data = wasmPlayerCache.connected as any
-    playerCache.uberCache.data = wasmPlayerCache.uber as any
-    playerCache.healTargetCache.data = wasmPlayerCache.healTarget as any
-
-    // Empty building cache (WASM parser does not output building data)
-    const buildingCache = new BuildingCache(ticks, world.boundaryMin)
-
-    // Hydrate projectile cache with WASM typed arrays
-    const projectileCache = new ProjectileCache(ticks, world.boundaryMin)
-    projectileCache.positionCache.data = wasmProjectileCache.position as any
-    projectileCache.positionCache.scale =
-      Number.isFinite(positionScale) && positionScale > 0
-        ? positionScale
-        : POSITION_FIXED_SCALE
-    projectileCache.rotationCache.data = wasmProjectileCache.rotation as any
-    projectileCache.rotationCache.scale = Number.isFinite(angleScale) ? angleScale : 1
-    projectileCache.teamNumberCache.data = wasmProjectileCache.team as any
-    projectileCache.typeCache.data = wasmProjectileCache.type as any
-    projectileCache.setProjectileIds(wasmProjectileCache.ids)
-
-    // Apply map boundary override and shift position data
-    const boundaryOverride = getMapBoundaries(header.map)
-    if (boundaryOverride) {
-      const deltaX = Math.trunc(world.boundaryMin.x - boundaryOverride.boundaryMin.x)
-      const deltaY = Math.trunc(world.boundaryMin.y - boundaryOverride.boundaryMin.y)
-      const deltaZ = Math.trunc(world.boundaryMin.z - boundaryOverride.boundaryMin.z)
-      const posScale = Number.isFinite(positionScale) ? positionScale : POSITION_FIXED_SCALE
-      const deltaXFixed = Math.trunc(deltaX * posScale)
-      const deltaYFixed = Math.trunc(deltaY * posScale)
-      const deltaZFixed = Math.trunc(deltaZ * posScale)
-
-      shiftVectorCache(
-        playerCache.positionCache.data as Uint32Array[],
-        deltaXFixed,
-        deltaYFixed,
-        deltaZFixed
-      )
-      shiftVectorCache(
-        projectileCache.positionCache.data as Uint32Array[],
-        deltaXFixed,
-        deltaYFixed,
-        deltaZFixed
-      )
-
-      world.boundaryMin = boundaryOverride.boundaryMin
-      world.boundaryMax = boundaryOverride.boundaryMax
-    }
-
-    // Build entity player map from WASM player list
-    const entityPlayerMap = new Map<number, PlayerRef>()
-    let nextMappedPlayer = 0
-
-    for (const player of players) {
-      entityPlayerMap.set(player.id, {
-        user: {
-          name: player.name,
-          userId: player.userId,
-          steamId: player.steamId,
-          entityId: player.entityId,
-          team: player.team as PlayerRef['user']['team'],
-        },
-      })
-      if (player.id + 1 > nextMappedPlayer) {
-        nextMappedPlayer = player.id + 1
-      }
-    }
-
-    const hydrateMs = performance.now() - hydrateStart
-    const workerTotalMs = performance.now() - parseStart
-
-    // Compute memory stats
-    const playerCacheBytes =
-      sumBytes(playerCache.positionCache.data) +
-      sumBytes(playerCache.viewAnglesCache.data) +
-      sumBytes(playerCache.healthCache.data) +
-      sumBytes(playerCache.metaCache.data) +
-      sumBytes(playerCache.connectedCache.data) +
-      sumBytes(playerCache.uberCache.data) +
-      sumBytes(playerCache.healTargetCache.data)
-    const projectileCacheBytes =
-      sumBytes(projectileCache.positionCache.data) +
-      sumBytes(projectileCache.rotationCache.data) +
-      sumBytes(projectileCache.teamNumberCache.data) +
-      sumBytes(projectileCache.typeCache.data)
-    const transferBytes = playerCacheBytes + projectileCacheBytes
-
-    const perf: ParserPerformanceStats = {
-      workerTotalMs,
-      parseMs,
-      hydrateMs,
-      transferMs: 0, // Filled in by AsyncParser after message transfer
-      playerCount: players.length,
-      projectileCount: wasmProjectileCache.ids.length,
-      ticks,
-      playerCacheBytes,
-      projectileCacheBytes,
-      transferBytes,
-      totalBytes: playerCacheBytes + projectileCacheBytes,
-    }
-
+    const { cachedDemo, transfers } = toCachedDemo(decoded, decoder, parseMs, parseStart)
     console.log(
-      `parser2: parse=${parseMs.toFixed(1)}ms hydrate=${hydrateMs.toFixed(1)}ms total=${workerTotalMs.toFixed(1)}ms`
+      `${decoder}: parse=${parseMs.toFixed(1)}ms hydrate=${cachedDemo.perf!.hydrateMs.toFixed(1)}ms total=${cachedDemo.perf!.workerTotalMs.toFixed(1)}ms`
     )
-
-    const cachedDemo: CachedDemo = {
-      ticks,
-      header,
-      playerCache,
-      buildingCache,
-      projectileCache,
-      chat,
-      deaths,
-      rounds,
-      intervalPerTick,
-      world,
-      nextMappedPlayer,
-      entityPlayerMap,
-      now: performance.now(),
-      perf,
-    }
-
-    // Collect typed array buffers for zero-copy transfer
-    const transfers: ArrayBufferLike[] = []
-    pushBuffers(transfers, playerCache.positionCache.data)
-    pushBuffers(transfers, playerCache.viewAnglesCache.data)
-    pushBuffers(transfers, playerCache.healthCache.data)
-    pushBuffers(transfers, playerCache.metaCache.data)
-    pushBuffers(transfers, playerCache.connectedCache.data)
-    pushBuffers(transfers, playerCache.uberCache.data)
-    pushBuffers(transfers, playerCache.healTargetCache.data)
-    pushBuffers(transfers, projectileCache.positionCache.data)
-    pushBuffers(transfers, projectileCache.rotationCache.data)
-    pushBuffers(transfers, projectileCache.teamNumberCache.data)
-    pushBuffers(transfers, projectileCache.typeCache.data)
-
     postMessage(cachedDemo, transfers)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)

@@ -2,6 +2,14 @@ import { PlayerCache, CachedPlayer } from './PlayerCache'
 import { BuildingCache, CachedBuilding } from './BuildingCache'
 import { ProjectileCache, CachedProjectile } from './ProjectileCache'
 import { ChatEntry, Header, PlayerRef, Round, World } from './Types'
+import type { MatchUberEvent } from '@utils/matchEvents'
+
+/** What reads a demo: stvtf (decoder/), or parser2 (the tf2jump build) with ?decoder=parser2. */
+export type DemoDecoder = 'stvtf' | 'parser2'
+
+/** The decoder this page asks for: stvtf unless the URL says ?decoder=parser2. */
+export const requestedDecoder = (): DemoDecoder =>
+  new URLSearchParams(window.location.search).get('decoder') === 'parser2' ? 'parser2' : 'stvtf'
 
 export interface CachedDeath {
   tick: number
@@ -15,6 +23,7 @@ export interface CachedDeath {
 }
 
 export interface ParserPerformanceStats {
+  decoder: DemoDecoder
   workerTotalMs: number
   parseMs: number
   hydrateMs: number
@@ -35,6 +44,8 @@ export interface CachedDemo {
   chat: ChatEntry[]
   deaths: { [tick: string]: CachedDeath[] }
   rounds: Round[]
+  /** Übers as the demo announced them; absent when the decoder does not report them. */
+  uberPops?: MatchUberEvent[]
   buildingCache: BuildingCache
   projectileCache: ProjectileCache
   intervalPerTick: number
@@ -55,6 +66,7 @@ export class AsyncParser {
   chat: ChatEntry[] = []
   deaths: { [tick: string]: CachedDeath[] } = {}
   rounds!: Round[]
+  uberPops?: MatchUberEvent[]
   buildingCache!: BuildingCache
   projectileCache!: ProjectileCache
   intervalPerTick!: number
@@ -79,6 +91,7 @@ export class AsyncParser {
       this.chat = cachedData.chat
       this.deaths = cachedData.deaths
       this.rounds = cachedData.rounds
+      this.uberPops = cachedData.uberPops
       this.intervalPerTick = cachedData.intervalPerTick
       this.world = cachedData.world
       this.nextMappedPlayer = cachedData.nextMappedPlayer
@@ -88,6 +101,7 @@ export class AsyncParser {
       if (cachedData.perf) {
         const toMb = (bytes: number) => `${(bytes / (1024 * 1024)).toFixed(1)} MB`
         console.info('[Perf][ParserCache]', {
+          decoder: cachedData.perf.decoder,
           ticks: cachedData.perf.ticks,
           players: cachedData.perf.playerCount,
           projectiles: cachedData.perf.projectileCount,
@@ -114,11 +128,19 @@ export class AsyncParser {
       worker.postMessage(
         {
           buffer: this.buffer,
+          decoder: requestedDecoder(),
         },
         [this.buffer]
       )
+      // The worker's WASM memory grew to hold the whole demo and never shrinks, so the worker
+      // goes as soon as it has answered.
+      worker.onerror = (event: ErrorEvent) => {
+        worker.terminate()
+        reject(event.message)
+      }
       worker.onmessage = (event: MessageEvent) => {
         if (event.data.error) {
+          worker.terminate()
           reject(event.data.error)
           return
         }
@@ -126,6 +148,7 @@ export class AsyncParser {
           this.progressCallback(event.data.progress)
           return
         }
+        worker.terminate()
         const cachedData: CachedDemo = event.data
         PlayerCache.rehydrate(cachedData.playerCache)
         BuildingCache.rehydrate(cachedData.buildingCache)
