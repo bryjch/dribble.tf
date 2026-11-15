@@ -33,7 +33,7 @@ use stvtf::output::{
 };
 
 /// The layout of the arrays and metadata below; the viewer refuses a decoder of another format.
-const FORMAT: u32 = 3;
+const FORMAT: u32 = 4;
 
 /// Fixed-point scales, as the viewer decodes them (it reads them from the metadata).
 const POSITION_SCALE: f64 = 1024.0;
@@ -81,7 +81,7 @@ const MAX_INTERP_GAP: u32 = 33;
 const TELEPORT_DISTANCE: f64 = 512.0;
 
 /// The events the viewer reads from a demo; the rest stay in stvtf.
-const EVENTS: &[&str] = &["kill", "chat", "server_text", "uber", "round_win", "round_start"];
+const EVENTS: &[&str] = &["kill", "damage", "chat", "server_text", "uber", "round_win", "round_start"];
 
 // ─── Per player ─────────────────────────────────────────────────────────────────
 

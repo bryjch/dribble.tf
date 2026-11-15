@@ -1402,6 +1402,62 @@
     filter: none;
   }
 
+  /* ─── HUD: damage numbers ─────────────────────────────────────────────────── */
+
+  .hud-damage-layer {
+    position: absolute;
+    /* Over the nameplates, which drei's Html stacks from 16777271 down. */
+    z-index: 16777272;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .hud-damage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform-origin: 50% 100%;
+    font-family: var(--ui-font-hud);
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+    text-shadow:
+      0 0 2px #000,
+      0 1px 2px #000,
+      0 0 4px rgb(0 0 0 / 0.6);
+    will-change: transform, opacity;
+  }
+
+  .hud-damage__value {
+    color: rgb(255 64 64);
+    font-size: 1.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .hud-damage__label {
+    color: rgb(var(--ui-good));
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .hud-damage__label:empty {
+    display: none;
+  }
+
+  .hud-damage[data-kind='crit'] .hud-damage__value {
+    font-size: 2.25rem;
+  }
+
+  .hud-damage[data-kind='minicrit'] .hud-damage__value {
+    font-size: 2rem;
+  }
+
   /* ─── HUD: objectives ─────────────────────────────────────────────────────── */
 
   .hud-objective {

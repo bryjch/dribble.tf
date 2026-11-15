@@ -1,4 +1,4 @@
-import type { CachedDeath } from './MatchSource'
+import type { CachedDeath, DamageHit } from './MatchSource'
 import type { MatchUberEvent } from '@utils/matchEvents'
 import { ChatEntry, PlayerRef, Round, TeamName } from './Types'
 
@@ -57,6 +57,22 @@ export function toDeath(tick: number, m: StreamMessage, refOf: PlayerLookup): Ca
     killerTeam: teamIdOf(killer),
     assisterTeam: teamIdOf(assister),
   }
+}
+
+/**
+ * A `damage` line as a hit its attacker landed on someone else, or null for one with no attacker,
+ * damage to oneself (blast jumps) or no damage.
+ */
+export function toDamageHit(
+  tick: number,
+  m: StreamMessage,
+  refOf: PlayerLookup
+): { attacker: number; hit: DamageHit } | null {
+  if (!m.amount || m.attacker == null || m.attacker === m.victim) return null
+  const attacker = refOf(m.attacker)?.user.entityId ?? -1
+  const victim = refOf(m.victim)?.user.entityId ?? -1
+  if (attacker < 0 || victim < 0) return null
+  return { attacker, hit: { tick, victim, amount: m.amount, crit: !!m.crit, minicrit: !!m.minicrit } }
 }
 
 /** TF2's colour codes for a line stvtf split into coloured parts: 1 normal, 3 the sender's team
