@@ -10,6 +10,10 @@ Utilizes [three.js](https://threejs.org) for browser based 3D rendering.
 
 Models are primarily served as glTF assets.
 
+### Updating the models
+
+`npm run assets` walks you through it step by step: getting TF2's files, rebuilding the first-person viewmodels, and uploading `public/models` to the CDN (it checks your AWS login and finds the bucket itself). Every step can be skipped.
+
 ### Credits
 
 - [@dylansq](https://github.com/dylansq) - solving map models, textures, skyboxes and grinding map exports

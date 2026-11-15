@@ -16,6 +16,7 @@ import { CanvasKeyHandler } from '@components/Scene/CanvasKeyHandler'
 import { Lights } from '@components/Scene/Lights'
 import { Actors } from '@components/Scene/Actors'
 import { Projectiles } from '@components/Scene/Projectiles'
+import { Viewmodel } from '@components/Scene/Viewmodel'
 import { Buildings } from '@components/Scene/Buildings'
 import { Objectives } from '@components/Scene/Objectives'
 import { ObjectiveHud } from '@components/UI/ObjectiveHud'
@@ -688,6 +689,10 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
         {/* Projectiles */}
 
         <Projectiles />
+
+        {/* The spectated player's arms and weapon, over everything, in POV */}
+
+        <Viewmodel />
       </Canvas>
 
       {/* Normal React (non-THREE.js) UI elements */}

@@ -1,9 +1,9 @@
 {
   "bspsrc": "./scripts/tools/bspsrc/bspsrc.sh",
   "blender": "/Applications/Blender.app/Contents/MacOS/Blender",
-  "game-dir": "/Users/bryan/Library/Application Support/Steam/steamapps/common/Team Fortress 2/tf",
+  "game-dir": "/Users/bryan/tf2-content/tf",
   "gltfpack": "./scripts/tools/gltfpack/gltfpack",
-  "hl2-dir": "/Users/bryan/Library/Application Support/Steam/steamapps/common/Team Fortress 2/hl2",
+  "hl2-dir": "/Users/bryan/tf2-content/hl2",
   "chunk-grid": "4",
   "texture-scale": "0.5",
   "texture-limit": "1024",

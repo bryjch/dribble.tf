@@ -210,6 +210,11 @@ export type StoreState = {
       killfeedSeekBuffer: number
       /** Which look the overlays use; see @theme/themes. Saved settings from before lack it. */
       theme?: ThemeId
+      /** The spectated player's arms and weapon in POV; fov is Source's viewmodel_fov. */
+      viewmodel: {
+        enabled: boolean
+        fov: number
+      }
     }
   }
   bookmarks: number[]
@@ -304,6 +309,10 @@ export const initialState: StoreState = {
       viewDistance: 15000,
       killfeedSeekBuffer: 2,
       theme: DEFAULT_THEME,
+      viewmodel: {
+        enabled: true,
+        fov: 70,
+      },
     },
   },
 

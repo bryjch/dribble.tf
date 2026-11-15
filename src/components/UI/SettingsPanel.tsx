@@ -352,6 +352,29 @@ export const SettingsPanel = () => {
 
           {/* ************************************************************* */}
 
+          <Section>Viewmodel</Section>
+
+          <ToggleOption
+            label="Show weapon in POV"
+            checked={settings.ui.viewmodel?.enabled !== false}
+            onChange={checked => updateSettingsOption('ui.viewmodel.enabled', checked)}
+          />
+
+          {settings.ui.viewmodel?.enabled !== false && (
+            <OptionGroup>
+              <SliderOption
+                label="Viewmodel FOV"
+                min={54}
+                max={90}
+                step={1}
+                value={settings.ui.viewmodel?.fov ?? 70}
+                onChange={value => updateSettingsOption('ui.viewmodel.fov', value)}
+              />
+            </OptionGroup>
+          )}
+
+          {/* ************************************************************* */}
+
           <Section>Crosshair</Section>
 
           <Option label="Style">
