@@ -104,7 +104,7 @@ export function buildSetupShareUrl(setup: SavedSetup): string {
 
 export function serializeSetupToShareToken(setup: SavedSetup): string {
   const payload: SharedSetupPayload = {
-    v: SETUP_STORAGE_VERSION,
+    v: setup.version,
     n: setup.name,
     m: setup.map,
     c: encodeCamera(setup.camera),
