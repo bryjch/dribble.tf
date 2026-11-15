@@ -1,4 +1,4 @@
-import { get, merge, clamp, sortBy, round } from 'lodash'
+import { get, merge, clamp, cloneDeep, sortBy, round } from 'lodash'
 import localForage from 'localforage'
 import * as THREE from 'three'
 
@@ -146,14 +146,11 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
     const worldBounds = await fetchMapWorldBounds(mapName)
     const overrides = getMapBoundaries(mapName)
 
-    const boundaries = worldBounds
-      ? { ...overrides, ...worldBounds }
-      : overrides
+    const boundaries = worldBounds ? { ...overrides, ...worldBounds } : overrides
     const mapKey = getMapBoundariesKey(mapName) ?? mapName
     const savedRtsCenter = getState().settings.scene.rtsCenters[mapKey]
-    const boundariesWithCenter = savedRtsCenter && boundaries
-      ? { ...boundaries, rtsCenter: savedRtsCenter }
-      : boundaries
+    const boundariesWithCenter =
+      savedRtsCenter && boundaries ? { ...boundaries, rtsCenter: savedRtsCenter } : boundaries
 
     if (!boundariesWithCenter?.boundaryMin || !boundariesWithCenter?.boundaryMax) {
       alert('Unable to load map. Could not determine map boundaries.')
@@ -441,6 +438,8 @@ export const changePlaySpeedAction = async (speed: 'faster' | 'slower' | number)
   }
 }
 
+let forceShowPanelTimer: ReturnType<typeof setTimeout> | undefined
+
 export const forceShowPanelAction = async (forceShowPanel?: boolean) => {
   try {
     if (forceShowPanel === undefined) {
@@ -449,7 +448,12 @@ export const forceShowPanelAction = async (forceShowPanel?: boolean) => {
 
     dispatch({ type: 'FORCE_SHOW_PANEL', payload: forceShowPanel })
 
-    setTimeout(() => dispatch({ type: 'FORCE_SHOW_PANEL', payload: false }), 1500)
+    // One timer at a time, so an earlier one cannot hide the panel early.
+    clearTimeout(forceShowPanelTimer)
+    forceShowPanelTimer = setTimeout(
+      () => dispatch({ type: 'FORCE_SHOW_PANEL', payload: false }),
+      1500
+    )
   } catch (error) {
     console.error(error)
   }
@@ -470,7 +474,11 @@ export const loadSettingsAction = async () => {
       settings.scene.mode = SceneMode.UNTEXTURED
     }
 
-    dispatch({ type: 'LOAD_SETTINGS', payload: { settings: merge(defaultSettings, settings) } })
+    // merge writes into its first argument, so the defaults are copied first.
+    dispatch({
+      type: 'LOAD_SETTINGS',
+      payload: { settings: merge(cloneDeep(defaultSettings), settings) },
+    })
   } catch (error) {
     console.error(error)
   }
@@ -486,8 +494,7 @@ export const updateSettingsOptionAction = async (option: string, value: any) => 
 
 export const toggleMapCenterPickerAction = async (active?: boolean) => {
   try {
-    const nextActive =
-      active !== undefined ? active : !useInstance.getState().mapCenterPickerActive
+    const nextActive = active !== undefined ? active : !useInstance.getState().mapCenterPickerActive
     useInstance.getState().setMapCenterPickerActive(nextActive)
   } catch (error) {
     console.error(error)
@@ -506,11 +513,7 @@ export const setSceneRtsCenterAction = async (point: { x: number; y: number; z: 
 
     const modelWorldBounds = await fetchMapWorldBounds(mapName)
     const settingsCenter = modelWorldBounds
-      ? translatePointBetweenBoundaryMins(
-          point,
-          sceneBoundaryMin,
-          modelWorldBounds.boundaryMin
-        )
+      ? translatePointBetweenBoundaryMins(point, sceneBoundaryMin, modelWorldBounds.boundaryMin)
       : point
 
     await updateSettingsOptionAction(`scene.rtsCenters.${mapKey}`, settingsCenter)
@@ -1024,6 +1027,58 @@ export const updateDownloadAction = async (
     }
   } catch (error) {
     console.error(error)
+  }
+}
+
+/** Marks a download as finished, whether or not its progress ever reached 100%. */
+export const finishDownloadAction = (url: string, status: 'success' | 'error' = 'success') => {
+  dispatch({
+    type: 'UPDATE_DOWNLOAD',
+    payload: { url, status, ...(status === 'success' ? { progress: 100 } : {}) },
+  })
+}
+
+/** Fetches a file into an ArrayBuffer, showing it in the downloads overlay. */
+export const downloadFileAction = async (
+  download: Pick<Download, 'type' | 'name' | 'url'>
+): Promise<ArrayBuffer> => {
+  await addDownloadAction(download)
+  try {
+    const response = await fetch(download.url)
+    if (!response.ok) throw new Error(`${download.url}: ${response.status}`)
+    // content-length is the encoded size, so with compression progress is approximate.
+    const total = Number(response.headers.get('content-length')) || 0
+    if (!response.body) {
+      const buffer = await response.arrayBuffer()
+      finishDownloadAction(download.url)
+      return buffer
+    }
+    const chunks: Uint8Array[] = []
+    let received = 0
+    const reader = response.body.getReader()
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+      received += value.length
+      if (total) {
+        updateDownloadAction(download.url, {
+          progress: Math.min(99, (received / total) * 100),
+          size: total,
+        })
+      }
+    }
+    const bytes = new Uint8Array(received)
+    let offset = 0
+    for (const chunk of chunks) {
+      bytes.set(chunk, offset)
+      offset += chunk.length
+    }
+    finishDownloadAction(download.url)
+    return bytes.buffer
+  } catch (error) {
+    finishDownloadAction(download.url, 'error')
+    throw error
   }
 }
 

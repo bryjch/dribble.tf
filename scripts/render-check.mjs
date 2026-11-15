@@ -356,11 +356,14 @@ async function run(args) {
       await waitForScene(page)
     }
     memory.afterModeToggles = await call(page, 'renderInfo')
+    // Two round trips: growth on the first can be caches filling; growth on the second is a leak.
+    memory.mapRoundTrips = []
     for (let i = 0; i < 2; i++) {
       await call(page, 'loadMap', OTHER_MAP)
       await waitForScene(page)
       await call(page, 'loadMap', DEMO_MAP)
       await waitForScene(page)
+      memory.mapRoundTrips.push(await call(page, 'renderInfo'))
     }
     memory.afterMapSwitches = await call(page, 'renderInfo')
     memory.heapMbAfterMapSwitches = await heapMb(page)
@@ -423,7 +426,8 @@ function compare(args) {
   for (const key of ['geometries', 'textures']) {
     perf.push(line(`GPU ${key}: start`, before.memory?.start?.[key], after.memory?.start?.[key]))
     perf.push(line(`GPU ${key}: after 4 mode toggles`, before.memory?.afterModeToggles?.[key], after.memory?.afterModeToggles?.[key]))
-    perf.push(line(`GPU ${key}: after 4 map switches`, before.memory?.afterMapSwitches?.[key], after.memory?.afterMapSwitches?.[key]))
+    perf.push(line(`GPU ${key}: after 1st map round trip`, before.memory?.mapRoundTrips?.[0]?.[key], after.memory?.mapRoundTrips?.[0]?.[key]))
+    perf.push(line(`GPU ${key}: after 2nd map round trip`, before.memory?.afterMapSwitches?.[key], after.memory?.afterMapSwitches?.[key]))
   }
   perf.push(line('JS heap after map switches (MB)', before.memory?.heapMbAfterMapSwitches, after.memory?.heapMbAfterMapSwitches))
 

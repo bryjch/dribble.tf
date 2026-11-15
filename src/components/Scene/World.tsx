@@ -8,7 +8,7 @@ import { ActorDimensions } from '@components/Scene/Actors'
 
 import mapChunkingConfig from '@constants/mapChunking.json'
 import { MapVisibilityMetadata } from '@constants/types'
-import { addDownloadAction, updateDownloadAction } from '@zus/actions'
+import { addDownloadAction, finishDownloadAction, updateDownloadAction } from '@zus/actions'
 import { getState, useInstance, useStore } from '@zus/store'
 import { getMapModelUrls, getMapVisibilityUrl } from '@utils/game'
 
@@ -69,7 +69,6 @@ export const World = (props: WorldProps) => {
   const mapLoadRequestIdRef = useRef(0)
   const visibilityRequestIdRef = useRef(0)
   const [mapModel, setMapModel] = useState<THREE.Group | null>()
-  const [mapOverlay, setMapOverlay] = useState<THREE.Group | null>()
   const [mapVisibility, setMapVisibility] = useState<MapVisibilityMetadata | null>(null)
   const { map, mode } = props
 
@@ -79,7 +78,6 @@ export const World = (props: WorldProps) => {
   // to prevent lingering of the previous map
   useEffect(() => {
     setMapModel(null)
-    setMapOverlay(null)
     chunkRootsByNameRef.current = new Map()
     visibilityCullingEnabledRef.current = false
     currentClusterRef.current = null
@@ -128,35 +126,42 @@ export const World = (props: WorldProps) => {
     }
   }, [map])
 
+  // Load the map's model once per map; the scene mode only swaps materials (below). The model is
+  // a <primitive>, which react-three-fiber never disposes, so it is freed here when replaced.
   useEffect(() => {
     const requestId = ++mapLoadRequestIdRef.current
+    let loaded: THREE.Group | undefined
 
-    try {
-      const mapModelFileUrls = getMapModelUrls(map)
+    const mapModelFileUrls = getMapModelUrls(map)
+    if (!mapModelFileUrls) {
+      alert('Unable to load map model. It may not be available on dribble.tf.')
+      return
+    }
 
-      if (!mapModelFileUrls) {
-        alert('Unable to load map model. It may not be available on dribble.tf.')
-        return
-      }
-
-      loadGLTF(mapModelFileUrls.textured, `${map} (textured)`).then(gltf => {
-        if (requestId === mapLoadRequestIdRef.current && gltf && gltf.scene) {
-          setMapModel(gltf.scene)
+    loadGLTF(mapModelFileUrls.textured, `${map} (textured)`)
+      .then(gltf => {
+        if (requestId !== mapLoadRequestIdRef.current) {
+          disposeMapModel(gltf.scene)
+          return
+        }
+        loaded = gltf.scene
+        prepareMapModel(loaded)
+        setMapModel(loaded)
+      })
+      .catch(error => {
+        console.error(error)
+        if (requestId === mapLoadRequestIdRef.current) {
+          alert(`Unable to load map: ${map}\nThe project is probably missing the necessary files.`)
         }
       })
-    } catch (error) {
-      alert(
-        `Unable to load map: ${map} (${mode})\nThe project is probably missing the necessary files.`
-      )
-      console.error(error)
-    }
 
     return () => {
       if (mapLoadRequestIdRef.current === requestId) {
         mapLoadRequestIdRef.current += 1
       }
+      if (loaded) disposeMapModel(loaded)
     }
-  }, [map, mode])
+  }, [map])
 
   useEffect(() => {
     if (!mapModel || !MAP_CHUNKING_ENABLED) {
@@ -250,11 +255,7 @@ export const World = (props: WorldProps) => {
       return
     }
 
-    setChunkVisibilityForCluster(
-      chunkRootsByName,
-      mapVisibility.chunkNames,
-      visibleChunkIndices
-    )
+    setChunkVisibilityForCluster(chunkRootsByName, mapVisibility.chunkNames, visibleChunkIndices)
     currentClusterRef.current = currentCluster
     useInstance.getState().setRuntimePerf({
       visibleChunkCount: visibleChunkIndices.length,
@@ -262,68 +263,25 @@ export const World = (props: WorldProps) => {
     })
   })
 
-  // Update map overlay materials
-  useEffect(() => {
-    if (mapOverlay) {
-      mapOverlay.traverse((child: THREE.Object3D) => {
-        traverseMaterials(child, (material: any) => {
-          // if (material.map) material.map.encoding = THREE.sRGBEncoding
-          // if (material.emissiveMap) material.emissiveMap.encoding = THREE.sRGBEncoding
-          material.depthWrite = true
-          material.needsUpdate = true
-
-          material.polygonOffset = true
-          material.polygonOffsetUnits = 1
-          material.polygonOffsetFactor = -10
-          material.vertexColors = false
-        })
-      })
-    }
-  }, [mapOverlay, mode])
-
   useEffect(() => {
     if (mapModel) {
       freezeStaticMapSubtree(mapModel)
     }
+  }, [mapModel])
 
-    if (mapOverlay) {
-      freezeStaticMapSubtree(mapOverlay)
-    }
-  }, [mapModel, mapOverlay])
-
-  // Update map model materials
+  // Swap materials for the scene mode; the model's own are kept in userData to switch back.
   useEffect(() => {
-    if (mapModel) {
-      mapModel.traverse((child: THREE.Object3D) => {
-        // Hide invisible game-logic entity nodes (e.g. team_control_point brushes)
-        if (isInvisibleEntityNode(child.name)) {
-          child.visible = false
-          return
-        }
-
-        traverseMaterials(child, (material: any, node: any) => {
-          // Hide invisible tool materials (nodraw, clip, trigger, etc.)
-          if (isInvisibleToolMaterial(material.name)) {
-            node.visible = false
-            return
-          }
-
-          // if (material.map) material.map.encoding = THREE.sRGBEncoding
-          // if (material.emissiveMap) material.emissiveMap.encoding = THREE.sRGBEncoding
-          material.depthWrite = true
-          material.vertexColors = false
-          material.needsUpdate = true
-
-          if (mode === 'untextured') {
-            node.material = MAP_UNTEXTURED_MATERIAL
-          }
-
-          if (mode === 'wireframe') {
-            node.material = MAP_WIREFRAME_MATERIAL
-          }
-        })
-      })
-    }
+    if (!mapModel) return
+    mapModel.traverse(node => {
+      const mesh = node as THREE.Mesh
+      if (!mesh.isMesh || !mesh.userData.originalMaterial) return
+      mesh.material =
+        mode === 'untextured'
+          ? MAP_UNTEXTURED_MATERIAL
+          : mode === 'wireframe'
+            ? MAP_WIREFRAME_MATERIAL
+            : mesh.userData.originalMaterial
+    })
   }, [mapModel, mode])
 
   // Reposition the world to the center of the scene bounds
@@ -340,7 +298,6 @@ export const World = (props: WorldProps) => {
     // Account for valve maps using different axis system
     <group ref={ref} name="world" rotation={[Math.PI / 2, 0, 0]}>
       {mapModel ? <primitive object={mapModel} /> : null}
-      {mapOverlay ? <primitive object={mapOverlay} /> : null}
     </group>
   )
 }
@@ -412,7 +369,10 @@ function freezeStaticMapSubtree(root: THREE.Object3D) {
   root.updateMatrixWorld(true)
 }
 
-function getMapLocalPoint(worldPoint: THREE.Vector3, mapRoot: THREE.Object3D): THREE.Vector3 | null {
+function getMapLocalPoint(
+  worldPoint: THREE.Vector3,
+  mapRoot: THREE.Object3D
+): THREE.Vector3 | null {
   mapRoot.updateWorldMatrix(true, false)
 
   const inverseWorldMatrix = new THREE.Matrix4().copy(mapRoot.matrixWorld)
@@ -488,6 +448,7 @@ function loadGLTF(url: string, name?: string) {
       const gltfLoader = new GLTFLoader().setCrossOrigin('anonymous')
 
       const onLoad = (gltf: GLTF) => {
+        finishDownloadAction(url, 'success')
         resolve(gltf)
       }
 
@@ -506,7 +467,8 @@ function loadGLTF(url: string, name?: string) {
       }
 
       const onError = (error: unknown) => {
-        throw error
+        finishDownloadAction(url, 'error')
+        reject(error)
       }
 
       gltfLoader.load(url, onLoad, onProgress, onError)
@@ -517,16 +479,42 @@ function loadGLTF(url: string, name?: string) {
   })
 }
 
-function traverseMaterials(
-  object: THREE.Object3D,
-  callback: (material: THREE.Material, node: THREE.Object3D) => void
-) {
-  object.traverse((node: THREE.Object3D) => {
-    if (node.type === 'Mesh') {
-      const m = node as THREE.Mesh
-      const materials = Array.isArray(m.material) ? m.material : [m.material]
-
-      materials.forEach((material: THREE.Material) => callback(material, node))
+/** Hides tool brushes and game-logic nodes, and remembers each mesh's own material. */
+function prepareMapModel(model: THREE.Object3D) {
+  model.traverse(node => {
+    // Hide invisible game-logic entity nodes (e.g. team_control_point brushes)
+    if (isInvisibleEntityNode(node.name)) {
+      node.visible = false
+      return
     }
+    const mesh = node as THREE.Mesh
+    if (!mesh.isMesh) return
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    for (const material of materials) {
+      // Hide invisible tool materials (nodraw, clip, trigger, etc.)
+      if (isInvisibleToolMaterial(material.name)) mesh.visible = false
+      material.depthWrite = true
+      ;(material as THREE.MeshStandardMaterial).vertexColors = false
+      material.needsUpdate = true
+    }
+    mesh.userData.originalMaterial = mesh.material
   })
+}
+
+/** Frees a map model's geometry, materials and textures on the GPU. */
+function disposeMapModel(model: THREE.Object3D) {
+  const materials = new Set<THREE.Material>()
+  model.traverse(node => {
+    const mesh = node as THREE.Mesh
+    if (!mesh.isMesh) return
+    mesh.geometry?.dispose()
+    const own = mesh.userData.originalMaterial ?? mesh.material
+    for (const material of Array.isArray(own) ? own : [own]) materials.add(material)
+  })
+  for (const material of materials) {
+    for (const value of Object.values(material)) {
+      if (value instanceof THREE.Texture) value.dispose()
+    }
+    material.dispose()
+  }
 }

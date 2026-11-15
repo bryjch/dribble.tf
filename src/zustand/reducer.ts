@@ -1,5 +1,4 @@
-import localForage from 'localforage'
-import { set, clone, clamp, uniq, without, sortedUniq, sortBy } from 'lodash'
+import { set, cloneDeep, clamp, uniq, without, sortedUniq, sortBy } from 'lodash'
 
 import { StoreState, StoreAction, useInstance } from './store'
 import { SavedSetup, StickerAnnotation } from '@constants/types'
@@ -118,9 +117,12 @@ const reducers = (state: StoreState, action: StoreAction) => {
       return { ...state, settings: action.payload.settings }
 
     case 'UPDATE_SETTINGS_OPTION':
-      let updatedSettings = set(clone(state.settings), action.payload.option, action.payload.value)
-
-      localForage.setItem('settings', updatedSettings)
+      // A deep copy: lodash's set writes into nested objects, which the previous state shares.
+      const updatedSettings = set(
+        cloneDeep(state.settings),
+        action.payload.option,
+        action.payload.value
+      )
 
       return {
         ...state,
@@ -155,8 +157,6 @@ const reducers = (state: StoreState, action: StoreAction) => {
         ...state.setups.items.filter(setup => setup.id !== action.payload.id),
       ])
 
-      persistSetups(nextItems)
-
       return {
         ...state,
         setups: {
@@ -171,8 +171,6 @@ const reducers = (state: StoreState, action: StoreAction) => {
       const nextItems = sortSavedSetups(
         state.setups.items.map(setup => (setup.id === action.payload.id ? action.payload : setup))
       )
-
-      persistSetups(nextItems)
 
       return {
         ...state,
@@ -196,8 +194,6 @@ const reducers = (state: StoreState, action: StoreAction) => {
         )
       )
 
-      persistSetups(nextItems)
-
       return {
         ...state,
         setups: {
@@ -213,8 +209,6 @@ const reducers = (state: StoreState, action: StoreAction) => {
 
     case 'DELETE_SETUP': {
       const nextItems = state.setups.items.filter(setup => setup.id !== action.payload)
-
-      persistSetups(nextItems)
 
       return {
         ...state,
@@ -352,7 +346,7 @@ const reducers = (state: StoreState, action: StoreAction) => {
           selectedStickerId:
             action.payload.kind === 'create'
               ? undefined
-              : action.payload.stickerId ?? state.drawing.selectedStickerId,
+              : (action.payload.stickerId ?? state.drawing.selectedStickerId),
           stickerDrag: {
             active: true,
             kind: action.payload.kind,
@@ -579,10 +573,6 @@ function resolveSelectedStickerId(
 ): string | undefined {
   if (!selectedStickerId) return undefined
   return stickers.some(sticker => sticker.id === selectedStickerId) ? selectedStickerId : undefined
-}
-
-function persistSetups(setups: SavedSetup[]) {
-  localForage.setItem('setups', setups)
 }
 
 function sortSavedSetups(setups: SavedSetup[]): SavedSetup[] {

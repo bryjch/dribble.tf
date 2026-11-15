@@ -201,7 +201,7 @@ export const PlaybackPanel = () => {
               icon={
                 <div className="-mr-1 flex min-w-11 select-none flex-col items-center text-center">
                   <div className="text-xs leading-none">TICK</div>
-                  <div className="font-bold leading-none">{tick * 2}</div>
+                  <div className="font-bold leading-none">{tick}</div>
                 </div>
               }
               content={
@@ -214,7 +214,7 @@ export const PlaybackPanel = () => {
                       const tickEl = e.target.elements.namedItem('tick') as HTMLInputElement
                       const newTick = Number(tickEl.value)
                       if (isNaN(newTick)) return
-                      goToTick(newTick / 2)
+                      goToTick(newTick)
                     }}
                   >
                     <input
@@ -233,7 +233,7 @@ export const PlaybackPanel = () => {
 
                   <div className="mt-2 flex justify-between text-xs opacity-80">
                     <div>Total Ticks</div>
-                    <div className="font-bold">{maxTicks * 2}</div>
+                    <div className="font-bold">{maxTicks}</div>
                   </div>
                 </div>
               }

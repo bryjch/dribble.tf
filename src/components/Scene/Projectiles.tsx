@@ -279,6 +279,14 @@ const RocketSmokeTrail = ({ data }: { data: TrailTargetData }) => {
     })
   }, [])
 
+  useEffect(
+    () => () => {
+      geometry.dispose()
+      material.dispose()
+    },
+    [geometry, material]
+  )
+
   // Attach per-instance opacity attribute and initialize mesh
   useEffect(() => {
     if (meshRef.current) {

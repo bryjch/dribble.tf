@@ -1,6 +1,4 @@
-import axios from 'axios'
-
-import { addDownloadAction, updateDownloadAction, parseDemoAction } from '@zus/actions'
+import { downloadFileAction, parseDemoAction } from '@zus/actions'
 
 //
 // ─── LOADING A DEMO FROM THE URL ────────────────────────────────────────────────
@@ -110,9 +108,9 @@ export const resolveUrlDemoAction = async (): Promise<UrlDemoRequest | null> => 
       // demos.tf's API is public, keyless and CORS-open. The record also carries the
       // original filename, which reads better in the download overlay than the hashed
       // storage path, plus the map name we want for the head start above.
-      const { data } = await axios.get(`${DEMOS_TF_API}/${encodeURIComponent(demoId)}`, {
-        responseType: 'json',
-      })
+      const response = await fetch(`${DEMOS_TF_API}/${encodeURIComponent(demoId)}`)
+      if (!response.ok) throw new Error(`demos.tf ${demoId}: ${response.status}`)
+      const data = await response.json()
 
       if (!data?.url) throw new Error(`demos.tf ${demoId} has no downloadable file`)
 
@@ -143,19 +141,7 @@ export const loadUrlDemoAction = async (
   request: UrlDemoRequest
 ): Promise<{ tick: number } | null> => {
   try {
-    await addDownloadAction({ type: 'demo', url: request.url, name: request.name })
-
-    const fileBuffer = await axios
-      .get(request.url, {
-        responseType: 'arraybuffer',
-        onDownloadProgress: event => {
-          updateDownloadAction(request.url, {
-            progress: event.progress ? event.progress * 100 : 0,
-            size: event.total,
-          })
-        },
-      })
-      .then(res => res.data)
+    const fileBuffer = await downloadFileAction({ type: 'demo', url: request.url, name: request.name })
 
     await parseDemoAction(fileBuffer)
 

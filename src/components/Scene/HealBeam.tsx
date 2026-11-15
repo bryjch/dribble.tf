@@ -116,13 +116,15 @@ export interface HealBeamProps {
   width?: number
 }
 
+// Every beam is the same strip, shaped in the vertex shader; one geometry serves them all.
+const BEAM_GEOMETRY = new THREE.PlaneGeometry(1, 1, 100, 1)
+
 // Half player height (83 * 0.5) — beam connects at midsection
 const BEAM_HEIGHT_OFFSET = 41.5
 
 export const HealBeam = ({ origin, target, color, width = 20 }: HealBeamProps) => {
   const materialRef = useRef<THREE.ShaderMaterial>(null)
 
-  const geometry = useMemo(() => new THREE.PlaneGeometry(1, 1, 100, 1), [])
 
   const uniforms = useMemo(
     () => ({
@@ -145,7 +147,7 @@ export const HealBeam = ({ origin, target, color, width = 20 }: HealBeamProps) =
   })
 
   return (
-    <mesh name="healBeam" frustumCulled={false} geometry={geometry}>
+    <mesh name="healBeam" frustumCulled={false} geometry={BEAM_GEOMETRY}>
       <shaderMaterial
         ref={materialRef}
         uniforms={uniforms}

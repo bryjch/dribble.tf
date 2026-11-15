@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import localForage from 'localforage'
 import { redux } from 'zustand/middleware'
 import CanvasDraw from 'react-canvas-draw'
 import { isMobile } from 'react-device-detect'
@@ -332,5 +333,11 @@ const useStore = create(redux<StoreState, StoreAction>(rootReducer as any, initi
 // Export these functions at first level because they will be used very frequently
 // and are essentially the Redux equivalents (makes migration/adoption easier)
 const { dispatch, getState } = useStore
+
+// Settings and setups are saved whenever they change, outside the reducers so those stay pure.
+useStore.subscribe((state, previous) => {
+  if (state.settings !== previous.settings) localForage.setItem('settings', state.settings)
+  if (state.setups.items !== previous.setups.items) localForage.setItem('setups', state.setups.items)
+})
 
 export { useStore, dispatch, getState, useInstance }

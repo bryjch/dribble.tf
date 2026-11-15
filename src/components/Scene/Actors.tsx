@@ -1,4 +1,4 @@
-import { useRef, useEffect, useLayoutEffect, Suspense, useState } from 'react'
+import { useRef, useEffect, useLayoutEffect, Suspense } from 'react'
 
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
@@ -130,8 +130,9 @@ export const Actors = (props: ActorsProps) => {
 
   return (
     <group name="actors">
-      {actors.map((actor, index) => (
-        <Actor key={`actor-${index}`} {...actor} />
+      {/* Keyed by player: a list position changes hands when anyone joins, leaves or swaps team. */}
+      {actors.map(actor => (
+        <Actor key={`actor-${actor.user.entityId}`} {...actor} />
       ))}
     </group>
   )
@@ -151,7 +152,6 @@ export const Actor = (props: ActorProps) => {
   const lerpedPosition = useRef(new THREE.Vector3())
   const hasPositionInit = useRef(false)
   const staleGuard = useRef(createStaleFrameGuard(props.position))
-  const [changing, setChanging] = useState<boolean>(false)
   const { scene } = useThree()
 
   const playback = useStore(state => state.playback)
@@ -266,24 +266,16 @@ export const Actor = (props: ActorProps) => {
     }
   })
 
-  // Kinda hacky solution to fix player models not updating when they change class,
-  // which is due to how PlayerModel handles caching of loaded GLTF models. So this
-  // solution relies of quickly remounting the PlayerModel with the updated team/classId
-  // values. It doesn't appear to trigger any network refetches, so this should be ok
-  useEffect(() => {
-    setChanging(true)
-    const timer = setTimeout(() => setChanging(false), 10)
-    return () => clearTimeout(timer)
-  }, [team, classId])
-
   return (
     <group name="actor" ref={actorRef} userData={user}>
       {/* Player model */}
 
       <group name="playerBody" ref={bodyRef}>
         <Suspense fallback={null}>
-          {team && classId && !changing ? (
+          {team && classId ? (
+            // A new key per class and team mounts that model instead of reusing the last one.
             <PlayerModel
+              key={`${team}-${classId}`}
               visible={alive && !isFocusedPOV}
               team={team}
               classId={classId}
