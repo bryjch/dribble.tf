@@ -92,7 +92,7 @@ const ViewerPage = () => {
                     </div>
 
                     <div>
-                      {download.name} ... {download.progress.toFixed(1)}%
+                      {download.stage ?? `${download.name} ... ${download.progress.toFixed(1)}%`}
                     </div>
                   </div>
                 </div>

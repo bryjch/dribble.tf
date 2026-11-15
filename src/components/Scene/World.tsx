@@ -5,12 +5,12 @@ import { useFrame } from '@react-three/fiber'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/Addons.js'
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 
-
 import mapChunkingConfig from '@constants/mapChunking.json'
 import { MapVisibilityMetadata } from '@constants/types'
 import { addDownloadAction, finishDownloadAction, updateDownloadAction } from '@zus/actions'
 import { getState, useInstance } from '@zus/store'
-import { getMapModelUrls, getMapVisibilityUrl } from '@utils/game'
+import { useDerivedMap } from '@components/Scene/DerivedMap'
+import { DerivedMapResult, textComponent } from '@utils/derivedMap'
 
 const INVISIBLE_TOOL_MATERIALS = new Set([
   'toolsnodraw',
@@ -60,6 +60,25 @@ export interface WorldProps {
   mode?: 'textured' | 'untextured' | 'wireframe'
 }
 
+type BspVisibilityV2 = {
+  version: 2
+  clusterCount: number
+  clusterWordCount: number
+  pvsWords: number[]
+  planes: { normal: [number, number, number]; distance: number }[]
+  nodes: { planeIndex: number; children: [number, number] }[]
+  worldHeadNode: number
+  leaves: { cluster: number }[]
+  chunks: { index: number; staticPvs: boolean }[]
+  chunkClusterWords: number[]
+}
+
+type VisibilityMetadata = MapVisibilityMetadata | BspVisibilityV2
+
+type DerivedResult = Extract<DerivedMapResult, { kind: 'derived' }>
+
+const DECAL_OVERLAY_NAME = 'derived_decal_overlays'
+
 export const World = (props: WorldProps) => {
   const ref = useRef<THREE.Group>(null)
   const cameraWorldPositionRef = useRef(new THREE.Vector3())
@@ -69,9 +88,10 @@ export const World = (props: WorldProps) => {
   const mapLoadRequestIdRef = useRef(0)
   const visibilityRequestIdRef = useRef(0)
   const [mapModel, setMapModel] = useState<THREE.Group | null>()
-  const [mapVisibility, setMapVisibility] = useState<MapVisibilityMetadata | null>(null)
+  const [mapVisibility, setMapVisibility] = useState<VisibilityMetadata | null>(null)
   const { map, mode } = props
-
+  // Which Derived Map (or published GLB) to draw; DerivedMapController resolves it per map.
+  const { result } = useDerivedMap()
 
   // Briefly ensure the map is cleared when the map changes
   // to prevent lingering of the previous map
@@ -88,12 +108,18 @@ export const World = (props: WorldProps) => {
   }, [map])
 
   useEffect(() => {
-    if (!MAP_CHUNKING_ENABLED) {
+    if (!MAP_CHUNKING_ENABLED || !result) {
       setMapVisibility(null)
       return
     }
 
-    const visibilityUrl = getMapVisibilityUrl(map)
+    if (result.kind === 'derived') {
+      const metadata = textComponent(result, 'visibility.json')
+      setMapVisibility(isBspVisibilityV2(metadata) ? metadata : null)
+      return
+    }
+
+    const visibilityUrl = result.visibilityUrl
     if (!visibilityUrl) {
       setMapVisibility(null)
       return
@@ -123,40 +149,50 @@ export const World = (props: WorldProps) => {
         visibilityRequestIdRef.current += 1
       }
     }
-  }, [map])
+  }, [map, result])
 
-  // Load the map's model once per map; the scene mode only swaps materials (below).
+  // Load the map's model once per resolved map; the scene mode only swaps materials (below).
   useEffect(() => {
     const requestId = ++mapLoadRequestIdRef.current
+    if (!result) return
 
-    const mapModelFileUrls = getMapModelUrls(map)
-    if (!mapModelFileUrls) {
-      alert('Unable to load map model. It may not be available on dribble.tf.')
-      return
-    }
-
-    loadGLTF(mapModelFileUrls.textured, `${map} (textured)`)
-      .then(gltf => {
+    const load = async () => {
+      const gltf =
+        result.kind === 'legacy'
+          ? await loadGLTF(result.modelUrl, `${map} (textured)`)
+          : await loadGLTFBytes(result.components.get('world.glb'))
+      try {
         if (requestId !== mapLoadRequestIdRef.current) {
           disposeMapModel(gltf.scene)
           return
         }
         prepareMapModel(gltf.scene)
-        setMapModel(gltf.scene)
-      })
-      .catch(error => {
-        console.error(error)
-        if (requestId === mapLoadRequestIdRef.current) {
-          alert(`Unable to load map: ${map}\nThe project is probably missing the necessary files.`)
-        }
-      })
+        // Derived extras (props, decals, lightmaps) hang off the model, so one dispose frees them.
+        if (result.kind === 'derived') await applyDerivedPresentation(gltf.scene, result)
+      } catch (error) {
+        disposeMapModel(gltf.scene)
+        throw error
+      }
+      if (requestId !== mapLoadRequestIdRef.current) {
+        disposeMapModel(gltf.scene)
+        return
+      }
+      setMapModel(gltf.scene)
+    }
+
+    load().catch(error => {
+      console.error(error)
+      if (requestId === mapLoadRequestIdRef.current) {
+        alert(`Unable to load map: ${map}\nThe project is probably missing the necessary files.`)
+      }
+    })
 
     return () => {
       if (mapLoadRequestIdRef.current === requestId) {
         mapLoadRequestIdRef.current += 1
       }
     }
-  }, [map])
+  }, [map, result])
 
   // The model is a <primitive>, which react-three-fiber never disposes, so it is freed here once
   // replaced. This cleanup runs after the commit that took it out of the scene: freed any
@@ -178,7 +214,7 @@ export const World = (props: WorldProps) => {
       return
     }
 
-    const chunkRootsByName = collectChunkRoots(mapModel)
+    const chunkRootsByName = collectChunkRoots(mapModel, mapVisibility)
     chunkRootsByNameRef.current = chunkRootsByName
     currentClusterRef.current = null
     setChunkRootVisibility(chunkRootsByName, true)
@@ -192,7 +228,7 @@ export const World = (props: WorldProps) => {
       return
     }
 
-    const missingChunkNames = mapVisibility.chunkNames.filter(
+    const missingChunkNames = visibilityChunkNames(mapVisibility).filter(
       chunkName => !chunkRootsByName.has(chunkName)
     )
 
@@ -247,7 +283,7 @@ export const World = (props: WorldProps) => {
       return
     }
 
-    const visibleChunkIndices = mapVisibility.visibleChunksByCluster[currentCluster]
+    const visibleChunkIndices = visibleChunksForCluster(mapVisibility, currentCluster)
     if (!Array.isArray(visibleChunkIndices) || visibleChunkIndices.length === 0) {
       setChunkRootVisibility(chunkRootsByName, true)
       currentClusterRef.current = -1
@@ -258,7 +294,11 @@ export const World = (props: WorldProps) => {
       return
     }
 
-    setChunkVisibilityForCluster(chunkRootsByName, mapVisibility.chunkNames, visibleChunkIndices)
+    setChunkVisibilityForCluster(
+      chunkRootsByName,
+      visibilityChunkNames(mapVisibility),
+      visibleChunkIndices
+    )
     currentClusterRef.current = currentCluster
     useInstance.getState().setRuntimePerf({
       visibleChunkCount: visibleChunkIndices.length,
@@ -285,6 +325,9 @@ export const World = (props: WorldProps) => {
             ? MAP_WIREFRAME_MATERIAL
             : mesh.userData.originalMaterial
     })
+    // Decals have no untextured or wireframe look of their own; they sit on textured brushes.
+    const decals = mapModel.getObjectByName(DECAL_OVERLAY_NAME)
+    if (decals) decals.visible = mode !== 'untextured' && mode !== 'wireframe'
   }, [mapModel, mode])
 
   return (
@@ -312,16 +355,60 @@ function isMapVisibilityMetadata(data: unknown): data is MapVisibilityMetadata {
   )
 }
 
-function collectChunkRoots(root: THREE.Object3D): Map<string, THREE.Object3D> {
+function isBspVisibilityV2(data: unknown): data is BspVisibilityV2 {
+  if (!data || typeof data !== 'object') return false
+  const candidate = data as Partial<BspVisibilityV2>
+  return (
+    candidate.version === 2 &&
+    Number.isInteger(candidate.clusterCount) &&
+    Number.isInteger(candidate.clusterWordCount) &&
+    Array.isArray(candidate.pvsWords) &&
+    Array.isArray(candidate.planes) &&
+    Array.isArray(candidate.nodes) &&
+    Number.isInteger(candidate.worldHeadNode) &&
+    Array.isArray(candidate.leaves) &&
+    Array.isArray(candidate.chunks) &&
+    Array.isArray(candidate.chunkClusterWords)
+  )
+}
+
+function collectChunkRoots(
+  root: THREE.Object3D,
+  metadata: VisibilityMetadata | null
+): Map<string, THREE.Object3D> {
   const chunkRootsByName = new Map<string, THREE.Object3D>()
 
   root.traverse(node => {
-    if (/^chunk_\d+_\d+$/.test(node.name)) {
+    if (isBspVisibilityV2(metadata) && Number.isInteger(node.userData.visibilityChunkIndex)) {
+      chunkRootsByName.set(String(node.userData.visibilityChunkIndex), node)
+    } else if (/^chunk_\d+_\d+$/.test(node.name)) {
       chunkRootsByName.set(node.name, node)
     }
   })
 
   return chunkRootsByName
+}
+
+function visibilityChunkNames(metadata: VisibilityMetadata): string[] {
+  return isMapVisibilityMetadata(metadata)
+    ? metadata.chunkNames
+    : metadata.chunks.map(chunk => String(chunk.index))
+}
+
+function visibleChunksForCluster(metadata: VisibilityMetadata, cluster: number): number[] {
+  if (isMapVisibilityMetadata(metadata)) return metadata.visibleChunksByCluster[cluster] ?? []
+  if (cluster < 0 || cluster >= metadata.clusterCount) return []
+  const row = cluster * metadata.clusterWordCount
+  return metadata.chunks.flatMap((chunk, index) => {
+    if (!chunk.staticPvs) return [index]
+    const chunkRow = index * metadata.clusterWordCount
+    for (let word = 0; word < metadata.clusterWordCount; word += 1) {
+      if ((metadata.pvsWords[row + word] & metadata.chunkClusterWords[chunkRow + word]) !== 0) {
+        return [index]
+      }
+    }
+    return []
+  })
 }
 
 function setChunkRootVisibility(chunkRootsByName: Map<string, THREE.Object3D>, visible: boolean) {
@@ -386,39 +473,57 @@ function convertGltfPointToSource(point: THREE.Vector3): [number, number, number
 
 function getLeafIndexForSourcePoint(
   sourcePoint: [number, number, number],
-  metadata: MapVisibilityMetadata
+  metadata: VisibilityMetadata
 ): number {
-  let nodeIndex = 0
+  let nodeIndex = isMapVisibilityMetadata(metadata) ? 0 : metadata.worldHeadNode
 
   while (Number.isInteger(nodeIndex) && nodeIndex >= 0) {
     if (nodeIndex >= metadata.nodes.length) return -1
-
-    const [planeIndex, frontChild, backChild] = metadata.nodes[nodeIndex]
-    const plane = metadata.planes[planeIndex]
-    if (!plane) return -1
-
-    const distance =
-      sourcePoint[0] * plane[0] + sourcePoint[1] * plane[1] + sourcePoint[2] * plane[2] - plane[3]
-    nodeIndex = distance >= 0 ? frontChild : backChild
+    if (isMapVisibilityMetadata(metadata)) {
+      const [planeIndex, frontChild, backChild] = metadata.nodes[nodeIndex]
+      const plane = metadata.planes[planeIndex]
+      if (!plane) return -1
+      const distance =
+        sourcePoint[0] * plane[0] + sourcePoint[1] * plane[1] + sourcePoint[2] * plane[2] - plane[3]
+      nodeIndex = distance >= 0 ? frontChild : backChild
+    } else {
+      const node = metadata.nodes[nodeIndex]
+      const plane = metadata.planes[node.planeIndex]
+      if (!plane) return -1
+      const distance =
+        sourcePoint[0] * plane.normal[0] +
+        sourcePoint[1] * plane.normal[1] +
+        sourcePoint[2] * plane.normal[2] -
+        plane.distance
+      nodeIndex = node.children[distance >= 0 ? 0 : 1]
+    }
   }
 
   const leafIndex = -nodeIndex - 1
-  return leafIndex >= 0 && leafIndex < metadata.leafClusters.length ? leafIndex : -1
+  const leafCount = isMapVisibilityMetadata(metadata)
+    ? metadata.leafClusters.length
+    : metadata.leaves.length
+  return leafIndex >= 0 && leafIndex < leafCount ? leafIndex : -1
 }
 
-function getClusterIndexForLeaf(leafIndex: number, metadata: MapVisibilityMetadata): number {
-  if (leafIndex < 0 || leafIndex >= metadata.leafClusters.length) {
+function getClusterIndexForLeaf(leafIndex: number, metadata: VisibilityMetadata): number {
+  const leafCount = isMapVisibilityMetadata(metadata)
+    ? metadata.leafClusters.length
+    : metadata.leaves.length
+  if (leafIndex < 0 || leafIndex >= leafCount) {
     return -1
   }
 
-  const clusterIndex = metadata.leafClusters[leafIndex]
+  const clusterIndex = isMapVisibilityMetadata(metadata)
+    ? metadata.leafClusters[leafIndex]
+    : metadata.leaves[leafIndex].cluster
   return Number.isInteger(clusterIndex) && clusterIndex >= 0 ? clusterIndex : -1
 }
 
 function getClusterIndexForWorldPoint(
   worldPoint: THREE.Vector3,
   mapRoot: THREE.Object3D | null,
-  metadata: MapVisibilityMetadata | null
+  metadata: VisibilityMetadata | null
 ): number {
   if (!mapRoot || !metadata) {
     return -1
@@ -443,7 +548,9 @@ function loadGLTF(url: string, name?: string) {
   return new Promise<GLTF>((resolve, reject) => {
     try {
       // Map models are meshopt-compressed (EXT_meshopt_compression), see scripts/convert-map.mjs
-      const gltfLoader = new GLTFLoader().setCrossOrigin('anonymous').setMeshoptDecoder(MeshoptDecoder)
+      const gltfLoader = new GLTFLoader()
+        .setCrossOrigin('anonymous')
+        .setMeshoptDecoder(MeshoptDecoder)
 
       const onLoad = (gltf: GLTF) => {
         finishDownloadAction(url, 'success')
@@ -478,7 +585,7 @@ function loadGLTF(url: string, name?: string) {
 }
 
 /** Hides tool brushes and game-logic nodes, and remembers each mesh's own material. */
-function prepareMapModel(model: THREE.Object3D) {
+function prepareMapModel<T extends THREE.Object3D>(model: T): T {
   model.traverse(node => {
     // Hide invisible game-logic entity nodes (e.g. team_control_point brushes)
     if (isInvisibleEntityNode(node.name)) {
@@ -500,6 +607,7 @@ function prepareMapModel(model: THREE.Object3D) {
     mesh.material = Array.isArray(mesh.material) ? materials : materials[0]
     mesh.userData.originalMaterial = mesh.material
   })
+  return model
 }
 
 const simplified = new WeakMap<THREE.Material, THREE.Material>()
@@ -522,7 +630,7 @@ function simplifyMapMaterial(material: THREE.Material): THREE.Material {
   return next
 }
 
-/** Frees a map model's geometry, materials and textures on the GPU. */
+/** Frees a map model's geometry, materials and textures on the GPU, derived extras included. */
 function disposeMapModel(model: THREE.Object3D) {
   const materials = new Set<THREE.Material>()
   model.traverse(node => {
@@ -538,4 +646,279 @@ function disposeMapModel(model: THREE.Object3D) {
     }
     material.dispose()
   }
+  // Lightmaps and secondary textures live in shader uniforms, not in material properties.
+  for (const texture of derivedTextures.get(model) ?? []) {
+    texture.dispose()
+    if (typeof ImageBitmap !== 'undefined' && texture.image instanceof ImageBitmap) {
+      texture.image.close()
+    }
+  }
+  derivedTextures.delete(model)
+}
+
+//
+// ─── DERIVED MAPS ───────────────────────────────────────────────────────────────
+//
+
+/** Textures a Derived Map's presentation created for a model, freed with it. */
+const derivedTextures = new WeakMap<THREE.Object3D, Set<THREE.Texture>>()
+
+/** A material's $basetexture2, blended in by the displacement alpha (outside userData, which
+ * three.js copies as JSON when a material is cloned). */
+const secondaryTextures = new WeakMap<THREE.Material, THREE.Texture>()
+
+function trackTexture(model: THREE.Object3D, texture: THREE.Texture) {
+  let textures = derivedTextures.get(model)
+  if (!textures) derivedTextures.set(model, (textures = new Set()))
+  textures.add(texture)
+  return texture
+}
+
+function loadGLTFBytes(bytes: Uint8Array | undefined): Promise<GLTF> {
+  if (!bytes) return Promise.reject(new Error('Derived Map has no world.glb component'))
+  const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+  return new Promise((resolve, reject) => {
+    new GLTFLoader()
+      .setMeshoptDecoder(MeshoptDecoder)
+      .parse(buffer as ArrayBuffer, '', resolve, reject)
+  })
+}
+
+async function textureFromBytes(bytes: Uint8Array, color = true): Promise<THREE.Texture> {
+  const bitmap = await createImageBitmap(
+    new Blob(
+      [bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer],
+      { type: 'image/png' }
+    )
+  )
+  const texture = new THREE.Texture(bitmap)
+  texture.flipY = false
+  texture.colorSpace = color ? THREE.SRGBColorSpace : THREE.LinearSRGBColorSpace
+  texture.needsUpdate = true
+  return texture
+}
+
+function sharedDecodedTexture(
+  result: Extract<DerivedMapResult, { kind: 'derived' }>,
+  lookupPath: string
+): Uint8Array | undefined {
+  const source = result.sharedIndex.resources[lookupPath]
+  const decoded = source?.dependencies
+    .map(path => result.sharedIndex.resources[path])
+    .find(descriptor => descriptor?.kind === 'decodedTexture')
+  return decoded ? result.sharedAssets.get(decoded.logicalPath) : undefined
+}
+
+/**
+ * Gives a Derived Map's world model its textures, lightmaps, shared props and decals. Runs after
+ * prepareMapModel, on the simplified materials; props are prepared as they are attached.
+ */
+async function applyDerivedPresentation(scene: THREE.Group, result: DerivedResult) {
+  const materials = textComponent(result, 'materials.json') as {
+    materials?: {
+      materialIndex?: number
+      textures?: { parameter?: string; lookupPath?: string; packageSourceIndex?: number }[]
+    }[]
+  } | null
+  const texturePackage = textComponent(result, 'material-textures.json') as {
+    sources?: { output?: { fileName?: string } }[]
+  } | null
+  const loadedTextures = new Map<string, Promise<THREE.Texture>>()
+  const textureFor = (texture: { lookupPath?: string; packageSourceIndex?: number }) => {
+    const packaged =
+      texture.packageSourceIndex === undefined
+        ? undefined
+        : texturePackage?.sources?.[texture.packageSourceIndex]?.output?.fileName
+    const bytes = packaged
+      ? result.components.get(`textures/${packaged}`)
+      : texture.lookupPath
+        ? sharedDecodedTexture(result, texture.lookupPath)
+        : undefined
+    if (!bytes) return undefined
+    const identity = packaged ?? texture.lookupPath!
+    let loaded = loadedTextures.get(identity)
+    if (!loaded) {
+      loaded = textureFromBytes(bytes).then(texture => trackTexture(scene, texture))
+      loadedTextures.set(identity, loaded)
+    }
+    return loaded
+  }
+
+  const byIndex = new Map<number, THREE.MeshStandardMaterial[]>()
+  scene.traverse(node => {
+    if (!(node instanceof THREE.Mesh)) return
+    for (const material of Array.isArray(node.material) ? node.material : [node.material]) {
+      if (!(material instanceof THREE.MeshStandardMaterial)) continue
+      const index = Number(material.userData.sourceMaterialManifestIndex)
+      if (Number.isInteger(index)) byIndex.set(index, [...(byIndex.get(index) ?? []), material])
+    }
+  })
+  for (const source of materials?.materials ?? []) {
+    const targets = byIndex.get(Number(source.materialIndex)) ?? []
+    const base = source.textures?.find(
+      texture => texture.parameter?.toLowerCase() === '$basetexture'
+    )
+    const secondary = source.textures?.find(
+      texture => texture.parameter?.toLowerCase() === '$basetexture2'
+    )
+    const baseTexture = base && (await textureFor(base))
+    const secondaryTexture = secondary && (await textureFor(secondary))
+    for (const material of targets) {
+      if (baseTexture) material.map = baseTexture
+      if (secondaryTexture) secondaryTextures.set(material, secondaryTexture)
+      material.needsUpdate = true
+    }
+  }
+
+  const flatBytes = result.components.get('lightmaps/flat.png')
+  if (flatBytes) {
+    const flat = trackTexture(scene, await textureFromBytes(flatBytes, false))
+    const directional = await Promise.all(
+      [0, 1, 2].map(index => {
+        const bytes = result.components.get(`lightmaps/directional-${index}.png`)
+        return bytes
+          ? textureFromBytes(bytes, false).then(texture => trackTexture(scene, texture))
+          : Promise.resolve(flat)
+      })
+    )
+    scene.traverse(node => {
+      if (!(node instanceof THREE.Mesh) || !node.geometry.getAttribute('uv1')) return
+      for (const material of Array.isArray(node.material) ? node.material : [node.material]) {
+        if (material instanceof THREE.MeshStandardMaterial) {
+          installSourceMaterialShader(material, flat, directional)
+        }
+      }
+    })
+  }
+  await attachSharedProps(scene, result)
+  const decals = buildDecalOverlay(scene, result)
+  if (decals) {
+    scene.add(decals)
+    decals.updateMatrixWorld(true)
+  }
+}
+
+function installSourceMaterialShader(
+  material: THREE.MeshStandardMaterial,
+  flat: THREE.Texture,
+  directional: THREE.Texture[]
+) {
+  material.onBeforeCompile = shader => {
+    shader.uniforms.bspLightmapFlat = { value: flat }
+    shader.uniforms.bspLightmap0 = { value: directional[0] }
+    shader.uniforms.bspLightmap1 = { value: directional[1] }
+    shader.uniforms.bspLightmap2 = { value: directional[2] }
+    shader.uniforms.bspSecondaryTexture = {
+      value: secondaryTextures.get(material) ?? material.map,
+    }
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        '#include <common>',
+        '#include <common>\nattribute vec2 uv1; attribute float _displacement_alpha; varying vec2 vBspLightmapUv; varying float vBspDisplacementAlpha;'
+      )
+      .replace(
+        '#include <project_vertex>',
+        '#include <project_vertex>\nvBspLightmapUv = uv1; vBspDisplacementAlpha = _displacement_alpha;'
+      )
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        '#include <common>\nuniform sampler2D bspLightmapFlat; uniform sampler2D bspLightmap0; uniform sampler2D bspLightmap1; uniform sampler2D bspLightmap2; uniform sampler2D bspSecondaryTexture; varying vec2 vBspLightmapUv; varying float vBspDisplacementAlpha; vec3 decodeRgbExp32(vec4 value) { float exponent = value.a * 255.0; exponent -= step(127.5, exponent) * 256.0; return value.rgb * exp2(exponent); }'
+      )
+      .replace(
+        '#include <map_fragment>',
+        '#include <map_fragment>\n#ifdef USE_MAP\nvec4 bspSecondary = texture2D(bspSecondaryTexture, vMapUv); diffuseColor.rgb = mix(diffuseColor.rgb, bspSecondary.rgb, clamp(vBspDisplacementAlpha, 0.0, 1.0));\n#endif'
+      )
+      .replace(
+        '#include <opaque_fragment>',
+        'vec3 bspFlat = decodeRgbExp32(texture2D(bspLightmapFlat, vBspLightmapUv)); vec3 bspDirectional = (decodeRgbExp32(texture2D(bspLightmap0, vBspLightmapUv)) + decodeRgbExp32(texture2D(bspLightmap1, vBspLightmapUv)) + decodeRgbExp32(texture2D(bspLightmap2, vBspLightmapUv))) / 3.0; outgoingLight *= max(bspFlat, bspDirectional);\n#include <opaque_fragment>'
+      )
+  }
+  material.customProgramCacheKey = () => 'bsp-rgbexp32-directional-displacement-v1'
+  material.needsUpdate = true
+}
+
+async function attachSharedProps(scene: THREE.Group, result: DerivedResult) {
+  const props = textComponent(result, 'props.json') as {
+    modelAssets?: { modelAssetIndex: number; sourcePath: string }[]
+    staticProps?: { staticPropIndex: number; modelAssetIndex: number }[]
+    dynamicProps?: { entityIndex: number; modelAssetIndex?: number }[]
+  } | null
+  const models = new Map<number, THREE.Group>()
+  for (const asset of props?.modelAssets ?? []) {
+    const path = asset.sourcePath.replace(/\\/g, '/').toLowerCase()
+    const logicalPath = path.startsWith('models/') ? path : `models/${path}`
+    const descriptor = result.sharedIndex.resources[logicalPath]
+    const glb = descriptor?.dependencies
+      .map(dependency => result.sharedIndex.resources[dependency])
+      .find(dependency => dependency?.kind === 'studioModel')
+    const bytes = glb && result.sharedAssets.get(glb.logicalPath)
+    if (bytes) models.set(asset.modelAssetIndex, (await loadGLTFBytes(bytes)).scene)
+  }
+  for (const prop of props?.staticProps ?? []) {
+    const target = scene.getObjectByName(`static_prop_${prop.staticPropIndex}`)
+    const model = models.get(prop.modelAssetIndex)
+    if (target && model) target.add(prepareMapModel(model.clone(true)))
+  }
+  for (const prop of props?.dynamicProps ?? []) {
+    let target = scene.getObjectByName(`dynamic_prop_${prop.entityIndex}`)
+    if (!target) {
+      scene.traverse(object => {
+        if (!target && object.name.startsWith(`dynamic_prop_${prop.entityIndex}_`)) target = object
+      })
+    }
+    const model = prop.modelAssetIndex === undefined ? undefined : models.get(prop.modelAssetIndex)
+    if (target && model) target.add(prepareMapModel(model.clone(true)))
+  }
+}
+
+function buildDecalOverlay(scene: THREE.Group, result: DerivedResult): THREE.Group | null {
+  const sidecar = textComponent(result, 'decal-overlays.json') as {
+    records?: {
+      status?: string
+      materialIndex?: number
+      fragments?: {
+        positions?: [number, number, number][]
+        uvs?: [number, number][]
+        indices?: number[]
+      }[]
+    }[]
+  } | null
+  if (!sidecar?.records) return null
+  const materials = new Map<number, THREE.Material>()
+  scene.traverse(node => {
+    if (!(node instanceof THREE.Mesh)) return
+    for (const material of Array.isArray(node.material) ? node.material : [node.material]) {
+      const index = Number(material.userData.sourceMaterialManifestIndex)
+      if (Number.isInteger(index) && !materials.has(index)) materials.set(index, material)
+    }
+  })
+  const group = new THREE.Group()
+  group.name = DECAL_OVERLAY_NAME
+  for (const record of sidecar.records) {
+    if (record.status !== 'handled') continue
+    for (const fragment of record.fragments ?? []) {
+      if (!fragment.positions?.length || !fragment.indices?.length) continue
+      const geometry = new THREE.BufferGeometry()
+      geometry.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(
+          fragment.positions.flatMap(([x, y, z]) => [x, z, -y]),
+          3
+        )
+      )
+      if (fragment.uvs?.length === fragment.positions.length) {
+        geometry.setAttribute('uv', new THREE.Float32BufferAttribute(fragment.uvs.flat(), 2))
+      }
+      geometry.setIndex(fragment.indices)
+      const source = materials.get(Number(record.materialIndex))
+      const material = source?.clone() ?? new THREE.MeshStandardMaterial({ color: 0xffffff })
+      material.depthWrite = true
+      material.polygonOffset = true
+      material.polygonOffsetFactor = -10
+      material.polygonOffsetUnits = 1
+      group.add(new THREE.Mesh(geometry, material))
+    }
+  }
+  return group.children.length ? group : null
 }

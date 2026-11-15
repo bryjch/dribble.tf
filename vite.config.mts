@@ -20,4 +20,14 @@ export default defineConfig({
       },
     },
   },
+  server: {
+    proxy: {
+      '/serveme/maps': {
+        target: 'https://fastdl.serveme.tf',
+        changeOrigin: true,
+        // Mirror the vercel.json rewrite: /serveme/maps/x.bsp -> /maps/x.bsp upstream.
+        rewrite: path => path.replace(/^\/serveme/, ''),
+      },
+    },
+  },
 })

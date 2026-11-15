@@ -125,6 +125,7 @@ export type Download = {
   url: string
   progress: number
   size?: number
+  stage?: string
 }
 
 export type MapVisibilityMetadata = {
