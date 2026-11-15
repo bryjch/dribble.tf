@@ -2,7 +2,9 @@
 /**
  * Builds the first-person viewmodels (each class's arms, their animations, and every weapon's
  * model) from TF2's own files into public/models/viewmodels/, with a manifest mapping item
- * definition indexes to models and animation slots.
+ * definition indexes to models and animation slots. It also builds the engineer's buildings
+ * (each sentry, dispenser and teleporter level, per team, and the sapper on them) into
+ * public/models/buildings/, rigged so the sentry turret can be turned by its bones.
  *
  * Needs the game's VPKs (see scripts/convert-config.json `game-dir` / `hl2-dir`), Rust (to build
  * the pinned bsp-to-glb that converts models), and Python with vtf2img and Pillow (textures).
@@ -10,7 +12,8 @@
  *
  * Usage:
  *   node scripts/viewmodels/build-viewmodels.mjs [--classes soldier,scout] [--items 18,205]
- *        [--game-dir <tf>] [--hl2-dir <hl2>] [--texture-size 512] [--force]
+ *        [--only viewmodels|buildings] [--game-dir <tf>] [--hl2-dir <hl2>]
+ *        [--texture-size 512] [--force]
  */
 import crypto from 'node:crypto'
 import fs from 'node:fs'
@@ -34,6 +37,40 @@ const repoRoot = path.resolve(here, '..', '..')
 const toolDir = path.join(repoRoot, 'scripts/tools/bsp-to-glb')
 const tempDir = path.join(repoRoot, 'scripts/temp/viewmodels')
 const outDir = path.join(repoRoot, 'public/models/viewmodels')
+const buildingsDir = path.join(repoRoot, 'public/models/buildings')
+
+// The buildings as TF2 draws them once built (the `_light` models; the others carry the build
+// animations), by the file name the viewer loads, `<key>_<team>.glb`. Skins are per team; the
+// mini-sentry is the level 1 sentry in its own skins with its light switched on.
+const BUILDINGS = [
+  { key: 'sentry1', model: 'models/buildables/sentry1.mdl', skins: { red: 0, blue: 1 } },
+  {
+    key: 'minisentry',
+    model: 'models/buildables/sentry1.mdl',
+    skins: { red: 2, blue: 3 },
+    bodygroups: { mini_sentry_light: 1 },
+  },
+  { key: 'sentry2', model: 'models/buildables/sentry2.mdl', skins: { red: 0, blue: 1 } },
+  { key: 'sentry3', model: 'models/buildables/sentry3.mdl', skins: { red: 0, blue: 1 } },
+  { key: 'dispenser1', model: 'models/buildables/dispenser_light.mdl', skins: { red: 0, blue: 1 } },
+  {
+    key: 'dispenser2',
+    model: 'models/buildables/dispenser_lvl2_light.mdl',
+    skins: { red: 0, blue: 1 },
+  },
+  {
+    key: 'dispenser3',
+    model: 'models/buildables/dispenser_lvl3_light.mdl',
+    skins: { red: 0, blue: 1 },
+  },
+  {
+    key: 'teleporter',
+    model: 'models/buildables/teleporter_light.mdl',
+    skins: { red: 0, blue: 1 },
+  },
+  // The per-building sappers (sapper_sentry1.mdl, …) are MDL v47, which bsp-to-glb does not read.
+  { key: 'sapper', model: 'models/buildables/sapper_placed.mdl', skins: { shared: 0 } },
+]
 
 // The arms and animation models are named for the class, except the demoman's.
 const CLASSES = [
@@ -93,6 +130,12 @@ const textureSize = Number(arg('texture-size', 512))
 const force = flag('force')
 const onlyClasses = list('classes')
 const onlyItems = list('items')
+const only = arg('only')
+
+if (only && only !== 'viewmodels' && only !== 'buildings') {
+  console.error('--only takes viewmodels or buildings')
+  process.exit(1)
+}
 
 if (!gameDir || !fs.existsSync(gameDir)) {
   console.error(
@@ -376,15 +419,33 @@ const flipWinding = primitive => {
   indices.setArray(array)
 }
 
-/** Keeps the default model's first LOD, textures it, flips it right side out, and compresses it. */
-async function finishModel(exported, plan, textures, outFile) {
+/**
+ * Keeps each body part's default model (or the one `bodygroups` names for it) at its first LOD,
+ * textures it, flips it right side out, and compresses it. `keepAttachments` keeps the model's
+ * attachment points (empty nodes named `attachment_<name>`), which pruning would otherwise drop.
+ * `pose` (a glTF animation index) sets the bones to that animation's first frame before the
+ * animations go: a model's rest pose is not always how the game draws it.
+ */
+async function finishModel(exported, plan, textures, outFile, options = {}) {
+  const { bodygroups = {}, keepAttachments = false, pose = null } = options
   const doc = await io.read(exported.glb)
   const root = doc.getRoot()
   const nodes = root.listNodes()
+  const posed = pose === null ? null : root.listAnimations()[pose]
+  for (const channel of posed?.listChannels() ?? []) {
+    const node = channel.getTargetNode()
+    const values = channel.getSampler()?.getOutput()?.getArray()
+    const path = channel.getTargetPath()
+    if (!node || !values) continue
+    if (path === 'rotation') node.setRotation(Array.from(values.slice(0, 4)))
+    else if (path === 'translation') node.setTranslation(Array.from(values.slice(0, 3)))
+    else if (path === 'scale') node.setScale(Array.from(values.slice(0, 3)))
+  }
   for (const part of exported.manifest.bodyParts ?? []) {
+    const chosen = bodygroups[part.name] ?? part.defaultModel ?? 0
     for (const model of part.models ?? []) {
       for (const lod of model.meshLods ?? []) {
-        if (lod.lod > 0 || model.index !== (part.defaultModel ?? 0)) nodes[lod.gltfNode]?.dispose()
+        if (lod.lod > 0 || model.index !== chosen) nodes[lod.gltfNode]?.dispose()
       }
     }
   }
@@ -407,11 +468,12 @@ async function finishModel(exported, plan, textures, outFile) {
     material.setDoubleSided(m.doubleSided)
   }
 
+  const keep = { keepLeaves: keepAttachments }
   await doc.transform(
-    prune(),
+    prune(keep),
     dedup(),
     meshopt({ encoder: await encoder(), level: 'medium' }),
-    prune()
+    prune(keep)
   )
   fs.mkdirSync(path.dirname(outFile), { recursive: true })
   await io.write(outFile, doc)
@@ -449,9 +511,7 @@ async function finishAnimations(exported, slots, outFile) {
 
 // ─── Build ─────────────────────────────────────────────────────────────────────
 
-async function main() {
-  const tool = bspToGlb()
-  const vpks = VpkSet.forGame(gameDir, hl2Dir)
+async function buildViewmodels(tool, vpks) {
   const manifestFile = path.join(outDir, 'manifest.json')
   const previous =
     !force && fs.existsSync(manifestFile) ? JSON.parse(fs.readFileSync(manifestFile, 'utf8')) : null
@@ -600,12 +660,105 @@ async function main() {
       : manifest
   fs.mkdirSync(outDir, { recursive: true })
   fs.writeFileSync(manifestFile, JSON.stringify(merged) + '\n')
-  vpks.close()
 
   const bytes = dirSize(outDir)
   console.log(
     `Wrote ${Object.keys(merged.items).length} items, ${Object.keys(merged.models).length} weapon models, ${Object.keys(merged.classes).length} classes (${(bytes / 1048576).toFixed(1)} MB) to ${path.relative(repoRoot, outDir)}`
   )
+  return failures
+}
+
+/**
+ * The animation a building stands in once built: its running sequence, else its reference pose.
+ * Their bind poses lack the root bone's turn from the rig's Y up to the game's Z up, so drawn
+ * as exported they lie on their side.
+ */
+function standingPose(manifest) {
+  const sequences = manifest.sequences ?? []
+  const sequence =
+    sequences.find(s => s.activityName === 'ACT_OBJ_RUNNING') ??
+    sequences.find(s => s.name === 'ref') ??
+    sequences.find(s => /idle/.test(s.name)) ??
+    sequences[0]
+  const animation = sequence && manifest.animations?.[sequence.animationIndices?.[0]]
+  return animation?.gltfAnimation ?? null
+}
+
+/** The engineer's buildings, each level a model of its own, and the sapper placed on them. */
+async function buildBuildings(tool, vpks) {
+  const manifestFile = path.join(buildingsDir, 'manifest.json')
+  const previous =
+    !force && fs.existsSync(manifestFile) ? JSON.parse(fs.readFileSync(manifestFile, 'utf8')) : null
+  const manifest = { version: 1, models: {} }
+  const pending = []
+  const failures = []
+  for (const job of BUILDINGS) {
+    try {
+      const { local, hash } = extractModel(vpks, job.model)
+      const source = sha([Buffer.from(hash), Buffer.from(JSON.stringify(job))])
+      const prev = previous?.models?.[job.key]
+      const files = Object.fromEntries(
+        Object.keys(job.skins).map(team => [team, `${job.key}_${team}.glb`])
+      )
+      if (
+        prev?.source === source &&
+        Object.values(files).every(f => fs.existsSync(path.join(buildingsDir, f)))
+      ) {
+        manifest.models[job.key] = prev
+        continue
+      }
+      const exports = Object.entries(job.skins).map(([team, skin]) => {
+        const exported = exportModel(tool, job.model, local, skin, `buildings__${job.key}_${team}`)
+        return { team, exported, plan: materialPlan(vpks, exported.manifest) }
+      })
+      pending.push({ job, source, files, exports })
+    } catch (error) {
+      failures.push(`${job.model}: ${error.message}`)
+    }
+  }
+
+  console.log(
+    `${pending.length} building models to build, ${BUILDINGS.length - pending.length - failures.length} up to date`
+  )
+  const textures = convertTextures(
+    vpks,
+    pending.flatMap(p => p.exports.map(e => e.plan))
+  )
+  for (const p of pending) {
+    try {
+      for (const e of p.exports) {
+        await finishModel(e.exported, e.plan, textures, path.join(buildingsDir, p.files[e.team]), {
+          bodygroups: p.job.bodygroups,
+          keepAttachments: true,
+          pose: standingPose(e.exported.manifest),
+        })
+      }
+      manifest.models[p.job.key] = { ...p.files, source: p.source }
+      process.stdout.write('.')
+    } catch (error) {
+      failures.push(`${p.job.model}: ${error.message}`)
+    }
+  }
+  process.stdout.write('\n')
+
+  fs.mkdirSync(buildingsDir, { recursive: true })
+  fs.writeFileSync(manifestFile, JSON.stringify(manifest) + '\n')
+  const bytes = dirSize(buildingsDir)
+  console.log(
+    `Wrote ${Object.keys(manifest.models).length} building models (${(bytes / 1048576).toFixed(1)} MB) to ${path.relative(repoRoot, buildingsDir)}`
+  )
+  return failures
+}
+
+async function main() {
+  const tool = bspToGlb()
+  const vpks = VpkSet.forGame(gameDir, hl2Dir)
+  const failures = []
+  if (only !== 'buildings') failures.push(...(await buildViewmodels(tool, vpks)))
+  // A partial build (--classes / --items) is about weapons, so it leaves the buildings be.
+  if (only !== 'viewmodels' && !onlyClasses && !onlyItems)
+    failures.push(...(await buildBuildings(tool, vpks)))
+  vpks.close()
   if (failures.length) {
     console.warn(`${failures.length} failed:`)
     for (const f of failures) console.warn(`  ${f}`)
