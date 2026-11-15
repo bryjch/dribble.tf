@@ -97,7 +97,8 @@ async function savedRtsCenter(map: string) {
   if (worldRtsCenters?.[key]) return worldRtsCenters[key]
   const legacy = rtsCenters?.[key]
   if (!legacy) return undefined
-  const reference = (await fetchMapWorldBounds(map))?.boundaryMin ?? getMapBoundaries(map)?.boundaryMin
+  const reference =
+    (await fetchMapWorldBounds(map))?.boundaryMin ?? getMapBoundaries(map)?.boundaryMin
   return reference
     ? { x: legacy.x + reference.x, y: legacy.y + reference.y, z: legacy.z + reference.z }
     : undefined
@@ -155,10 +156,12 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
     const rtsCenter = await savedRtsCenter(mapName)
     const boundariesWithCenter = rtsCenter && boundaries ? { ...boundaries, rtsCenter } : boundaries
 
-    if (!boundariesWithCenter?.boundaryMin || !boundariesWithCenter?.boundaryMax) {
-      alert('Unable to load map. Could not determine map boundaries.')
-      return
-    }
+    // A map dribble.tf does not know may still resolve as a Derived Map, whose manifest brings
+    // its bounds (applyDerivedMapBoundsAction); until then the scene keeps the default bounds.
+    const bounds =
+      boundariesWithCenter?.boundaryMin && boundariesWithCenter?.boundaryMax
+        ? parseMapBoundaries(boundariesWithCenter)
+        : initialState.scene.bounds
 
     // Remember to update the non-redux instances!
     useInstance.getState().setMatch(undefined)
@@ -172,10 +175,38 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
         scene: {
           ...initialState.scene,
           map: mapName,
-          bounds: parseMapBoundaries(boundariesWithCenter),
+          bounds,
         },
         playback: initialState.playback,
       },
+    })
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+/**
+ * Bounds a Derived Map's manifest gives the camera, when the scene shows that map without a
+ * match (a match brings the world's bounds from its own data). In Source world coordinates.
+ */
+export const applyDerivedMapBoundsAction = async (
+  mapName: string,
+  worldBounds: { mins: [number, number, number]; maxs: [number, number, number] }
+) => {
+  try {
+    if (getState().scene.map !== mapName || useInstance.getState().match) return
+    const [minX, minY, minZ] = worldBounds.mins
+    const [maxX, maxY, maxZ] = worldBounds.maxs
+    const rtsCenter = await savedRtsCenter(mapName)
+    if (getState().scene.map !== mapName || useInstance.getState().match) return
+    dispatch({
+      type: 'SET_SCENE_BOUNDS',
+      payload: parseMapBoundaries({
+        ...getMapBoundaries(mapName),
+        boundaryMin: { x: minX, y: minY, z: minZ },
+        boundaryMax: { x: maxX, y: maxY, z: maxZ },
+        ...(rtsCenter ? { rtsCenter } : {}),
+      }),
     })
   } catch (error) {
     console.error(error)
@@ -510,7 +541,10 @@ export const setSceneRtsCenterAction = async (point: { x: number; y: number; z: 
     const mapName = getState().scene.map
     const mapKey = getMapBoundariesKey(mapName) ?? mapName
 
-    dispatch({ type: 'SET_SCENE_RTS_CENTER', payload: new THREE.Vector3(point.x, point.y, point.z) })
+    dispatch({
+      type: 'SET_SCENE_RTS_CENTER',
+      payload: new THREE.Vector3(point.x, point.y, point.z),
+    })
     useInstance.getState().setMapCenterPickerActive(false)
 
     // The scene is drawn in Source world coordinates, so the picked point is saved as it is.
@@ -1010,22 +1044,19 @@ export const addDownloadAction = async ({
   }
 }
 
+/** Updates a download's progress, size or stage. Only finishDownloadAction ends it. */
 export const updateDownloadAction = async (
   url: string,
-  { progress, size }: Pick<Download, 'progress' | 'size'>
+  update: Partial<Pick<Download, 'progress' | 'size' | 'stage' | 'name'>>
 ) => {
   try {
-    if (size) {
-      dispatch({ type: 'UPDATE_DOWNLOAD', payload: { url, size } })
-    }
-
-    if (progress) {
-      dispatch({ type: 'UPDATE_DOWNLOAD', payload: { url, progress: round(progress, 1) } })
-
-      if (progress >= 100) {
-        dispatch({ type: 'UPDATE_DOWNLOAD', payload: { url, status: 'success' } })
-      }
-    }
+    // Fields left out (or undefined) keep their current value.
+    const payload: Partial<Download> & { url: string } = { url }
+    if (update.progress !== undefined) payload.progress = round(update.progress, 1)
+    if (update.size !== undefined) payload.size = update.size
+    if (update.stage !== undefined) payload.stage = update.stage
+    if (update.name !== undefined) payload.name = update.name
+    dispatch({ type: 'UPDATE_DOWNLOAD', payload })
   } catch (error) {
     console.error(error)
   }

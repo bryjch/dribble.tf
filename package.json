@@ -50,6 +50,7 @@
     "build:decoder": "node scripts/build-decoder.mjs",
     "preview": "vite preview",
     "convert:map": "node scripts/convert-map.mjs",
+    "sync:bsp-to-glb-wasm": "node scripts/sync-bsp-to-glb-wasm.mjs",
     "update:map-bounds": "node scripts/update-map-bounds.mjs"
   },
   "browserslist": {

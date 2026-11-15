@@ -72,6 +72,9 @@ const reducers = (state: StoreState, action: StoreAction) => {
         },
       }
 
+    case 'SET_SCENE_BOUNDS':
+      return { ...state, scene: { ...state.scene, bounds: action.payload } }
+
     case 'SET_SCENE_RTS_CENTER':
       return {
         ...state,

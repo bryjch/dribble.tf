@@ -21,6 +21,7 @@ import { Objectives } from '@components/Scene/Objectives'
 import { ObjectiveHud } from '@components/UI/ObjectiveHud'
 import { World } from '@components/Scene/World'
 import { Skybox } from '@components/Scene/Skybox'
+import { DerivedMapController } from '@components/Scene/DerivedMap'
 import { Stickers } from '@components/Scene/Stickers'
 import { PlaybackDriver, isScenePlayer } from '@components/Scene/PlaybackDriver'
 import type { MatchSource } from './Analyse/Data/MatchSource'
@@ -652,6 +653,7 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
 
   return (
     <div className="h-screen w-screen">
+      <DerivedMapController map={map} />
       <Canvas
         ref={canvasRef}
         id="main-canvas"

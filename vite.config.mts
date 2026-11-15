@@ -20,4 +20,12 @@ export default defineConfig({
       },
     },
   },
+  server: {
+    proxy: {
+      '/serveme/maps': {
+        target: 'https://fastdl.serveme.tf',
+        changeOrigin: true,
+      },
+    },
+  },
 })

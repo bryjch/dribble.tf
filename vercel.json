@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/serveme/maps/:map.bsp",
+      "destination": "https://fastdl.serveme.tf/maps/:map.bsp"
+    },
+    {
       "source": "/umami/:match*",
       "destination": "https://analytics.umami.is/:match*"
     }

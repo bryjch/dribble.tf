@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import '@react-three/fiber'
 
-import { getMapConversionUrl } from '@utils/game'
+import { useDerivedMap } from '@components/Scene/DerivedMap'
 
 type LightingProfile = {
   ambientColor: string
@@ -36,10 +36,12 @@ const DEFAULT_LIGHTING: LightingProfile = {
   fillDirection: [-100, -100, 100],
 }
 
-const clamp = (value: number, min: number, max: number) =>
-  Math.max(min, Math.min(max, value))
+const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value))
 
-const blendWithWhite = (color: number[] | undefined, keepOriginal: number): number[] | undefined => {
+const blendWithWhite = (
+  color: number[] | undefined,
+  keepOriginal: number
+): number[] | undefined => {
   if (!Array.isArray(color) || color.length < 3) return undefined
   const keep = clamp(keepOriginal, 0, 1)
   const mix = (channel: number) => {
@@ -81,10 +83,7 @@ const deriveLightingProfile = (
       DEFAULT_LIGHTING.ambientColor
     ),
     ambientIntensity,
-    keyColor: toCssColor(
-      blendWithWhite(environment.sun?.color, 0.45),
-      DEFAULT_LIGHTING.keyColor
-    ),
+    keyColor: toCssColor(blendWithWhite(environment.sun?.color, 0.45), DEFAULT_LIGHTING.keyColor),
     keyIntensity,
     keyDirection: DEFAULT_LIGHTING.keyDirection,
     fillColor: toCssColor(
@@ -98,11 +97,31 @@ const deriveLightingProfile = (
 
 export const Lights = ({ map }: { map?: string }) => {
   const [profile, setProfile] = useState<LightingProfile>(DEFAULT_LIGHTING)
+  const { result } = useDerivedMap()
 
   useEffect(() => {
     setProfile(DEFAULT_LIGHTING)
 
-    const conversionUrl = getMapConversionUrl(map || '')
+    if (result?.kind === 'derived') {
+      setProfile(
+        deriveLightingProfile({
+          ambient: result.manifest.environment.ambient
+            ? {
+                color: result.manifest.environment.ambient.slice(0, 3),
+                brightness: result.manifest.environment.ambient[3],
+              }
+            : null,
+          sun: result.manifest.environment.sunlight
+            ? {
+                color: result.manifest.environment.sunlight.slice(0, 3),
+                brightness: result.manifest.environment.sunlight[3],
+              }
+            : null,
+        })
+      )
+      return
+    }
+    const conversionUrl = result?.kind === 'legacy' ? result.conversionUrl : undefined
     if (!conversionUrl) return
 
     let cancelled = false
@@ -124,7 +143,7 @@ export const Lights = ({ map }: { map?: string }) => {
     return () => {
       cancelled = true
     }
-  }, [map])
+  }, [map, result])
 
   return (
     <group name="lights">
