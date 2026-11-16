@@ -2,3 +2,4 @@
 95 # nearest built map version, map build tooling: behind the scenes
 96 # built maps out of git, Blender pipeline retired: tooling
 99 # assets wizard cache headers: tooling
+101 # dev server loads missing map files from the asset host: tooling
