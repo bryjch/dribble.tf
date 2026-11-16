@@ -1,5 +1,6 @@
 import { downloadFileAction, parseDemoAction } from '@zus/actions'
 import { setUrlDemoStatus } from '@utils/notice'
+import { rememberOpenedDemo, findSavedDemo, readSavedDemo, saveDemo } from '@utils/storage'
 
 //
 // ─── LOADING A DEMO FROM THE URL ────────────────────────────────────────────────
@@ -15,6 +16,9 @@ import { setUrlDemoStatus } from '@utils/notice'
 //
 // The demo is fetched by the visitor's browser; demos.tf serves
 // `access-control-allow-origin: *`, so no proxy is involved.
+//
+// A demo opened by link is kept in the browser (@utils/storage): opening the same link again
+// reads it from there, without asking demos.tf or downloading it.
 //
 
 const DEMOS_TF_API = 'https://api.demos.tf/demos'
@@ -105,7 +109,11 @@ export const resolveUrlDemoAction = async (): Promise<UrlDemoRequest | null> => 
 
     let request: UrlDemoRequest
 
-    if (demoId) {
+    const saved = await findSavedDemo(demoId ? { demoId } : { url: explicitUrl ?? undefined })
+
+    if (saved) {
+      request = { url: saved.url, name: saved.name, map: saved.map, tick, demoId: saved.demoId }
+    } else if (demoId) {
       // demos.tf's API is public, keyless and CORS-open. The record also carries the
       // original filename, which reads better in the download overlay than the hashed
       // storage path, plus the map name we want for the head start above.
@@ -145,12 +153,15 @@ export const resolveUrlDemoAction = async (): Promise<UrlDemoRequest | null> => 
 export const loadUrlDemoAction = async (
   request: UrlDemoRequest
 ): Promise<{ tick: number } | null> => {
-  let fileBuffer: ArrayBuffer
-  try {
-    fileBuffer = await downloadFileAction({ type: 'demo', url: request.url, name: request.name })
-  } catch (error) {
-    reportUrlDemoError(new Error(describeDownloadError(error, request.url)), request.demoId)
-    return null
+  let fileBuffer: ArrayBuffer | null = await readSavedDemo(request.url)
+  const fromStorage = !!fileBuffer
+  if (!fileBuffer) {
+    try {
+      fileBuffer = await downloadFileAction({ type: 'demo', url: request.url, name: request.name })
+    } catch (error) {
+      reportUrlDemoError(new Error(describeDownloadError(error, request.url)), request.demoId)
+      return null
+    }
   }
 
   if (!isDemoFile(fileBuffer)) {
@@ -161,8 +172,13 @@ export const loadUrlDemoAction = async (
     return null
   }
 
+  if (!fromStorage) {
+    saveDemo(request, fileBuffer).catch(error => console.error('[storage]', error))
+  }
+
   try {
-    await parseDemoAction(fileBuffer)
+    const match = await parseDemoAction(fileBuffer)
+    rememberOpenedDemo(request.url, match)
     return { tick: request.tick }
   } catch {
     // parseDemoAction reports its own failure.

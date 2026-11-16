@@ -4,12 +4,14 @@
 // Resolves a Map Name to what the viewer draws. Maps built by scripts/maps/build-maps.mjs
 // (bsp-to-glb, ahead of time) are listed in models/maps/index.json on the asset host; each has a
 // map.json naming its world model, textures, lightmap, props and decals. A demo of a version
-// nobody built is shown on the nearest built version (@utils/mapVersions).
+// nobody built is shown on the nearest built version (@utils/mapVersions). Each file is kept in
+// the browser once downloaded (@utils/storage), so a map is only downloaded once.
 //
 
 import mapChunkingConfig from '@constants/mapChunking.json'
 import { pickMapVersion } from '@utils/mapVersions'
 import { getAsset, isPerfLoggingEnabled } from '@utils/misc'
+import { fetchMapFile, fetchMapManifest, recordMap } from '@utils/storage'
 
 const MAP_NAME = /^[a-z0-9_]{1,128}$/
 const FETCH_CONCURRENCY = 12
@@ -79,7 +81,7 @@ export async function builtMapNames(): Promise<string[]> {
 
 /** The maps built ahead of time; null when the asset host has no index (or is unreachable). */
 function mapIndex(): Promise<MapIndex | null> {
-  indexRequest ??= fetch(getAsset('/models/maps/index.json'))
+  indexRequest ??= fetchMapManifest(getAsset('/models/maps/index.json'))
     .then(async response => {
       if (!response.ok || response.headers.get('content-type')?.includes('text/html')) return null
       const index = (await response.json()) as MapIndex
@@ -92,16 +94,10 @@ function mapIndex(): Promise<MapIndex | null> {
   return indexRequest
 }
 
-const skyboxUrls = (faces: NonNullable<MapManifest['skyboxFaces']>): SkyboxUrls =>
-  Object.fromEntries(
-    (['lf', 'rt', 'ft', 'bk', 'up', 'dn'] as const).map(face => [
-      face,
-      getAsset(`/models/${faces[face]}`),
-    ])
-  ) as SkyboxUrls
+const SKY_FACES = ['lf', 'rt', 'ft', 'bk', 'up', 'dn'] as const
 
 async function fetchBytes(url: string, signal: AbortSignal): Promise<Uint8Array> {
-  const response = await fetch(url, { signal })
+  const response = await fetchMapFile(url, signal)
   if (!response.ok) {
     throw new MapResolutionError('DownloadFailed', `${url} returned HTTP ${response.status}`)
   }
@@ -125,7 +121,8 @@ async function loadBuiltMap(
 ): Promise<DerivedMapResult> {
   const base = `/models/maps/${folder}/`
   const started = performance.now()
-  const manifestResponse = await fetch(getAsset(`${base}map.json`), { signal })
+  const manifestUrl = getAsset(`${base}map.json`)
+  const manifestResponse = await fetchMapManifest(manifestUrl, { signal })
   if (!manifestResponse.ok) {
     throw new MapResolutionError(
       'DownloadFailed',
@@ -150,6 +147,10 @@ async function loadBuiltMap(
   const propFiles = [...new Set(Object.values(manifest.props ?? {}))]
   const components = new Map<string, Uint8Array>()
   const propBytes = new Map<string, Uint8Array>()
+  // The sky's faces are read from the saved copies too, handed to the Skybox as blob URLs.
+  const skyFaces = manifest.skyboxFaces
+  const skyboxUrls: Partial<SkyboxUrls> = {}
+  const urls: string[] = [manifestUrl]
   // Prop sizes aren't in the manifest; progress counts them once they arrive.
   const totalBytes = wanted.reduce((total, component) => total + component.bytes, 0)
   let loadedBytes = 0
@@ -159,16 +160,30 @@ async function loadBuiltMap(
   }
   await inParallel([
     ...wanted.map(component => async () => {
-      const bytes = await fetchBytes(getAsset(`${base}${component.file}`), signal)
+      const url = getAsset(`${base}${component.file}`)
+      const bytes = await fetchBytes(url, signal)
+      urls.push(url)
       components.set(component.role, bytes)
       progress(bytes)
     }),
     ...propFiles.map(file => async () => {
-      const bytes = await fetchBytes(getAsset(`/models/props/${file}`), signal)
+      const url = getAsset(`/models/props/${file}`)
+      const bytes = await fetchBytes(url, signal)
+      urls.push(url)
       propBytes.set(file, bytes)
       progress(bytes)
     }),
+    ...(skyFaces
+      ? SKY_FACES.map(face => async () => {
+          const url = getAsset(`/models/${skyFaces[face]}`)
+          const bytes = await fetchBytes(url, signal)
+          urls.push(url)
+          skyboxUrls[face] = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'image/webp' }))
+          progress(bytes)
+        })
+      : []),
   ])
+  recordMap(folder, urls, loadedBytes)
   if (isPerfLoggingEnabled())
     console.info(
       `[Perf][Map] ${folder}: ${wanted.length + propFiles.length} files, ${(loadedBytes / 2 ** 20).toFixed(1)} MB in ${Math.round(performance.now() - started)} ms`
@@ -181,7 +196,7 @@ async function loadBuiltMap(
     kind: 'derived',
     manifest,
     components,
-    skyboxUrls: manifest.skyboxFaces ? skyboxUrls(manifest.skyboxFaces) : undefined,
+    skyboxUrls: skyFaces ? (skyboxUrls as SkyboxUrls) : undefined,
   }
 }
 

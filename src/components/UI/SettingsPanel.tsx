@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { clamp } from 'lodash'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
+import { StorageTab } from '@components/UI/StorageList'
 import { Segmented, Switch } from '@components/UI/Shared/Controls'
 import {
   IoMdSettingsIcon,
@@ -29,8 +30,9 @@ import { DEFAULT_THEME, THEMES, isThemeId } from '@theme/themes'
 // ─── SETTINGS ───────────────────────────────────────────────────────────────────
 //
 // One short page per tab: what is drawn over the scene (HUD), on players and buildings
-// (Players), the map, how each camera feels, drawing, and the rest (General). Keys lists every
-// shortcut (from @constants/shortcuts); ? opens it. A row's <kbd> is the key that flips it.
+// (Players), the map, how each camera feels, drawing, the rest (General), and the maps and demos
+// kept in the browser (Storage). Keys lists every shortcut (from @constants/shortcuts); ? opens
+// it. A row's <kbd> is the key that flips it.
 //
 
 const updateSettingsOption = (option: string, value: any) => {
@@ -194,6 +196,7 @@ const TABS: { id: SettingsTab; label: string; desktopOnly?: boolean }[] = [
   // Phones leave drawing out (see Mobile/panels), and have no keyboard.
   { id: 'drawing', label: 'Drawing', desktopOnly: true },
   { id: 'general', label: 'General' },
+  { id: 'storage', label: 'Storage' },
   { id: 'keys', label: 'Keys', desktopOnly: true },
 ]
 
@@ -206,17 +209,25 @@ const useSettingsTab = () => {
   return { tabs, current }
 }
 
-const SettingsTabs = () => {
+/**
+ * The tabs: one line across the desktop panel, which is wide enough for all of them, and a grid
+ * of buttons in a phone's sheet, where a line wouldn't fit. Neither scrolls sideways.
+ */
+const SettingsTabs = ({ layout }: { layout: 'row' | 'grid' }) => {
   const { tabs, current } = useSettingsTab()
   return (
-    <div className="ui-tabs ui-tabs--fill" role="tablist" aria-label="Settings">
+    <div
+      className={layout === 'row' ? 'ui-tabs ui-tabs--fill ui-tabs--fit' : 'ui-tab-grid'}
+      role="tablist"
+      aria-label="Settings"
+    >
       {tabs.map(tab => (
         <button
           key={tab.id}
           type="button"
           role="tab"
           aria-selected={current === tab.id}
-          className="ui-tab"
+          className={layout === 'row' ? 'ui-tab' : 'ui-tab-grid__item'}
           onClick={() => setSettingsTabAction(tab.id)}
         >
           {tab.label}
@@ -241,6 +252,8 @@ const SettingsTabBody = () => {
       return <DrawingTab />
     case 'general':
       return <GeneralTab />
+    case 'storage':
+      return <StorageTab />
     case 'keys':
       return <KeysTab />
   }
@@ -253,7 +266,6 @@ const SettingsTabBody = () => {
 export const SettingsPanel = () => {
   const isOpen = useStore(state => state.ui.activePanels.includes('Settings'))
   const toggleUIPanel = () => toggleOnlyUIPanelAction('Settings')
-
   return (
     <div className="flex items-start">
       <TogglePanelButton onClick={toggleUIPanel} active={isOpen} label="Settings">
@@ -261,9 +273,9 @@ export const SettingsPanel = () => {
       </TogglePanelButton>
 
       <TogglePanel
-        className="w-[min(440px,calc(100vw-5rem))]"
+        className="w-[min(500px,calc(100vw-5rem))]"
         title="Settings"
-        subheader={<SettingsTabs />}
+        subheader={<SettingsTabs layout="row" />}
         showCloseButton
         isOpen={isOpen}
         onClickClose={toggleUIPanel}
@@ -277,7 +289,7 @@ export const SettingsPanel = () => {
 /** The tabs and their settings, for the phone sheets (the desktop panel puts the tabs in its header). */
 export const SettingsContent = () => (
   <div>
-    <SettingsTabs />
+    <SettingsTabs layout="grid" />
     <div className="pt-3">
       <SettingsTabBody />
     </div>

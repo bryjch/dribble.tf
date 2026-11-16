@@ -123,7 +123,15 @@ export type RailsMode = 'full' | 'compact' | 'hidden'
 export const RAILS_MODES: RailsMode[] = ['full', 'compact', 'hidden']
 
 /** The Settings panel's tabs. */
-export type SettingsTab = 'hud' | 'players' | 'map' | 'camera' | 'drawing' | 'general' | 'keys'
+export type SettingsTab =
+  | 'hud'
+  | 'players'
+  | 'map'
+  | 'camera'
+  | 'drawing'
+  | 'general'
+  | 'storage'
+  | 'keys'
 
 export type Download = {
   type: 'map' | 'demo'

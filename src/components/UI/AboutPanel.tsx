@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
 import { ChangelogList, useHasUnseenChanges } from '@components/UI/Changelog'
+import { RecentsList, useSavedDownloads } from '@components/UI/StorageList'
 import { FileIcon, LinkIcon, PlayCircleIcon, TiInfoLargeIcon } from '@components/Misc/Icons'
 
 import { useStore } from '@zus/store'
@@ -188,16 +189,29 @@ const MapsList = () => {
   )
 }
 
-/** Controls, maps and the changelog as underlined tabs, under the ways in. */
+type ReferenceTab = 'recents' | 'controls' | 'maps' | 'changelog'
+
+/**
+ * Recent demos (when there are any), controls, maps and the changelog as underlined tabs, under
+ * the ways in. Recents opens first when it's there, until another tab is picked.
+ */
 const Reference = () => {
   const id = useId()
-  const [tab, setTab] = useState<'controls' | 'maps' | 'changelog'>('controls')
+  const { ready, demos } = useSavedDownloads()
+  const hasRecents = demos.length > 0
+  const [picked, setPicked] = useState<ReferenceTab | null>(null)
+  const tab: ReferenceTab =
+    picked && (picked !== 'recents' || hasRecents) ? picked : hasRecents ? 'recents' : 'controls'
+  const setTab = setPicked
   const tabs = [
+    ...(hasRecents ? [{ value: 'recents', label: 'Recents' } as const] : []),
     { value: 'controls', label: 'Controls' },
     { value: 'maps', label: 'Maps' },
     { value: 'changelog', label: 'Changelog' },
   ] as const
   const hasUnseenChanges = useHasUnseenChanges()
+  // Until the saved list is read, so Controls doesn't flash before Recents.
+  if (!ready) return null
 
   return (
     <section className="ui-reference">
@@ -223,6 +237,7 @@ const Reference = () => {
         ))}
       </div>
       <div role="tabpanel" id={`${id}-${tab}-panel`} aria-labelledby={`${id}-${tab}`}>
+        {tab === 'recents' && <RecentsList />}
         {tab === 'controls' && <ControlsList />}
         {tab === 'maps' && <MapsList />}
         {tab === 'changelog' && <ChangelogList />}
