@@ -671,25 +671,23 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
 
           {showSkybox && <Skybox map={map} />}
 
-          {/* Actors */}
+          {/* Actors, buildings and projectiles (players, buildings and stickies are outlined) */}
 
-          <Suspense fallback={null}>
-            <PlayerOutlines enabled={playerOutlines}>
+          <PlayerOutlines enabled={playerOutlines}>
+            <Suspense fallback={null}>
               <Actors match={demo} />
-            </PlayerOutlines>
-          </Suspense>
+            </Suspense>
 
-          {/* Buildings, control points, carts, flags */}
+            {/* Buildings, control points, carts, flags */}
 
-          <MatchProps match={demo} />
+            <MatchProps match={demo} />
+
+            <Projectiles />
+          </PlayerOutlines>
 
           {/* In POV, the damage the spectated player deals, over whoever they hit */}
 
           <DamageNumbers match={demo} />
-
-          {/* Projectiles */}
-
-          <Projectiles />
 
           {/* The spectated player's arms and weapon, over everything, in POV */}
 
