@@ -643,7 +643,7 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
 
   return (
     // A row: the viewer, and the match events sidebar docked beside it (the viewer shrinks).
-    <div className="flex h-dvh w-full">
+    <div className="flex h-screen w-full supports-[height:100dvh]:h-dvh">
       <div className="relative h-full min-w-0 flex-1">
         <DerivedMapController map={map} />
         <Canvas
