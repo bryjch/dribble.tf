@@ -4,6 +4,9 @@ What the About panel's Changelog tab shows. One file per user-facing change, bun
 time by `src/utils/changelog.ts`: adding a file is all it takes, and parallel branches never
 conflict over a shared list.
 
+Entries are per change, not per PR: a PR that brings several changes players would notice gets
+an entry for each (all naming the PR), so each reads as one thing.
+
 ```md
 ---
 date: 2026-11-16

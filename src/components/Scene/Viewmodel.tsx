@@ -8,10 +8,12 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js'
 
 import type { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
+import { hasCondition } from '@components/Analyse/Data/StreamEvents'
 import { SCENE_PRIORITY, sceneFrame } from '@components/Scene/PlaybackDriver'
 import { getState, useInstance, useStore } from '@zus/store'
 import { CLASS_MAP } from '@constants/mappings'
 import { getAsset } from '@utils/misc'
+import { sourceVerticalFov } from '@utils/fov'
 
 //
 // ─── VIEWMODEL ──────────────────────────────────────────────────────────────────
@@ -81,9 +83,6 @@ const loadGltf = (url: string) => {
   return request
 }
 
-/** Source's viewmodel_fov is horizontal on a 4:3 screen; three.js wants the vertical. */
-const verticalFov = (sourceFov: number) =>
-  THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(sourceFov) / 2) * 0.75))
 
 /**
  * Where the spectated medic's medigun nozzle is on screen, for the heal beam to start from: its
@@ -104,7 +103,9 @@ interface Selection {
 
 /** The models for what the player has in hand, or null when there is nothing to show. */
 function selectViewmodel(manifest: ViewmodelManifest, player?: CachedPlayer): Selection | null {
+  // A scoped sniper sees the scope, not the rifle.
   if (!player || player.health <= 0 || player.weapon == null) return null
+  if (hasCondition(player.conditions, 'zoomed')) return null
   const className = CLASS_MAP[player.classId]
   const classModels = manifest.classes[className]
   const entry = manifest.items[player.weapon]?.[className]
@@ -134,7 +135,7 @@ export const Viewmodel = () => {
   return (
     // Player outlines draw the world at priority 1 when on; otherwise the HUD draws it.
     <Hud renderPriority={outlines ? 2 : 1}>
-      <PerspectiveCamera makeDefault fov={verticalFov(settings.fov)} near={1} far={256} />
+      <PerspectiveCamera makeDefault fov={sourceVerticalFov(settings.fov)} near={1} far={256} />
       <ambientLight intensity={2.2} />
       <directionalLight position={[2, 3, 1]} intensity={2.4} />
       {entityId != null && <ViewmodelSelector manifest={manifest} entityId={entityId} />}

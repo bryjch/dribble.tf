@@ -17,7 +17,7 @@ declare function postMessage(message: any, transfer?: any[]): void
 //
 
 /** The decoder format this build reads (decoder/src/lib.rs, FORMAT). */
-const DECODER_FORMAT = 5
+const DECODER_FORMAT = 6
 
 const PLAYER_ARRAYS = [
   'position',

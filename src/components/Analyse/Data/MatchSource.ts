@@ -2,7 +2,7 @@ import type { CachedPlayer } from './PlayerTracks'
 import type { CachedProjectile } from './ProjectileCache'
 import type { CachedBuilding } from './BuildingCache'
 import type { ObjectiveState } from './ObjectiveTimeline'
-import type { ChatEntry, Header, PlayerRef, Round, World } from './Types'
+import type { ChatEntry, Header, PlayerRef, Round, Vector, World } from './Types'
 import type { MatchUberEvent } from '@utils/matchEvents'
 
 //
@@ -32,8 +32,16 @@ export interface CachedDeath {
 /** A hit one player landed on another. */
 export interface DamageHit {
   tick: number
+  /** The attacker's entity id. */
+  attacker: number
   /** The victim's entity id. */
   victim: number
+  /**
+   * Where the hit came from when that was not the attacker, in Source world coordinates: where
+   * the projectile was launched from, the sticky, or the sentry. A demo's decoder works it out
+   * (decoder/src/lib.rs, `locate_damage`); a live match has none.
+   */
+  from?: Vector
   amount: number
   crit: boolean
   minicrit: boolean
@@ -75,6 +83,8 @@ export interface MatchSource {
 
   /** The hits a player (by entity id) landed on other players, in tick order. */
   damageBy(entityId: number): readonly DamageHit[]
+  /** The hits other players landed on a player (by entity id), in tick order. */
+  damageTo(entityId: number): readonly DamageHit[]
   playersAt(tick: number): CachedPlayer[]
   projectilesAt(tick: number): CachedProjectile[]
   buildingsAt(tick: number): CachedBuilding[]

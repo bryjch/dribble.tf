@@ -126,6 +126,7 @@ export class LiveSource implements MatchSource {
   private inFlight = new Map<number, string>()
   // Hits by the attacker's entity id, each player's in tick order.
   private damage = new Map<number, DamageHit[]>()
+  private damageTaken = new Map<number, DamageHit[]>()
 
   /** Called when the server's ticks start over: a restarted server, or a replay looping. */
   onReset: (() => void) | null = null
@@ -379,11 +380,8 @@ export class LiveSource implements MatchSource {
   private addDamage(tick: number, m: StreamMessage) {
     const dealt = toDamageHit(tick, m, id => this.playerRef(id))
     if (!dealt) return
-    let hits = this.damage.get(dealt.attacker)
-    if (!hits) this.damage.set(dealt.attacker, (hits = []))
-    let i = hits.length
-    while (i > 0 && hits[i - 1].tick > tick) i--
-    hits.splice(i, 0, dealt.hit)
+    insertHit(this.damage, dealt.attacker, dealt.hit)
+    insertHit(this.damageTaken, dealt.hit.victim, dealt.hit)
   }
 
   private addChat(tick: number, m: StreamMessage) {
@@ -405,6 +403,10 @@ export class LiveSource implements MatchSource {
 
   damageBy(entityId: number): readonly DamageHit[] {
     return this.damage.get(entityId) ?? []
+  }
+
+  damageTo(entityId: number): readonly DamageHit[] {
+    return this.damageTaken.get(entityId) ?? []
   }
 
   /** The last snapshot at or before the tick (the first one before any). */
@@ -606,4 +608,13 @@ export class LiveSource implements MatchSource {
     }
     return out
   }
+}
+
+/** Adds a hit to a player's list, kept in tick order (lines can come a little out of order). */
+function insertHit(log: Map<number, DamageHit[]>, entityId: number, hit: DamageHit) {
+  let hits = log.get(entityId)
+  if (!hits) log.set(entityId, (hits = []))
+  let i = hits.length
+  while (i > 0 && hits[i - 1].tick > hit.tick) i--
+  hits.splice(i, 0, hit)
 }

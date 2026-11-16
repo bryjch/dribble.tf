@@ -13,8 +13,9 @@ import { PLAYER_DIMENSIONS } from '@constants/mappings'
 // ─── DAMAGE NUMBERS ─────────────────────────────────────────────────────────────
 //
 // In POV, the damage the spectated player deals, as TF2 shows it to them: a number over the head
-// of whoever they hit, rising and fading. Hits on one victim less than BATCH_SECONDS apart add up
-// into one number, so a minigun or a flamethrower reads as a total, not a blur.
+// of whoever they hit, rising and fading. Hits on one victim closer together than the batching
+// setting (`ui.damageBatchSeconds`) add up into one number, so a minigun or a flamethrower reads
+// as a total, not a blur. Afterburn and bleed hit every half second, so the default is above that.
 //
 // Everything is worked out from the tick being drawn, so seeking and scrubbing show the numbers
 // that would be up at that moment. They are DOM elements over the canvas, kept in a pool and
@@ -25,15 +26,14 @@ import { PLAYER_DIMENSIONS } from '@constants/mappings'
 const LINGER_SECONDS = 1.5
 /** The last part of that, fading out. */
 const FADE_SECONDS = 0.4
-/** Hits on one victim closer together than this are one number. */
-const BATCH_SECONDS = 0.5
 /** How far back hits are read: a batch running longer than this counts only its last part. */
 const LOOKBACK_SECONDS = 10
-/** How far a number rises over its life on screen, starting over the victim's head. */
-const RISE_PX = 36
-/** Where it starts over the head: clear of the nameplate when nameplates are drawn. */
-const START_PX = 8
-const START_OVER_NAMEPLATE_PX = 64
+/** Where a number starts: this far over the top of the victim's head, in world units. */
+const HEAD_GAP = 8
+/** How far a number rises over its life on screen. */
+const RISE_PX = 32
+/** An older number still up over the same victim sits this much higher per newer one. */
+const STACK_PX = 26
 /** A new hit on a number pops it this much bigger, easing back over POP_SECONDS. */
 const POP_SCALE = 0.35
 const POP_SECONDS = 0.15
@@ -76,11 +76,16 @@ function lastHitAtOrBefore(hits: readonly DamageHit[], tick: number) {
  * joins its victim's batch if it came within the batch window of that batch's earliest hit, or
  * starts an older batch for them.
  */
-function batchesAt(hits: readonly DamageHit[], tick: number, ticksPerSecond: number): Batch[] {
+function batchesAt(
+  hits: readonly DamageHit[],
+  tick: number,
+  ticksPerSecond: number,
+  batchSeconds: number
+): Batch[] {
   const last = lastHitAtOrBefore(hits, tick)
   if (last < 0) return []
   const linger = LINGER_SECONDS * ticksPerSecond
-  const gap = BATCH_SECONDS * ticksPerSecond
+  const gap = batchSeconds * ticksPerSecond
   const oldest = tick - linger - LOOKBACK_SECONDS * ticksPerSecond
 
   const batches: Batch[] = []
@@ -138,7 +143,7 @@ function hide(slot: Slot) {
 
 export const DamageNumbers = ({ match }: { match?: MatchSource }) => {
   const enabled = useStore(state => state.settings.ui.damageNumbers !== false)
-  const nameplates = useStore(state => state.settings.ui.nameplate.enabled)
+  const batchSeconds = useStore(state => state.settings.ui.damageBatchSeconds ?? 0.75)
   const controlsMode = useStore(state => state.scene.controls.mode)
   const focusedObject = useInstance(state => state.focusedObject)
   const gl = useThree(state => state.gl)
@@ -167,10 +172,12 @@ export const DamageNumbers = ({ match }: { match?: MatchSource }) => {
 
     const tick = sceneFrame.tick
     const ticksPerSecond = 1 / match.intervalPerTick
-    const batches = batchesAt(match.damageBy(attacker), tick, ticksPerSecond)
+    const batches = batchesAt(match.damageBy(attacker), tick, ticksPerSecond, batchSeconds)
 
     camera.updateWorldMatrix(true, false)
     const v = projected.current
+    // Per victim, how many newer numbers are already up over them: older ones stack above.
+    const stacked = new Map<number, number>()
     let used = 0
     for (const batch of batches) {
       if (used >= pool.length) break
@@ -180,15 +187,15 @@ export const DamageNumbers = ({ match }: { match?: MatchSource }) => {
       const life = age / LINGER_SECONDS
 
       const { x, y, z } = victim.position
-      v.set(x, y, z + PLAYER_DIMENSIONS.z).project(camera)
+      v.set(x, y, z + PLAYER_DIMENSIONS.z + HEAD_GAP).project(camera)
       // Behind the camera, or off screen.
       if (v.z > 1 || v.x < -1.2 || v.x > 1.2 || v.y < -1.2 || v.y > 1.2) continue
 
+      const newer = stacked.get(batch.victim) ?? 0
+      stacked.set(batch.victim, newer + 1)
       const slot = pool[used++]
       const left = ((v.x + 1) / 2) * size.width
-      // The dead have no nameplate to clear.
-      const startPx = nameplates && victim.health > 0 ? START_OVER_NAMEPLATE_PX : START_PX
-      const top = ((1 - v.y) / 2) * size.height - startPx - RISE_PX * life
+      const top = ((1 - v.y) / 2) * size.height - RISE_PX * life - STACK_PX * newer
       const pop = 1 + POP_SCALE * Math.max(0, 1 - age / POP_SECONDS)
       const opacity = Math.min(1, (LINGER_SECONDS - age) / FADE_SECONDS)
       slot.root.style.transform = `translate3d(${left.toFixed(1)}px, ${top.toFixed(1)}px, 0) translate(-50%, -100%) scale(${pop.toFixed(3)})`

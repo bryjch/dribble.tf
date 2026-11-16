@@ -73,9 +73,10 @@ export function toDamageHit(
   const attacker = refOf(m.attacker)?.user.entityId ?? -1
   const victim = refOf(m.victim)?.user.entityId ?? -1
   if (attacker < 0 || victim < 0) return null
+  const from = Array.isArray(m.from) ? { x: m.from[0], y: m.from[1], z: m.from[2] } : undefined
   return {
     attacker,
-    hit: { tick, victim, amount: m.amount, crit: !!m.crit, minicrit: !!m.minicrit },
+    hit: { tick, attacker, victim, from, amount: m.amount, crit: !!m.crit, minicrit: !!m.minicrit },
   }
 }
 
