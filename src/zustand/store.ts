@@ -340,7 +340,7 @@ export const initialState: StoreState = {
         color: '#ffffff',
       },
       rails: 'full' as RailsMode,
-      playerOutlines: false,
+      playerOutlines: true,
       damageNumbers: true,
       buildings: {
         sentryTargets: true,

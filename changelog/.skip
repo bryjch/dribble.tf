@@ -1,2 +1,4 @@
 79 # Derived Maps resolver: replaced by the built maps (#87) before players saw it
+95 # nearest built map version, map build tooling: behind the scenes
+96 # built maps out of git, Blender pipeline retired: tooling
 99 # assets wizard cache headers: tooling

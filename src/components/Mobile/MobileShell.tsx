@@ -1,11 +1,10 @@
 import { useLayoutEffect, useState } from 'react'
 
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
-import { FileIcon } from '@components/Misc/Icons'
 
-import { Sheet, SheetBrand, SheetTabs } from './parts'
+import { IconButton, Sheet, SheetTabs } from './parts'
 import { PANEL_TABS, PanelBody, PanelId } from './panels'
-import { Theater } from './Theater'
+import { MenuGlyph, Theater } from './Theater'
 
 import './mobile.css'
 
@@ -43,33 +42,30 @@ const usePhoneRootFont = () => {
 const NO_DEMO_TABS: PanelId[] = ['about', 'settings']
 
 /**
- * Before a demo: the sheet opens on About (open a file, paste a link, the sample), with Settings
- * beside it, and a way back to it once dismissed.
+ * Before a demo: the map to look around, with the menu button where the match view has it.
+ * The sheet opens on About (open a file, paste a link, the sample), with Settings beside it.
  */
 const NoDemo = () => {
   const [open, setOpen] = useState(true)
   const [panel, setPanel] = useState<PanelId>('about')
   return (
     <div className="m-shell">
-      <div className="m-nodemo">
-        <button type="button" className="m-nodemo__btn" onClick={() => setOpen(true)}>
-          <FileIcon />
-          Open a demo
-        </button>
+      <div className="m-nodemo__top">
+        <IconButton label="Menu" size="md" onClick={() => setOpen(true)}>
+          <MenuGlyph />
+        </IconButton>
       </div>
       <Sheet
         open={open}
         onOpenChange={setOpen}
         title="dribble.tf"
+        className="m-sheet--menu"
         header={
-          <>
-            <SheetBrand />
-            <SheetTabs
-              tabs={NO_DEMO_TABS.map(id => PANEL_TABS[id])}
-              value={panel}
-              onChange={id => setPanel(id as PanelId)}
-            />
-          </>
+          <SheetTabs
+            tabs={NO_DEMO_TABS.map(id => PANEL_TABS[id])}
+            value={panel}
+            onChange={id => setPanel(id as PanelId)}
+          />
         }
       >
         <PanelBody panel={panel} />
