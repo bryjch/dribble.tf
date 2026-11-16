@@ -121,6 +121,7 @@
     left: calc(100% + 0.5rem);
     display: flex;
     max-height: calc(100vh - 2rem - var(--ui-dock-clearance));
+    max-height: calc(100dvh - 2rem - var(--ui-dock-clearance));
     max-width: calc(100vw - var(--ui-sidebar-width, 0px) - 4.5rem);
     flex-direction: column;
     overflow: hidden;

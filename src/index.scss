@@ -75,6 +75,31 @@ html {
   font-family: var(--ui-font-body);
 }
 
+// The viewer fills the window and every panel scrolls itself: the document never scrolls, and
+// does not rubber-band on iOS.
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+// Dragging over the viewer (a missed camera grab, a scrubbed timeline) would otherwise select the
+// whole page; a long press would open iOS's callout. Text fields keep selection.
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea,
+[contenteditable='true'],
+[contenteditable='plaintext-only'] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 @media screen and (min-width: 1024px) {
   html {
     font-size: 14px;
