@@ -550,6 +550,20 @@ const FocusedPlayerLayer = (props: {
   )
 }
 
+/** Says how to get the HUD back, then fades: the view should be clean. */
+const HudHiddenHint = () => (
+  <div className="ui-layer pointer-events-none mb-8 items-end justify-center">
+    <motion.div
+      className="ui-toast text-sm"
+      initial={{ opacity: 1 }}
+      animate={{ opacity: 0 }}
+      transition={{ delay: 1.6, duration: 0.6 }}
+    >
+      HUD hidden. Press <kbd>H</kbd> or <kbd>Esc</kbd> to bring it back
+    </motion.div>
+  </div>
+)
+
 // Panel toolbar - functional component so we can use useIsMobile hook
 const PanelToolbar = ({ hasDemoLoaded }: { hasDemoLoaded: boolean }) => {
   const isMobile = useIsMobile()
@@ -599,6 +613,8 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
   const showStats = useStore(state => state.settings.ui.showStats)
   // Phones get their own interface in place of the HUD, toolbar and playback bar.
   const mobile = useMobileLayout()
+  // H hides every overlay but the crosshair. A keyboard toggle, so not on the touch layout.
+  const hudHidden = useStore(state => state.ui.hudHidden) && !mobile.active
 
   // Force tabIndex (r3f seems to ignore it if provided in props) as this is how
   // we can ensure separation of Global and Canvas-only keyboard events when certain
@@ -711,7 +727,7 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
 
         {/* Normal React (non-THREE.js) UI elements */}
 
-        {showStats && <FpsCounter />}
+        {showStats && !hudHidden && <FpsCounter />}
 
         <div className="ui-layer pointer-events-none items-center justify-center">
           <Crosshair />
@@ -720,6 +736,8 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
         <div className="ui-layers">
           {mobile.active ? (
             <MobileShell landscape={mobile.landscape} match={demo} />
+          ) : hudHidden ? (
+            <HudHiddenHint />
           ) : (
             <>
               <DoubleTapSeek />
@@ -738,7 +756,7 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
         </div>
       </div>
       {/* Phones show match events in their own Events sheet instead. */}
-      {demo && !mobile.active && <MatchEventsSidebar />}
+      {demo && !mobile.active && !hudHidden && <MatchEventsSidebar />}
     </div>
   )
 })

@@ -3,8 +3,8 @@ import { useLayoutEffect, useState } from 'react'
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
 import { FileIcon } from '@components/Misc/Icons'
 
-import { Sheet } from './parts'
-import { PanelBody } from './panels'
+import { Sheet, SheetBrand, SheetTabs } from './parts'
+import { PANEL_TABS, PanelBody, PanelId } from './panels'
 import { Theater } from './Theater'
 
 import './mobile.css'
@@ -39,9 +39,16 @@ const usePhoneRootFont = () => {
   }, [])
 }
 
-/** Before a demo: the About sheet (open a file, paste a link, the sample), and a way back to it. */
+// Events and bookmarks need a match.
+const NO_DEMO_TABS: PanelId[] = ['about', 'settings']
+
+/**
+ * Before a demo: the sheet opens on About (open a file, paste a link, the sample), with Settings
+ * beside it, and a way back to it once dismissed.
+ */
 const NoDemo = () => {
   const [open, setOpen] = useState(true)
+  const [panel, setPanel] = useState<PanelId>('about')
   return (
     <div className="m-shell">
       <div className="m-nodemo">
@@ -50,8 +57,22 @@ const NoDemo = () => {
           Open a demo
         </button>
       </div>
-      <Sheet open={open} onOpenChange={setOpen} title="dribble.tf">
-        <PanelBody panel="about" />
+      <Sheet
+        open={open}
+        onOpenChange={setOpen}
+        title="dribble.tf"
+        header={
+          <>
+            <SheetBrand />
+            <SheetTabs
+              tabs={NO_DEMO_TABS.map(id => PANEL_TABS[id])}
+              value={panel}
+              onChange={id => setPanel(id as PanelId)}
+            />
+          </>
+        }
+      >
+        <PanelBody panel={panel} />
       </Sheet>
     </div>
   )

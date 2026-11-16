@@ -10,14 +10,32 @@ import {
   CircleStyleIcon,
   DotStyleIcon,
 } from '@components/Misc/Icons'
-import { CrosshairStyle } from '@constants/types'
+import { CrosshairStyle, SettingsTab } from '@constants/types'
 import { BRUSH_COLOR_OPTIONS } from '@constants/drawing'
+import { SHORTCUTS } from '@constants/shortcuts'
 
 import { useStore } from '@zus/store'
-import { toggleOnlyUIPanelAction, updateSettingsOptionAction } from '@zus/actions'
+import {
+  setSettingsTabAction,
+  toggleOnlyUIPanelAction,
+  updateSettingsOptionAction,
+} from '@zus/actions'
 import { cn } from '@utils/styling'
 import { useIsMobile } from '@utils/hooks'
+import { useMobileLayout } from '@components/Mobile/useMobileLayout'
 import { DEFAULT_THEME, THEMES, isThemeId } from '@theme/themes'
+
+//
+// ─── SETTINGS ───────────────────────────────────────────────────────────────────
+//
+// One short page per tab: what is drawn over the scene (HUD), on players and buildings
+// (Players), the map, how each camera feels, drawing, and the rest (General). Keys lists every
+// shortcut (from @constants/shortcuts); ? opens it. A row's <kbd> is the key that flips it.
+//
+
+const updateSettingsOption = (option: string, value: any) => {
+  updateSettingsOptionAction(option, value)
+}
 
 //
 // ─── BASE OPTION WRAPPER ────────────────────────────────────────────────────────
@@ -26,6 +44,7 @@ import { DEFAULT_THEME, THEMES, isThemeId } from '@theme/themes'
 type OptionProps = {
   label: string
   keyCode?: string
+  hint?: string
   children?: React.ReactNode
   leftClass?: string
   rightClass?: string
@@ -35,6 +54,7 @@ type OptionProps = {
 const Option = ({
   label,
   keyCode,
+  hint,
   children,
   leftClass = '',
   rightClass = '',
@@ -45,15 +65,23 @@ const Option = ({
       <span className={cn(!!onClickLabel && 'cursor-default')} onClick={onClickLabel}>
         {label}
       </span>
-      {!!keyCode && <kbd>{keyCode}</kbd>}
+      {!!keyCode && <KeyHint className="">{keyCode}</KeyHint>}
+      {!!hint && <span className="ui-option__hint">{hint}</span>}
     </div>
 
     <div className={cn('flex items-center', rightClass)}>{children}</div>
   </div>
 )
 
-const Section = ({ children }: { children: React.ReactNode }) => (
-  <div className="ui-section-title">{children}</div>
+/** A setting's shortcut, left out on the touch layout, which has no keyboard. */
+const KeyHint = ({ children, className }: { children: string; className: string }) =>
+  useMobileLayout().active ? null : <kbd className={className}>{children}</kbd>
+
+const Section = ({ children, keyCode }: { children: React.ReactNode; keyCode?: string }) => (
+  <div className="ui-section-title flex items-center gap-2">
+    {children}
+    {!!keyCode && <KeyHint className="normal-case tracking-normal">{keyCode}</KeyHint>}
+  </div>
 )
 
 const OptionGroup = ({ children }: { children: React.ReactNode }) => (
@@ -136,21 +164,86 @@ const SliderOption = ({
 type ToggleOptionProps = {
   label: string
   keyCode?: string
+  hint?: string
   checked: boolean
   disabled?: boolean
   onChange: (checked: boolean) => void
 }
 
-const ToggleOption = ({ label, keyCode, checked, disabled, onChange }: ToggleOptionProps) => {
+const ToggleOption = ({ label, keyCode, hint, checked, disabled, onChange }: ToggleOptionProps) => {
   const callback = () => {
     onChange(!checked)
   }
 
   return (
-    <Option label={label} keyCode={keyCode} onClickLabel={callback}>
+    <Option label={label} keyCode={keyCode} hint={hint} onClickLabel={callback}>
       <Switch checked={checked} disabled={disabled} onChange={callback} label={label} />
     </Option>
   )
+}
+
+//
+// ─── TABS ───────────────────────────────────────────────────────────────────────
+//
+
+const TABS: { id: SettingsTab; label: string; desktopOnly?: boolean }[] = [
+  { id: 'hud', label: 'HUD' },
+  { id: 'players', label: 'Players' },
+  { id: 'map', label: 'Map' },
+  { id: 'camera', label: 'Camera' },
+  // Phones leave drawing out (see Mobile/panels), and have no keyboard.
+  { id: 'drawing', label: 'Drawing', desktopOnly: true },
+  { id: 'general', label: 'General' },
+  { id: 'keys', label: 'Keys', desktopOnly: true },
+]
+
+/** The tab showing: the stored one, or HUD if this layout leaves that tab out. */
+const useSettingsTab = () => {
+  const touch = useMobileLayout().active
+  const stored = useStore(state => state.ui.settingsTab)
+  const tabs = TABS.filter(tab => !(touch && tab.desktopOnly))
+  const current = tabs.some(tab => tab.id === stored) ? stored : 'hud'
+  return { tabs, current }
+}
+
+const SettingsTabs = () => {
+  const { tabs, current } = useSettingsTab()
+  return (
+    <div className="ui-tabs ui-tabs--fill" role="tablist" aria-label="Settings">
+      {tabs.map(tab => (
+        <button
+          key={tab.id}
+          type="button"
+          role="tab"
+          aria-selected={current === tab.id}
+          className="ui-tab"
+          onClick={() => setSettingsTabAction(tab.id)}
+        >
+          {tab.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+const SettingsTabBody = () => {
+  const { current } = useSettingsTab()
+  switch (current) {
+    case 'hud':
+      return <HudTab />
+    case 'players':
+      return <PlayersTab />
+    case 'map':
+      return <MapTab />
+    case 'camera':
+      return <CameraTab />
+    case 'drawing':
+      return <DrawingTab />
+    case 'general':
+      return <GeneralTab />
+    case 'keys':
+      return <KeysTab />
+  }
 }
 
 //
@@ -170,288 +263,80 @@ export const SettingsPanel = () => {
       <TogglePanel
         className="w-[min(440px,calc(100vw-5rem))]"
         title="Settings"
+        subheader={<SettingsTabs />}
         showCloseButton
         isOpen={isOpen}
         onClickClose={toggleUIPanel}
       >
-        <SettingsContent />
+        <SettingsTabBody />
       </TogglePanel>
     </div>
   )
 }
 
-/** Every setting, shared by the desktop panel and the phone sheets. */
-export const SettingsContent = () => {
-  const scene = useStore(state => state.scene)
-  const settings = useStore(state => state.settings)
-  const isMobile = useIsMobile()
+/** The tabs and their settings, for the phone sheets (the desktop panel puts the tabs in its header). */
+export const SettingsContent = () => (
+  <div>
+    <SettingsTabs />
+    <div className="pt-3">
+      <SettingsTabBody />
+    </div>
+  </div>
+)
 
-  const updateSettingsOption = (option: string, value: any) => {
-    updateSettingsOptionAction(option, value)
-  }
+//
+// ─── HUD ────────────────────────────────────────────────────────────────────────
+//
+
+const HudTab = () => {
+  const ui = useStore(state => state.settings.ui)
+  const touch = useMobileLayout().active
 
   return (
     <div>
-      <Section>Interface</Section>
-
-      <Option label="Layout">
+      <Option label="Player rails" keyCode="P">
         <Segmented
-          label="Layout"
+          label="Player rails"
           options={[
-            { label: 'Auto', value: 'auto' },
-            { label: 'Desktop', value: 'desktop' },
-            { label: 'Touch', value: 'touch' },
+            { label: 'Full', value: 'full' },
+            { label: 'Compact', value: 'compact' },
+            { label: 'Hidden', value: 'hidden' },
           ]}
-          value={settings.ui.layout ?? 'auto'}
-          onChange={value => updateSettingsOption('ui.layout', value)}
+          value={ui.rails ?? 'full'}
+          onChange={value => updateSettingsOption('ui.rails', value)}
         />
       </Option>
 
-      <Option label="Look">
-        <Segmented
-          label="Theme"
-          options={THEMES.map(theme => ({ label: theme.label, value: theme.id }))}
-          value={isThemeId(settings.ui.theme) ? settings.ui.theme : DEFAULT_THEME}
-          onChange={value => updateSettingsOption('ui.theme', value)}
-        />
-      </Option>
+      <ToggleOption
+        label="Objectives and score"
+        checked={ui.showObjectives !== false}
+        onChange={checked => updateSettingsOption('ui.showObjectives', checked)}
+      />
 
-      {/* ************************************************************* */}
+      <ToggleOption
+        label="Chat"
+        keyCode="T"
+        checked={ui.showChat !== false}
+        onChange={checked => updateSettingsOption('ui.showChat', checked)}
+      />
 
-      <Section>Camera</Section>
-
-      <Option label="POV Camera (next)" keyCode="1" />
-      <Option label="POV Camera (prev)" keyCode="Shift + 1" />
-
-      {!isMobile && <Option label="Spectator Camera" keyCode="2" />}
-      {isMobile && (
-        <Option label="Spectator Camera">
-          <span className="ui-option__hint">Desktop only</span>
-        </Option>
-      )}
-
-      {scene.controls.mode === 'spectator' && !isMobile && (
-        <OptionGroup>
-          <SliderOption
-            label="Look Sensitivity"
-            value={settings.controls.lookSpeed}
-            onChange={value => updateSettingsOption('controls.lookSpeed', value)}
-          />
-
-          <SliderOption
-            label="Move Speed"
-            value={settings.controls.moveSpeed}
-            onChange={value => updateSettingsOption('controls.moveSpeed', value)}
-          />
-        </OptionGroup>
-      )}
-
-      <Option label="Orbit Camera" keyCode="3" />
-
-      {scene.controls.mode === 'rts' && (
-        <OptionGroup>
-          <SliderOption
-            label="Rotate speed"
-            min={0.25}
-            max={2}
-            step={0.05}
-            value={settings.controls.rts.rotateSpeed}
-            onChange={value => updateSettingsOption('controls.rts.rotateSpeed', value)}
-          />
-
-          <SliderOption
-            label="Zoom speed"
-            min={0.25}
-            max={2}
-            step={0.05}
-            value={settings.controls.rts.zoomSpeed}
-            onChange={value => updateSettingsOption('controls.rts.zoomSpeed', value)}
-          />
-
-          {!isMobile && (
-            <SliderOption
-              label="Keyboard speed"
-              min={0.25}
-              max={2}
-              step={0.05}
-              value={settings.controls.rts.keyPanSpeed}
-              onChange={value => updateSettingsOption('controls.rts.keyPanSpeed', value)}
-            />
-          )}
-
-          <ToggleOption
-            label="Smooth movement"
-            checked={settings.controls.rts.smoothing}
-            onChange={checked => updateSettingsOption('controls.rts.smoothing', checked)}
-          />
-        </OptionGroup>
-      )}
-
-      {/* The spectator and orbit cameras are one camera, so they share a field of view. */}
-      {(scene.controls.mode === 'rts' || (scene.controls.mode === 'spectator' && !isMobile)) && (
-        <SliderOption
-          label="Field of view"
-          min={50}
-          max={120}
-          step={1}
-          value={settings.camera.fov}
-          onChange={value => updateSettingsOption('camera.fov', value)}
-        />
-      )}
-
-      {/* ************************************************************* */}
-
-      <Section>Scene</Section>
-
-      <Option label="Material" keyCode="M">
-        <Segmented
-          label="Material"
-          options={[
-            { label: 'Wireframe', value: 'wireframe' },
-            { label: 'Plain', value: 'untextured' },
-            { label: 'Textured', value: 'textured' },
-          ]}
-          value={settings.scene.mode}
-          onChange={value => updateSettingsOption('scene.mode', value)}
-        />
-      </Option>
-
-      <Option label="Lighting">
-        <Segmented
-          label="Lighting"
-          options={[
-            { label: 'Flat', value: 'flat' },
-            { label: 'Baked', value: 'baked' },
-          ]}
-          value={settings.scene.lighting ?? 'baked'}
-          onChange={value => updateSettingsOption('scene.lighting', value)}
-        />
-      </Option>
-
-      {(settings.scene.lighting ?? 'baked') === 'baked' && (
-        <SliderOption
-          label="Brightness"
-          min={0.6}
-          max={2.2}
-          step={0.1}
-          value={settings.scene.bakedBrightness ?? 1.3}
-          onChange={value => updateSettingsOption('scene.bakedBrightness', value)}
+      {/* The touch layout shows match events in their own sheet. */}
+      {!touch && (
+        <ToggleOption
+          label="Match events sidebar"
+          keyCode="I"
+          checked={ui.matchEvents.open}
+          onChange={checked => updateSettingsOption('ui.matchEvents.open', checked)}
         />
       )}
 
       <ToggleOption
-        label="Frame smoothing"
-        checked={settings.scene.interpolateFrames}
-        onChange={checked => updateSettingsOption('scene.interpolateFrames', checked)}
+        label="FPS counter"
+        checked={ui.showStats}
+        onChange={checked => updateSettingsOption('ui.showStats', checked)}
       />
 
-      <SliderOption
-        label="View distance"
-        min={2000}
-        max={30000}
-        step={500}
-        value={settings.ui.viewDistance}
-        onChange={value => updateSettingsOption('ui.viewDistance', value)}
-      />
-
-      {/* ************************************************************* */}
-
-      <Section>Players</Section>
-
-      <ToggleOption
-        label="Player, building and sticky outlines"
-        keyCode="O"
-        checked={settings.ui.playerOutlines}
-        onChange={checked => updateSettingsOption('ui.playerOutlines', checked)}
-      />
-
-      <ToggleOption
-        label="Damage numbers in POV"
-        checked={settings.ui.damageNumbers}
-        onChange={checked => updateSettingsOption('ui.damageNumbers', checked)}
-      />
-
-      <ToggleOption
-        label="Show nameplates"
-        keyCode="N"
-        checked={settings.ui.nameplate.enabled}
-        onChange={checked => updateSettingsOption('ui.nameplate.enabled', checked)}
-      />
-
-      {settings.ui.nameplate.enabled && (
-        <OptionGroup>
-          <ToggleOption
-            label="Name"
-            checked={settings.ui.nameplate.showName}
-            disabled={!settings.ui.nameplate.enabled}
-            onChange={checked => updateSettingsOption('ui.nameplate.showName', checked)}
-          />
-
-          <ToggleOption
-            label="Health"
-            checked={settings.ui.nameplate.showHealth}
-            disabled={!settings.ui.nameplate.enabled}
-            onChange={checked => updateSettingsOption('ui.nameplate.showHealth', checked)}
-          />
-
-          <ToggleOption
-            label="Class"
-            checked={settings.ui.nameplate.showClass}
-            disabled={!settings.ui.nameplate.enabled}
-            onChange={checked => updateSettingsOption('ui.nameplate.showClass', checked)}
-          />
-
-          <ToggleOption
-            label="Conditions"
-            checked={settings.ui.nameplate.showConditions !== false}
-            disabled={!settings.ui.nameplate.enabled}
-            onChange={checked => updateSettingsOption('ui.nameplate.showConditions', checked)}
-          />
-        </OptionGroup>
-      )}
-
-      {/* ************************************************************* */}
-
-      <Section>Buildings</Section>
-
-      <ToggleOption
-        label="Sentry targets"
-        checked={settings.ui.buildings.sentryTargets}
-        onChange={checked => updateSettingsOption('ui.buildings.sentryTargets', checked)}
-      />
-
-      <ToggleOption
-        label="Sentry range"
-        checked={settings.ui.buildings.sentryRange}
-        onChange={checked => updateSettingsOption('ui.buildings.sentryRange', checked)}
-      />
-
-      {/* ************************************************************* */}
-
-      <Section>Viewmodel</Section>
-
-      <ToggleOption
-        label="Show weapon in POV"
-        checked={settings.ui.viewmodel?.enabled !== false}
-        onChange={checked => updateSettingsOption('ui.viewmodel.enabled', checked)}
-      />
-
-      {settings.ui.viewmodel?.enabled !== false && (
-        <OptionGroup>
-          <SliderOption
-            label="Viewmodel FOV"
-            min={54}
-            max={90}
-            step={1}
-            value={settings.ui.viewmodel?.fov ?? 70}
-            onChange={value => updateSettingsOption('ui.viewmodel.fov', value)}
-          />
-        </OptionGroup>
-      )}
-
-      {/* ************************************************************* */}
-
-      <Section>Crosshair</Section>
+      <Section keyCode="X">Crosshair</Section>
 
       <Option label="Style">
         <Segmented
@@ -479,19 +364,19 @@ export const SettingsContent = () => {
               icon: <DotStyleIcon className="h-3.5 w-3.5" />,
             },
           ]}
-          value={settings.ui.crosshair.style}
+          value={ui.crosshair.style}
           onChange={value => updateSettingsOption('ui.crosshair.style', value)}
         />
       </Option>
 
-      {settings.ui.crosshair.style !== 'none' && (
+      {ui.crosshair.style !== 'none' && (
         <>
           <SliderOption
             label="Size"
             min={10}
             max={60}
             step={1}
-            value={settings.ui.crosshair.size}
+            value={ui.crosshair.size}
             onChange={value => updateSettingsOption('ui.crosshair.size', value)}
           />
 
@@ -500,18 +385,18 @@ export const SettingsContent = () => {
             min={0.1}
             max={1}
             step={0.05}
-            value={settings.ui.crosshair.opacity}
+            value={ui.crosshair.opacity}
             onChange={value => updateSettingsOption('ui.crosshair.opacity', value)}
           />
 
-          <Option label="Color">
+          <Option label="Colour">
             <div className="flex items-center gap-1.5">
               {BRUSH_COLOR_OPTIONS.map(({ color }) => (
                 <button
                   type="button"
                   key={`crosshair-color-${color}`}
                   className="ui-swatch"
-                  data-active={settings.ui.crosshair.color === color}
+                  data-active={ui.crosshair.color === color}
                   aria-label={`Crosshair colour ${color}`}
                   style={{ backgroundColor: color }}
                   onClick={() => updateSettingsOption('ui.crosshair.color', color)}
@@ -521,69 +406,356 @@ export const SettingsContent = () => {
           </Option>
         </>
       )}
+    </div>
+  )
+}
 
-      {/* ************************************************************* */}
+//
+// ─── PLAYERS ────────────────────────────────────────────────────────────────────
+//
 
-      <Section>Drawing</Section>
+const PlayersTab = () => {
+  const ui = useStore(state => state.settings.ui)
 
-      <Option label="Activate" keyCode="F" />
-      <Option label="Clear active tool" keyCode="C" />
-      <Option label="Undo active tool" keyCode="Z" />
-      <Option label="Redo stickers" keyCode="Shift + Z" />
-      <Option label="Delete selected sticker" keyCode="Delete" />
+  return (
+    <div>
+      <ToggleOption
+        label="Outlines"
+        keyCode="O"
+        hint="Players, buildings, stickies"
+        checked={ui.playerOutlines}
+        onChange={checked => updateSettingsOption('ui.playerOutlines', checked)}
+      />
 
-      <Option label="Activation method" rightClass="col-auto">
+      <ToggleOption
+        label="Damage numbers in POV"
+        checked={ui.damageNumbers}
+        onChange={checked => updateSettingsOption('ui.damageNumbers', checked)}
+      />
+
+      <ToggleOption
+        label="Nameplates"
+        keyCode="N"
+        checked={ui.nameplate.enabled}
+        onChange={checked => updateSettingsOption('ui.nameplate.enabled', checked)}
+      />
+
+      {ui.nameplate.enabled && (
+        <OptionGroup>
+          <ToggleOption
+            label="Name"
+            checked={ui.nameplate.showName}
+            onChange={checked => updateSettingsOption('ui.nameplate.showName', checked)}
+          />
+
+          <ToggleOption
+            label="Health"
+            checked={ui.nameplate.showHealth}
+            onChange={checked => updateSettingsOption('ui.nameplate.showHealth', checked)}
+          />
+
+          <ToggleOption
+            label="Class"
+            checked={ui.nameplate.showClass}
+            onChange={checked => updateSettingsOption('ui.nameplate.showClass', checked)}
+          />
+
+          <ToggleOption
+            label="Conditions"
+            checked={ui.nameplate.showConditions !== false}
+            onChange={checked => updateSettingsOption('ui.nameplate.showConditions', checked)}
+          />
+        </OptionGroup>
+      )}
+
+      <Section>Sentries</Section>
+
+      <ToggleOption
+        label="Targets"
+        checked={ui.buildings.sentryTargets}
+        onChange={checked => updateSettingsOption('ui.buildings.sentryTargets', checked)}
+      />
+
+      <ToggleOption
+        label="Range"
+        checked={ui.buildings.sentryRange}
+        onChange={checked => updateSettingsOption('ui.buildings.sentryRange', checked)}
+      />
+
+      <Section>Viewmodel</Section>
+
+      <ToggleOption
+        label="Weapon in POV"
+        keyCode="V"
+        checked={ui.viewmodel?.enabled !== false}
+        onChange={checked => updateSettingsOption('ui.viewmodel.enabled', checked)}
+      />
+
+      {ui.viewmodel?.enabled !== false && (
+        <OptionGroup>
+          <SliderOption
+            label="Viewmodel FOV"
+            min={54}
+            max={90}
+            step={1}
+            value={ui.viewmodel?.fov ?? 70}
+            onChange={value => updateSettingsOption('ui.viewmodel.fov', value)}
+          />
+        </OptionGroup>
+      )}
+    </div>
+  )
+}
+
+//
+// ─── MAP ────────────────────────────────────────────────────────────────────────
+//
+
+const MapTab = () => {
+  const settings = useStore(state => state.settings)
+  const lighting = settings.scene.lighting ?? 'baked'
+
+  return (
+    <div>
+      <Option label="Material" keyCode="M">
         <Segmented
-          label="Activation method"
+          label="Material"
+          options={[
+            { label: 'Wireframe', value: 'wireframe' },
+            { label: 'Plain', value: 'untextured' },
+            { label: 'Textured', value: 'textured' },
+          ]}
+          value={settings.scene.mode}
+          onChange={value => updateSettingsOption('scene.mode', value)}
+        />
+      </Option>
+
+      <Option label="Lighting" keyCode="L">
+        <Segmented
+          label="Lighting"
+          options={[
+            { label: 'Flat', value: 'flat' },
+            { label: 'Baked', value: 'baked' },
+          ]}
+          value={lighting}
+          onChange={value => updateSettingsOption('scene.lighting', value)}
+        />
+      </Option>
+
+      {lighting === 'baked' && (
+        <OptionGroup>
+          <SliderOption
+            label="Brightness"
+            min={0.6}
+            max={2.2}
+            step={0.1}
+            value={settings.scene.bakedBrightness ?? 1.3}
+            onChange={value => updateSettingsOption('scene.bakedBrightness', value)}
+          />
+        </OptionGroup>
+      )}
+
+      <ToggleOption
+        label="Skybox"
+        checked={settings.ui.showSkybox}
+        onChange={checked => updateSettingsOption('ui.showSkybox', checked)}
+      />
+
+      <SliderOption
+        label="View distance"
+        min={2000}
+        max={30000}
+        step={500}
+        value={settings.ui.viewDistance}
+        onChange={value => updateSettingsOption('ui.viewDistance', value)}
+      />
+
+      <ToggleOption
+        label="Frame smoothing"
+        hint="Between ticks"
+        checked={settings.scene.interpolateFrames}
+        onChange={checked => updateSettingsOption('scene.interpolateFrames', checked)}
+      />
+    </div>
+  )
+}
+
+//
+// ─── CAMERA ─────────────────────────────────────────────────────────────────────
+//
+// Every camera's settings at once, whichever is in use, so they stay where you left them.
+//
+
+const CameraTab = () => {
+  const settings = useStore(state => state.settings)
+  const isMobile = useIsMobile()
+
+  return (
+    <div>
+      {/* The free and orbit cameras are one camera, so they share a field of view. */}
+      <SliderOption
+        label="Field of view"
+        min={50}
+        max={120}
+        step={1}
+        value={settings.camera.fov}
+        onChange={value => updateSettingsOption('camera.fov', value)}
+      />
+
+      <Section keyCode="3">Orbit camera</Section>
+
+      <SliderOption
+        label="Rotate speed"
+        min={0.25}
+        max={2}
+        step={0.05}
+        value={settings.controls.rts.rotateSpeed}
+        onChange={value => updateSettingsOption('controls.rts.rotateSpeed', value)}
+      />
+
+      <SliderOption
+        label="Zoom speed"
+        min={0.25}
+        max={2}
+        step={0.05}
+        value={settings.controls.rts.zoomSpeed}
+        onChange={value => updateSettingsOption('controls.rts.zoomSpeed', value)}
+      />
+
+      {!isMobile && (
+        <SliderOption
+          label="Keyboard speed"
+          min={0.25}
+          max={2}
+          step={0.05}
+          value={settings.controls.rts.keyPanSpeed}
+          onChange={value => updateSettingsOption('controls.rts.keyPanSpeed', value)}
+        />
+      )}
+
+      <ToggleOption
+        label="Smooth movement"
+        checked={settings.controls.rts.smoothing}
+        onChange={checked => updateSettingsOption('controls.rts.smoothing', checked)}
+      />
+
+      {/* The free (spectator) camera needs a mouse and keyboard. */}
+      {!isMobile && (
+        <>
+          <Section keyCode="2">Free camera</Section>
+
+          <SliderOption
+            label="Look sensitivity"
+            value={settings.controls.lookSpeed}
+            onChange={value => updateSettingsOption('controls.lookSpeed', value)}
+          />
+
+          <SliderOption
+            label="Move speed"
+            value={settings.controls.moveSpeed}
+            onChange={value => updateSettingsOption('controls.moveSpeed', value)}
+          />
+        </>
+      )}
+    </div>
+  )
+}
+
+//
+// ─── DRAWING ────────────────────────────────────────────────────────────────────
+//
+
+const DrawingTab = () => {
+  const drawing = useStore(state => state.settings.drawing)
+
+  return (
+    <div>
+      <Option label="Draw key" keyCode="F">
+        <Segmented
+          label="Draw key"
           options={[
             { label: 'Hold', value: 'hold' },
             { label: 'Toggle', value: 'toggle' },
           ]}
-          value={settings.drawing.activation}
+          value={drawing.activation}
           onChange={value => updateSettingsOption('drawing.activation', value)}
         />
       </Option>
 
       <ToggleOption
-        label="Auto clear when dismissed"
-        checked={settings.drawing.autoClear}
+        label="Clear when dismissed"
+        checked={drawing.autoClear}
         onChange={checked => updateSettingsOption('drawing.autoClear', checked)}
       />
+    </div>
+  )
+}
 
-      {/* ************************************************************* */}
+//
+// ─── GENERAL ────────────────────────────────────────────────────────────────────
+//
 
-      <Section>Misc</Section>
+const GeneralTab = () => {
+  const ui = useStore(state => state.settings.ui)
 
-      <ToggleOption
-        label="Show FPS"
-        checked={settings.ui.showStats}
-        onChange={checked => updateSettingsOption('ui.showStats', checked)}
-      />
-      <ToggleOption
-        label="Show Skybox"
-        checked={settings.ui.showSkybox}
-        onChange={checked => updateSettingsOption('ui.showSkybox', checked)}
-      />
+  return (
+    <div>
+      <Option label="Theme">
+        <Segmented
+          label="Theme"
+          options={THEMES.map(theme => ({ label: theme.label, value: theme.id }))}
+          value={isThemeId(ui.theme) ? ui.theme : DEFAULT_THEME}
+          onChange={value => updateSettingsOption('ui.theme', value)}
+        />
+      </Option>
 
-      <ToggleOption
-        label="Show objectives and score"
-        checked={settings.ui.showObjectives !== false}
-        onChange={checked => updateSettingsOption('ui.showObjectives', checked)}
-      />
-      <ToggleOption
-        label="Show chat"
-        checked={settings.ui.showChat !== false}
-        onChange={checked => updateSettingsOption('ui.showChat', checked)}
-      />
+      <Option label="Layout">
+        <Segmented
+          label="Layout"
+          options={[
+            { label: 'Auto', value: 'auto' },
+            { label: 'Desktop', value: 'desktop' },
+            { label: 'Touch', value: 'touch' },
+          ]}
+          value={ui.layout ?? 'auto'}
+          onChange={value => updateSettingsOption('ui.layout', value)}
+        />
+      </Option>
 
       <SliderOption
         label="Killfeed seek buffer"
         min={1}
         max={10}
         step={1}
-        value={settings.ui.killfeedSeekBuffer}
+        value={ui.killfeedSeekBuffer}
         onChange={value => updateSettingsOption('ui.killfeedSeekBuffer', value)}
       />
     </div>
   )
 }
+
+//
+// ─── KEYS ───────────────────────────────────────────────────────────────────────
+//
+
+const KeysTab = () => (
+  <div>
+    {SHORTCUTS.map(section => (
+      <div key={section.group}>
+        <Section>{section.group}</Section>
+        <dl className="ui-keys">
+          {section.items.map(item => (
+            <div key={item.label} className="ui-keys__row">
+              <dt className="ui-keys__keys">
+                {item.keys.map(key => (
+                  <kbd key={key}>{key}</kbd>
+                ))}
+              </dt>
+              <dd>{item.label}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    ))}
+  </div>
+)

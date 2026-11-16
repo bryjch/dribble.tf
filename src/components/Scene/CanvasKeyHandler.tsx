@@ -11,12 +11,39 @@ import {
   changeControlsModeAction,
   changePlaySpeedAction,
   changeSceneModeAction,
-  toggleSettingsOptionAction,
   toggleBookmarkAction,
   setScoreboardOpenAction,
+  toggleSettingWithNoteAction,
+  cycleRailsAction,
+  setHudHiddenAction,
+  toggleLightingAction,
+  toggleCrosshairAction,
 } from '@zus/actions'
 
 import { useEventListener } from '@utils/hooks'
+
+const onViewKey = (key: string) => {
+  switch (key) {
+    case 'n':
+      return toggleSettingWithNoteAction('ui.nameplate.enabled', 'Nameplates')
+    case 'o':
+      return toggleSettingWithNoteAction('ui.playerOutlines', 'Outlines')
+    case 'p':
+      return cycleRailsAction()
+    case 'h':
+      return setHudHiddenAction()
+    case 'l':
+      return toggleLightingAction()
+    case 'v':
+      return toggleSettingWithNoteAction('ui.viewmodel.enabled', 'Weapon in POV', true)
+    case 'x':
+      return toggleCrosshairAction()
+    case 'i':
+      return toggleSettingWithNoteAction('ui.matchEvents.open', 'Match events')
+    case 't':
+      return toggleSettingWithNoteAction('ui.showChat', 'Chat', true)
+  }
+}
 
 /**
  * This is just a null object added to Scene to make it easier for us to handle
@@ -70,12 +97,19 @@ export const CanvasKeyHandler = () => {
             changeSceneModeAction('next')
             break
 
+          // The view keys (listed in @constants/shortcuts). Modified presses are left to the
+          // browser (Cmd+L, Ctrl+T ...).
           case 'n':
-            toggleSettingsOptionAction('ui.nameplate.enabled')
-            break
-
           case 'o':
-            toggleSettingsOptionAction('ui.playerOutlines')
+          case 'p':
+          case 'h':
+          case 'l':
+          case 'v':
+          case 'x':
+          case 'i':
+          case 't':
+            if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) break
+            onViewKey(keycode(event))
             break
 
           case 'b':

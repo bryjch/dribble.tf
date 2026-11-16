@@ -19,6 +19,7 @@ import {
   Scrubber,
   SeekButton,
   Sheet,
+  SheetBrand,
   SheetTabs,
   SpeedButton,
   TimeReadout,
@@ -135,11 +136,14 @@ export const Theater = ({ match, landscape }: { match: MatchSource; landscape: b
         onOpenChange={open => !open && setPanel(null)}
         title="Menu"
         header={
-          <SheetTabs
-            tabs={TABS.map(id => PANEL_TABS[id])}
-            value={panel ?? TABS[0]}
-            onChange={id => setPanel(id as PanelId)}
-          />
+          <>
+            <SheetBrand />
+            <SheetTabs
+              tabs={TABS.map(id => PANEL_TABS[id])}
+              value={panel ?? TABS[0]}
+              onChange={id => setPanel(id as PanelId)}
+            />
+          </>
         }
       >
         {panel && <PanelBody panel={panel} match={match} />}

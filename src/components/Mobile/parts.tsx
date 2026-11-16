@@ -122,6 +122,14 @@ export const RemZoom = ({ children, force }: { children: React.ReactNode; force?
   return <div style={{ zoom }}>{children}</div>
 }
 
+/** dribble.tf's name and logo, atop a sheet, as the desktop About panel's title is. */
+export const SheetBrand = () => (
+  <div className="m-sheet__brand ui-about-title">
+    <img src="/logo192.png" alt="" className="ui-about-title__logo" />
+    dribble.tf
+  </div>
+)
+
 export type SheetTab = { id: string; label: string }
 
 export const SheetTabs = ({

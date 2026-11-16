@@ -126,6 +126,7 @@ const CONTROLS: [string[], string][] = [
   [['B'], 'Bookmark'],
   [['Tab'], 'Scoreboard (hold, or click the score)'],
   [['F'], 'Drawing tools'],
+  [['?'], 'Every shortcut'],
 ]
 
 // On a touch screen: the orbit camera's gestures (RtsControls) and the phone layout's taps (Mobile/).

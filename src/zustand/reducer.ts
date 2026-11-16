@@ -282,6 +282,18 @@ const reducers = (state: StoreState, action: StoreAction) => {
         ui: { ...state.ui, scoreboardOpen: !!action.payload },
       }
 
+    case 'SET_HUD_HIDDEN':
+      return {
+        ...state,
+        ui: { ...state.ui, hudHidden: !!action.payload },
+      }
+
+    case 'SET_SETTINGS_TAB':
+      return {
+        ...state,
+        ui: { ...state.ui, settingsTab: action.payload },
+      }
+
     case 'POP_UI_PANEL':
       return {
         ...state,
