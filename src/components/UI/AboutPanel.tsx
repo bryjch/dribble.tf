@@ -117,7 +117,10 @@ const SampleButton = ({ className }: { className?: string }) => (
 const CONTROLS: [string[], string][] = [
   [['LMB'], 'Rotate camera'],
   [['RMB', 'WASD'], 'Pan camera'],
-  [['1', '2', '3'], 'POV, spectator, RTS camera'],
+  [['Scroll'], 'Zoom toward the cursor'],
+  [['Q', 'E'], 'Turn camera'],
+  [['R'], 'Reset camera'],
+  [['1', '2', '3'], 'POV, spectator, orbit camera'],
   [['Space'], 'Play / pause'],
   [['←', '→'], 'Seek 50 ticks'],
   [['B'], 'Bookmark'],
@@ -125,7 +128,7 @@ const CONTROLS: [string[], string][] = [
   [['F'], 'Drawing tools'],
 ]
 
-// On a touch screen: the RTS camera's gestures (RtsControls) and the phone layout's taps (Mobile/).
+// On a touch screen: the orbit camera's gestures (RtsControls) and the phone layout's taps (Mobile/).
 const TOUCH_CONTROLS: [string[], string][] = [
   [['Drag'], 'Rotate camera'],
   [['Pinch'], 'Zoom and pan'],

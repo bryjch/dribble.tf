@@ -220,15 +220,6 @@ export const SettingsContent = () => {
       {scene.controls.mode === 'spectator' && !isMobile && (
         <OptionGroup>
           <SliderOption
-            label="FOV"
-            min={50}
-            max={120}
-            step={1}
-            value={settings.camera.fov}
-            onChange={value => updateSettingsOption('camera.fov', value)}
-          />
-
-          <SliderOption
             label="Look Sensitivity"
             value={settings.controls.lookSpeed}
             onChange={value => updateSettingsOption('controls.lookSpeed', value)}
@@ -242,43 +233,57 @@ export const SettingsContent = () => {
         </OptionGroup>
       )}
 
-      <Option label="RTS Camera" keyCode="3" />
+      <Option label="Orbit Camera" keyCode="3" />
 
       {scene.controls.mode === 'rts' && (
         <OptionGroup>
           <SliderOption
-            label="FOV"
-            min={50}
-            max={120}
-            step={1}
-            value={settings.camera.fov}
-            onChange={value => updateSettingsOption('camera.fov', value)}
-          />
-
-          <SliderOption
-            label="Pan speed"
-            value={settings.controls.panSpeed}
-            onChange={value => updateSettingsOption('controls.panSpeed', value)}
-          />
-
-          <SliderOption
             label="Rotate speed"
-            value={settings.controls.rotateSpeed}
-            onChange={value => updateSettingsOption('controls.rotateSpeed', value)}
+            min={0.25}
+            max={2}
+            step={0.05}
+            value={settings.controls.rts.rotateSpeed}
+            onChange={value => updateSettingsOption('controls.rts.rotateSpeed', value)}
           />
 
           <SliderOption
             label="Zoom speed"
-            value={settings.controls.zoomSpeed}
-            onChange={value => updateSettingsOption('controls.zoomSpeed', value)}
+            min={0.25}
+            max={2}
+            step={0.05}
+            value={settings.controls.rts.zoomSpeed}
+            onChange={value => updateSettingsOption('controls.rts.zoomSpeed', value)}
           />
 
+          {!isMobile && (
+            <SliderOption
+              label="Keyboard speed"
+              min={0.25}
+              max={2}
+              step={0.05}
+              value={settings.controls.rts.keyPanSpeed}
+              onChange={value => updateSettingsOption('controls.rts.keyPanSpeed', value)}
+            />
+          )}
+
           <ToggleOption
-            label="Inertia enabled"
-            checked={settings.controls.enableDamping}
-            onChange={checked => updateSettingsOption('controls.enableDamping', checked)}
+            label="Smooth movement"
+            checked={settings.controls.rts.smoothing}
+            onChange={checked => updateSettingsOption('controls.rts.smoothing', checked)}
           />
         </OptionGroup>
+      )}
+
+      {/* The spectator and orbit cameras are one camera, so they share a field of view. */}
+      {(scene.controls.mode === 'rts' || (scene.controls.mode === 'spectator' && !isMobile)) && (
+        <SliderOption
+          label="Field of view"
+          min={50}
+          max={120}
+          step={1}
+          value={settings.camera.fov}
+          onChange={value => updateSettingsOption('camera.fov', value)}
+        />
       )}
 
       {/* ************************************************************* */}

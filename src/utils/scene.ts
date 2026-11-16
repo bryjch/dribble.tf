@@ -11,6 +11,12 @@ const DEFAULT_RTS_CAMERA_OFFSET = new THREE.Vector3(0, 250, 1000)
 /**
  * Get all Actors in the scene
  */
+/** Whether an object is drawn: it and every parent are visible. */
+export function isObjectShown(object: THREE.Object3D | null) {
+  for (let node = object; node; node = node.parent) if (!node.visible) return false
+  return true
+}
+
 export function getSceneActors(scene: THREE.Scene): THREE.Object3D[] {
   const actors: THREE.Object3D[] = []
 
