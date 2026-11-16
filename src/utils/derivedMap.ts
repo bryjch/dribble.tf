@@ -40,6 +40,14 @@ export type MapManifest = {
   skyboxFaces?: Record<'lf' | 'rt' | 'ft' | 'bk' | 'up' | 'dn', string> | null
   skyCamera: { origin: [number, number, number]; scale: number } | null
   components: { role: string; file: string; bytes: number; optional?: boolean }[]
+  /** Doors: each brush model (model_<n>_ nodes) and dynamic prop entities that move with it. */
+  doors?: {
+    entityIndex: number
+    classname: string
+    targetname: string | null
+    brushModel: number | null
+    props: number[]
+  }[]
   /** "<model asset index>:<skin>" -> a shared models/props/<file>. */
   props: Record<string, string>
 }

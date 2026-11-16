@@ -147,6 +147,56 @@ function readEnvironment(entities) {
   }
 }
 
+/**
+ * The map's doors: each func_door (or func_door_rotating), its brush model, and the props riding
+ * it (prop_dynamics parented to it, at any depth), plus door props animated on their own (a
+ * prop_dynamic whose model is a door, parented to nothing). They move in the game; the viewer
+ * doesn't animate map entities yet, so it leaves them out rather than draw them shut forever
+ * (World.tsx, DRAW_DOORS).
+ */
+function readDoors(entities) {
+  const isProp = entity => /^prop_dynamic/.test(entity.classname)
+  const children = new Map()
+  for (const entity of entities) {
+    const parent = keyValues(entity).parentname?.toLowerCase()
+    if (parent) children.set(parent, [...(children.get(parent) ?? []), entity])
+  }
+  const riders = (name, seen = new Set()) => {
+    if (!name || seen.has(name)) return []
+    seen.add(name)
+    return (children.get(name) ?? []).flatMap(child => [
+      ...(isProp(child) ? [child.index] : []),
+      ...riders(child.targetname?.toLowerCase(), seen),
+    ])
+  }
+  const doors = entities
+    .filter(entity => entity.classname === 'func_door' || entity.classname === 'func_door_rotating')
+    .map(entity => {
+      const brush = /^\*(\d+)$/.exec(keyValues(entity).model ?? '')
+      return {
+        entityIndex: entity.index,
+        classname: entity.classname,
+        targetname: entity.targetname ?? null,
+        brushModel: brush ? Number(brush[1]) : null,
+        props: riders(entity.targetname?.toLowerCase()),
+      }
+    })
+  const riding = new Set(doors.flatMap(door => door.props))
+  for (const entity of entities) {
+    const values = keyValues(entity)
+    if (!isProp(entity) || riding.has(entity.index) || values.parentname) continue
+    if (!/(^|[/_])door[s]?([._]|$)/i.test(values.model ?? '')) continue
+    doors.push({
+      entityIndex: entity.index,
+      classname: entity.classname,
+      targetname: entity.targetname ?? null,
+      brushModel: null,
+      props: [entity.index],
+    })
+  }
+  return doors
+}
+
 // ─── Textures, props and sky ───────────────────────────────────────────────────
 
 /** WebP versions of the map's base textures; returns content id -> file name. */
@@ -443,7 +493,9 @@ async function buildMap(tool, vpks, input) {
   const output = JSON.parse(converted.stdout)
   const stats = output.render ?? output
 
-  const { worldBounds, environment, skyCamera } = readEnvironment(readJson(at('entities.json')).entities)
+  const entities = readJson(at('entities.json')).entities
+  const { worldBounds, environment, skyCamera } = readEnvironment(entities)
+  const doors = readDoors(entities)
   const materials = readJson(at('materials.json'))
   const props = readJson(at('props.json'))
 
@@ -509,6 +561,7 @@ async function buildMap(tool, vpks, input) {
     skybox: sky ? environment.skyName : null,
     skyboxFaces: sky,
     skyCamera,
+    doors,
     components,
     props: propFiles,
     coverage: {

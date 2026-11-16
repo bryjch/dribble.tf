@@ -59,6 +59,23 @@ function isInvisibleEntityNode(nodeName: string): boolean {
   )
 }
 
+/**
+ * Doors (func_doors and the props riding them; map.json's `doors`, see readDoors in
+ * scripts/maps/build-maps.mjs) move in the game, but the viewer doesn't animate map entities yet,
+ * so drawn they'd stand shut all match. Until it does, they're left out. To draw them (or to
+ * animate them, from the same list), start here.
+ */
+const DRAW_DOORS = false
+
+/** What to leave out for the map's doors: brush model nodes and dynamic prop entities. */
+function hiddenDoors(result: DerivedResult) {
+  const doors = DRAW_DOORS ? [] : (result.manifest.doors ?? [])
+  return {
+    brushes: new Set(doors.flatMap(door => (door.brushModel === null ? [] : [door.brushModel]))),
+    props: new Set(doors.flatMap(door => door.props)),
+  }
+}
+
 const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
   color: '#333333',
   opacity: 0.1,
@@ -999,7 +1016,14 @@ async function applyDerivedPresentation(scene: THREE.Group, result: DerivedResul
     derivedLightmaps.set(scene, { flat, directional })
   }
   lap('lightmap')
-  await attachProps(scene, result)
+  const doors = hiddenDoors(result)
+  if (doors.brushes.size) {
+    scene.traverse(node => {
+      const brush = /^model_(\d+)_/.exec(node.name)
+      if (brush && doors.brushes.has(Number(brush[1]))) node.visible = false
+    })
+  }
+  await attachProps(scene, result, doors.props)
   lap('props')
   const decals = await buildDecalOverlay(scene, result, materials, textureOf)
   if (decals) {
@@ -1075,7 +1099,11 @@ vec3 bspLightmap(sampler2D map, vec2 uv) {
  * models) are drawn instanced: one InstancedMesh per mesh of each model and skin. Dynamic props
  * are copied onto their nodes, which entities may move or hide.
  */
-async function attachProps(scene: THREE.Group, result: DerivedResult) {
+async function attachProps(
+  scene: THREE.Group,
+  result: DerivedResult,
+  hiddenProps: Set<number> = new Set()
+) {
   const props = textComponent(result, 'props.json') as {
     staticProps?: { staticPropIndex: number; modelAssetIndex: number; skin?: number }[]
     dynamicProps?: { entityIndex: number; modelAssetIndex: number; skin?: number }[]
@@ -1130,7 +1158,9 @@ async function attachProps(scene: THREE.Group, result: DerivedResult) {
   const keys = [
     ...new Set([
       ...placements.keys(),
-      ...(props.dynamicProps ?? []).map(prop => propKey(prop.modelAssetIndex, prop.skin)),
+      ...(props.dynamicProps ?? [])
+        .filter(prop => !hiddenProps.has(prop.entityIndex))
+        .map(prop => propKey(prop.modelAssetIndex, prop.skin)),
     ]),
   ]
   await Promise.all(keys.map(modelFor))
@@ -1154,6 +1184,7 @@ async function attachProps(scene: THREE.Group, result: DerivedResult) {
   }
 
   for (const prop of props.dynamicProps ?? []) {
+    if (hiddenProps.has(prop.entityIndex)) continue
     let target = nodes.get(`dynamic_prop_${prop.entityIndex}`)
     if (!target) {
       for (const [name, node] of nodes)
