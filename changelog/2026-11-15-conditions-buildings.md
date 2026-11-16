@@ -1,8 +1,8 @@
 ---
 date: 2026-11-15
-title: Conditions, über charge and buildings
+title: Player conditions
 type: new
 pr: 77
 ---
 
-Nameplates show burning, crits, cloaked, disguised and more. Cloaked spies fade, übered players are tinted, and HUD cards show each medic's medigun and charge.
+Nameplates show conditions like burning, crits, cloaked and disguised. Cloaked spies fade, übered players are tinted, and player cards show each medic's medigun and charge.

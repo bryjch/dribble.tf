@@ -851,6 +851,42 @@
     flex-shrink: 0;
   }
 
+  /* The desktop Settings panel is wide enough for every tab on one line. */
+  .ui-tabs--fit {
+    overflow: visible;
+    gap: 8px;
+  }
+
+  /* A phone's Settings sheet: the tabs as a grid of buttons, which never scrolls sideways. */
+  .ui-tab-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+    padding: 3px;
+    border-radius: var(--ui-radius-control);
+    background: rgb(var(--ui-raised) / var(--ui-raised-alpha));
+  }
+
+  .ui-tab-grid__item {
+    padding: 6px 10px;
+    border-radius: calc(var(--ui-radius-control) * 0.75);
+    color: rgb(var(--ui-ink-muted));
+    font-size: 13px;
+    font-weight: 600;
+    transition:
+      background-color 0.12s,
+      color 0.12s;
+  }
+
+  .ui-tab-grid__item:hover {
+    color: rgb(var(--ui-ink));
+  }
+
+  .ui-tab-grid__item[aria-selected='true'] {
+    background: rgb(var(--ui-accent));
+    color: rgb(var(--ui-accent-ink));
+  }
+
   .ui-tab {
     position: relative;
     padding: 0 0 9px;
@@ -923,6 +959,179 @@
   .ui-maps__item:hover {
     background: rgb(var(--ui-raised) / calc(var(--ui-raised-alpha) * 1.6));
   }
+
+  /* Settings → Storage (@components/UI/StorageList): the line under a demo's or map's name. */
+  .ui-storage__detail {
+    color: rgb(var(--ui-ink-muted));
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Recents (@components/UI/StorageList): a card per demo, the score and length in a block on
+   * its left. The map at 13.5px, everything else at 12px. */
+  .ui-recent {
+    display: flex;
+    width: 100%;
+    align-items: stretch;
+    gap: 12px;
+    padding: 8px 12px 8px 8px;
+    border-radius: var(--ui-radius-control);
+    background: rgb(var(--ui-raised) / calc(var(--ui-raised-alpha) * 1.1));
+    text-align: left;
+    transition: background-color 0.12s;
+  }
+
+  .ui-recent:hover {
+    background: rgb(var(--ui-raised) / calc(var(--ui-raised-alpha) * 2));
+  }
+
+  .ui-recent__block {
+    display: flex;
+    min-width: 48px;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 0 8px;
+    border-radius: calc(var(--ui-radius-control) * 0.75);
+    background: rgb(var(--ui-ground) / 0.55);
+  }
+
+  .ui-recent__score {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ui-recent__score b {
+    color: rgb(var(--team-ink));
+    font-weight: 700;
+  }
+
+  .ui-recent__colon {
+    color: rgb(var(--ui-ink-faint));
+  }
+
+  .ui-recent__len {
+    color: rgb(var(--ui-ink-muted));
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ui-recent__body {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .ui-recent__row {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .ui-recent__map,
+  .ui-recent__file {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ui-recent__map {
+    color: rgb(var(--ui-ink));
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .ui-recent__file {
+    color: rgb(var(--ui-ink-muted));
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .ui-recent__quiet {
+    flex-shrink: 0;
+    color: rgb(var(--ui-ink-muted));
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .ui-recent__progress {
+    display: block;
+    height: 3px;
+    margin-top: 4px;
+    overflow: hidden;
+    border-radius: 9999px;
+    background: rgb(var(--ui-ink) / 0.1);
+  }
+
+  .ui-recent__progress > span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: rgb(var(--ui-accent));
+  }
+
+  .ui-storage__note {
+    color: rgb(var(--ui-ink-muted));
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .ui-link--danger {
+    color: rgb(var(--ui-bad));
+  }
+
+  /* Settings → Storage: a bar of what takes the room, then a card per demo and map. */
+  .ui-meter {
+    display: flex;
+    height: 8px;
+    overflow: hidden;
+    gap: 2px;
+    border-radius: 9999px;
+    background: rgb(var(--ui-raised) / calc(var(--ui-raised-alpha) * 2));
+  }
+
+  .ui-meter__demos {
+    background: rgb(var(--ui-accent));
+  }
+
+  .ui-meter__maps {
+    background: rgb(var(--ui-good));
+  }
+
+  .ui-meter__key {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+  }
+
+  .ui-storage-card {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 6px 8px 10px;
+    border: 1px solid rgb(var(--ui-line) / var(--ui-line-alpha));
+    border-radius: calc(var(--ui-radius-control) * 0.75);
+    cursor: pointer;
+    transition: background-color 0.12s;
+  }
+
+  .ui-storage-card:hover {
+    background: rgb(var(--ui-raised) / var(--ui-raised-alpha));
+  }
+
 
   /* The changelog: a line per change, its type on a tile, opened for the detail. */
   .ui-changelog__row[data-type='new'] {

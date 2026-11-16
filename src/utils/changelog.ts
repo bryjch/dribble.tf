@@ -58,7 +58,10 @@ const parse = (path: string, source: string): ChangelogEntry | null => {
   }
 }
 
-/** Newest first; highlights first within a day. */
+/** When it shipped within its day: its latest PR, or after every PR when it has none yet. */
+const shipped = (entry: ChangelogEntry) => (entry.prs.length ? Math.max(...entry.prs) : Infinity)
+
+/** Newest first: by day, then by PR within a day (a later PR merged later); highlights break ties. */
 export const CHANGELOG: ChangelogEntry[] = Object.entries(files)
   .filter(([path]) => !path.endsWith('/README.md'))
   .map(([path, source]) => parse(path, source))
@@ -66,6 +69,7 @@ export const CHANGELOG: ChangelogEntry[] = Object.entries(files)
   .sort(
     (a, b) =>
       b.date.localeCompare(a.date) ||
+      shipped(b) - shipped(a) ||
       Number(b.highlight) - Number(a.highlight) ||
       a.title.localeCompare(b.title)
   )

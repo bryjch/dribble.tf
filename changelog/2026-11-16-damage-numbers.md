@@ -1,9 +1,9 @@
 ---
 date: 2026-11-16
-title: Damage numbers in POV
+title: Damage numbers
 type: new
 pr: 84
 highlight: true
 ---
 
-In POV, the damage the player deals pops over whoever they hit. Quick hits add up into one number, and crits and mini-crits are marked.
+In POV, damage dealt shows over the target. Quick hits add up, and crits and mini-crits are marked.

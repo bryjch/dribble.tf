@@ -1,9 +1,9 @@
 ---
 date: 2026-11-15
-title: Weapons in first person
+title: Viewmodels
 type: new
 pr: 78
 highlight: true
 ---
 
-In POV you see the player's arms and the weapon in their hand, built from TF2's own files, firing when they fire. Right when paused, scrubbing or in reverse.
+POV shows the player's arms and weapon, firing when they fire.

@@ -408,6 +408,12 @@ export const PlayCircleIcon = (props: SVGProps<SVGSVGElement>) => (
 )
 
 
+export const DownloadIcon = (props: SVGProps<SVGSVGElement>) => (
+  <StrokeIcon {...props}>
+    <path d="M12 4v11m-4.5-4.5L12 15l4.5-4.5M5 20h14" />
+  </StrokeIcon>
+)
+
 export const LinkIcon = (props: SVGProps<SVGSVGElement>) => (
   <StrokeIcon {...props}>
     <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1" />

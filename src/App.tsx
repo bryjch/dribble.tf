@@ -16,6 +16,7 @@ import { loadUrlDemoAction, resolveUrlDemoAction } from '@utils/embed'
 import { connectLiveAction, resolveLiveAction } from '@utils/live'
 import { listenForPastedMatchLinks } from '@utils/matchLink'
 import { installBench } from '@utils/bench'
+import { trackPlayback } from '@utils/storage'
 
 class App extends React.Component {
   state = {
@@ -59,6 +60,7 @@ class App extends React.Component {
 
     if (live) connectLiveAction(live)
     listenForPastedMatchLinks()
+    trackPlayback()
 
     // No context menu over the viewer (right-drag pans the camera), except in text fields, where
     // it has paste and spellcheck.

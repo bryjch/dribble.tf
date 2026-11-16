@@ -45,6 +45,7 @@ import { StickerDragKind } from './drawing'
 import { dispatch, getState, initialState, StoreState, useInstance } from './store'
 import { isMobile } from 'react-device-detect'
 import { setClockTick } from '@utils/playback'
+import { rememberOpenedDemo, saveDemo, uploadKey } from '@utils/storage'
 
 //
 // ─── PARSER ─────────────────────────────────────────────────────────────────────
@@ -52,14 +53,23 @@ import { setClockTick } from '@utils/playback'
 
 export const onUploadDemoAction = async (files: File[]) => {
   const demoFile: File = files[0]
+  const fileBuffer = await demoFile.arrayBuffer()
+  // Kept in the browser like a downloaded demo (@utils/storage), so it shows in Recents.
+  const url = uploadKey(demoFile)
+  saveDemo({ url, name: demoFile.name, upload: true }, fileBuffer).catch(error =>
+    console.error('[storage]', error)
+  )
+  await openDemoBytesAction(fileBuffer, url)
+}
 
-  const reader = new FileReader()
-
-  reader.readAsArrayBuffer(demoFile)
-
-  reader.onload = function () {
-    const fileBuffer = reader.result as ArrayBuffer
-    parseDemoAction(fileBuffer)
+/** Reads a demo already in memory (at `tick`, if given), noting what it is on its saved copy. */
+export const openDemoBytesAction = async (fileBuffer: ArrayBuffer, savedUrl?: string, tick?: number) => {
+  try {
+    const match = await parseDemoAction(fileBuffer)
+    if (savedUrl) rememberOpenedDemo(savedUrl, match)
+    if (tick) goToTickAction(tick)
+  } catch {
+    // parseDemoAction reports its own failure.
   }
 }
 
