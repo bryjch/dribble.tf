@@ -182,13 +182,13 @@ finish() {
 # ──────────────────────────────────────────────────────────────────────────
 # STAGES: the dribble.tf model assets.
 #
-# Gets TF2's files, rebuilds the first-person viewmodels, and uploads
-# public/models to the S3 bucket behind the CloudFront CDN that production
+# Gets TF2's files, rebuilds the first-person viewmodels, builds maps with
+# bsp-to-glb, and uploads public/models to the S3 bucket behind the CloudFront CDN that production
 # loads models from (VITE_APP_ASSET_URL), then refreshes the CDN's cache.
 # Every stage can be skipped. Run it with: npm run assets
 # ──────────────────────────────────────────────────────────────────────────
 
-TOTAL_STAGES=9
+TOTAL_STAGES=10
 
 # Run from the repo root, and keep settings in the main checkout's .env so every
 # worktree shares them.
@@ -255,6 +255,7 @@ UPLOAD_LOCAL=""   # local folder to upload
 UPLOAD_REMOTE=""  # where it goes in the bucket
 UPLOAD_FILTERS=() # aws s3 sync --exclude/--include, to upload part of the folder
 CDN_PATH=""       # the CloudFront path to refresh, e.g. /models/viewmodels/*
+UPLOAD_FILTERS=()   # aws s3 sync --exclude/--include, to upload part of a folder
 PENDING=0         # files the dry run says would upload
 UPLOADED=0
 COMMITTED=0
@@ -415,6 +416,36 @@ printf '\n'
 pause "Press Enter to continue"
 
 # ── Stage 4 ───────────────────────────────────────────────────────────────
+stage "Build maps"
+say "Builds maps from their BSPs with bsp-to-glb into public/models/maps (plus the"
+say "prop models and skies they share), listed in public/models/maps/index.json."
+note "A map name downloads its BSP from serveme.tf; maps that haven't changed are"
+note "skipped. A new map takes a few minutes, mostly its prop textures."
+printf '\n'
+
+MAPS_INDEX=public/models/maps/index.json
+BUILT_MAPS=""
+[[ -f "$MAPS_INDEX" ]] && BUILT_MAPS=$(node -e 'process.stdout.write(Object.keys(require("./" + process.argv[1]).maps).join(" "))' "$MAPS_INDEX")
+[[ -n "$BUILT_MAPS" ]] && note "Built so far: $BUILT_MAPS"
+if [[ ! -f "$GAME_DIR/tf2_misc_dir.vpk" ]]; then
+  warn "TF2's files aren't there (stage 2), so there's nothing to build from. Skipping."
+elif confirm "Build maps now?"; then
+  ask MAPS_TO_BUILD "Map names, space-separated (Enter rebuilds the ones above):"
+  MAPS_TO_BUILD="${MAPS_TO_BUILD:-$BUILT_MAPS}"
+  if [[ -z "$MAPS_TO_BUILD" ]]; then
+    warn "no maps named, skipping"
+  # shellcheck disable=SC2086 # one argument per map name
+  elif run npm run build:maps -- $MAPS_TO_BUILD; then
+    ok "built"
+  else
+    warn "some maps failed; scroll up for the errors"
+    SKIPPED+=("build maps (npm run build:maps -- <map>...)")
+  fi
+fi
+printf '\n'
+pause "Press Enter to continue"
+
+# ── Stage 5 ───────────────────────────────────────────────────────────────
 stage "AWS login"
 say "Production loads models from your CloudFront CDN, which serves an S3 bucket."
 say "Finding an AWS login that can see it."
@@ -510,10 +541,10 @@ fi
 printf '\n'
 pause "Press Enter to continue"
 
-# ── Stage 5 ───────────────────────────────────────────────────────────────
+# ── Stage 6 ───────────────────────────────────────────────────────────────
 stage "The bucket and the CDN"
 if (( ! AWS_READY )); then
-  warn "No AWS login (stage 4), so skipping."
+  warn "No AWS login (stage 5), so skipping."
 else
   say "Found from your CloudFront settings:"
   note "CloudFront distribution: $FOUND_DIST"
@@ -549,15 +580,16 @@ fi
 printf '\n'
 pause "Press Enter to continue"
 
-# ── Stage 6 ───────────────────────────────────────────────────────────────
+# ── Stage 7 ───────────────────────────────────────────────────────────────
 stage "Choose what to upload"
 if (( ! AWS_READY )); then
-  warn "No AWS access (stages 4-5), so skipping."
+  warn "No AWS access (stages 5-6), so skipping."
 else
   printf '  %s1%s viewmodels and buildings only (public/models/viewmodels, public/models/buildings)\n' "$BOLD" "$RESET"
-  printf '  %s2%s everything in public/models (maps, players, projectiles, skyboxes, viewmodels, buildings)\n' "$BOLD" "$RESET"
-  printf '  %s3%s nothing\n' "$BOLD" "$RESET"
-  printf '  %sChoose 1-3:%s ' "$BOLD" "$RESET"
+  printf '  %s2%s built maps only (public/models/maps, props and skybox)\n' "$BOLD" "$RESET"
+  printf '  %s3%s everything in public/models (maps, players, projectiles, skyboxes, viewmodels, buildings)\n' "$BOLD" "$RESET"
+  printf '  %s4%s nothing\n' "$BOLD" "$RESET"
+  printf '  %sChoose 1-4:%s ' "$BOLD" "$RESET"
   read -r choice || true
   case "$choice" in
     1)
@@ -565,6 +597,14 @@ else
       UPLOAD_FILTERS=(--exclude "*" --include "viewmodels/*" --include "buildings/*")
       ;;
     2)
+      # Safe before the site runs this code: older code never reads maps/index.json, and every
+      # other file is new (content-hashed names). Only index.json and map.json get replaced.
+      UPLOAD_LOCAL="public/models"; UPLOAD_REMOTE="models"; CDN_PATH="/models/maps/*"
+      UPLOAD_FILTERS=(--exclude "*" --include "maps/index.json" --include "maps/*/map.json" \
+        --include "maps/*/*.*.*" --include "maps/*/textures/*" --include "maps/*/lightmaps/*" \
+        --include "props/*" --include "skybox/*/*.webp")
+      ;;
+    3)
       printf '\n'
       warn "Map files are only read correctly by the code that made them. Upload"
       warn "everything only once the site (dribble.tf) runs the code from this branch,"
@@ -601,7 +641,7 @@ fi
 printf '\n'
 pause "Press Enter to continue"
 
-# ── Stage 7 ───────────────────────────────────────────────────────────────
+# ── Stage 8 ───────────────────────────────────────────────────────────────
 stage "Upload"
 if (( ! AWS_READY )) || [[ -z "$UPLOAD_LOCAL" ]] || (( ! PENDING )); then
   note "Nothing to upload, skipping."
@@ -619,7 +659,7 @@ fi
 printf '\n'
 pause "Press Enter to continue"
 
-# ── Stage 8 ───────────────────────────────────────────────────────────────
+# ── Stage 9 ───────────────────────────────────────────────────────────────
 stage "Refresh the CDN's cache"
 if (( ! UPLOADED )); then
   note "Nothing was uploaded, skipping."
@@ -647,7 +687,7 @@ fi
 printf '\n'
 pause "Press Enter to continue"
 
-# ── Stage 9 ───────────────────────────────────────────────────────────────
+# ── Stage 10 ──────────────────────────────────────────────────────────────
 stage "Check the CDN"
 VITE_APP_ASSET_URL="${VITE_APP_ASSET_URL:-$(_existing VITE_APP_ASSET_URL || true)}"
 if [[ -z "$VITE_APP_ASSET_URL" ]]; then
@@ -664,6 +704,7 @@ else
   check "models/viewmodels/arms/soldier.glb"
   check "models/buildings/sentry1_red.glb"
   check "models/players/soldier_red.glb"
+  [[ -f public/models/maps/index.json ]] && check "models/maps/index.json"
   MAP=public/models/maps/cp_snakewater_final1/textured_compressed.glb
   if [[ -f "$MAP" ]]; then
     REMOTE_SIZE=$(curl -sI "$BASE/${MAP#public/}" | awk 'tolower($1) == "content-length:" { print $2 }' | tr -d '\r')

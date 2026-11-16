@@ -55,8 +55,8 @@
     "assets": "bash scripts/assets-wizard.sh",
     "preview": "vite preview",
     "convert:map": "node scripts/convert-map.mjs",
-    "sync:bsp-to-glb-wasm": "node scripts/sync-bsp-to-glb-wasm.mjs",
-    "update:map-bounds": "node scripts/update-map-bounds.mjs"
+    "update:map-bounds": "node scripts/update-map-bounds.mjs",
+    "build:maps": "node scripts/maps/build-maps.mjs"
   },
   "browserslist": {
     "production": [

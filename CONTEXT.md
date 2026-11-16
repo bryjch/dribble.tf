@@ -59,33 +59,26 @@ _Avoid_: Map Catalog
 The Map Build selected automatically by the Map Catalog when the demo cannot identify exact content.
 _Avoid_: Latest map
 
-**Local Override**:
-A user-provided Map Build chosen instead of the Canonical Build.
-_Avoid_: Upload
 
 **Derived Map**:
 A renderer-ready representation produced from one Map Build under a specific Conversion Profile.
 _Avoid_: Precompiled map
 
-**Published Derived Map**:
-A Derived Map prepared before it is requested and made available for reuse.
-_Avoid_: Uploaded map
-
-**Ad-hoc Derived Map**:
-A Derived Map prepared on demand when no suitable Published Derived Map is available.
-_Avoid_: Fallback map
+**Built map**:
+A Derived Map converted ahead of time by `scripts/maps/build-maps.mjs` and listed in `models/maps/index.json` on the asset host (ADR 0006). Maps without one fall back to their Blender-built GLB.
+_Avoid_: Published Derived Map, Ad-hoc Derived Map (the parked in-browser plan)
 
 **Conversion Profile**:
 The declared quality and feature contract under which a Derived Map is produced.
 _Avoid_: Converter settings
 
 **Derived Map Manifest**:
-The identity, provenance, component inventory, and Asset Coverage of one Derived Map.
-_Avoid_: Conversion metadata, conversion.json
+A built map's `map.json`: its identity, how it was built, its bounds, lighting and sky, and its component files.
+_Avoid_: Conversion metadata, conversion.json (the Blender-built maps' file)
 
-**Shared Asset Pack**:
-A versioned collection of reusable TF2 materials, models, and skyboxes referenced by many Derived Maps. Assets embedded by a Map Build remain specific to that build.
-_Avoid_: Global map assets
+**Shared prop model**:
+A prop's model in one skin, built once and placed by every built map that uses it (`models/props/<hash>.glb`).
+_Avoid_: Shared Asset Pack (the parked plan's per-resource store)
 
 **Degraded Derived Map**:
 A usable Derived Map whose world can be presented but whose optional assets have explicit unresolved or unsupported coverage.
@@ -94,10 +87,6 @@ _Avoid_: Failed map
 **Asset Coverage**:
 The explicit account of which requested map presentation assets were resolved, unsupported, or unavailable.
 _Avoid_: Warnings
-
-**Conversion-capable Client**:
-A client with the runtime capabilities and resources required to produce an Ad-hoc Derived Map. Other clients require a Published Derived Map.
-_Avoid_: Desktop client
 
 ## Relationships
 
