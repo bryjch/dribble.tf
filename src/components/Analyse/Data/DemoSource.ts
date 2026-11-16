@@ -209,6 +209,25 @@ export class DemoSource implements MatchSource {
     return this.damage.get(entityId) ?? NO_HITS
   }
 
+  // Built on first use, from the hits by attacker.
+  private damageTaken?: DamageLog
+
+  damageTo(entityId: number): readonly DamageHit[] {
+    if (!this.damageTaken) {
+      const taken: DamageLog = new Map()
+      for (const hits of this.damage.values()) {
+        for (const hit of hits) {
+          let list = taken.get(hit.victim)
+          if (!list) taken.set(hit.victim, (list = []))
+          list.push(hit)
+        }
+      }
+      for (const list of taken.values()) list.sort((a, b) => a.tick - b.tick)
+      this.damageTaken = taken
+    }
+    return this.damageTaken.get(entityId) ?? NO_HITS
+  }
+
   scoresAt(tick: number): Map<number, ScoreLine> {
     const at = Math.floor(this.clamp(tick))
     const scores = new Map<number, ScoreLine>()

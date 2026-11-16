@@ -11,6 +11,8 @@
 //!   healing) and ping;
 //! - per player, the ticks they fired on (bullets, a new projectile, flames, a clip going down);
 //! - per projectile, only while it exists: position and rotation, every tick;
+//! - per damage event, where the hit came from when it was not the attacker: the projectile's
+//!   launch point, the sticky, or the sentry (`from`);
 //! - per building, only while it exists: where it is and its state, every 4 ticks;
 //! - objectives and the round state, as keys where they change (`objectives.rs`).
 //!
@@ -35,7 +37,7 @@ use stvtf::output::{
 };
 
 /// The layout of the arrays and metadata below; the viewer refuses a decoder of another format.
-const FORMAT: u32 = 5;
+const FORMAT: u32 = 6;
 
 /// Fixed-point scales, as the viewer decodes them (it reads them from the metadata).
 const POSITION_SCALE: f64 = 1024.0;
@@ -75,6 +77,17 @@ const CONDITIONS: &[(&str, &[&str])] = &[
     ("ubered", &["Invulnerable*"]),
     ("bonk", &["Phase"]),
 ];
+
+/// The projectile kind that lies where it was put rather than flying: hits come from the sticky.
+const STICKY: u32 = 3;
+/// A hit came from a projectile of the attacker's that went this many ticks before it at most,
+/// this near the victim's middle (a rocket's blast reaches 146 units, a sticky's 170 or so).
+const SOURCE_TICKS: u32 = 2;
+const SOURCE_RADIUS: f64 = 300.0;
+/// A sentry's shot at the victim this many server ticks before or after the hit was it.
+const SENTRY_SHOT_TICKS: std::ops::RangeInclusive<i64> = -2..=3;
+/// A player's middle, over their origin at their feet.
+const PLAYER_MIDDLE: f64 = 41.0;
 
 /// Values per building sample: x, y, z, yaw, aim, health | max << 16, level | flags << 8, target.
 const BUILDING_SAMPLE: usize = 8;
@@ -196,6 +209,10 @@ struct Track {
     last_tick: u32,
     last_pos: Position,
     last_yaw: f64,
+    /// Who fired it (stvtf's user id), 0 for nobody; a reflect makes it the pyro's.
+    owner: u16,
+    /// Where its owner sent it from: where it appeared, or where it was reflected.
+    origin: Position,
     /// Fixed point from `start`: 3 a tick (x, y, z), and 1 a tick (yaw).
     position: Vec<u32>,
     rotation: Vec<u32>,
@@ -232,6 +249,12 @@ fn projectile_type(kind: ProjectileKind) -> Option<u32> {
         ProjectileKind::Pipe | ProjectileKind::LooseCannon => Some(2),
         ProjectileKind::Sticky => Some(3),
         ProjectileKind::HealingArrow => Some(4),
+        // Kept to tell where a hit came from; the viewer draws none of these.
+        ProjectileKind::Arrow => Some(5),
+        ProjectileKind::Flare => Some(6),
+        ProjectileKind::Cleaver => Some(7),
+        ProjectileKind::EnergyRing => Some(8),
+        ProjectileKind::Fireball => Some(9),
         _ => None,
     }
 }
@@ -345,6 +368,10 @@ struct Decoder {
     active_buildings: HashMap<u32, BuildingTrack>,
     buildings: Vec<BuildingTrack>,
     objectives: objectives::Objectives,
+    /// Where each sentry was in the last snapshot, by entity index.
+    sentries: HashMap<u32, Position>,
+    /// Each sentry shot: server tick, builder and target (user ids) and where the sentry was.
+    sentry_shots: Vec<(u32, u16, u16, Position)>,
     /// Events with their server tick, made local at the end (some come before any snapshot).
     events: Vec<(u32, Value)>,
 }
@@ -366,6 +393,13 @@ impl Decoder {
                         let slot = self.slot(player);
                         self.players[slot].shots.push(tick);
                     }
+                }
+            }
+            Line::SentryShot(shot) => {
+                if let (Some(builder), Some(target), Some(&pos)) =
+                    (shot.builder, shot.target, self.sentries.get(&shot.sentry))
+                {
+                    self.sentry_shots.push((shot.tick, builder.0, target.0, pos));
                 }
             }
             other => {
@@ -489,9 +523,14 @@ impl Decoder {
                 .active
                 .get(&p.id)
                 .is_some_and(|t| t.kind == kind && tick - t.last_tick <= MAX_INTERP_GAP);
+            let owner = p.owner.map_or(0, |o| o.0);
             if continues {
                 if let Some(track) = self.active.get_mut(&p.id) {
                     track.add(tick, p.pos, p.yaw);
+                    if owner != 0 && owner != track.owner {
+                        track.owner = owner;
+                        track.origin = p.pos;
+                    }
                 }
                 continue;
             }
@@ -506,6 +545,8 @@ impl Decoder {
                 last_tick: tick,
                 last_pos: p.pos,
                 last_yaw: p.yaw,
+                owner,
+                origin: p.pos,
                 position: Vec::new(),
                 rotation: Vec::new(),
             };
@@ -529,7 +570,11 @@ impl Decoder {
         let max_gap = MAX_INTERP_GAP >> BUILDING_SPARSE;
         let entity = |id: Option<PlayerId>| id.and_then(|p| entity_of.get(&p.0).copied()).unwrap_or(0);
         let mut seen = Vec::with_capacity(s.buildings.len());
+        self.sentries.clear();
         for b in &s.buildings {
+            if b.kind == BuildingKind::Sentry {
+                self.sentries.insert(b.id, b.pos);
+            }
             let kind = building_kind(b.kind);
             if kind == 0 {
                 continue;
@@ -583,6 +628,7 @@ impl Decoder {
         self.tracks.sort_by_key(|t| t.start);
         self.buildings.extend(self.active_buildings.drain().map(|(_, t)| t));
         self.buildings.sort_by_key(|t| t.first_bucket);
+        self.locate_damage();
 
         let ticks = self.last_tick + 1;
         let t = ticks as usize;
@@ -706,6 +752,80 @@ impl Decoder {
             "events": events,
         });
         Decoded { meta: meta.to_string(), buffers }
+    }
+}
+
+impl Decoder {
+    /// Gives each damage event where the hit came from when that was not the attacker (`from`):
+    /// the attacker's projectile that went on the tick of the hit near the victim (where it was
+    /// launched from, or the sticky itself), or the attacker's sentry that shot the victim. The
+    /// weapon id is no help: the game gives the weapon the attacker holds, not the one that hit.
+    fn locate_damage(&mut self) {
+        let Some(base) = self.base else { return };
+        let mut ended: HashMap<(u16, u32), Vec<usize>> = HashMap::new();
+        for (i, track) in self.tracks.iter().enumerate() {
+            if track.owner != 0 {
+                ended.entry((track.owner, track.last_tick)).or_default().push(i);
+            }
+        }
+        for (server, event) in &mut self.events {
+            if event.get("type").and_then(Value::as_str) != Some("damage") {
+                continue;
+            }
+            let id = |key: &str| event.get(key).and_then(Value::as_u64).and_then(|v| u16::try_from(v).ok());
+            let (Some(attacker), Some(victim)) = (id("attacker"), id("victim")) else { continue };
+            if attacker == victim {
+                continue;
+            }
+            let tick = server.saturating_sub(base) + 1;
+            let middle = self
+                .slots
+                .get(&victim)
+                .and_then(|&slot| self.players[slot].position_at(tick))
+                .map(|p| [p[0], p[1], p[2] + PLAYER_MIDDLE]);
+            let from = middle
+                .and_then(|middle| {
+                    let near: Vec<&Track> = (tick.saturating_sub(SOURCE_TICKS)..=tick)
+                        .filter_map(|t| ended.get(&(attacker, t)))
+                        .flatten()
+                        .map(|&i| &self.tracks[i])
+                        .filter(|t| distance(t.last_pos, middle) < SOURCE_RADIUS)
+                        .collect();
+                    let nearest = near.iter().min_by(|a, b| {
+                        distance(a.last_pos, middle).total_cmp(&distance(b.last_pos, middle))
+                    })?;
+                    if nearest.kind != STICKY {
+                        return Some(nearest.origin);
+                    }
+                    // Stickies go off together: from the middle of the ones that did.
+                    let stickies: Vec<Position> =
+                        near.iter().filter(|t| t.kind == STICKY).map(|t| t.last_pos).collect();
+                    let n = stickies.len() as f64;
+                    Some([0, 1, 2].map(|i| stickies.iter().map(|p| p[i]).sum::<f64>() / n))
+                })
+                .or_else(|| {
+                    self.sentry_shots
+                        .iter()
+                        .find(|(t, builder, target, _)| {
+                            *builder == attacker
+                                && *target == victim
+                                && SENTRY_SHOT_TICKS.contains(&(i64::from(*t) - i64::from(*server)))
+                        })
+                        .map(|&(_, _, _, pos)| pos)
+                });
+            if let Some(from) = from {
+                event["from"] = json!(from.map(|v| (v * 10.0).round() / 10.0));
+            }
+        }
+    }
+}
+
+impl PlayerSeries {
+    /// Where the player was at a tick, if recorded by then.
+    fn position_at(&self, tick: u32) -> Option<Position> {
+        let at = tick as usize * 3;
+        let fixed = self.position.get(at..at + 3)?;
+        Some([0, 1, 2].map(|i| f64::from(fixed[i] as i32) / POSITION_SCALE))
     }
 }
 
