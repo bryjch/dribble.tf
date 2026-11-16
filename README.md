@@ -21,6 +21,7 @@ Models are primarily served as glTF assets.
 | `npm run maps:popular` | Reads recent demos from demos.tf and lists the maps with no 3D map, or shown on another version, with a `build:maps` command for the most played ones. |
 | `npm run build:viewmodels` | Rebuilds the first-person arms and weapons and the engineer's buildings from TF2's files. |
 | `npm run build:decoder` | Rebuilds the demo decoder (Rust → WebAssembly). Only needed when `decoder/` changes. |
+| `npm run changelog -- new "Title"` | Adds an entry to the in-app changelog (`changelog/`); `npm run changelog -- missing` lists merged PRs without one. See [changelog/README.md](changelog/README.md). |
 
 ### Adding maps
 
