@@ -10,9 +10,8 @@ import { toggleOnlyUIPanelAction, onUploadDemoAction, loadEmptySceneMapAction } 
 import { loadSampleDemoAction } from '@utils/sampleDemo'
 import { openMatchLink } from '@utils/matchLink'
 import { cn } from '@utils/styling'
-import { MAP_NAME_SEARCH_MAP } from '@constants/mappings'
 import { builtMapNames } from '@utils/derivedMap'
-import { mapFamily, newestPerFamily } from '@utils/mapVersions'
+import { newestPerFamily } from '@utils/mapVersions'
 
 //
 // ─── ABOUT PANEL ────────────────────────────────────────────────────────────────
@@ -160,10 +159,7 @@ const ControlsList = () => (
   </dl>
 )
 
-/**
- * The maps to look around: the newest built version of each family (maps/index.json), then the
- * Blender-built ones no build covers yet.
- */
+/** The maps to look around: the newest built version of each family (maps/index.json). */
 const MapsList = () => {
   const [built, setBuilt] = useState<string[]>([])
   useEffect(() => {
@@ -173,14 +169,7 @@ const MapsList = () => {
       cancelled = true
     }
   }, [])
-  const newest = newestPerFamily(built)
-  const families = new Set(newest.map(mapFamily))
-  const maps = [
-    ...newest,
-    ...Object.keys(MAP_NAME_SEARCH_MAP).filter(
-      name => !families.has(mapFamily(MAP_NAME_SEARCH_MAP[name]))
-    ),
-  ].sort((a, b) => mapFamily(a).localeCompare(mapFamily(b)))
+  const maps = newestPerFamily(built)
   return (
     <ul className="ui-maps">
       {maps.map(mapName => (

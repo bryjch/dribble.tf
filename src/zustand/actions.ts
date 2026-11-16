@@ -6,11 +6,14 @@ import * as THREE from 'three'
 import { decodeDemo } from '@components/Analyse/Data/DemoSource'
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
 import type { MapBoundaries } from '@components/Analyse/Data/Types'
-import { getMapBoundaries, getMapBoundariesKey } from '@components/Analyse/MapBoundaries'
+import {
+  getMapBoundaries,
+  getMapBoundariesKey,
+  blenderModelCorner,
+} from '@components/Analyse/MapBoundaries'
 import { PLAYBACK_SPEED_OPTIONS } from '@components/UI/PlaybackPanel'
 
 import { getSceneActors, parseMapBoundaries } from '@utils/scene'
-import { fetchMapWorldBounds } from '@utils/game'
 import {
   buildSetupShareUrl,
   cloneSetupCamera,
@@ -102,8 +105,7 @@ async function savedRtsCenter(map: string) {
   if (worldRtsCenters?.[key]) return worldRtsCenters[key]
   const legacy = rtsCenters?.[key]
   if (!legacy) return undefined
-  const reference =
-    (await fetchMapWorldBounds(map))?.boundaryMin ?? getMapBoundaries(map)?.boundaryMin
+  const reference = blenderModelCorner(map)
   return reference
     ? { x: legacy.x + reference.x, y: legacy.y + reference.y, z: legacy.z + reference.z }
     : undefined
@@ -155,12 +157,9 @@ export const loadSceneFromDemoAction = async (match: MatchSource) => {
 
 export const loadEmptySceneMapAction = async (mapName: string) => {
   try {
-    // Try to get world bounds from conversion.json (derived from BSP),
-    // then merge with any hardcoded camera/control offsets
-    const worldBounds = await fetchMapWorldBounds(mapName)
-    const overrides = getMapBoundaries(mapName)
-
-    const boundaries = worldBounds ? { ...overrides, ...worldBounds } : overrides
+    // dribble.tf's camera and bounds for the map, if any; a built map's own bounds follow once
+    // its map.json arrives (applyDerivedMapBoundsAction).
+    const boundaries = getMapBoundaries(mapName)
     const rtsCenter = await savedRtsCenter(mapName)
     const boundariesWithCenter = rtsCenter && boundaries ? { ...boundaries, rtsCenter } : boundaries
 
@@ -614,13 +613,21 @@ export const toggleSettingsOptionAction = async (option: string) => {
 const onOff = (value: boolean) => (value ? 'on' : 'off')
 
 /** Flips a boolean setting and notes it, e.g. "Outlines on". Unset reads as `fallback`. */
-export const toggleSettingWithNoteAction = async (option: string, label: string, fallback = false) => {
+export const toggleSettingWithNoteAction = async (
+  option: string,
+  label: string,
+  fallback = false
+) => {
   const next = !(get(getState().settings, option) ?? fallback)
   await updateSettingsOptionAction(option, next)
   addEventHistoryAction('setting', `${label} ${onOff(next)}`)
 }
 
-const RAILS_LABELS: Record<RailsMode, string> = { full: 'Full', compact: 'Compact', hidden: 'Hidden' }
+const RAILS_LABELS: Record<RailsMode, string> = {
+  full: 'Full',
+  compact: 'Compact',
+  hidden: 'Hidden',
+}
 
 /** Full → compact → hidden → full. */
 export const cycleRailsAction = async () => {

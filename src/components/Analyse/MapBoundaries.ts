@@ -1,10 +1,11 @@
 import { MapBoundaries } from './Data/Types'
+import { mapFamily } from '@utils/mapVersions'
 
 /**
  * Per-map bounds and default camera, all in Source world coordinates. The demo's own bounds
  * don't say where a good RTS overview is, so this lets each map set its orbit centre and the
  * camera's offset from it. (Until 2026-11 the centres were relative to each map model's
- * minimum corner; they were converted with each map's conversion.json.)
+ * minimum corner; they were converted with each map's conversion.json, see BLENDER_MODEL_CORNERS.)
  */
 export const OVERWRITE_MAP_BOUNDARIES: { [mapName: string]: MapBoundaries } = {
   cp_granary_pro_rc17a3: {
@@ -150,4 +151,30 @@ export function getMapBoundariesKey(map: string): string | null {
 export function getMapBoundaries(map: string): MapBoundaries | null {
   const mapAlias = getMapBoundariesKey(map)
   return mapAlias ? OVERWRITE_MAP_BOUNDARIES[mapAlias] : null
+}
+
+/**
+ * The minimum corner of each Blender-built map model, by map family, from its conversion.json
+ * (worldBounds.boundaryMin) before those models were retired. Things saved before 2026-11 (RTS
+ * centres, version 1 setups) were relative to it; this converts them to Source world coordinates.
+ */
+const BLENDER_MODEL_CORNERS: Record<string, { x: number; y: number; z: number }> = {
+  cp_granary_pro: { x: -4096, y: -6848, z: -518 },
+  cp_gullywash: { x: -5202, y: -3990, z: -529 },
+  cp_metalworks: { x: -14892, y: -6688, z: -14672 },
+  cp_process: { x: -14892, y: -4224, z: -14672 },
+  cp_prolands: { x: -14892, y: -4864, z: -14672 },
+  cp_reckoner: { x: -3664, y: -4896, z: -800 },
+  cp_snakewater: { x: -14892, y: -4832, z: -14672 },
+  cp_sultry: { x: -4832, y: -6016, z: -128 },
+  cp_sunshine: { x: -14892, y: 128, z: -14672 },
+  cp_villa: { x: -5984, y: -3968, z: -1120 },
+  koth_bagel: { x: -4256, y: -2816, z: 0 },
+  koth_clearcut: { x: -4816, y: 2111, z: -392 },
+  koth_product: { x: -5426, y: -4704, z: -128 },
+}
+
+/** Where a pre-2026-11 saved position was measured from on this map, if it had a Blender model. */
+export function blenderModelCorner(map: string) {
+  return BLENDER_MODEL_CORNERS[mapFamily(map)] ?? getMapBoundaries(map)?.boundaryMin ?? null
 }

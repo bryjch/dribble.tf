@@ -32,7 +32,7 @@ Models are primarily served as glTF assets.
 4. `npm run assets`, press Enter at the map names, and choose "built maps only" to upload. They're live once uploaded; no deploy needed.
 5. Commit `public/models/maps/index.json`. The built files themselves stay out of git (`.gitignore`): the CDN holds them, and `npm run maps:pull` fetches them.
 
-A demo recorded on a version nobody built is shown on the nearest built version of that map. Maps with no build fall back to the older Blender-made models, else show "No 3D model for this map yet". See [ADR 0006](docs/adr/0006-build-maps-ahead-of-time-with-bsp-to-glb.md) for how maps are built.
+A demo recorded on a version nobody built is shown on the nearest built version of that map. Maps with no build show "No 3D model for this map yet". See [ADR 0006](docs/adr/0006-build-maps-ahead-of-time-with-bsp-to-glb.md) for how maps are built.
 
 ### Credits
 

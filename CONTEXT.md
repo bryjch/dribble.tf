@@ -74,7 +74,7 @@ _Avoid_: Converter settings
 
 **Derived Map Manifest**:
 A built map's `map.json`: its identity, how it was built, its bounds, lighting and sky, and its component files.
-_Avoid_: Conversion metadata, conversion.json (the Blender-built maps' file)
+_Avoid_: Conversion metadata, conversion.json (the retired Blender-built maps' file)
 
 **Shared prop model**:
 A prop's model in one skin, built once and placed by every built map that uses it (`models/props/<hash>.glb`).

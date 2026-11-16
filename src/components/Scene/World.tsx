@@ -7,8 +7,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 
 import mapChunkingConfig from '@constants/mapChunking.json'
 import { MapVisibilityMetadata } from '@constants/types'
-import { addDownloadAction, finishDownloadAction, updateDownloadAction } from '@zus/actions'
-import { getState, useInstance } from '@zus/store'
+import { useInstance } from '@zus/store'
 import { useDerivedMap } from '@components/Scene/DerivedMap'
 import { DerivedMapResult, textComponent } from '@utils/derivedMap'
 import { reportError } from '@utils/notice'
@@ -256,7 +255,6 @@ export const World = (props: WorldProps) => {
   const visibilityCullingEnabledRef = useRef(false)
   const currentClusterRef = useRef<number | null>(null)
   const mapLoadRequestIdRef = useRef(0)
-  const visibilityRequestIdRef = useRef(0)
   const [mapModel, setMapModel] = useState<THREE.Group | null>()
   const [mapVisibility, setMapVisibility] = useState<VisibilityMetadata | null>(null)
   const { map, mode, lighting = 'baked', bakedBrightness = 1.3 } = props
@@ -283,42 +281,8 @@ export const World = (props: WorldProps) => {
       return
     }
 
-    if (result.kind === 'derived') {
-      const metadata = textComponent(result, 'visibility.json')
-      setMapVisibility(isBspVisibilityV2(metadata) ? metadata : null)
-      return
-    }
-
-    const visibilityUrl = result.visibilityUrl
-    if (!visibilityUrl) {
-      setMapVisibility(null)
-      return
-    }
-
-    const requestId = ++visibilityRequestIdRef.current
-
-    fetch(visibilityUrl)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Failed to load visibility metadata: ${response.status}`)
-        }
-        return response.json()
-      })
-      .then(data => {
-        if (requestId !== visibilityRequestIdRef.current) return
-        setMapVisibility(isMapVisibilityMetadata(data) ? data : null)
-      })
-      .catch(() => {
-        if (requestId === visibilityRequestIdRef.current) {
-          setMapVisibility(null)
-        }
-      })
-
-    return () => {
-      if (visibilityRequestIdRef.current === requestId) {
-        visibilityRequestIdRef.current += 1
-      }
-    }
+    const metadata = textComponent(result, 'visibility.json')
+    setMapVisibility(isBspVisibilityV2(metadata) ? metadata : null)
   }, [map, result])
 
   // Load the map's model once per resolved map; the scene mode only swaps materials (below).
@@ -327,10 +291,7 @@ export const World = (props: WorldProps) => {
     if (!result) return
 
     const load = async () => {
-      const gltf =
-        result.kind === 'legacy'
-          ? await loadGLTF(result.modelUrl, `${map} (textured)`)
-          : await loadGLTFBytes(result.components.get('world.glb'))
+      const gltf = await loadGLTFBytes(result.components.get('world.glb'))
       try {
         if (requestId !== mapLoadRequestIdRef.current) {
           disposeMapModel(gltf.scene)
@@ -338,14 +299,12 @@ export const World = (props: WorldProps) => {
         }
         prepareMapModel(gltf.scene)
         // Derived extras (props, decals, lightmaps) hang off the model, so one dispose frees them.
-        if (result.kind === 'derived') {
-          const started = performance.now()
-          await applyDerivedPresentation(gltf.scene, result)
-          if (isPerfLoggingEnabled())
-            console.info(
-              `[Perf][Map] ${map}: presented in ${Math.round(performance.now() - started)} ms`
-            )
-        }
+        const started = performance.now()
+        await applyDerivedPresentation(gltf.scene, result)
+        if (isPerfLoggingEnabled())
+          console.info(
+            `[Perf][Map] ${map}: presented in ${Math.round(performance.now() - started)} ms`
+          )
       } catch (error) {
         disposeMapModel(gltf.scene)
         throw error
@@ -728,46 +687,6 @@ function getClusterIndexForWorldPoint(
 //
 
 // Useful resource: https://github.com/donmccurdy/three-gltf-viewer/blob/master/src/viewer.js
-
-function loadGLTF(url: string, name?: string) {
-  return new Promise<GLTF>((resolve, reject) => {
-    try {
-      // Map models are meshopt-compressed (EXT_meshopt_compression), see scripts/convert-map.mjs
-      const gltfLoader = new GLTFLoader()
-        .setCrossOrigin('anonymous')
-        .setMeshoptDecoder(MeshoptDecoder)
-
-      const onLoad = (gltf: GLTF) => {
-        finishDownloadAction(url, 'success')
-        resolve(gltf)
-      }
-
-      const onProgress = (xhr: ProgressEvent) => {
-        // TODO: The lengthComputable seems to be false after being deployed to
-        // Netlify. This may be due to some content headers needing to be set:
-        // https://community.netlify.com/t/progressevent-total-is-0-for-asset-on-deployed-site-but-works-in-local-environment/3747
-
-        const fileDownload = getState().downloads.get(url)
-        if (!fileDownload) addDownloadAction({ type: 'map', name: name ?? url, url: url })
-
-        if (xhr.lengthComputable) {
-          const percentComplete = (xhr.loaded / xhr.total) * 100
-          updateDownloadAction(url, { progress: percentComplete, size: xhr.total })
-        }
-      }
-
-      const onError = (error: unknown) => {
-        finishDownloadAction(url, 'error')
-        reject(error)
-      }
-
-      gltfLoader.load(url, onLoad, onProgress, onError)
-    } catch (error) {
-      console.error(error)
-      reject(error)
-    }
-  })
-}
 
 /** Hides tool brushes and game-logic nodes, and remembers each mesh's own material. */
 function prepareMapModel<T extends THREE.Object3D>(model: T): T {

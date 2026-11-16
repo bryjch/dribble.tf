@@ -102,7 +102,7 @@ export const Lights = ({ map }: { map?: string }) => {
   useEffect(() => {
     setProfile(DEFAULT_LIGHTING)
 
-    if (result?.kind === 'derived') {
+    if (result) {
       setProfile(
         deriveLightingProfile({
           ambient: result.manifest.environment.ambient
@@ -119,29 +119,6 @@ export const Lights = ({ map }: { map?: string }) => {
             : null,
         })
       )
-      return
-    }
-    const conversionUrl = result?.kind === 'legacy' ? result.conversionUrl : undefined
-    if (!conversionUrl) return
-
-    let cancelled = false
-
-    fetch(conversionUrl)
-      .then(response => {
-        if (!response.ok) throw new Error(`${response.status}`)
-        return response.json()
-      })
-      .then(meta => {
-        if (!cancelled) {
-          setProfile(deriveLightingProfile(meta?.lightEnvironment))
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setProfile(DEFAULT_LIGHTING)
-      })
-
-    return () => {
-      cancelled = true
     }
   }, [map, result])
 

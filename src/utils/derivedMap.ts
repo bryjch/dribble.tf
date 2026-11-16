@@ -3,25 +3,18 @@
 //
 // Resolves a Map Name to what the viewer draws. Maps built by scripts/maps/build-maps.mjs
 // (bsp-to-glb, ahead of time) are listed in models/maps/index.json on the asset host; each has a
-// map.json naming its world model, textures, lightmap, props and decals. Maps only converted the
-// older way (Blender) still load from the legacy name tables in @utils/game.
+// map.json naming its world model, textures, lightmap, props and decals. A demo of a version
+// nobody built is shown on the nearest built version (@utils/mapVersions).
 //
 
 import mapChunkingConfig from '@constants/mapChunking.json'
 import { pickMapVersion } from '@utils/mapVersions'
 import { getAsset, isPerfLoggingEnabled } from '@utils/misc'
-import {
-  getMapConversionUrl,
-  getMapModelUrls,
-  getMapSkyboxUrls,
-  getMapVisibilityUrl,
-  resolveMapFolderName,
-} from '@utils/game'
 
 const MAP_NAME = /^[a-z0-9_]{1,128}$/
 const FETCH_CONCURRENCY = 12
 
-export type SkyboxUrls = NonNullable<ReturnType<typeof getMapSkyboxUrls>>
+export type SkyboxUrls = Record<'lf' | 'rt' | 'ft' | 'bk' | 'up' | 'dn', string>
 
 /** models/maps/<map>/map.json, written by scripts/maps/build-maps.mjs. */
 export type MapManifest = {
@@ -57,21 +50,13 @@ export type MapManifest = {
 
 type MapIndex = { schema: 'dribble.maps'; version: 1; maps: Record<string, unknown> }
 
-export type DerivedMapResult =
-  | {
-      kind: 'derived'
-      manifest: MapManifest
-      /** Each component's bytes by role; props as props/<asset>_<skin>.glb. */
-      components: Map<string, Uint8Array>
-      skyboxUrls?: SkyboxUrls
-    }
-  | {
-      kind: 'legacy'
-      modelUrl: string
-      visibilityUrl?: string
-      conversionUrl?: string
-      skyboxUrls?: SkyboxUrls
-    }
+export type DerivedMapResult = {
+  kind: 'derived'
+  manifest: MapManifest
+  /** Each component's bytes by role; props as props/<asset>_<skin>.glb. */
+  components: Map<string, Uint8Array>
+  skyboxUrls?: SkyboxUrls
+}
 
 export type MapLoadStage = { name: 'download'; loadedBytes: number; totalBytes: number }
 
@@ -107,25 +92,13 @@ function mapIndex(): Promise<MapIndex | null> {
   return indexRequest
 }
 
-function legacyResult(mapName: string): DerivedMapResult | null {
-  const model = getMapModelUrls(mapName)
-  if (!model) return null
-  return {
-    kind: 'legacy',
-    modelUrl: model.textured,
-    visibilityUrl: getMapVisibilityUrl(mapName),
-    conversionUrl: getMapConversionUrl(mapName),
-    skyboxUrls: getMapSkyboxUrls(mapName),
-  }
-}
-
 const skyboxUrls = (faces: NonNullable<MapManifest['skyboxFaces']>): SkyboxUrls =>
   Object.fromEntries(
     (['lf', 'rt', 'ft', 'bk', 'up', 'dn'] as const).map(face => [
       face,
       getAsset(`/models/${faces[face]}`),
     ])
-  ) as unknown as SkyboxUrls
+  ) as SkyboxUrls
 
 async function fetchBytes(url: string, signal: AbortSignal): Promise<Uint8Array> {
   const response = await fetch(url, { signal })
@@ -225,29 +198,16 @@ async function resolve(
     throw new MapResolutionError('Invalid', `${mapName} isn't a map name`)
   const index = await mapIndex()
   if (abort.signal.aborted) throw new MapResolutionError('Cancelled', 'map load was superseded')
-  // This exact map, else the nearest built version of it (cp_snakewater_u13 -> _final1), else
-  // the version the Blender-built table names.
+  // This exact map, else the nearest built version of it (cp_snakewater_u13 -> _final1).
   const picked = index ? pickMapVersion(mapName, Object.keys(index.maps)) : null
-  const legacyFolder = resolveMapFolderName(mapName)
-  const folder = picked?.map ?? (index?.maps[legacyFolder] ? legacyFolder : null)
-  if (picked && !picked.exact) console.info(`[Map] ${mapName} isn't built; showing ${picked.map}`)
-  if (folder) {
-    try {
-      return await loadBuiltMap(folder, abort.signal, stage)
-    } catch (error) {
-      if (abort.signal.aborted) throw new MapResolutionError('Cancelled', 'map load was superseded')
-      // A map built ahead of time that won't load falls back to the older model, if any.
-      const legacy = legacyResult(mapName)
-      if (legacy) {
-        console.warn(error)
-        return legacy
-      }
-      throw error
-    }
+  if (!picked) throw new MapResolutionError('NotAvailable', `${mapName} has no 3D model yet`)
+  if (!picked.exact) console.info(`[Map] ${mapName} isn't built; showing ${picked.map}`)
+  try {
+    return await loadBuiltMap(picked.map, abort.signal, stage)
+  } catch (error) {
+    if (abort.signal.aborted) throw new MapResolutionError('Cancelled', 'map load was superseded')
+    throw error
   }
-  const legacy = legacyResult(mapName)
-  if (legacy) return legacy
-  throw new MapResolutionError('NotAvailable', `${mapName} has no 3D model yet`)
 }
 
 export function resolveDerivedMap(
