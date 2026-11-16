@@ -318,7 +318,7 @@ export const SettingsContent = () => {
       <Section>Players</Section>
 
       <ToggleOption
-        label="Player outlines"
+        label="Player, building and sticky outlines"
         keyCode="O"
         checked={settings.ui.playerOutlines}
         onChange={checked => updateSettingsOption('ui.playerOutlines', checked)}

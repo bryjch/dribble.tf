@@ -6,13 +6,16 @@ import { useFrame } from '@react-three/fiber'
 //
 // ─── PLAYER OUTLINES ────────────────────────────────────────────────────────────
 //
-// Each player gets an outline in their team's colour, seen through walls. Per frame, after the
-// scene is drawn:
+// Each player, engineer building and stickybomb gets an outline in its team's colour, seen
+// through walls. Per frame, after the scene is drawn:
 //
-//   1. Mask: only the player models, flat in their team colour, into a colour-only target.
-//      This draws the players' subtree, not the scene, so the map is never drawn twice.
-//   2. Outline: one fullscreen pass over the canvas. A pixel outside every player that has a
-//      player within OUTLINE_WIDTH_PX gets that player's colour; inside a player, nothing.
+//   1. Mask: only the outlined meshes, flat, into a colour-only target: red is RED, blue is
+//      BLU, and green marks a thin outline. This draws the outlined subtree, not the scene, so
+//      the map is never drawn twice. Instanced meshes (stickies) and skinned ones (buildings)
+//      are drawn as the scene draws them.
+//   2. Outline: one fullscreen pass over the canvas. A pixel outside every outlined mesh that
+//      has one within OUTLINE_WIDTH_PX gets its team's colour (within half that for a thin
+//      outline); inside one, nothing.
 //
 // That is a few hundred player triangles and one cheap fullscreen pass. Before this the
 // postprocessing library's Outline effect drew the whole scene into an 8× multisampled buffer,
@@ -30,27 +33,42 @@ export const OUTLINE_COLORS: Record<string, string> = {
 /** How far the outline reaches past the model, in CSS pixels. */
 const OUTLINE_WIDTH_PX = 2.5
 
-/** Marks a player model's meshes to be outlined in their team's colour. */
-export function markOutlined(root: THREE.Object3D, team: string) {
+/**
+ * Marks a model's meshes (instanced and skinned ones too) to be outlined in their team's colour;
+ * `thin` gives a small model (a sticky) half the outline width.
+ */
+export function markOutlined(root: THREE.Object3D, team: string, { thin = false } = {}) {
   root.traverse(object => {
     if (!(object as THREE.Mesh).isMesh) return
     object.layers.enable(OUTLINE_LAYER)
     object.userData.outlineTeam = team
+    object.userData.outlineThin = thin
   })
 }
 
-const maskMaterial = (color: string) =>
+const maskMaterial = (team: string, thin: boolean) =>
   new THREE.ShaderMaterial({
-    uniforms: { color: { value: new THREE.Color(color) } },
+    uniforms: {
+      mask: { value: new THREE.Vector4(team === 'red' ? 1 : 0, thin ? 1 : 0, team === 'blue' ? 1 : 0, 1) },
+    },
     vertexShader: /* glsl */ `
+      #include <common>
+      #include <skinning_pars_vertex>
       void main() {
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        #include <skinbase_vertex>
+        #include <begin_vertex>
+        #include <skinning_vertex>
+        vec4 local = vec4(transformed, 1.0);
+        #ifdef USE_INSTANCING
+          local = instanceMatrix * local;
+        #endif
+        gl_Position = projectionMatrix * modelViewMatrix * local;
       }
     `,
     fragmentShader: /* glsl */ `
-      uniform vec3 color;
+      uniform vec4 mask;
       void main() {
-        gl_FragColor = vec4(color, 1.0);
+        gl_FragColor = mask;
       }
     `,
     side: THREE.DoubleSide,
@@ -63,6 +81,8 @@ const outlineMaterial = () =>
   new THREE.ShaderMaterial({
     uniforms: {
       mask: { value: null },
+      red: { value: new THREE.Color(OUTLINE_COLORS.red) },
+      blue: { value: new THREE.Color(OUTLINE_COLORS.blue) },
       texel: { value: new THREE.Vector2() },
       radius: { value: OUTLINE_WIDTH_PX },
     },
@@ -75,6 +95,8 @@ const outlineMaterial = () =>
     `,
     fragmentShader: /* glsl */ `
       uniform sampler2D mask;
+      uniform vec3 red;
+      uniform vec3 blue;
       uniform vec2 texel;
       uniform float radius;
       varying vec2 vUv;
@@ -82,12 +104,18 @@ const outlineMaterial = () =>
       const int TAPS = 12;
       const float TAU = 6.28318530718;
 
+      // A tap's team colour, weighted by how much of it the tap covers.
+      vec3 team(vec4 tap) {
+        return red * tap.r + blue * tap.b;
+      }
+
       void main() {
-        // Inside a player: their own model shows (or the wall in front of them does).
+        // Inside an outlined model: its own model shows (or the wall in front of it does).
         if (texture2D(mask, vUv).a > 0.5) discard;
 
-        // Look for a player on two rings around this pixel; how many taps land on one gives a
-        // soft outer edge, and their average is the colour (two teams side by side blend).
+        // Look for a model on two rings around this pixel; how many taps land on one gives a
+        // soft outer edge, and their average is the colour (two teams side by side blend). A
+        // thin outline (green in the mask) reaches the inner ring only.
         vec3 color = vec3(0.0);
         float hits = 0.0;
         for (int i = 0; i < TAPS; i++) {
@@ -95,8 +123,9 @@ const outlineMaterial = () =>
           vec2 step = vec2(cos(angle), sin(angle)) * radius * texel;
           vec4 outer = texture2D(mask, vUv + step);
           vec4 inner = texture2D(mask, vUv + step * 0.5);
-          color += outer.rgb * outer.a + inner.rgb * inner.a;
-          hits += outer.a + inner.a;
+          float thick = max(outer.a - outer.g, 0.0);
+          color += team(outer) * (thick / max(outer.a, 1e-4)) + team(inner);
+          hits += thick + inner.a;
         }
         if (hits < 0.01) discard;
         gl_FragColor = vec4(color / hits, clamp(hits / 3.0, 0.0, 1.0));
@@ -116,7 +145,7 @@ const fullscreenTriangle = () => {
 }
 
 /**
- * Outlines the player models among its children while `enabled`. While on it draws the scene
+ * Outlines the marked meshes among its children while `enabled`. While on it draws the scene
  * itself (at render priority 1), so anything drawn over the scene after it, such as the POV
  * viewmodel, uses priority 2.
  */
@@ -136,8 +165,10 @@ const OutlinePass = ({ root }: { root: RefObject<THREE.Group> }) => {
   const resources = useMemo(() => {
     const target = new THREE.WebGLRenderTarget(1, 1, { depthBuffer: false })
     const materials: Record<string, THREE.ShaderMaterial> = {
-      red: maskMaterial(OUTLINE_COLORS.red),
-      blue: maskMaterial(OUTLINE_COLORS.blue),
+      red: maskMaterial('red', false),
+      blue: maskMaterial('blue', false),
+      'red:thin': maskMaterial('red', true),
+      'blue:thin': maskMaterial('blue', true),
     }
     const outline = outlineMaterial()
     outline.uniforms.mask.value = target.texture
@@ -180,13 +211,14 @@ const OutlinePass = ({ root }: { root: RefObject<THREE.Group> }) => {
     outline.uniforms.texel.value.set(1 / size.x, 1 / size.y)
     outline.uniforms.radius.value = OUTLINE_WIDTH_PX * gl.getPixelRatio()
 
-    // The outlined meshes in their team's flat colour, for the mask only.
+    // The outlined meshes flat in their team's mask colour, for the mask only.
     group.traverse(object => {
       const team = object.userData.outlineTeam
-      if (!team || !materials[team]) return
+      const material = team && materials[object.userData.outlineThin ? `${team}:thin` : team]
+      if (!material) return
       const mesh = object as THREE.Mesh
       swapped.push({ mesh, material: mesh.material })
-      mesh.material = materials[team]
+      mesh.material = material
     })
     if (swapped.length === 0) return
 

@@ -6,6 +6,7 @@ import { Trail, useGLTF } from '@react-three/drei'
 
 import type { CachedProjectile } from '@components/Analyse/Data/ProjectileCache'
 import { SCENE_PRIORITY, sceneFrame } from '@components/Scene/PlaybackDriver'
+import { markOutlined } from '@components/Scene/PlayerOutlines'
 import { useStore } from '@zus/store'
 
 import { TEAM_MAP } from '@constants/mappings'
@@ -216,6 +217,11 @@ const ProjectileModels = () => {
         mesh.count = 0
         parts.push({ mesh, local: source.matrixWorld.clone() })
       })
+      // Stickies get a thinner version of the players' outline, in their team's colour.
+      if (name.startsWith('stickybomb_')) {
+        const team = name.endsWith('_blue') ? 'blue' : 'red'
+        for (const part of parts) markOutlined(part.mesh, team, { thin: true })
+      }
       byKey.set(name, parts)
     })
     return byKey

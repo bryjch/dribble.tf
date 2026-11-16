@@ -12,6 +12,7 @@ import { LineSegmentsGeometry } from 'three/examples/jsm/lines/LineSegmentsGeome
 
 import { CachedBuilding } from '@components/Analyse/Data/BuildingCache'
 import { SCENE_PRIORITY, sceneFrame } from '@components/Scene/PlaybackDriver'
+import { markOutlined } from '@components/Scene/PlayerOutlines'
 
 import { useStore } from '@zus/store'
 import { degreesToRadians } from '@utils/geometry'
@@ -137,6 +138,8 @@ const BuildingModel = ({ building, gltf, rigs }: BuildingModelProps) => {
       mesh.material = material
       materials.push(material)
     })
+    // Outlined like the players, in its team's colour, when outlines are on.
+    markOutlined(root, teamName(building.team))
     const turret = root.getObjectByName(TURRET_BONE) ?? null
     const rig: Rig = {
       turret,
@@ -144,6 +147,8 @@ const BuildingModel = ({ building, gltf, rigs }: BuildingModelProps) => {
       laser: root.getObjectByName('attachment_laser_origin') ?? null,
     }
     return { root, materials, rig }
+    // The model is per team, so the team is part of the gltf.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gltf])
 
   useEffect(() => () => materials.forEach(m => m.dispose()), [materials])
@@ -185,11 +190,13 @@ const BuildingModel = ({ building, gltf, rigs }: BuildingModelProps) => {
       mesh.frustumCulled = false
       meshes.push(mesh)
     })
+    // The sapper is outlined with the building it sits on, so the outline goes round both.
+    for (const mesh of meshes) markOutlined(mesh, teamName(building.team))
     root.add(...meshes)
     return () => {
       root.remove(...meshes)
     }
-  }, [sapped, sapperGltf, root])
+  }, [sapped, sapperGltf, root, building.team])
 
   return (
     <group scale={building.mini ? MINI_SCALE : 1}>
