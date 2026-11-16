@@ -2,6 +2,7 @@
 date: 2026-11-16
 title: Maps and demos stay in your browser
 type: new
+pr: 98
 highlight: true
 ---
 
