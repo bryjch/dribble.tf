@@ -8,8 +8,10 @@ import {
   popUIPanelAction,
   redoStickersAction,
   setScoreboardOpenAction,
+  setHudHiddenAction,
   setStickersPanelOpenAction,
   toggleMapCenterPickerAction,
+  toggleShortcutsAction,
   toggleUIDrawingAction,
   undoStickersAction,
 } from '@zus/actions'
@@ -44,9 +46,19 @@ export const GlobalKeyHandler = () => {
       try {
         if (isTextEntryTarget(event.target)) return
 
+        // Shift + / on most layouts; read from the character so other layouts work too.
+        const isQuestionMark = event.key === '?' || (event.shiftKey && event.code === 'Slash')
+        if (isQuestionMark && !event.metaKey && !event.ctrlKey) {
+          toggleShortcutsAction()
+          return
+        }
+
         switch (keycode(event)) {
           case 'esc':
-            if (getState().ui.scoreboardOpen) {
+            // A hidden HUD comes back first: whatever else Esc would close is hidden with it.
+            if (getState().ui.hudHidden) {
+              setHudHiddenAction(false)
+            } else if (getState().ui.scoreboardOpen) {
               setScoreboardOpenAction(false)
             } else if (mapCenterPickerActive) {
               toggleMapCenterPickerAction(false)

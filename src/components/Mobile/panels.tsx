@@ -46,10 +46,13 @@ export const PanelBody = ({ panel, match }: { panel: PanelId; match?: MatchSourc
     case 'settings':
       return (
         <>
-          <div className="m-field">
-            <span className="m-field__label">Camera</span>
-            <CameraSwitch />
-          </div>
+          {/* The cameras other than orbit follow players, so they wait for a match. */}
+          {match && (
+            <div className="m-field">
+              <span className="m-field__label">Camera</span>
+              <CameraSwitch />
+            </div>
+          )}
           <RemZoom>
             <SettingsContent />
           </RemZoom>

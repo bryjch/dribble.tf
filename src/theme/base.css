@@ -160,6 +160,15 @@
     padding: 0.5rem 1.5rem 1.5rem;
   }
 
+  .ui-panel__subheader {
+    flex-shrink: 0;
+    padding: 0.75rem 1.5rem 0;
+  }
+
+  .ui-panel__subheader + .ui-panel__body {
+    padding-top: 1rem;
+  }
+
   .ui-close-btn {
     display: inline-flex;
     width: 2rem;
@@ -816,6 +825,19 @@
     border-bottom: 1px solid rgb(var(--ui-line) / var(--ui-line-alpha));
   }
 
+  /* Tabs spread across the width, scrolling sideways if they cannot fit (Settings). */
+  .ui-tabs--fill {
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .ui-tabs--fill .ui-tab {
+    flex-shrink: 0;
+  }
+
   .ui-tab {
     position: relative;
     padding: 0 0 9px;
@@ -1303,6 +1325,25 @@
   .hud-player[data-kind='charge'] .hud-player__hp {
     width: auto;
     padding: 0 0.5rem;
+  }
+
+  /* Compact rails (ui.rails): class and health only, as the phone's are. The scoreboard
+     (data-expanded) opens them back out. */
+  .hud-roster[data-rails='compact']:not([data-expanded]) {
+    --ui-roster-width: 6.5rem;
+  }
+
+  .hud-roster[data-rails='compact']:not([data-expanded]) .hud-player__name,
+  .hud-roster[data-rails='compact']:not([data-expanded]) .hud-player__tag,
+  .hud-roster[data-rails='compact']:not([data-expanded]) .hud-player__spacer {
+    display: none;
+  }
+
+  .hud-roster[data-rails='compact']:not([data-expanded]) .hud-player__hp {
+    width: auto;
+    min-width: 0;
+    flex: 1;
+    padding: 0 0.375rem;
   }
 
   /* Phone: one strip along the bottom. */

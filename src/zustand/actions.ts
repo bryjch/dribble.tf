@@ -24,11 +24,15 @@ import {
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import {
   ControlsMode,
+  CrosshairStyle,
   Download,
+  RAILS_MODES,
+  RailsMode,
   DrawingTool,
   SavedSetup,
   SETUP_STORAGE_VERSION,
   SceneMode,
+  SettingsTab,
   StickerDefinition,
   StickerAnnotation,
   UIPanelType,
@@ -591,6 +595,69 @@ export const toggleSettingsOptionAction = async (option: string) => {
     dispatch({ type: 'UPDATE_SETTINGS_OPTION', payload: { option, value: !previousValue } })
   } catch (error) {
     console.error(error)
+  }
+}
+
+//
+// ─── VIEW SHORTCUTS ─────────────────────────────────────────────────────────────
+//
+// The keys that flip what is shown (CanvasKeyHandler); each says what it did over the
+// playback bar, so a stray key press is never a mystery.
+//
+
+const onOff = (value: boolean) => (value ? 'on' : 'off')
+
+/** Flips a boolean setting and notes it, e.g. "Outlines on". Unset reads as `fallback`. */
+export const toggleSettingWithNoteAction = async (option: string, label: string, fallback = false) => {
+  const next = !(get(getState().settings, option) ?? fallback)
+  await updateSettingsOptionAction(option, next)
+  addEventHistoryAction('setting', `${label} ${onOff(next)}`)
+}
+
+const RAILS_LABELS: Record<RailsMode, string> = { full: 'Full', compact: 'Compact', hidden: 'Hidden' }
+
+/** Full → compact → hidden → full. */
+export const cycleRailsAction = async () => {
+  const current = getState().settings.ui.rails ?? 'full'
+  const next = RAILS_MODES[(RAILS_MODES.indexOf(current) + 1) % RAILS_MODES.length]
+  await updateSettingsOptionAction('ui.rails', next)
+  addEventHistoryAction('setting', `Player rails: ${RAILS_LABELS[next]}`)
+}
+
+export const toggleLightingAction = async () => {
+  const next = (getState().settings.scene.lighting ?? 'baked') === 'baked' ? 'flat' : 'baked'
+  await updateSettingsOptionAction('scene.lighting', next)
+  addEventHistoryAction('setting', `Lighting: ${next === 'baked' ? 'Baked' : 'Flat'}`)
+}
+
+/** Off, or back to the style it had before. */
+export const toggleCrosshairAction = async () => {
+  const { style, lastStyle } = getState().settings.ui.crosshair
+  if (style !== CrosshairStyle.NONE) {
+    await updateSettingsOptionAction('ui.crosshair.lastStyle', style)
+    await updateSettingsOptionAction('ui.crosshair.style', CrosshairStyle.NONE)
+  } else {
+    await updateSettingsOptionAction('ui.crosshair.style', lastStyle ?? CrosshairStyle.CROSSHAIR)
+  }
+  addEventHistoryAction('setting', `Crosshair ${onOff(style === CrosshairStyle.NONE)}`)
+}
+
+export const setHudHiddenAction = (hidden?: boolean) => {
+  dispatch({ type: 'SET_HUD_HIDDEN', payload: hidden ?? !getState().ui.hudHidden })
+}
+
+export const setSettingsTabAction = (tab: SettingsTab) => {
+  dispatch({ type: 'SET_SETTINGS_TAB', payload: tab })
+}
+
+/** Settings at the Keys tab (?); closes it if that is what is showing. */
+export const toggleShortcutsAction = async () => {
+  const { activePanels, settingsTab, hudHidden } = getState().ui
+  const showing = activePanels.includes(UIPanelType.SETTINGS) && settingsTab === 'keys'
+  if (hudHidden) setHudHiddenAction(false)
+  setSettingsTabAction('keys')
+  if (showing || !activePanels.includes(UIPanelType.SETTINGS)) {
+    await toggleOnlyUIPanelAction(UIPanelType.SETTINGS)
   }
 }
 

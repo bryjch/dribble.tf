@@ -21,6 +21,9 @@ import { jumpToPlayerPOVCamera } from '@zus/actions'
 // widens to the player's name and their kills, deaths, assists, damage and healing, in place
 // of their health. The phone's team rails (Mobile/Rails) are these rosters too.
 //
+// ui.rails (P cycles it) narrows them to class and health ('compact', as the phone's rails
+// are), or hides them ('hidden') until the scoreboard is opened.
+//
 
 export interface StatColumn {
   key: keyof ScoreLine
@@ -95,8 +98,12 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
   const { match, players, tick, intervalPerTick } = props
   const focusedEntityId = useInstance(state => state?.focusedObject?.userData?.entityId)
   const expanded = useStore(state => state.ui.scoreboardOpen)
+  const rails = useStore(state => state.settings.ui.rails ?? 'full')
   const columns = expanded ? statColumns(match) : undefined
   const scores = expanded ? match.scoresAt(tick) : null
+
+  // Hidden rails still open out into the scoreboard.
+  if (rails === 'hidden' && !expanded) return null
 
   for (const player of players) {
     if (player.team === 'blue') bluePlayers.push(player)
@@ -143,6 +150,7 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
             className="hud-roster"
             data-team={team}
             data-expanded={expanded ? 'true' : undefined}
+            data-rails={rails}
             aria-label={`${team === 'blue' ? 'BLU' : 'RED'} players`}
           >
             {columns && <RosterHead team={team} columns={columns} />}

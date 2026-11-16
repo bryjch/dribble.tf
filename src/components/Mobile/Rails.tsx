@@ -29,6 +29,8 @@ const GAP = 3
 export const Rails = ({ match, top, bottom }: RailsProps) => {
   const tick = useStore(state => state.playback.tick)
   const expanded = useStore(state => state.ui.scoreboardOpen)
+  // Already class and health only, so compact and full look alike here; hidden hides them.
+  const hidden = useStore(state => state.settings.ui.rails === 'hidden')
   const focusedId = useInstance(state => state?.focusedObject?.userData?.entityId)
   const height = useWindowHeight()
 
@@ -49,6 +51,8 @@ export const Rails = ({ match, top, bottom }: RailsProps) => {
     1
   )
   const rowHeight = clamp(Math.floor((height - top - bottom) / rows - GAP), 24, 38)
+
+  if (hidden && !expanded) return null
 
   return (
     <>

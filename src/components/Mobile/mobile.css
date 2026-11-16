@@ -580,6 +580,13 @@
   overscroll-behavior: contain;
 }
 
+.m-sheet__brand {
+  flex-shrink: 0;
+  padding: 2px 16px 8px;
+  font-family: var(--ui-font-display);
+  font-weight: 700;
+}
+
 .m-tabs {
   display: flex;
   flex-shrink: 0;

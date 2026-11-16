@@ -16,9 +16,11 @@ import {
   Download,
   DrawingActivation,
   ParserStatus,
+  RailsMode,
   SavedSetup,
   SavedSetupCamera,
   SceneMode,
+  SettingsTab,
   UIPanelType,
 } from '@constants/types'
 import { DrawingState, createInitialDrawingState } from './drawing'
@@ -208,7 +210,11 @@ export type StoreState = {
         size: number
         opacity: number
         color: string
+        /** The style X turns the crosshair back on to. Saved settings from before lack it. */
+        lastStyle?: CrosshairStyle
       }
+      /** The team rails; Tab opens them out into the scoreboard whichever this is. */
+      rails: RailsMode
       playerOutlines: boolean
       /** In POV, the damage the spectated player deals, over whoever they hit. */
       damageNumbers: boolean
@@ -245,6 +251,9 @@ export type StoreState = {
     activePanels: UIPanelType[]
     /** Shown while Tab is held. */
     scoreboardOpen: boolean
+    /** Every overlay hidden (H), for a clean view. Not saved: a reload brings the HUD back. */
+    hudHidden: boolean
+    settingsTab: SettingsTab
   }
   eventHistory: {
     type: string
@@ -330,6 +339,7 @@ export const initialState: StoreState = {
         opacity: 0.8,
         color: '#ffffff',
       },
+      rails: 'full' as RailsMode,
       playerOutlines: false,
       damageNumbers: true,
       buildings: {
@@ -359,6 +369,8 @@ export const initialState: StoreState = {
   ui: {
     activePanels: [UIPanelType.ABOUT],
     scoreboardOpen: false,
+    hudHidden: false,
+    settingsTab: 'hud',
   },
 
   eventHistory: [],

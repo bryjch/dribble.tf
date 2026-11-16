@@ -118,6 +118,13 @@ export const CrosshairStyle = {
 
 export type CrosshairStyle = (typeof CrosshairStyle)[keyof typeof CrosshairStyle]
 
+/** The team rails (PlayerStatuses): names and health bars, class and health only, or none. */
+export type RailsMode = 'full' | 'compact' | 'hidden'
+export const RAILS_MODES: RailsMode[] = ['full', 'compact', 'hidden']
+
+/** The Settings panel's tabs. */
+export type SettingsTab = 'hud' | 'players' | 'map' | 'camera' | 'drawing' | 'general' | 'keys'
+
 export type Download = {
   type: 'map' | 'demo'
   status: 'loading' | 'success' | 'error'

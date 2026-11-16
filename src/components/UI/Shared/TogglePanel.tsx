@@ -18,6 +18,8 @@ export interface TogglePanelProps {
   count?: React.ReactNode
   /** Right side of the header, before the close button. */
   actions?: React.ReactNode
+  /** Under the title, outside the scrolling body: tabs, say. */
+  subheader?: React.ReactNode
   showCloseButton?: boolean
   onClickClose?: () => void
   className?: string
@@ -61,6 +63,7 @@ export const TogglePanel = (props: TogglePanelProps) => {
     title,
     count,
     actions,
+    subheader,
     showCloseButton = false,
     onClickClose,
     children,
@@ -70,13 +73,16 @@ export const TogglePanel = (props: TogglePanelProps) => {
 
   const isMobile = useIsMobile()
   const header = (
-    <PanelHeader
-      title={title}
-      count={count}
-      actions={actions}
-      showCloseButton={showCloseButton}
-      onClickClose={onClickClose}
-    />
+    <>
+      <PanelHeader
+        title={title}
+        count={count}
+        actions={actions}
+        showCloseButton={showCloseButton}
+        onClickClose={onClickClose}
+      />
+      {subheader && <div className="ui-panel__subheader">{subheader}</div>}
+    </>
   )
 
   if (isMobile) {
