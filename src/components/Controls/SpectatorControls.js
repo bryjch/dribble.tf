@@ -143,12 +143,28 @@ export class SpectatorControls {
   enable() {
     if (!this.allowPointerLock) return null
     if (this.isEnabled()) return null
+    // iOS/iPadOS Safari has no Pointer Lock; this runs inside a React effect, where a throw
+    // unmounts the whole viewer. Without a lock there is nothing to look with, so stay off.
+    if (typeof this.domElement.requestPointerLock !== 'function') return null
     document.addEventListener('mousemove', this._processMouseMoveEvent)
     document.addEventListener('keydown', this._processKeyEvent)
     document.addEventListener('keyup', this._processKeyEvent)
     this.enabled = true
     this.camera.rotation.reorder('ZYX')
-    this.domElement.requestPointerLock({ unadjustedMovement: true })
+    this._requestPointerLock()
+  }
+  _requestPointerLock() {
+    try {
+      // Chrome returns a promise, rejected where raw mouse input is unsupported; Safari
+      // returns nothing and ignores the option.
+      const request = this.domElement.requestPointerLock({ unadjustedMovement: true })
+      request?.catch?.(() => {
+        if (!this.isEnabled()) return
+        Promise.resolve(this.domElement.requestPointerLock()).catch(() => this.disable())
+      })
+    } catch {
+      this.disable()
+    }
   }
   disable() {
     if (!this.isEnabled()) return null
@@ -160,7 +176,7 @@ export class SpectatorControls {
     this._keyState.prevPress = 0
     this._mouseState = { x: 0, y: 0 }
     this.camera.rotation.reorder('XYZ')
-    document.exitPointerLock()
+    if (document.pointerLockElement === this.domElement) document.exitPointerLock?.()
   }
   isEnabled() {
     return this.enabled
@@ -168,7 +184,7 @@ export class SpectatorControls {
   dispose() {
     this.unlisten()
     this.disable()
-    document.exitPointerLock()
+    if (document.pointerLockElement === this.domElement) document.exitPointerLock?.()
   }
   update(delta = 1) {
     if (!this.enabled) {

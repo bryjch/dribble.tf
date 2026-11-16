@@ -25,6 +25,8 @@ import { DrawingState, createInitialDrawingState } from './drawing'
 import rootReducer from './reducer'
 import { DEFAULT_THEME, ThemeId } from '@theme/themes'
 
+export type InterfaceLayout = 'auto' | 'desktop' | 'touch'
+
 // This "Instance Store" is meant to be used for larger objects that are problematic
 // to keep in the "Standard Store". (e.g. the match being watched (MatchSource), three.js objects)
 // We wanna keep easily accessible references to these important objects because they're
@@ -229,6 +231,8 @@ export type StoreState = {
       }
       /** Which look the overlays use; see @theme/themes. Saved settings from before lack it. */
       theme?: ThemeId
+      /** Desktop HUD or the touch interface; 'auto' decides by device (@components/Mobile/useMobileLayout). */
+      layout?: InterfaceLayout
       /** The spectated player's arms and weapon in POV; fov is Source's viewmodel_fov. */
       viewmodel: {
         enabled: boolean
@@ -342,6 +346,7 @@ export const initialState: StoreState = {
         open: false,
       },
       theme: DEFAULT_THEME,
+      layout: 'auto' as InterfaceLayout,
       viewmodel: {
         enabled: true,
         fov: 70,

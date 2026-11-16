@@ -11,6 +11,7 @@ import {
 } from '@zus/actions'
 import { getState } from '@zus/store'
 import { applyTheme, getThemeFromUrl } from '@theme/themes'
+import { getLayoutFromUrl } from '@components/Mobile/useMobileLayout'
 import { loadUrlDemoAction, resolveUrlDemoAction } from '@utils/embed'
 import { connectLiveAction, resolveLiveAction } from '@utils/live'
 import { listenForPastedMatchLinks } from '@utils/matchLink'
@@ -33,6 +34,9 @@ class App extends React.Component {
     const urlTheme = getThemeFromUrl()
     if (urlTheme) await updateSettingsOptionAction('ui.theme', urlTheme)
     applyTheme(getState().settings.ui.theme)
+    // ?mobile / ?mobile=off pick the interface the same way.
+    const urlLayout = getLayoutFromUrl()
+    if (urlLayout) await updateSettingsOptionAction('ui.layout', urlLayout)
     await loadSetupsAction()
     const sharedSetup = await bootstrapSharedSetupFromHashAction()
 

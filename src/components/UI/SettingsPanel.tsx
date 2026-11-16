@@ -192,7 +192,20 @@ export const SettingsContent = () => {
 
   return (
     <div>
-      <Section>Theme</Section>
+      <Section>Interface</Section>
+
+      <Option label="Layout">
+        <Segmented
+          label="Layout"
+          options={[
+            { label: 'Auto', value: 'auto' },
+            { label: 'Desktop', value: 'desktop' },
+            { label: 'Touch', value: 'touch' },
+          ]}
+          value={settings.ui.layout ?? 'auto'}
+          onChange={value => updateSettingsOption('ui.layout', value)}
+        />
+      </Option>
 
       <Option label="Look">
         <Segmented

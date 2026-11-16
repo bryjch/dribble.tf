@@ -29,7 +29,7 @@
 - `src/components/DemoViewer.tsx` — The viewer; playback runs in `Scene/PlaybackDriver.tsx` + `utils/playback.ts`
 - `src/components/Controls/RtsControls.ts` — the orbit (RTS) camera: orbits a point re-anchored to the ground, grab-pans, zooms toward the cursor; its map picks need the bounds trees (three-mesh-bvh, `src/utils/bvh.ts`) it builds a few ms a frame, since a plain raycast over a map takes ~50 ms
 - `src/components/UI/` — UI panels (PlaybackPanel, SettingsPanel)
-- `src/components/Mobile/` — the phone interface (Theater: team rails, Vaul sheets), in place of the desktop HUD on phones either way up; `?mobile` forces it at any size, `?mobile=off` keeps the desktop HUD (remembered in localStorage)
+- `src/components/Mobile/` — the phone interface (Theater: team rails, Vaul sheets), in place of the desktop HUD on phones either way up; the `ui.layout` setting (Settings → Interface: Auto / Desktop / Touch) picks it; Auto gives phones Touch and tablets Desktop by screen size (stable across rotation and Split View), and narrow non-touch windows Touch. `?mobile` sets Touch, `?mobile=off` Desktop
 - `src/zustand/store.ts` — Global state store
 - `public/models/players/` — Player model GLB files
 

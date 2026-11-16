@@ -20,6 +20,7 @@
     top: calc(100% + 0.5rem);
     left: 0;
     max-height: calc(100vh - 5rem - var(--ui-dock-clearance));
+    max-height: calc(100dvh - 5rem - var(--ui-dock-clearance));
   }
 }
 

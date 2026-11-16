@@ -33,14 +33,18 @@ export const CanvasKeyHandler = () => {
       try {
         switch (keycode(event)) {
           case 'space':
+            // Space (and the arrows below) would otherwise also scroll the page.
+            event.preventDefault()
             togglePlaybackAction()
             break
 
           case 'left':
+            event.preventDefault()
             playbackJumpAction('seekBackward')
             break
 
           case 'right':
+            event.preventDefault()
             playbackJumpAction('seekForward')
             break
 
@@ -53,10 +57,12 @@ export const CanvasKeyHandler = () => {
             break
 
           case 'up':
+            event.preventDefault()
             changePlaySpeedAction('faster')
             break
 
           case 'down':
+            event.preventDefault()
             changePlaySpeedAction('slower')
             break
 
