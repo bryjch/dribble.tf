@@ -184,11 +184,12 @@ finish() {
 #
 # Gets TF2's files, rebuilds the first-person viewmodels, builds maps with
 # bsp-to-glb, and uploads public/models to the S3 bucket behind the CloudFront CDN that production
-# loads models from (VITE_APP_ASSET_URL), then refreshes the CDN's cache.
+# loads models from (VITE_APP_ASSET_URL), with Cache-Control headers (cache_class), then refreshes
+# the CDN's cache.
 # Every stage can be skipped. Run it with: npm run assets
 # ──────────────────────────────────────────────────────────────────────────
 
-TOTAL_STAGES=10
+TOTAL_STAGES=11
 
 # Run from the repo root, and keep settings in the main checkout's .env so every
 # worktree shares them.
@@ -249,15 +250,40 @@ s3_prefix() {
   if [[ -n "$path" ]]; then printf '%s/' "$path"; fi
 }
 
+# Cache-Control by kind of file. Content-hashed names (a built map's files, props, sky faces)
+# never change content, so browsers keep them a year without asking again. The JSON that names
+# them (maps/index.json, map.json, viewmodels/manifest.json) is replaced in place on a rebuild,
+# so it's checked again after five minutes; models with fixed names (players, viewmodels,
+# buildings, projectiles) are rebuilt rarely, so after a day.
+CACHE_HASHED="public, max-age=31536000, immutable"
+CACHE_JSON="public, max-age=300"
+CACHE_MODEL="public, max-age=86400"
+
+# cache_class PATH (under public/models) prints hashed, json or model.
+cache_class() {
+  local path="$1" name="${1##*/}"
+  if [[ "$path" == props/* && "$name" =~ ^[0-9a-f]{16}\.glb$ ]] ||
+     [[ ( "$path" == maps/*/* || "$path" == skybox/* ) && "$name" =~ \.[0-9a-f]{10}\.[a-z0-9]+$ ]]; then
+    printf hashed
+  elif [[ "$name" == *.json ]]; then printf json
+  else printf model
+  fi
+}
+
+cache_control() {
+  case "$1" in hashed) printf '%s' "$CACHE_HASHED" ;; json) printf '%s' "$CACHE_JSON" ;; *) printf '%s' "$CACHE_MODEL" ;; esac
+}
+
 AWS_READY=0
 S3_REGION_ARGS=() # --region for the bucket, once known
 UPLOAD_LOCAL=""   # local folder to upload
 UPLOAD_REMOTE=""  # where it goes in the bucket
 UPLOAD_FILTERS=() # aws s3 sync --exclude/--include, to upload part of the folder
 CDN_PATH=""       # the CloudFront path to refresh, e.g. /models/viewmodels/*
-UPLOAD_FILTERS=()   # aws s3 sync --exclude/--include, to upload part of a folder
 PENDING=0         # files the dry run says would upload
+PENDING_FILES=()  # and which, as paths under UPLOAD_LOCAL
 UPLOADED=0
+HEADERS_SET=0     # cache headers added to files already on the CDN (stage 9)
 COMMITTED=0
 
 banner "dribble.tf model assets"
@@ -640,6 +666,7 @@ else
       file="${line#(dryrun) upload: }"
       file="${file%% to s3://*}"
       PENDING=$((PENDING + 1))
+      PENDING_FILES+=("${file#"$UPLOAD_LOCAL"/}")
       BYTES=$((BYTES + $(wc -c < "$file")))
     done <<< "$DRY"
     if [[ -n "$UPLOAD_LOCAL" ]]; then
@@ -656,7 +683,21 @@ stage "Upload"
 if (( ! AWS_READY )) || [[ -z "$UPLOAD_LOCAL" ]] || (( ! PENDING )); then
   note "Nothing to upload, skipping."
 elif confirm "Upload $PENDING file(s) to $DEST?"; then
-  if run aws s3 sync "$UPLOAD_LOCAL" "$DEST" --profile "$ASSET_AWS_PROFILE" "${S3_REGION_ARGS[@]+"${S3_REGION_ARGS[@]}"}" "${UPLOAD_FILTERS[@]+"${UPLOAD_FILTERS[@]}"}" --exclude "*.DS_Store" --only-show-errors; then
+  # One sync per cache class, each with its Cache-Control and only that class's files from the
+  # dry run. Content-hashed files go first and the JSON that names them last, so nothing ever
+  # names a file that isn't up yet.
+  upload_class() {
+    local class="$1" cc includes=() path
+    cc=$(cache_control "$class")
+    for path in "${PENDING_FILES[@]}"; do
+      [[ "$(cache_class "$path")" == "$class" ]] && includes+=(--include "$path")
+    done
+    (( ${#includes[@]} )) || return 0
+    step "$(( ${#includes[@]} / 2 )) $class file(s), Cache-Control: $cc"
+    aws s3 sync "$UPLOAD_LOCAL" "$DEST" --profile "$ASSET_AWS_PROFILE" "${S3_REGION_ARGS[@]+"${S3_REGION_ARGS[@]}"}" \
+      --exclude "*" "${includes[@]}" --cache-control "$cc" --only-show-errors
+  }
+  if upload_class hashed && upload_class model && upload_class json; then
     ok "uploaded $PENDING file(s)"
     UPLOADED=1
   else
@@ -670,12 +711,58 @@ printf '\n'
 pause "Press Enter to continue"
 
 # ── Stage 9 ───────────────────────────────────────────────────────────────
+stage "Cache headers on files already uploaded"
+# Files uploaded before this wizard set Cache-Control have none, so browsers guess how long to
+# keep them and ask the CDN about each one again on later visits. A probe file tells.
+if (( ! AWS_READY )); then
+  note "No AWS access (stages 5-6), so skipping."
+else
+  ROOT="s3://$ASSET_S3_BUCKET/$(s3_prefix)models"
+  PROBE_CC=$(aws s3api head-object --profile "$ASSET_AWS_PROFILE" "${S3_REGION_ARGS[@]+"${S3_REGION_ARGS[@]}"}" \
+    --bucket "$ASSET_S3_BUCKET" --key "$(s3_prefix)models/players/soldier_red.glb" \
+    --query CacheControl --output text 2>/dev/null || true)
+  if [[ -n "$PROBE_CC" && "$PROBE_CC" != "None" ]]; then
+    ok "the CDN's files already have cache headers (players/soldier_red.glb: $PROBE_CC)"
+  else
+    say "Files already in the bucket have no Cache-Control header, so browsers check"
+    say "every one with the CDN again on later visits. This adds the same headers the"
+    say "upload sets, by copying each file onto itself in S3 (nothing is downloaded or"
+    say "changed but the headers). It takes a few minutes."
+    printf '\n'
+    if confirm "Add cache headers to every file under $ROOT?"; then
+      # Same classes as cache_class, as S3 filters (* also matches /).
+      set_headers() {
+        local cc="$1"; shift
+        step "Cache-Control: $cc"
+        aws s3 cp "$ROOT" "$ROOT" --recursive --metadata-directive REPLACE --cache-control "$cc" \
+          --profile "$ASSET_AWS_PROFILE" "${S3_REGION_ARGS[@]+"${S3_REGION_ARGS[@]}"}" "$@" --only-show-errors
+      }
+      if set_headers "$CACHE_HASHED" --exclude "*" --include "props/*" --include "maps/*/*.*.*" --include "skybox/*/*.*.webp" &&
+         set_headers "$CACHE_MODEL" --exclude "*.json" --exclude "*.DS_Store" --exclude "props/*" --exclude "maps/*/*.*.*" --exclude "skybox/*/*.*.webp" &&
+         set_headers "$CACHE_JSON" --exclude "*" --include "*.json" --exclude "maps/*/*.*.*"; then
+        ok "every file has cache headers"
+        HEADERS_SET=1
+        CDN_PATH="/models/*"
+      else
+        warn "that stopped partway; scroll up for the error. Re-running it is safe."
+        SKIPPED+=("add cache headers to the CDN's files (re-run this wizard)")
+      fi
+    else
+      SKIPPED+=("add cache headers to the CDN's files")
+    fi
+  fi
+fi
+printf '\n'
+pause "Press Enter to continue"
+
+# ── Stage 10 ──────────────────────────────────────────────────────────────
 stage "Refresh the CDN's cache"
-if (( ! UPLOADED )); then
+if (( ! UPLOADED && ! HEADERS_SET )); then
   note "Nothing was uploaded, skipping."
 else
   say "CloudFront keeps copies of files for up to a day. Replaced files need its"
   say "cache cleared, or people keep getting the old ones. New files don't."
+  (( HEADERS_SET )) && say "Its copies also keep their old headers until cleared, so clear all of /models/*."
   printf '\n'
   if confirm "Clear the CDN's cache for $CDN_PATH?"; then
     if INVALIDATION=$(aws cloudfront create-invalidation --profile "$ASSET_AWS_PROFILE" \
@@ -697,7 +784,7 @@ fi
 printf '\n'
 pause "Press Enter to continue"
 
-# ── Stage 10 ──────────────────────────────────────────────────────────────
+# ── Stage 11 ──────────────────────────────────────────────────────────────
 stage "Check the CDN"
 VITE_APP_ASSET_URL="${VITE_APP_ASSET_URL:-$(_existing VITE_APP_ASSET_URL || true)}"
 if [[ -z "$VITE_APP_ASSET_URL" ]]; then
@@ -723,6 +810,28 @@ else
     else note "the CDN's map index differs from this checkout's (upload with option 2)"; fi
   fi
   note "A 403 means the file isn't in the bucket yet."
+  printf '\n'
+  say "Cache headers:"
+  check_cache() {
+    local path="$1" want="$2" got
+    got=$(curl -s -o /dev/null -D - "$BASE/$path" | tr -d '\r' | awk -F': ' 'tolower($1)=="cache-control"{print $2}')
+    if [[ "$got" == "$want" ]]; then ok "$path: $got"
+    else bad "$path: ${got:-none} (want $want; stage 9 adds it)"; fi
+  }
+  check_cache "models/players/soldier_red.glb" "$CACHE_MODEL"
+  check_cache "models/viewmodels/manifest.json" "$CACHE_JSON"
+  # A built map's file, named in the first map's map.json.
+  HASHED_FILE=$(curl -s "$BASE/models/maps/index.json" | node -e '
+    let d = ""; process.stdin.on("data", c => (d += c)).on("end", async () => {
+      try {
+        const map = Object.keys(JSON.parse(d).maps)[0]
+        const res = await fetch(`${process.argv[1]}/models/maps/${map}/map.json`)
+        const file = (await res.json()).components.find(c => c.role === "world.glb").file
+        process.stdout.write(`models/maps/${map}/${file}`)
+      } catch {}
+    })' "$BASE" || true)
+  [[ -n "$HASHED_FILE" ]] && check_cache "$HASHED_FILE" "$CACHE_HASHED"
+  note "The CDN shows new headers once its copies are refreshed (stage 10)."
 fi
 printf '\n'
 pause "Press Enter to finish"
@@ -730,4 +839,5 @@ pause "Press Enter to finish"
 finish
 (( COMMITTED )) && note "Push the branch and merge it, so the site has the rebuilt models in git too."
 (( UPLOADED )) && note "Uploaded: $UPLOAD_LOCAL → $DEST"
+(( HEADERS_SET )) && note "Cache headers added to the files already on the CDN"
 printf '\n'
