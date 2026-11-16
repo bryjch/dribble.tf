@@ -1,7 +1,7 @@
 ---
 date: 2026-11-15
 title: Open demos and live matches from any link
-area: interface
+type: new
 pr: 80
 highlight: true
 ---

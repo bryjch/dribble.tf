@@ -1,7 +1,7 @@
 ---
 date: 2026-11-16
 title: Reworked orbit camera
-area: camera
+type: improved
 pr: 90
 highlight: true
 ---

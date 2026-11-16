@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // The in-app changelog's helper (changelog/README.md).
 //
-//   npm run changelog -- new "Title" [--area camera] [--pr 92] [--highlight]
+//   npm run changelog -- new "Title" [--type new|improved|fixed] [--pr 92] [--highlight]
 //       Adds changelog/<today>-<slug>.md, with this branch's commits as notes to rewrite.
 //   npm run changelog -- missing [--base origin/dev]
 //       Lists merged PRs that no entry names (by `pr:`) and changelog/.skip doesn't excuse,
@@ -12,7 +12,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 const DIR = join(import.meta.dirname, '..', 'changelog')
-const AREAS = ['interface', 'maps', 'camera', 'pov', 'matches', 'phone', 'performance']
+const TYPES = ['new', 'improved', 'fixed']
 
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim()
 
@@ -41,12 +41,12 @@ const entries = () =>
 if (command === 'new') {
   const title = positional.join(' ').trim()
   if (!title) {
-    console.error('Usage: npm run changelog -- new "Title" [--area <area>] [--pr <n>] [--highlight]')
+    console.error('Usage: npm run changelog -- new "Title" [--type <type>] [--pr <n>] [--highlight]')
     process.exit(1)
   }
-  const area = flags.area ?? 'interface'
-  if (!AREAS.includes(area)) {
-    console.error(`--area must be one of: ${AREAS.join(', ')}`)
+  const type = flags.type ?? 'new'
+  if (!TYPES.includes(type)) {
+    console.error(`--type must be one of: ${TYPES.join(', ')}`)
     process.exit(1)
   }
   const date = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD, local
@@ -61,7 +61,7 @@ if (command === 'new') {
   try {
     commits = git('log', `${base}..HEAD`, '--no-merges', '--format=- %s')
   } catch {}
-  const front = [`date: ${date}`, `title: ${title}`, `area: ${area}`]
+  const front = [`date: ${date}`, `title: ${title}`, `type: ${type}`]
   if (flags.pr) front.push(`pr: ${flags.pr}`)
   if (flags.highlight) front.push('highlight: true')
   const notes = commits

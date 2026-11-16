@@ -1,11 +1,18 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 
-import { AREA_LABELS, CHANGELOG, ChangelogEntry, formatChangelogDate } from '@utils/changelog'
+import {
+  CHANGELOG,
+  ChangelogEntry,
+  ChangelogType,
+  TYPE_LABELS,
+  formatChangelogDate,
+} from '@utils/changelog'
 
 //
 // ─── CHANGELOG ──────────────────────────────────────────────────────────────────
 //
-// The About panel's Changelog tab: one line per change, newest first, opened for the detail.
+// The About panel's Changelog tab: one line per change, newest first, its type (new, improved,
+// fixed) as an icon on a tile in the type's colour, opened for the detail.
 // Entries come from /changelog (see changelog/README.md). Changes this browser hasn't seen get
 // a dot, on their row and on the tab, until the tab is opened.
 //
@@ -55,6 +62,42 @@ export const useHasUnseenChanges = () =>
 // ─── LIST ───────────────────────────────────────────────────────────────────────
 //
 
+// The types' icons, 16-unit boxes drawn at 12px on the tile.
+const TYPE_ICONS: Record<ChangelogType, JSX.Element> = {
+  new: (
+    <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden>
+      <path d="M8 1.5c.3 2.9 1.6 4.2 4.5 4.5-2.9.3-4.2 1.6-4.5 4.5C7.7 7.6 6.4 6.3 3.5 6 6.4 5.7 7.7 4.4 8 1.5Z" />
+      <path d="M12.5 9.5c.15 1.4.8 2.05 2.2 2.2-1.4.15-2.05.8-2.2 2.2-.15-1.4-.8-2.05-2.2-2.2 1.4-.15 2.05-.8 2.2-2.2Z" />
+    </svg>
+  ),
+  improved: (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M8 13V3.5M3.75 7.5 8 3.25l4.25 4.25" />
+    </svg>
+  ),
+  fixed: (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M10.2 2.3a3.3 3.3 0 0 0-3.9 4.4L2.6 10.4a1.4 1.4 0 0 0 2 2l3.7-3.7a3.3 3.3 0 0 0 4.4-3.9l-2 2-1.9-.5-.5-1.9 1.9-2.1Z" />
+    </svg>
+  ),
+}
+
 const Chevron = () => (
   <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
     <path d="M3 4.5 6 7.5 9 4.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -66,7 +109,7 @@ const ChangelogRow = ({ entry, unseen }: { entry: ChangelogEntry; unseen: boolea
   const detailId = `changelog-${entry.id}`
 
   return (
-    <li className="ui-changelog__row" data-open={open}>
+    <li className="ui-changelog__row" data-type={entry.type} data-open={open}>
       <button
         type="button"
         className="ui-changelog__toggle"
@@ -74,8 +117,12 @@ const ChangelogRow = ({ entry, unseen }: { entry: ChangelogEntry; unseen: boolea
         aria-controls={detailId}
         onClick={() => setOpen(!open)}
       >
-        <span className="ui-changelog__dot" data-unseen={unseen}>
-          {unseen && <span className="sr-only">New: </span>}
+        <span className="ui-changelog__tile" data-unseen={unseen} title={TYPE_LABELS[entry.type]}>
+          {TYPE_ICONS[entry.type]}
+          <span className="sr-only">
+            {TYPE_LABELS[entry.type]}
+            {unseen && ', not seen yet'}:
+          </span>
         </span>
         <span className="ui-changelog__title">{entry.title}</span>
         <time className="ui-changelog__date" dateTime={entry.date}>
@@ -89,8 +136,7 @@ const ChangelogRow = ({ entry, unseen }: { entry: ChangelogEntry; unseen: boolea
         <div id={detailId} className="ui-changelog__detail">
           <p>{entry.body}</p>
           <div className="ui-changelog__meta">
-            <span className="ui-changelog__area">{AREA_LABELS[entry.area]}</span>
-            <span>{formatChangelogDate(entry.date)}</span>
+            <span className="ui-changelog__type">{TYPE_LABELS[entry.type]}</span>
             {entry.prs.map(pr => (
               <a
                 key={pr}

@@ -1,7 +1,7 @@
 ---
 date: 2026-11-15
 title: Score, round timer and objectives
-area: matches
+type: new
 pr: 77
 highlight: true
 ---

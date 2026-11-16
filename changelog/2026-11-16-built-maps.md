@@ -1,7 +1,7 @@
 ---
 date: 2026-11-16
 title: Maps with TF2's lighting
-area: maps
+type: improved
 pr: 87
 highlight: true
 ---

@@ -1,7 +1,7 @@
 ---
 date: 2026-11-15
 title: Maps download 3x smaller
-area: performance
+type: improved
 pr: 77
 ---
 

@@ -6,14 +6,8 @@
 // branches never conflict over one shared list.
 //
 
-export type ChangelogArea =
-  | 'interface'
-  | 'maps'
-  | 'camera'
-  | 'pov'
-  | 'matches'
-  | 'phone'
-  | 'performance'
+/** What kind of change it is: drawn as its icon in the list. */
+export type ChangelogType = 'new' | 'improved' | 'fixed'
 
 export interface ChangelogEntry {
   /** The file name without .md, e.g. 2026-11-16-orbit-camera. */
@@ -21,21 +15,17 @@ export interface ChangelogEntry {
   /** YYYY-MM-DD. */
   date: string
   title: string
-  area: ChangelogArea
+  type: ChangelogType
   body: string
   prs: number[]
   /** Worth leading with: shown first, and in "what's new". */
   highlight: boolean
 }
 
-export const AREA_LABELS: Record<ChangelogArea, string> = {
-  interface: 'Interface',
-  maps: 'Maps',
-  camera: 'Camera',
-  pov: 'POV',
-  matches: 'Match data',
-  phone: 'Phone',
-  performance: 'Performance',
+export const TYPE_LABELS: Record<ChangelogType, string> = {
+  new: 'New',
+  improved: 'Improved',
+  fixed: 'Fixed',
 }
 
 const files = import.meta.glob('/changelog/*.md', {
@@ -58,7 +48,7 @@ const parse = (path: string, source: string): ChangelogEntry | null => {
     id: path.split('/').pop()!.replace(/\.md$/, ''),
     date: meta.date,
     title: meta.title,
-    area: (meta.area as ChangelogArea) in AREA_LABELS ? (meta.area as ChangelogArea) : 'interface',
+    type: (meta.type as ChangelogType) in TYPE_LABELS ? (meta.type as ChangelogType) : 'improved',
     body: match[2].trim(),
     prs: (meta.pr ?? '')
       .split(/[,\s]+/)

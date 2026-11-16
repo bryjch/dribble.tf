@@ -1,7 +1,7 @@
 ---
 date: 2026-11-15
 title: Weapons in first person
-area: pov
+type: new
 pr: 78
 highlight: true
 ---

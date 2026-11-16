@@ -924,7 +924,19 @@
     background: rgb(var(--ui-raised) / calc(var(--ui-raised-alpha) * 1.6));
   }
 
-  /* The changelog: a line per change, opened for the detail. */
+  /* The changelog: a line per change, its type on a tile, opened for the detail. */
+  .ui-changelog__row[data-type='new'] {
+    --ui-change: var(--ui-accent);
+  }
+
+  .ui-changelog__row[data-type='improved'] {
+    --ui-change: var(--ui-good);
+  }
+
+  .ui-changelog__row[data-type='fixed'] {
+    --ui-change: var(--ui-warn);
+  }
+
   .ui-changelog__row + .ui-changelog__row {
     border-top: 1px solid rgb(var(--ui-line) / calc(var(--ui-line-alpha) * 0.55));
   }
@@ -941,15 +953,35 @@
     text-align: left;
   }
 
-  .ui-changelog__dot {
-    width: 6px;
-    height: 6px;
+  .ui-changelog__tile {
+    position: relative;
+    display: flex;
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
-    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    border-radius: 5px;
+    background: rgb(var(--ui-change) / 0.16);
+    color: rgb(var(--ui-change));
   }
 
-  .ui-changelog__dot[data-unseen='true'] {
+  .ui-changelog__tile svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  /* Not seen in this browser yet: a dot on the tile's corner. */
+  .ui-changelog__tile[data-unseen='true']::after {
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 7px;
+    height: 7px;
+    border: 1.5px solid rgb(var(--ui-ground));
+    border-radius: 50%;
     background: rgb(var(--ui-accent));
+    content: '';
   }
 
   .ui-changelog__title {
@@ -989,7 +1021,7 @@
   }
 
   .ui-changelog__detail {
-    padding: 0 20px 12px 14px;
+    padding: 0 20px 12px 28px;
     color: rgb(var(--ui-ink-muted));
     font-size: 13px;
     line-height: 1.5;
@@ -1004,7 +1036,8 @@
     font-size: 11px;
   }
 
-  .ui-changelog__area {
+  .ui-changelog__type {
+    color: rgb(var(--ui-change));
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;

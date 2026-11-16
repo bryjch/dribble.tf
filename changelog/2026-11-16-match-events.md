@@ -1,7 +1,7 @@
 ---
 date: 2026-11-16
 title: Match events sidebar with filters
-area: interface
+type: new
 pr: 88
 highlight: true
 ---

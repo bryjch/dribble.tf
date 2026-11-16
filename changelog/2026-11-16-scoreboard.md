@@ -1,7 +1,7 @@
 ---
 date: 2026-11-16
 title: Scoreboard and saved bookmarks
-area: interface
+type: new
 pr: 83
 ---
 

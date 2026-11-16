@@ -1,7 +1,7 @@
 ---
 date: 2026-11-16
 title: Engineer buildings in TF2's models
-area: matches
+type: new
 pr: 85
 highlight: true
 ---

@@ -8,7 +8,7 @@ conflict over a shared list.
 ---
 date: 2026-11-16
 title: Reworked orbit camera
-area: camera
+type: improved
 pr: 90
 highlight: true
 ---
@@ -17,7 +17,8 @@ One or two sentences for someone watching demos: what they can now do or see.
 ```
 
 - **File name**: `YYYY-MM-DD-slug.md`, the day it shipped (merged into `dev`).
-- **area**: `interface`, `maps`, `camera`, `pov`, `matches`, `phone` or `performance`.
+- **type**: `new` (something you couldn't do before), `improved` (something that works better,
+  looks better or runs faster) or `fixed` (something that was broken). The list shows it as an icon.
 - **pr**: the PR number, or several (`82, 89`). `missing` uses it to tell which PRs are covered.
 - **highlight**: `true` for the changes worth leading with; leave it out otherwise.
 - **Body**: plain text, written for players, not developers. Name the setting or key if there
@@ -26,7 +27,7 @@ One or two sentences for someone watching demos: what they can now do or see.
 ## Commands
 
 ```bash
-npm run changelog -- new "Reworked orbit camera" --area camera --pr 90 --highlight
+npm run changelog -- new "Reworked orbit camera" --type improved --pr 90 --highlight
 npm run changelog -- missing
 ```
 

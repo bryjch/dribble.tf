@@ -1,7 +1,7 @@
 ---
 date: 2026-11-16
 title: Damage numbers in POV
-area: pov
+type: new
 pr: 84
 highlight: true
 ---
