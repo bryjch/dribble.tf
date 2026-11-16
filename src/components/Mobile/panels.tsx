@@ -1,5 +1,5 @@
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
-import { AboutContent } from '@components/UI/AboutPanel'
+import { AboutContent, AboutFooter } from '@components/UI/AboutPanel'
 import { BookmarksContent } from '@components/UI/BookmarksPanel'
 import { MatchEventsList } from '@components/UI/MatchEvents/MatchEventsList'
 import { useMatchEvents } from '@components/UI/MatchEvents/hooks'
@@ -63,6 +63,7 @@ export const PanelBody = ({ panel, match }: { panel: PanelId; match?: MatchSourc
         <RemZoom>
           <div className="ui-about-panel ui-about">
             <AboutContent />
+            <AboutFooter />
           </div>
         </RemZoom>
       )
