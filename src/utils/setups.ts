@@ -9,8 +9,7 @@ import {
 } from '@constants/types'
 import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string'
 
-import { getMapBoundaries } from '@components/Analyse/MapBoundaries'
-import { fetchMapWorldBounds } from '@utils/game'
+import { blenderModelCorner } from '@components/Analyse/MapBoundaries'
 
 const SETUP_HASH_PARAM = 's'
 
@@ -30,7 +29,7 @@ type SharedSetupPayload = {
   s: StickerWire[]
 }
 
-type SupportedStickerSymbol = typeof StickerSymbol[keyof typeof StickerSymbol]
+type SupportedStickerSymbol = (typeof StickerSymbol)[keyof typeof StickerSymbol]
 
 const TEAM_TO_CODE: Record<StickerTeam, 'r' | 'b'> = {
   red: 'r',
@@ -160,12 +159,11 @@ const isSetupVersion = (value: unknown): value is SetupVersion =>
 /**
  * A setup in Source world coordinates. Version 1 setups placed things relative to the map
  * model's minimum corner (the scene's origin when they were made, on an empty map); they are
- * moved by that corner, from the map's conversion.json (else dribble.tf's bounds for the map).
+ * moved by that corner (blenderModelCorner).
  */
 export async function toWorldSetup(setup: SavedSetup): Promise<SavedSetup> {
   if (setup.version === SETUP_STORAGE_VERSION) return setup
-  const corner =
-    (await fetchMapWorldBounds(setup.map))?.boundaryMin ?? getMapBoundaries(setup.map)?.boundaryMin
+  const corner = blenderModelCorner(setup.map)
   if (!corner) return { ...setup, version: SETUP_STORAGE_VERSION }
   const move = ([x, y, z]: [number, number, number]): [number, number, number] => [
     x + corner.x,
@@ -174,7 +172,11 @@ export async function toWorldSetup(setup: SavedSetup): Promise<SavedSetup> {
   ]
   const camera: SavedSetupCamera =
     setup.camera.mode === 'rts'
-      ? { ...setup.camera, position: move(setup.camera.position), target: move(setup.camera.target) }
+      ? {
+          ...setup.camera,
+          position: move(setup.camera.position),
+          target: move(setup.camera.target),
+        }
       : { ...setup.camera, position: move(setup.camera.position) }
   return {
     ...setup,
@@ -189,9 +191,7 @@ export function normalizeStoredSetups(rawValue: unknown): SavedSetup[] {
     return []
   }
 
-  return rawValue
-    .map(normalizeStoredSetup)
-    .filter((setup): setup is SavedSetup => setup !== null)
+  return rawValue.map(normalizeStoredSetup).filter((setup): setup is SavedSetup => setup !== null)
 }
 
 function normalizeStoredSetup(rawValue: unknown): SavedSetup | null {
@@ -410,7 +410,9 @@ function roundNumber(value: number, decimals: number): number {
 }
 
 function isNumberTuple(value: unknown, size: number): value is number[] {
-  return Array.isArray(value) && value.length === size && value.every(item => typeof item === 'number')
+  return (
+    Array.isArray(value) && value.length === size && value.every(item => typeof item === 'number')
+  )
 }
 
 function isNonEmptyString(value: unknown): value is string {

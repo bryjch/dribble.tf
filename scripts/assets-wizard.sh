@@ -427,6 +427,16 @@ MAPS_INDEX=public/models/maps/index.json
 BUILT_MAPS=""
 [[ -f "$MAPS_INDEX" ]] && BUILT_MAPS=$(node -e 'process.stdout.write(Object.keys(require("./" + process.argv[1]).maps).join(" "))' "$MAPS_INDEX")
 [[ -n "$BUILT_MAPS" ]] && note "Built so far: $BUILT_MAPS"
+# Built maps aren't in git (only the index is), so a fresh checkout fetches them from the CDN
+# before building more or uploading.
+MISSING_MAPS=""
+for map in $BUILT_MAPS; do [[ -f "public/models/maps/$map/map.json" ]] || MISSING_MAPS="$MISSING_MAPS $map"; done
+if [[ -n "$MISSING_MAPS" ]]; then
+  warn "Not in this checkout yet:$MISSING_MAPS"
+  if confirm "Fetch them from the CDN (npm run maps:pull)?"; then
+    run npm run maps:pull || warn "some maps weren't fetched; scroll up for why"
+  fi
+fi
 if [[ ! -f "$GAME_DIR/tf2_misc_dir.vpk" ]]; then
   warn "TF2's files aren't there (stage 2), so there's nothing to build from. Skipping."
 elif confirm "Build maps now?"; then
@@ -705,12 +715,12 @@ else
   check "models/buildings/sentry1_red.glb"
   check "models/players/soldier_red.glb"
   [[ -f public/models/maps/index.json ]] && check "models/maps/index.json"
-  MAP=public/models/maps/cp_snakewater_final1/textured_compressed.glb
-  if [[ -f "$MAP" ]]; then
-    REMOTE_SIZE=$(curl -sI "$BASE/${MAP#public/}" | awk 'tolower($1) == "content-length:" { print $2 }' | tr -d '\r')
-    LOCAL_SIZE=$(wc -c < "$MAP" | tr -d ' ')
-    if [[ "$REMOTE_SIZE" == "$LOCAL_SIZE" ]]; then ok "maps match this checkout (cp_snakewater)"
-    else note "maps differ from this checkout (cp_snakewater: CDN ${REMOTE_SIZE:-?} bytes, here $LOCAL_SIZE)"; fi
+  INDEX=public/models/maps/index.json
+  if [[ -f "$INDEX" ]]; then
+    REMOTE_SUM=$(curl -s "$BASE/models/maps/index.json" | shasum -a 256 | cut -c1-64)
+    LOCAL_SUM=$(shasum -a 256 < "$INDEX" | cut -c1-64)
+    if [[ "$REMOTE_SUM" == "$LOCAL_SUM" ]]; then ok "the CDN's maps match this checkout's index"
+    else note "the CDN's map index differs from this checkout's (upload with option 2)"; fi
   fi
   note "A 403 means the file isn't in the bucket yet."
 fi

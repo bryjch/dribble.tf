@@ -1,5 +1,4 @@
 import { LiveSource, StreamMessage } from '@components/Analyse/Data/LiveSource'
-import { getMapModelUrls } from '@utils/game'
 import { builtMapNames } from '@utils/derivedMap'
 import { pickMapVersion } from '@utils/mapVersions'
 import { setUrlDemoStatus } from '@utils/notice'
@@ -158,7 +157,7 @@ export const connectLiveAction = (request: LiveRequest) => {
     const map = live.header.map
     const built = await builtMapNames()
     if (source !== live) return
-    if (getMapModelUrls(map) || pickMapVersion(map, built)) clear()
+    if (pickMapVersion(map, built)) clear()
     else
       setUrlDemoStatus({
         state: 'notice',

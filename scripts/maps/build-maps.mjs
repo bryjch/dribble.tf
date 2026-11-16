@@ -18,6 +18,7 @@
  *
  * Usage:
  *   node scripts/maps/build-maps.mjs <map|file.bsp>... [--bsp-dir <dir>] [--force]
+ *   node scripts/maps/build-maps.mjs --index-only   (refresh maps/index.json, build nothing)
  *        [--game-dir <tf>] [--hl2-dir <hl2>]
  */
 import crypto from 'node:crypto'
@@ -63,6 +64,7 @@ const options = {}
 const inputs = []
 for (let i = 0; i < argv.length; i++) {
   if (argv[i] === '--force') options.force = true
+  else if (argv[i] === '--index-only') options.indexOnly = true
   else if (argv[i].startsWith('--')) options[argv[i].slice(2)] = argv[++i]
   else inputs.push(argv[i])
 }
@@ -72,11 +74,11 @@ const config = (() => {
 })()
 const gameDir = options['game-dir'] ?? config['game-dir']
 const hl2Dir = options['hl2-dir'] ?? config['hl2-dir']
-if (!inputs.length) {
-  console.error('usage: build-maps.mjs <map|file.bsp>... [--bsp-dir <dir>] [--force]')
+if (!inputs.length && !options.indexOnly) {
+  console.error('usage: build-maps.mjs <map|file.bsp>... [--bsp-dir <dir>] [--force] | --index-only')
   process.exit(1)
 }
-if (!gameDir || !fs.existsSync(path.join(gameDir, 'tf2_misc_dir.vpk'))) {
+if (!options.indexOnly && (!gameDir || !fs.existsSync(path.join(gameDir, 'tf2_misc_dir.vpk')))) {
   console.error('TF2 game dir not found: pass --game-dir or set game-dir in scripts/convert-config.json')
   process.exit(1)
 }
@@ -470,7 +472,36 @@ function withPakfile(vpks, bspFile, name) {
   }
 }
 
-async function buildMap(tool, tf2, input) {
+/**
+ * What maps/index.json keeps of a built map, from its map.json: what it was built from and with,
+ * when, and the files it needs. The index is committed and the built files aren't (they live on
+ * the asset host), so this is the record of what's built; npm run maps:pull checks map.json's
+ * hash against it.
+ */
+function indexEntry(name) {
+  const file = path.join(modelsDir, 'maps', name, 'map.json')
+  const bytes = fs.readFileSync(file)
+  const manifest = JSON.parse(bytes)
+  const props = [...new Set(Object.values(manifest.props ?? {}))]
+  const sky = Object.values(manifest.skyboxFaces ?? {})
+  const size = at => (fs.existsSync(at) ? fs.statSync(at).size : 0)
+  return {
+    bspSha256: manifest.bspSha256,
+    bspBytes: manifest.bspBytes,
+    builtAt: manifest.builtAt,
+    builtWith: manifest.builtWith,
+    skybox: manifest.skybox,
+    mapJson: { sha256: sha256(bytes), bytes: bytes.length },
+    files: 1 + manifest.components.length + props.length + sky.length,
+    bytes:
+      bytes.length +
+      manifest.components.reduce((total, component) => total + component.bytes, 0) +
+      props.reduce((total, prop) => total + size(path.join(modelsDir, 'props', prop)), 0) +
+      sky.reduce((total, face) => total + size(path.join(modelsDir, face)), 0),
+  }
+}
+
+async function buildMap(tool, tf2, input, recorded) {
   const started = Date.now()
   const { name, file: bspFile } = await findBsp(input)
   const bsp = fs.readFileSync(bspFile)
@@ -486,6 +517,18 @@ async function buildMap(tool, tf2, input) {
   ) {
     console.log(`${name}: up to date`)
     return previous
+  }
+  // Built from this BSP with this converter already, but its files aren't here (a fresh clone):
+  // they're on the asset host.
+  if (
+    !previous &&
+    !options.force &&
+    recorded?.(name)?.bspSha256 === bspSha256 &&
+    recorded(name).builtWith?.pipeline === PIPELINE_VERSION &&
+    recorded(name).builtWith?.revision === BSP_TO_GLB_REV
+  ) {
+    console.log(`${name}: built already (${recorded(name).builtAt}); npm run maps:pull fetches it, --force rebuilds it`)
+    return null
   }
   const vpks = withPakfile(tf2, bspFile, name)
   console.log(`${name}: converting`)
@@ -648,26 +691,28 @@ async function buildMap(tool, tf2, input) {
 
 // ─── Build ─────────────────────────────────────────────────────────────────────
 
-const tool = bspToGlb()
-const vpks = VpkSet.forGame(gameDir, hl2Dir)
+// --index-only refreshes maps/index.json from the map.json files here, building nothing.
+const tool = options.indexOnly ? null : bspToGlb()
+const vpks = options.indexOnly ? null : VpkSet.forGame(gameDir, hl2Dir)
 const indexFile = path.join(modelsDir, 'maps/index.json')
 const index = fs.existsSync(indexFile) ? readJson(indexFile) : { schema: 'dribble.maps', version: 1, maps: {} }
 const failed = []
 for (const input of inputs) {
   try {
-    const manifest = await buildMap(tool, vpks, input)
-    index.maps[manifest.mapName] = {
-      bspSha256: manifest.bspSha256,
-      builtAt: manifest.builtAt,
-      skybox: manifest.skybox,
-    }
+    const manifest = await buildMap(tool, vpks, input, name => index.maps[name])
+    if (manifest) index.maps[manifest.mapName] = indexEntry(manifest.mapName)
   } catch (error) {
     console.error(`${input}: failed: ${error.message ?? error}`)
     failed.push(input)
   }
 }
+// Every map whose files are here gets its entry refreshed; the rest keep what was recorded.
+for (const name of Object.keys(index.maps))
+  if (fs.existsSync(path.join(modelsDir, 'maps', name, 'map.json'))) index.maps[name] = indexEntry(name)
 index.maps = Object.fromEntries(Object.entries(index.maps).sort(([a], [b]) => a.localeCompare(b)))
-writeJson(indexFile, index)
+index.updatedAt = new Date().toISOString()
+// Committed, so written for reading in a diff.
+fs.writeFileSync(indexFile, JSON.stringify(index, null, 2) + '\n')
 
 // Prop models no map places any more (an earlier build's) go; the CDN keeps its copies.
 const placed = new Set()
@@ -694,7 +739,7 @@ for (const sky of fs.existsSync(skyboxDir) ? fs.readdirSync(skyboxDir) : []) {
   for (const file of fs.readdirSync(dir))
     if (file.endsWith('.webp') && !skies.has(`skybox/${sky}/${file}`)) fs.rmSync(path.join(dir, file))
 }
-vpks.close()
+vpks?.close()
 console.log(`\n${Object.keys(index.maps).length} maps in public/models/maps/index.json`)
 if (failed.length) {
   console.error(`${failed.length} failed: ${failed.join(', ')}`)
