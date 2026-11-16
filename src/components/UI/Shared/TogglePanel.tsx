@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 
+import { HudTooltip } from '@components/UI/Shared/Controls'
 import { cn } from '@utils/styling'
 import { useIsMobile } from '@utils/hooks'
 
@@ -137,25 +138,33 @@ export type TogglePanelButtonProps = {
   children: React.ReactNode
   /** The panel this button opens is open. */
   active?: boolean
-  /** Accessible name, also shown as the native tooltip. */
+  /** Accessible name, also shown as the hover tooltip (not on phones). */
   label: string
+  /** Where the tooltip opens: right of the toolbar on the left, left of a button on the right. */
+  tooltipSide?: 'top' | 'right' | 'bottom' | 'left'
 } & React.ButtonHTMLAttributes<HTMLButtonElement>
 
 export const TogglePanelButton = (props: TogglePanelButtonProps) => {
-  const { children, className, active, label, ...otherProps } = props
+  const { children, className, active, label, tooltipSide = 'right', ...otherProps } = props
   const isMobile = useIsMobile()
 
-  return (
+  const button = (
     <button
       type="button"
       className={cn('ui-toolbar-btn', isMobile && 'h-11 w-11', className)}
       data-active={active ? 'true' : undefined}
       aria-pressed={active}
       aria-label={label}
-      title={label}
       {...otherProps}
     >
       {children}
     </button>
+  )
+  return isMobile ? (
+    button
+  ) : (
+    <HudTooltip content={label} side={tooltipSide}>
+      {button}
+    </HudTooltip>
   )
 }

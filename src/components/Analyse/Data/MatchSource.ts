@@ -22,6 +22,8 @@ export interface CachedDeath {
   assister: PlayerRef | null
   killer: PlayerRef | null
   weapon: string
+  /** The victim was blast jumping (TF2's own airshot flag, stvtf's `airborne`). */
+  airshot: boolean
   victimTeam: number
   assisterTeam: number
   killerTeam: number
@@ -104,7 +106,7 @@ export function lerpPlayers(a: CachedPlayer[], b: CachedPlayer[], t: number): Ca
   const next = new Map(b.map(p => [p.user.entityId, p]))
   return a.map(p => {
     const q = next.get(p.user.entityId)
-    if (!q || (p.health > 0) !== (q.health > 0) || far(p.position, q.position)) return p
+    if (!q || p.health > 0 !== q.health > 0 || far(p.position, q.position)) return p
     return {
       ...p,
       position: {
@@ -149,7 +151,14 @@ export function lerpProjectiles(
 }
 
 /** States a round begins from: setup, or the end of the previous round. */
-const BEFORE_ROUND = new Set(['preround', 'team_win', 'stalemate', 'restart', 'bonus', 'between_rounds'])
+const BEFORE_ROUND = new Set([
+  'preround',
+  'team_win',
+  'stalemate',
+  'restart',
+  'bonus',
+  'between_rounds',
+])
 
 /**
  * Round starts from round-state keys: where play begins after setup or a previous round. A

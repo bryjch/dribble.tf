@@ -1,7 +1,7 @@
 import { useRef, useEffect, useLayoutEffect, useMemo, useCallback, memo, Suspense } from 'react'
 
 import * as THREE from 'three'
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { Html, useGLTF, Clone } from '@react-three/drei'
 
 import { HealBeam } from '@components/Scene/HealBeam'
@@ -16,15 +16,12 @@ import { useInstance, useStore } from '@zus/store'
 import { CLASS_MAP, PLAYER_DIMENSIONS } from '@constants/mappings'
 import { cameraQuaternionFromSourceAnglesDeg, yawQuaternionFromDegrees } from '@utils/geometry'
 import { getAsset } from '@utils/misc'
-import { useEventListener } from '@utils/hooks'
 
 export const ActorDimensions = new THREE.Vector3(
   PLAYER_DIMENSIONS.x,
   PLAYER_DIMENSIONS.y,
   PLAYER_DIMENSIONS.z
 )
-
-
 
 //
 // ─── PLAYER MODEL ───────────────────────────────────────────────────────────────
@@ -51,7 +48,9 @@ function applyModelEffects(root: THREE.Object3D, cloaked: boolean, tint: string 
   root.traverse(object => {
     const mesh = object as THREE.Mesh
     if (!mesh.isMesh) return
-    const materials = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) as EffectMaterial[]
+    const materials = (
+      Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    ) as EffectMaterial[]
     for (const material of materials) {
       const original = (material.userData.original ??= {
         transparent: material.transparent,
@@ -263,7 +262,7 @@ const Actor = memo(({ player, register, positionOf }: ActorProps) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entityId, register])
 
-  const origin = actorRef.current?.position
+  const aim = playerAimRef.current
   const target = healTarget ? positionOf(healTarget) : undefined
 
   return (
@@ -294,7 +293,9 @@ const Actor = memo(({ player, register, positionOf }: ActorProps) => {
 
       {/* Medic heal beam: both ends are the players' objects, moved every frame */}
 
-      {origin && target && <HealBeam origin={origin} target={target} color={color} />}
+      {aim && target && (
+        <HealBeam aim={aim} entityId={entityId} focused={isFocusedPOV} target={target} color={color} />
+      )}
 
       {/* Nameplate */}
 
@@ -330,15 +331,16 @@ export const POVCamera = ({}: POVCameraProps) => {
   const ref = useRef<THREE.PerspectiveCamera>(null)
 
   const settings = useStore(state => state.settings)
+  // The canvas, not the window: a docked sidebar makes the canvas narrower than the window.
+  const size = useThree(state => state.size)
 
   const updateCamera = () => {
     if (!ref.current) return
-    ref.current.aspect = window.innerWidth / window.innerHeight
+    ref.current.aspect = size.width / size.height
     ref.current.updateProjectionMatrix()
   }
 
-  useEffect(updateCamera, [settings])
-  useEventListener('resize', updateCamera, window)
+  useEffect(updateCamera, [settings, size.width, size.height])
 
   return (
     <perspectiveCamera

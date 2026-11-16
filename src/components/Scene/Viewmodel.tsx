@@ -85,8 +85,17 @@ const loadGltf = (url: string) => {
 const verticalFov = (sourceFov: number) =>
   THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(sourceFov) / 2) * 0.75))
 
+/**
+ * Where the spectated medic's medigun nozzle is on screen, for the heal beam to start from: its
+ * position in normalised device coordinates and its distance from the camera, in the viewmodel's
+ * own view. entityId is -1 while no medigun is shown.
+ */
+export const viewmodelMuzzle = { entityId: -1, ndc: new THREE.Vector3(), distance: 0 }
+
 interface Selection {
   key: string
+  /** A medigun: the heal beam starts at its nozzle. */
+  medigun: boolean
   armsUrl: string
   animsUrl: string
   weaponUrl: string
@@ -108,6 +117,7 @@ function selectViewmodel(manifest: ViewmodelManifest, player?: CachedPlayer): Se
     animsUrl: viewmodelUrl(classModels.anims),
     weaponUrl: viewmodelUrl((blue && weapon.blue) || weapon.red),
     clips: classModels.clips[entry[1]] ?? {},
+    medigun: entry[0].includes('medigun'),
   }
 }
 
@@ -157,7 +167,7 @@ const ViewmodelSelector = ({
 
 /** Loads the arms, their animations and the weapon (all at once), then shows the rig. */
 const ViewmodelLoader = ({ selection, entityId }: { selection: Selection; entityId: number }) => {
-  const { armsUrl, animsUrl, weaponUrl, clips } = selection
+  const { armsUrl, animsUrl, weaponUrl, clips, medigun } = selection
   const [models, setModels] = useState<[GLTF, GLTF, GLTF] | null>(null)
   useEffect(() => {
     let live = true
@@ -176,6 +186,7 @@ const ViewmodelLoader = ({ selection, entityId }: { selection: Selection; entity
       weapon={models[2]}
       clips={clips}
       entityId={entityId}
+      medigun={medigun}
     />
   )
 }
@@ -190,9 +201,38 @@ interface ViewmodelRigProps {
   weapon: GLTF
   clips: Clips
   entityId: number
+  medigun: boolean
 }
 
-const ViewmodelRig = ({ arms, anims, weapon, clips, entityId }: ViewmodelRigProps) => {
+// The nozzle's vertex: the weapon's farthest point from the camera, found on the first frame.
+interface Nozzle {
+  mesh: THREE.SkinnedMesh
+  index: number
+}
+
+const _vertex = new THREE.Vector3()
+
+/** The weapon vertex farthest into the screen: a medigun's nozzle. */
+function findNozzle(weapon: THREE.Object3D, camera: THREE.Camera): Nozzle | null {
+  let best: Nozzle | null = null
+  let bestZ = Infinity
+  weapon.traverse(o => {
+    const mesh = o as THREE.SkinnedMesh
+    if (!mesh.isSkinnedMesh) return
+    const count = mesh.geometry.attributes.position.count
+    for (let i = 0; i < count; i++) {
+      mesh.getVertexPosition(i, _vertex)
+      _vertex.applyMatrix4(mesh.matrixWorld).applyMatrix4(camera.matrixWorldInverse)
+      if (_vertex.z < bestZ) {
+        bestZ = _vertex.z
+        best = { mesh, index: i }
+      }
+    }
+  })
+  return best
+}
+
+const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: ViewmodelRigProps) => {
   // The weapon came out (this rig mounted during playback): the draw animation plays from this
   // tick. Paused, or jumping to another player or tick, it is simply in hand.
   const drawTick = useRef(getState().playback.playing ? sceneFrame.tick : -Infinity)
@@ -238,6 +278,8 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId }: ViewmodelRigProp
         })
     return {
       root,
+      weaponScene,
+      nozzle: null as Nozzle | null,
       mixer,
       idle: actions(clips.idle),
       fire: actions(clips.fire),
@@ -248,11 +290,12 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId }: ViewmodelRigProp
   useEffect(
     () => () => {
       rig.mixer.stopAllAction()
+      if (viewmodelMuzzle.entityId === entityId) viewmodelMuzzle.entityId = -1
     },
-    [rig]
+    [rig, entityId]
   )
 
-  useFrame(() => {
+  useFrame(({ camera }) => {
     const now = sceneFrame.tick
     const intervalPerTick = sceneFrame.match?.intervalPerTick || 0.015
     const lastShotTick = sceneFrame.playersByEntity.get(entityId)?.lastShotTick ?? null
@@ -292,6 +335,19 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId }: ViewmodelRigProp
       idle.weight = 1
     }
     rig.mixer.update(0)
+
+    if (medigun) {
+      // Posed bones now, so the nozzle is where this frame draws it.
+      rig.root.updateMatrixWorld(true)
+      rig.nozzle ??= findNozzle(rig.weaponScene, camera)
+      if (rig.nozzle) {
+        rig.nozzle.mesh.getVertexPosition(rig.nozzle.index, _vertex)
+        _vertex.applyMatrix4(rig.nozzle.mesh.matrixWorld)
+        viewmodelMuzzle.ndc.copy(_vertex).project(camera)
+        viewmodelMuzzle.distance = _vertex.applyMatrix4(camera.matrixWorldInverse).length()
+        viewmodelMuzzle.entityId = entityId
+      }
+    }
   })
 
   return <primitive object={rig.root} />

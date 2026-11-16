@@ -121,7 +121,7 @@
     left: calc(100% + 0.5rem);
     display: flex;
     max-height: calc(100vh - 2rem - var(--ui-dock-clearance));
-    max-width: calc(100vw - 4.5rem);
+    max-width: calc(100vw - var(--ui-sidebar-width, 0px) - 4.5rem);
     flex-direction: column;
     overflow: hidden;
     border: var(--ui-border-width) solid rgb(var(--ui-line) / var(--ui-line-alpha));
@@ -350,7 +350,8 @@
   select.ui-input {
     appearance: none;
     padding-right: 2rem;
-    background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    background-image:
+      linear-gradient(45deg, transparent 50%, currentColor 50%),
       linear-gradient(135deg, currentColor 50%, transparent 50%);
     background-position:
       calc(100% - 1rem) 55%,
@@ -1027,6 +1028,12 @@
     padding-bottom: calc(2.25rem + var(--ui-dock-clearance));
   }
 
+  /* Page-level overlays (camera tips, drawing) that stay over the viewer, clear of a docked
+     match events sidebar. */
+  .ui-layer.ui-beside-sidebar {
+    right: var(--ui-sidebar-width, 0px);
+  }
+
   .ui-tips__stack {
     display: grid;
     align-items: end;
@@ -1623,7 +1630,7 @@
 
   .hud-playback {
     position: relative;
-    width: min(52rem, calc(100vw - 2rem));
+    width: min(52rem, calc(100vw - var(--ui-sidebar-width, 0px) - 2rem));
     margin: 0 1rem calc(0.5rem + var(--ui-strip-clearance));
     font-family: var(--ui-font-hud);
   }
@@ -2065,7 +2072,7 @@
      at 50vw - 28.6rem) on screens wide enough to have room beside it. */
   .hud-chat {
     display: flex;
-    max-width: max(16rem, min(34rem, calc(50vw - 30.5rem)));
+    max-width: max(16rem, min(34rem, calc(50vw - var(--ui-sidebar-width, 0px) / 2 - 30.5rem)));
     flex-direction: column;
     align-items: flex-start;
     gap: 0.2rem;
@@ -2094,7 +2101,7 @@
 
   .hud-fps {
     position: fixed;
-    right: 0;
+    right: var(--ui-sidebar-width, 0px);
     bottom: max(var(--ui-dock-clearance), var(--ui-strip-clearance));
     z-index: 2000000000;
     padding: 0.15rem 0.5rem;
@@ -2105,6 +2112,275 @@
     font-variant-numeric: tabular-nums;
     line-height: 1.4;
     pointer-events: none;
+  }
+
+  /* ─── Match events sidebar ────────────────────────────────────────────────── */
+
+  /* Docked right of the viewer, which shrinks beside it; --ui-sidebar-width is set on the root
+     while it is open, for the overlays outside the viewer (camera tips, drawing). */
+  .ui-sidebar {
+    display: flex;
+    height: 100%;
+    flex-shrink: 0;
+    flex-direction: column;
+    border-left: var(--ui-border-width) solid rgb(var(--ui-line) / var(--ui-line-alpha));
+    background: rgb(var(--ui-ground));
+    color: rgb(var(--ui-ink));
+  }
+
+  .ui-sidebar__header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgb(var(--ui-line) / 0.3);
+  }
+
+  .ui-sidebar__title {
+    font-family: var(--ui-font-display);
+    font-size: 0.875rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .ui-sidebar__bar {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* A filter that is on or off. */
+  .ui-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.1rem 0.5rem;
+    border: 1px solid rgb(var(--ui-line) / 0.4);
+    border-radius: var(--ui-radius-chip);
+    color: rgb(var(--ui-ink-faint));
+    font-size: 0.7rem;
+    font-weight: 700;
+    transition:
+      color 0.15s,
+      border-color 0.15s,
+      background-color 0.15s;
+  }
+
+  .ui-chip:hover {
+    border-color: rgb(var(--ui-line));
+    color: rgb(var(--ui-ink-muted));
+  }
+
+  .ui-chip[aria-pressed='true'] {
+    border-color: rgb(var(--ui-ink) / 0.5);
+    background: rgb(var(--ui-raised) / var(--ui-raised-alpha));
+    color: rgb(var(--ui-ink));
+  }
+
+  .ui-chip[data-team][aria-pressed='true'] {
+    border-color: rgb(var(--team-ink) / 0.7);
+    background: rgb(var(--team) / 0.25);
+    color: rgb(var(--team-ink));
+  }
+
+  .ui-chip__count {
+    font-family: var(--ui-font-mono);
+    font-weight: 400;
+  }
+
+  /* Icon-only toggles, named by their tooltip. */
+  .ui-icon-toggle {
+    display: inline-flex;
+    width: 1.5rem;
+    height: 1.5rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgb(var(--ui-line) / 0.4);
+    border-radius: var(--ui-radius-chip);
+    color: rgb(var(--ui-ink-muted));
+  }
+
+  .ui-icon-toggle:hover {
+    color: rgb(var(--ui-ink));
+  }
+
+  .ui-icon-toggle[aria-pressed='true'] {
+    border-color: rgb(var(--ui-ink) / 0.5);
+    background: rgb(var(--ui-raised) / var(--ui-raised-alpha));
+    color: rgb(var(--ui-ink));
+  }
+
+  .ui-round-pill {
+    min-width: 1.9rem;
+    padding: 0.1rem 0.375rem;
+    border-radius: 0.125rem;
+    background: rgb(var(--ui-raised) / var(--ui-raised-alpha));
+    color: rgb(var(--ui-ink-muted));
+    font-size: 0.65rem;
+    font-weight: 800;
+  }
+
+  .ui-round-pill[data-team] {
+    background: rgb(var(--team) / 0.75);
+    color: #fff;
+  }
+
+  .ui-round-pill[data-current='true'] {
+    box-shadow: 0 0 0 2px rgb(var(--ui-warn));
+  }
+
+  .ui-round-header {
+    position: sticky;
+    z-index: 10;
+    top: 0;
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid rgb(var(--ui-line) / 0.3);
+    border-radius: var(--ui-radius-control);
+    background: rgb(var(--ui-ground));
+    text-align: left;
+  }
+
+  .ui-round-header[data-current='true'] {
+    border-color: rgb(var(--ui-warn) / 0.5);
+  }
+
+  /* Short labels on an event: 3K, AIRSHOT, DROP, ÜBER. */
+  .ui-tag {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    padding: 0.1rem 0.25rem;
+    border-radius: 0.125rem;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .ui-tag[data-tone='streak'] {
+    background: rgb(245 158 11 / 0.9);
+    color: #000;
+  }
+
+  .ui-tag[data-tone='airshot'] {
+    background: rgb(14 165 233 / 0.9);
+    color: #000;
+  }
+
+  .ui-tag[data-tone='drop'] {
+    background: rgb(192 38 211 / 0.9);
+    color: #fff;
+  }
+
+  .ui-tag[data-tone='uber'] {
+    background: rgb(var(--ui-ink) / 0.85);
+    color: rgb(var(--ui-ground));
+  }
+
+  .ui-tag[data-tone='team'] {
+    background: rgb(var(--team) / 0.85);
+    color: #fff;
+  }
+
+  .ui-tag[data-tone='muted'] {
+    background: rgb(var(--ui-raised) / var(--ui-raised-alpha));
+    color: rgb(var(--ui-ink-muted));
+  }
+
+  .ui-event-row[data-future='true'] {
+    opacity: 0.45;
+  }
+
+  /* The event at the playhead: its time, as an amber pill. */
+  .ui-event-row[data-now='true'] .ui-time {
+    border-radius: 0.2rem;
+    background: rgb(var(--ui-warn));
+    color: #000;
+    font-weight: 700;
+    text-align: center;
+    opacity: 1;
+  }
+
+  .ui-event-row[data-moment] {
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .ui-event-row[data-moment][data-team] {
+    background: rgb(var(--team) / 0.14);
+    color: rgb(var(--team-ink));
+  }
+
+  .ui-event-row[data-moment]:not([data-team]) {
+    color: rgb(var(--ui-ink-muted));
+  }
+
+  /* Over the list when the event at the playhead has been scrolled away from: over the bottom
+     of the sidebar's list, or (in a phone sheet, whose body scrolls the list) sticky at the
+     bottom of the sheet. */
+  .ui-jump-now-overlay {
+    position: absolute;
+    z-index: 20;
+    right: 0;
+    bottom: 1rem;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .ui-jump-now-dock {
+    position: sticky;
+    z-index: 20;
+    bottom: 1rem;
+    display: flex;
+    height: 0;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .ui-jump-now {
+    display: inline-flex;
+    height: 1.75rem;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0 0.75rem 0 0.625rem;
+    border-radius: 9999px;
+    background: rgb(var(--ui-warn));
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.4);
+    color: #000;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: auto;
+  }
+
+  .ui-jump-now-dock .ui-jump-now {
+    transform: translateY(-100%);
+  }
+
+  .ui-jump-now__time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    opacity: 0.6;
+  }
+
+  /* The picked player's card: who, and chips for their kills, deaths, übers and drops. */
+  .ui-player-card {
+    padding: 0.5rem;
+    border: 1px solid rgb(var(--team) / 0.45);
+    border-radius: var(--ui-radius-control);
+    background: rgb(var(--team) / 0.08);
   }
 
   /* ─── Scoreboard: the rosters opened out ───────────────────────────────────── */

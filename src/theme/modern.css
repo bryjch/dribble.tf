@@ -82,7 +82,6 @@ html[data-theme='modern'] {
   --ui-sheet-zoom: 1;
 }
 
-
 html[data-theme='modern'] body {
   font-size: 13px;
 }
@@ -497,7 +496,7 @@ html[data-theme='modern'] body {
   /* Docked: PlaybackPanel measures it into --ui-dock-clearance for the other overlays. */
   --ui-dock: docked;
   display: flex;
-  width: 100vw;
+  width: calc(100vw - var(--ui-sidebar-width, 0px));
   align-items: center;
   gap: 0.75rem;
   margin: 0 0 calc(var(--ui-strip-clearance) - 1rem);

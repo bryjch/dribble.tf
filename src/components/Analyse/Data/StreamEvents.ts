@@ -53,6 +53,7 @@ export function toDeath(tick: number, m: StreamMessage, refOf: PlayerLookup): Ca
     killer,
     assister,
     weapon: m.weapon ?? '',
+    airshot: !!m.airborne,
     victimTeam: teamIdOf(victim),
     killerTeam: teamIdOf(killer),
     assisterTeam: teamIdOf(assister),
@@ -72,7 +73,10 @@ export function toDamageHit(
   const attacker = refOf(m.attacker)?.user.entityId ?? -1
   const victim = refOf(m.victim)?.user.entityId ?? -1
   if (attacker < 0 || victim < 0) return null
-  return { attacker, hit: { tick, victim, amount: m.amount, crit: !!m.crit, minicrit: !!m.minicrit } }
+  return {
+    attacker,
+    hit: { tick, victim, amount: m.amount, crit: !!m.crit, minicrit: !!m.minicrit },
+  }
 }
 
 /** TF2's colour codes for a line stvtf split into coloured parts: 1 normal, 3 the sender's team
@@ -80,12 +84,21 @@ export function toDamageHit(
 const partsToMarkup = (parts: { c: string | null; t: string }[]) =>
   parts.map(({ c, t }) => (c === 'team' ? '\x03' : c ? `\x07${c}` : '\x01') + t).join('')
 
+/** A server plugin's line ("[SOAP] Plugins reloaded."), its leading [tag] in TF2's green. */
+const serverMarkup = (text: string) => text.replace(/^(\[[^\]]+\])?/, (tag) => (tag ? `\x04${tag}\x01` : '\x01'))
+
 /** A `chat` or `server_text` line as the chat HUD shows it; null for one with nothing to show. */
 export function toChatEntry(tick: number, m: StreamMessage, slot: number | null): ChatEntry | null {
   if (m.type === 'server_text') {
-    return m.text ? { tick, kind: 'Empty', rawText: `\x01${m.text}`, clientPlayerId: null } : null
+    return m.text ? { tick, kind: 'Empty', rawText: serverMarkup(m.text), clientPlayerId: null } : null
   }
   if (m.kind === 'Empty' || m.kind === 'NameChange' || !m.text) return null
+  // Plugins (SOAP, LogsTF, pause) say their lines as a sender with no name, in their own colours
+  // when they give some.
+  if (m.name == null) {
+    const rawText = Array.isArray(m.parts) ? partsToMarkup(m.parts) : serverMarkup(m.text)
+    return { tick, kind: 'Empty', rawText, clientPlayerId: null }
+  }
   const rawText =
     m.player == null || m.kind === 'SayText'
       ? Array.isArray(m.parts)
@@ -95,7 +108,11 @@ export function toChatEntry(tick: number, m: StreamMessage, slot: number | null)
   return { tick, kind: m.kind, rawText, clientPlayerId: slot }
 }
 
-export function toUberPop(tick: number, m: StreamMessage, refOf: PlayerLookup): MatchUberEvent | null {
+export function toUberPop(
+  tick: number,
+  m: StreamMessage,
+  refOf: PlayerLookup
+): MatchUberEvent | null {
   const medic = refOf(m.medic)
   if (!medic) return null
   return {
@@ -146,10 +163,9 @@ export const CONDITION_FLAGS = [
 
 export type ConditionFlag = (typeof CONDITION_FLAGS)[number][0]
 
-const CONDITION_BIT = Object.fromEntries(CONDITION_FLAGS.map(([flag], bit) => [flag, 1 << bit])) as Record<
-  ConditionFlag,
-  number
->
+const CONDITION_BIT = Object.fromEntries(
+  CONDITION_FLAGS.map(([flag], bit) => [flag, 1 << bit])
+) as Record<ConditionFlag, number>
 
 /** Whether a player's condition bits (CachedPlayer.conditions) include a flag. */
 export const hasCondition = (conditions: number, flag: ConditionFlag) =>

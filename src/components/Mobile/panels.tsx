@@ -1,7 +1,8 @@
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
 import { AboutContent } from '@components/UI/AboutPanel'
 import { BookmarksContent } from '@components/UI/BookmarksPanel'
-import { MatchEventsList, useMatchEvents } from '@components/UI/MatchKillfeedPanel'
+import { MatchEventsList } from '@components/UI/MatchEvents/MatchEventsList'
+import { useMatchEvents } from '@components/UI/MatchEvents/hooks'
 import { SettingsContent } from '@components/UI/SettingsPanel'
 
 import { CameraSwitch, RemZoom, SheetTab } from './parts'
@@ -23,10 +24,11 @@ export const PANEL_TABS: Record<PanelId, SheetTab> = {
 }
 
 const EventsBody = () => {
-  const matchEvents = useMatchEvents()
+  const data = useMatchEvents()
+  if (!data) return null
   return (
     <RemZoom force>
-      <MatchEventsList {...matchEvents} />
+      <MatchEventsList data={data} scrollsItself={false} />
     </RemZoom>
   )
 }
