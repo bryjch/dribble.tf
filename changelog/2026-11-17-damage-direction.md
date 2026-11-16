@@ -2,6 +2,7 @@
 date: 2026-11-17
 title: Damage direction
 type: new
+pr: 102
 highlight: true
 ---
 
