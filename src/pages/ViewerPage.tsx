@@ -128,7 +128,7 @@ const ViewerPage = () => {
 
       {/* Camera tip panels overlays - hidden on mobile (keyboard shortcuts not relevant) */}
       {!isMobile && !mobileLayout.active && (
-        <div className="ui-layer ui-tips pointer-events-none items-end justify-end overflow-hidden">
+        <div className="ui-layer ui-beside-sidebar ui-tips pointer-events-none items-end justify-end overflow-hidden">
           <div className="ui-tips__stack pointer-events-none">
             <POVCameraTipPanel />
             <SpectatorCameraTipPanel />
@@ -138,7 +138,7 @@ const ViewerPage = () => {
       )}
 
       {/* Drawing overlay */}
-      <div className="ui-layer">
+      <div className="ui-layer ui-beside-sidebar">
         <DemoDrawing />
       </div>
 

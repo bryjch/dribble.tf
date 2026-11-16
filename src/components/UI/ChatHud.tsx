@@ -3,6 +3,7 @@ import { isMobile } from 'react-device-detect'
 
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
 import { ChatEntry } from '@components/Analyse/Data/Types'
+import { useStore } from '@zus/store'
 
 const HUD_CHAT_TIME_SECONDS = 12
 const HUD_CHAT_FADE_SECONDS = 2
@@ -198,6 +199,7 @@ export interface ChatHudProps {
 
 export const ChatHud = (props: ChatHudProps) => {
   const { parser, tick } = props
+  const show = useStore(state => state.settings.ui.showChat !== false)
 
   const intervalPerTick = parser.intervalPerTick ?? 0.015
   const visible = useMemo(
@@ -205,7 +207,7 @@ export const ChatHud = (props: ChatHudProps) => {
     [parser, tick, intervalPerTick]
   )
 
-  if (!visible.length || isMobile) {
+  if (!show || !visible.length || isMobile) {
     return null
   }
 

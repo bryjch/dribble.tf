@@ -529,6 +529,11 @@ export const SettingsContent = () => {
         checked={settings.ui.showObjectives !== false}
         onChange={checked => updateSettingsOption('ui.showObjectives', checked)}
       />
+      <ToggleOption
+        label="Show chat"
+        checked={settings.ui.showChat !== false}
+        onChange={checked => updateSettingsOption('ui.showChat', checked)}
+      />
 
       <SliderOption
         label="Killfeed seek buffer"

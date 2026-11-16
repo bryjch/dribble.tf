@@ -32,11 +32,14 @@ import { CachedPlayer } from './Analyse/Data/PlayerTracks'
 import { AboutPanel } from '@components/UI/AboutPanel'
 import { SettingsPanel } from '@components/UI/SettingsPanel'
 import { PlaybackPanel } from '@components/UI/PlaybackPanel'
-import { Killfeed } from '@components/UI/Killfeed'
 import { ChatHud } from '@components/UI/ChatHud'
 import { PlayerStatuses } from '@components/UI/PlayerStatuses'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
-import { MatchKillfeedPanel } from '@components/UI/MatchKillfeedPanel'
+import {
+  KillfeedWithEventsToggle,
+  MatchEventsSheet,
+  MatchEventsSidebar,
+} from '@components/UI/MatchEvents/MatchEventsSidebar'
 import { BookmarksPanel } from '@components/UI/BookmarksPanel'
 import { SetupsPanel } from '@components/UI/SetupsPanel'
 import { FpsCounter } from '@components/UI/FpsCounter'
@@ -550,7 +553,7 @@ const PanelToolbar = ({ hasDemoLoaded }: { hasDemoLoaded: boolean }) => {
         <AboutPanel />
         <SettingsPanel />
         <SetupsPanel />
-        {hasDemoLoaded && <MatchKillfeedPanel />}
+        {hasDemoLoaded && <MatchEventsSheet />}
         {hasDemoLoaded && <BookmarksPanel />}
       </nav>
     </div>
@@ -629,95 +632,100 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
   }
 
   return (
-    <div className="h-screen w-screen">
-      <DerivedMapController map={map} />
-      <Canvas
-        ref={canvasRef}
-        id="main-canvas"
-        gl={{ alpha: true }}
-        dpr={CANVAS_DPR}
-        onCreated={({ gl }) => setBenchRenderer(gl)}
-        onContextMenu={e => e.preventDefault()}
-        onPointerDown={onPointerDown}
-        onPointerUp={onPointerUp}
-      >
-        {/* Playback: moves the clock and reads the match, before anything else in the frame */}
+    // A row: the viewer, and the match events sidebar docked beside it (the viewer shrinks).
+    <div className="flex h-screen w-screen">
+      <div className="relative h-full min-w-0 flex-1">
+        <DerivedMapController map={map} />
+        <Canvas
+          ref={canvasRef}
+          id="main-canvas"
+          gl={{ alpha: true }}
+          dpr={CANVAS_DPR}
+          onCreated={({ gl }) => setBenchRenderer(gl)}
+          onContextMenu={e => e.preventDefault()}
+          onPointerDown={onPointerDown}
+          onPointerUp={onPointerUp}
+        >
+          {/* Playback: moves the clock and reads the match, before anything else in the frame */}
 
-        <PlaybackDriver match={demo} />
+          <PlaybackDriver match={demo} />
 
-        {/* Base scene elements */}
+          {/* Base scene elements */}
 
-        <Lights map={map} />
-        <Controls />
-        <PerfProbe enabled={perfLoggingEnabled} />
-        <CanvasKeyHandler />
+          <Lights map={map} />
+          <Controls />
+          <PerfProbe enabled={perfLoggingEnabled} />
+          <CanvasKeyHandler />
 
-        {/* World Map */}
+          {/* World Map */}
 
-        <Suspense fallback={null}>
-          <World map={map} mode={sceneMode} />
-        </Suspense>
+          <Suspense fallback={null}>
+            <World map={map} mode={sceneMode} />
+          </Suspense>
 
-        {ENABLE_DEBUG_MAP_OFFSET && <MapCenterMarker />}
+          {ENABLE_DEBUG_MAP_OFFSET && <MapCenterMarker />}
 
-        <Stickers />
+          <Stickers />
 
-        {/* Skybox */}
+          {/* Skybox */}
 
-        {showSkybox && <Skybox map={map} />}
+          {showSkybox && <Skybox map={map} />}
 
-        {/* Actors */}
+          {/* Actors */}
 
-        <Suspense fallback={null}>
-          <PlayerOutlines enabled={playerOutlines}>
-            <Actors match={demo} />
-          </PlayerOutlines>
-        </Suspense>
+          <Suspense fallback={null}>
+            <PlayerOutlines enabled={playerOutlines}>
+              <Actors match={demo} />
+            </PlayerOutlines>
+          </Suspense>
 
-        {/* Buildings, control points, carts, flags */}
+          {/* Buildings, control points, carts, flags */}
 
-        <MatchProps match={demo} />
+          <MatchProps match={demo} />
 
-        {/* In POV, the damage the spectated player deals, over whoever they hit */}
+          {/* In POV, the damage the spectated player deals, over whoever they hit */}
 
-        <DamageNumbers match={demo} />
+          <DamageNumbers match={demo} />
 
-        {/* Projectiles */}
+          {/* Projectiles */}
 
-        <Projectiles />
+          <Projectiles />
 
-        {/* The spectated player's arms and weapon, over everything, in POV */}
+          {/* The spectated player's arms and weapon, over everything, in POV */}
 
-        <Viewmodel />
-      </Canvas>
+          <Viewmodel />
+        </Canvas>
 
-      {/* Normal React (non-THREE.js) UI elements */}
+        {/* Normal React (non-THREE.js) UI elements */}
 
-      {showStats && <FpsCounter />}
+        {showStats && <FpsCounter />}
 
-      <div className="ui-layer pointer-events-none items-center justify-center">
-        <Crosshair />
+        <div className="ui-layer pointer-events-none items-center justify-center">
+          <Crosshair />
+        </div>
+
+        <div className="ui-layers">
+          {mobile.active ? (
+            <MobileShell landscape={mobile.landscape} match={demo} />
+          ) : (
+            <>
+              <DoubleTapSeek />
+
+              {demo && (
+                <div className="ui-layer mb-4 items-end justify-center text-center">
+                  <PlaybackPanel />
+                </div>
+              )}
+
+              <MatchHud match={demo} />
+
+              <PanelToolbar hasDemoLoaded={!!demo} />
+            </>
+          )}
+        </div>
       </div>
-
-      <div className="ui-layers">
-        {mobile.active ? (
-          <MobileShell landscape={mobile.landscape} match={demo} />
-        ) : (
-          <>
-            <DoubleTapSeek />
-
-            {demo && (
-              <div className="ui-layer mb-4 items-end justify-center text-center">
-                <PlaybackPanel />
-              </div>
-            )}
-
-            <MatchHud match={demo} />
-
-            <PanelToolbar hasDemoLoaded={!!demo} />
-          </>
-        )}
-      </div>
+      {/* Phones show match events in their own Events sheet instead. */}
+      {demo && !mobile.active && <MatchEventsSidebar />}
     </div>
   )
 })
@@ -773,7 +781,7 @@ const MatchHud = ({ match }: { match?: MatchSource }) => {
       <div className="ui-layer m-4 items-start justify-end">
         <div className="flex flex-col items-end gap-2">
           {ENABLE_DEBUG_MAP_OFFSET && <MapOffsetDebugPanel />}
-          <Killfeed parser={match} tick={tick} />
+          <KillfeedWithEventsToggle match={match} tick={tick} />
         </div>
       </div>
 

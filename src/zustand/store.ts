@@ -211,8 +211,14 @@ export type StoreState = {
       showSkybox: boolean
       /** The score, timer and objectives HUD, and the objectives in the world. Saved settings from before lack it. */
       showObjectives?: boolean
+      /** The chat HUD. Saved settings from before lack it. */
+      showChat?: boolean
       viewDistance: number
       killfeedSeekBuffer: number
+      /** Whether the match events sidebar is shown. */
+      matchEvents: {
+        open: boolean
+      }
       /** Which look the overlays use; see @theme/themes. Saved settings from before lack it. */
       theme?: ThemeId
       /** The spectated player's arms and weapon in POV; fov is Source's viewmodel_fov. */
@@ -318,8 +324,12 @@ export const initialState: StoreState = {
       showStats: true,
       showSkybox: true,
       showObjectives: true,
+      showChat: true,
       viewDistance: 15000,
       killfeedSeekBuffer: 2,
+      matchEvents: {
+        open: false,
+      },
       theme: DEFAULT_THEME,
       viewmodel: {
         enabled: true,

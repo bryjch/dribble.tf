@@ -69,7 +69,7 @@ export type StickerAnnotation = StickerDefinition & {
 export const UIPanelType = {
   ABOUT: 'About',
   SETTINGS: 'Settings',
-  MATCH_KILLFEED: 'MatchKillfeed',
+  MATCH_EVENTS: 'MatchEvents',
   BOOKMARKS: 'Bookmarks',
   SETUPS: 'Setups',
 } as const

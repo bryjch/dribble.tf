@@ -257,7 +257,7 @@ export const AboutPanel = () => {
 
   return (
     <div className="flex items-start">
-      <TogglePanelButton onClick={toggleUIPanel} active={isOpen} label="About and controls">
+      <TogglePanelButton onClick={toggleUIPanel} active={isOpen} label="About">
         <TiInfoLargeIcon />
       </TogglePanelButton>
 

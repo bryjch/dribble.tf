@@ -340,6 +340,14 @@
   pointer-events: none;
 }
 
+/* The rail lets taps through to the scene; its rows take them, to watch that player. They are
+   divs, so .m-shell's button rule misses them; iOS sends taps to a div only with a pointer. */
+.m-shell .m-rail .hud-player {
+  pointer-events: auto;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
 .m-rail[data-team='blue'] {
   left: var(--m-safe-l);
 }

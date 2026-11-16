@@ -3,6 +3,9 @@ import { useRef, useMemo } from 'react'
 import * as THREE from 'three'
 import { useFrame } from '@react-three/fiber'
 
+import { viewmodelMuzzle } from '@components/Scene/Viewmodel'
+import { getState } from '@zus/store'
+
 // ─── SHADERS ────────────────────────────────────────────────────────────────
 
 const vertexShader = /* glsl */ `
@@ -42,9 +45,11 @@ const vertexShader = /* glsl */ `
     // Width with subtle pulsing — wave amplitude is fixed so uWidth only scales thickness
     float finalWidth = uWidth * (1.0 + 0.3 * sin(t * 8.0 - speed));
     float waveAmp = 5.3;
-    vec3 offset = right * s * finalWidth
+    // Up close (a medic's own beam in POV) it narrows, rather than filling the screen
+    float near = clamp(distance(cameraPosition, beamPos) / 100.0, 0.35, 1.0);
+    vec3 offset = (right * s * finalWidth
                 + right * wave * waveAmp * 0.8
-                + up    * wave * waveAmp * 0.5;
+                + up    * wave * waveAmp * 0.5) * near;
 
     vec3 worldPos = beamPos + offset;
 
@@ -110,7 +115,11 @@ const fragmentShader = /* glsl */ `
 // ─── COMPONENT ──────────────────────────────────────────────────────────────
 
 export interface HealBeamProps {
-  origin: THREE.Vector3
+  /** The medic's aim (eye height, view angles), which the medigun is held from. */
+  aim: THREE.Object3D
+  /** The medic, and whether they are the one in focus (in POV, the beam leaves the viewmodel). */
+  entityId: number
+  focused: boolean
   target: THREE.Vector3
   color?: string
   width?: number
@@ -119,10 +128,17 @@ export interface HealBeamProps {
 // Every beam is the same strip, shaped in the vertex shader; one geometry serves them all.
 const BEAM_GEOMETRY = new THREE.PlaneGeometry(1, 1, 100, 1)
 
-// Half player height (83 * 0.5) — beam connects at midsection
+// Half player height (83 * 0.5) — beam connects at the patient's midsection
 const BEAM_HEIGHT_OFFSET = 41.5
 
-export const HealBeam = ({ origin, target, color, width = 20 }: HealBeamProps) => {
+// Roughly where the medigun's nozzle is, from the medic's eye (right, up, forward is -Z): held at
+// the hip when seen from outside, at the bottom right of the screen in POV without a viewmodel.
+const NOZZLE_THIRD_PERSON = new THREE.Vector3(8, -32, -28)
+const NOZZLE_POV = new THREE.Vector3(10, -14, -24)
+
+const _camera = new THREE.Vector3()
+
+export const HealBeam = ({ aim, entityId, focused, target, color, width = 20 }: HealBeamProps) => {
   const materialRef = useRef<THREE.ShaderMaterial>(null)
 
 
@@ -141,7 +157,19 @@ export const HealBeam = ({ origin, target, color, width = 20 }: HealBeamProps) =
     if (!materialRef.current) return
     const u = materialRef.current.uniforms
     u.uTime.value = state.clock.elapsedTime
-    u.uOrigin.value.set(origin.x, origin.y, origin.z + BEAM_HEIGHT_OFFSET)
+    const origin = u.uOrigin.value as THREE.Vector3
+    const pov = focused && getState().scene.controls.mode === 'pov'
+    if (pov && viewmodelMuzzle.entityId === entityId) {
+      // The viewmodel's nozzle, at the same place on screen and as far away.
+      const camera = state.camera
+      camera.updateWorldMatrix(true, false)
+      camera.getWorldPosition(_camera)
+      origin.copy(viewmodelMuzzle.ndc).setZ(0.5).unproject(camera).sub(_camera)
+      origin.setLength(viewmodelMuzzle.distance).add(_camera)
+    } else {
+      aim.updateWorldMatrix(true, false)
+      origin.copy(pov ? NOZZLE_POV : NOZZLE_THIRD_PERSON).applyMatrix4(aim.matrixWorld)
+    }
     u.uTarget.value.set(target.x, target.y, target.z + BEAM_HEIGHT_OFFSET)
     u.uColor.value.set(color || '#ffffff')
   })
