@@ -3,7 +3,6 @@ import * as THREE from 'three'
 import { useThree } from '@react-three/fiber'
 
 import { useDerivedMap } from '@components/Scene/DerivedMap'
-import { DerivedMapResult, textComponent } from '@utils/derivedMap'
 
 export interface SkyboxProps {
   map: string
@@ -63,36 +62,10 @@ export const Skybox = (props: SkyboxProps) => {
     const loadSkybox = async () => {
       try {
         if (!result) return
-        const images =
-          result.kind === 'legacy'
-            ? result.skyboxUrls
-              ? await loadCubeFaceImages([
-                  result.skyboxUrls.lf,
-                  result.skyboxUrls.rt,
-                  result.skyboxUrls.bk,
-                  result.skyboxUrls.ft,
-                  result.skyboxUrls.up,
-                  result.skyboxUrls.dn,
-                ])
-              : null
-            : await Promise.all(
-                ['lf', 'rt', 'bk', 'ft', 'up', 'dn'].map(face => {
-                  const bytes = skyFaceBytes(result, face)
-                  return bytes
-                    ? createImageBitmap(
-                        new Blob(
-                          [
-                            bytes.buffer.slice(
-                              bytes.byteOffset,
-                              bytes.byteOffset + bytes.byteLength
-                            ) as ArrayBuffer,
-                          ],
-                          { type: 'image/png' }
-                        )
-                      )
-                    : null
-                })
-              )
+        const urls = result.skyboxUrls
+        const images = urls
+          ? await loadCubeFaceImages([urls.lf, urls.rt, urls.bk, urls.ft, urls.up, urls.dn])
+          : null
 
         if (!images || images.some(image => !image)) {
           console.warn(`Failed to load skybox for map ${props.map}`)
@@ -168,36 +141,4 @@ export const Skybox = (props: SkyboxProps) => {
   }, [props.map, scene, gl, result])
 
   return null
-}
-
-function skyFaceBytes(
-  result: Extract<DerivedMapResult, { kind: 'derived' }>,
-  face: string
-): Uint8Array | undefined {
-  const root = result.manifest.dependencies.skybox.find(path => path.endsWith(`${face}.vmt`))
-  if (!root) return undefined
-  const materials = textComponent(result, 'materials.json') as {
-    materials?: {
-      name?: string
-      textures?: { packageSourceIndex?: number; lookupPath?: string }[]
-    }[]
-  } | null
-  const packageManifest = textComponent(result, 'material-textures.json') as {
-    sources?: { output?: { fileName?: string } }[]
-  } | null
-  const materialName = root.replace(/^materials\//, '').replace(/\.vmt$/, '')
-  const texture = materials?.materials?.find(material => material.name === materialName)
-    ?.textures?.[0]
-  const packaged =
-    texture?.packageSourceIndex === undefined
-      ? undefined
-      : packageManifest?.sources?.[texture.packageSourceIndex]?.output?.fileName
-  if (packaged) return result.components.get(`textures/${packaged}`)
-  const vtfPath = texture?.lookupPath ?? result.sharedIndex.resources[root]?.dependencies[0]
-  const decoded = vtfPath
-    ? result.sharedIndex.resources[vtfPath]?.dependencies
-        .map(path => result.sharedIndex.resources[path])
-        .find(descriptor => descriptor?.kind === 'decodedTexture')
-    : undefined
-  return decoded ? result.sharedAssets.get(decoded.logicalPath) : undefined
 }

@@ -584,6 +584,8 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
   const perfLoggingEnabled = useMemo(() => isPerfLoggingEnabled(), [])
 
   const sceneMode = useStore(state => state.settings.scene.mode)
+  const mapLighting = useStore(state => state.settings.scene.lighting ?? 'baked')
+  const bakedBrightness = useStore(state => state.settings.scene.bakedBrightness ?? 1.3)
   const showSkybox = useStore(state => state.settings.ui.showSkybox)
   const playerOutlines = useStore(state => state.settings.ui.playerOutlines)
   const showStats = useStore(state => state.settings.ui.showStats)
@@ -660,7 +662,12 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
           {/* World Map */}
 
           <Suspense fallback={null}>
-            <World map={map} mode={sceneMode} />
+            <World
+              map={map}
+              mode={sceneMode}
+              lighting={mapLighting}
+              bakedBrightness={bakedBrightness}
+            />
           </Suspense>
 
           {ENABLE_DEBUG_MAP_OFFSET && <MapCenterMarker />}

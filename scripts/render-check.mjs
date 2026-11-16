@@ -260,7 +260,11 @@ async function run(args) {
 
     // ── Load ──
     const loadStart = Date.now()
-    await page.send('Page.navigate', { url: `${base}/?bench&demoUrl=${encodeURIComponent(DEMO)}` })
+    // --query adds URL parameters, e.g. --query mapPilot
+    const extra = args.query ? `&${args.query}` : ''
+    await page.send('Page.navigate', {
+      url: `${base}/?bench&demoUrl=${encodeURIComponent(DEMO)}${extra}`,
+    })
     await waitFor('bench hook', () => page.evaluate('!!window.__dribble'), 30000)
     await waitFor('demo', async () => (await call(page, 'status')).demoLoaded)
     results.load = { demoReadyMs: Date.now() - loadStart }

@@ -1,6 +1,6 @@
 # Ad-hoc Map Conversion
 
-Status: proposed; implementation starts only after review.
+Status: parked (2026-11-16). Maps are built ahead of time instead, see ADR 0006. The browser half of this plan is on branch `park/ad-hoc-derived-maps`; the Shared Asset Pack (phase 2) was never built.
 
 ## Outcome
 

@@ -298,6 +298,29 @@ export const SettingsContent = () => {
         />
       </Option>
 
+      <Option label="Lighting">
+        <Segmented
+          label="Lighting"
+          options={[
+            { label: 'Flat', value: 'flat' },
+            { label: 'Baked', value: 'baked' },
+          ]}
+          value={settings.scene.lighting ?? 'baked'}
+          onChange={value => updateSettingsOption('scene.lighting', value)}
+        />
+      </Option>
+
+      {(settings.scene.lighting ?? 'baked') === 'baked' && (
+        <SliderOption
+          label="Brightness"
+          min={0.6}
+          max={2.2}
+          step={0.1}
+          value={settings.scene.bakedBrightness ?? 1.3}
+          onChange={value => updateSettingsOption('scene.bakedBrightness', value)}
+        />
+      )}
+
       <ToggleOption
         label="Frame smoothing"
         checked={settings.scene.interpolateFrames}

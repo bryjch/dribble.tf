@@ -12,6 +12,7 @@ import { getState, useInstance } from '@zus/store'
 import { useDerivedMap } from '@components/Scene/DerivedMap'
 import { DerivedMapResult, textComponent } from '@utils/derivedMap'
 import { reportError } from '@utils/notice'
+import { isPerfLoggingEnabled } from '@utils/misc'
 
 const INVISIBLE_TOOL_MATERIALS = new Set([
   'toolsnodraw',
@@ -26,6 +27,12 @@ const INVISIBLE_TOOL_MATERIALS = new Set([
   'toolsskip',
   'toolsfog',
   'toolsskybox',
+  'toolscapture',
+  'toolsnobuild',
+  'toolsregenerate',
+  'toolsrespawn',
+  'toolsnpcclip',
+  'toolsoccluder',
 ])
 
 // Entity prefixes that are game-logic helpers and should never be rendered.
@@ -39,9 +46,34 @@ function isInvisibleToolMaterial(materialName: string): boolean {
   return INVISIBLE_TOOL_MATERIALS.has(baseName)
 }
 
+// bsp-to-glb keeps every brush model, named model_<index>_<classname>[_<targetname>]; triggers
+// and other game-logic volumes are never drawn in game (respawn room visualizers are).
+const INVISIBLE_BRUSH_CLASSES =
+  /^model_\d+_(trigger_|func_(respawnroom|nobuild|regenerate|capturezone|nogrenades|upgradestation|areaportal|occluder)(_|$))/
+
 function isInvisibleEntityNode(nodeName: string): boolean {
   const name = nodeName.toLowerCase()
-  return INVISIBLE_NODE_PREFIXES.some(prefix => name.startsWith(prefix))
+  return (
+    INVISIBLE_NODE_PREFIXES.some(prefix => name.startsWith(prefix)) ||
+    INVISIBLE_BRUSH_CLASSES.test(name)
+  )
+}
+
+/**
+ * Doors (func_doors and the props riding them; map.json's `doors`, see readDoors in
+ * scripts/maps/build-maps.mjs) move in the game, but the viewer doesn't animate map entities yet,
+ * so drawn they'd stand shut all match. Until it does, they're left out. To draw them (or to
+ * animate them, from the same list), start here.
+ */
+const DRAW_DOORS = false
+
+/** What to leave out for the map's doors: brush model nodes and dynamic prop entities. */
+function hiddenDoors(result: DerivedResult) {
+  const doors = DRAW_DOORS ? [] : (result.manifest.doors ?? [])
+  return {
+    brushes: new Set(doors.flatMap(door => (door.brushModel === null ? [] : [door.brushModel]))),
+    props: new Set(doors.flatMap(door => door.props)),
+  }
 }
 
 const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
@@ -57,6 +89,65 @@ const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
 // still read. All-white brushes washed out, worst on phones, which default to this mode. No
 // texture is drawn, so none is uploaded to the GPU.
 //
+
+//
+// Lighting. A Derived Map with lightmaps can be drawn two ways (Settings > Lighting):
+// - baked: as TF2 draws it. Brushes take their light from the map's lightmaps alone, which hold
+//   the sun, the shadows and every light the mapper placed; props, which have no lightmap, keep
+//   a share of the scene's lights (bakedPropLight), dimmed to sit beside them.
+// - flat: brushes and props alike lit by the scene's lights (Lights.tsx), as the Blender-built
+//   maps are. Even and bright, easy to read players against.
+// One uniform, shared by every such material, switches between them without recompiling.
+//
+
+const bakedLighting = { value: 1 }
+/**
+ * The share of the scene's light props keep under baked lighting. TF2 bakes static props'
+ * lighting too (per vertex, which bsp-to-glb doesn't export); this level sets them beside sunlit
+ * brushes, judged on cp_snakewater_final1.
+ */
+const bakedPropLight = { value: 0.35 }
+/** Baked light's brightness (Settings > Lighting > Brightness). */
+const bakedExposure = { value: 1.3 }
+/**
+ * 1 lets baked surfaces skip the renderer's tone mapping (ACES): TF2 has none, and it darkens and
+ * flattens the lightmaps' midtones. Players and the Blender-built maps keep it.
+ */
+const bakedRawTone = { value: 1 }
+
+export function setBakedLighting(baked: boolean, brightness = 1.3) {
+  bakedLighting.value = baked ? 1 : 0
+  bakedExposure.value = brightness
+}
+
+/** Under baked lighting, lit brushes and props skip the renderer's tone mapping (by bspRawTone). */
+const BAKED_TONE = `vec3 bspUntoned = gl_FragColor.rgb;
+#include <tonemapping_fragment>
+gl_FragColor.rgb = mix(gl_FragColor.rgb, clamp(bspUntoned, 0.0, 1.0), bspBaked * bspRawTone);`
+
+/** Dims a prop's material under baked lighting (see above). */
+function installPropLightShader(material: THREE.Material) {
+  if (material.userData.additive || !(material instanceof THREE.MeshStandardMaterial)) return
+  material.userData.bspProp = true
+  material.onBeforeCompile = shader => {
+    shader.uniforms.bspBaked = bakedLighting
+    shader.uniforms.bspPropLight = bakedPropLight
+    shader.uniforms.bspExposure = bakedExposure
+    shader.uniforms.bspRawTone = bakedRawTone
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        '#include <common>\nuniform float bspBaked; uniform float bspPropLight; uniform float bspExposure; uniform float bspRawTone;'
+      )
+      .replace(
+        '#include <opaque_fragment>',
+        'outgoingLight *= mix(1.0, bspPropLight * bspExposure, bspBaked);\n#include <opaque_fragment>'
+      )
+      .replace('#include <tonemapping_fragment>', BAKED_TONE)
+  }
+  material.customProgramCacheKey = () => 'bsp-prop-light-v2'
+  material.needsUpdate = true
+}
 
 /** A Derived Map's lightmaps, kept to light its plain materials too. */
 const derivedLightmaps = new WeakMap<
@@ -83,6 +174,8 @@ function plainMaterialFor(model: THREE.Object3D, original: THREE.Material): THRE
   const lightmaps = derivedLightmaps.get(model)
   if (lightmaps && source.userData?.bspLit) {
     installSourceMaterialShader(plain, lightmaps.flat, lightmaps.directional)
+  } else if (lightmaps && source.userData?.bspProp) {
+    installPropLightShader(plain)
   }
   byOriginal.set(original, plain)
   return plain
@@ -131,6 +224,9 @@ const MAP_CHUNKING_ENABLED = mapChunkingConfig.enabled
 export interface WorldProps {
   map: string
   mode?: 'textured' | 'untextured' | 'wireframe'
+  /** How a Derived Map with lightmaps is lit, and how bright baked light is; see setBakedLighting. */
+  lighting?: 'baked' | 'flat'
+  bakedBrightness?: number
 }
 
 type BspVisibilityV2 = {
@@ -162,7 +258,7 @@ export const World = (props: WorldProps) => {
   const visibilityRequestIdRef = useRef(0)
   const [mapModel, setMapModel] = useState<THREE.Group | null>()
   const [mapVisibility, setMapVisibility] = useState<VisibilityMetadata | null>(null)
-  const { map, mode } = props
+  const { map, mode, lighting = 'baked', bakedBrightness = 1.3 } = props
   // Which Derived Map (or published GLB) to draw; DerivedMapController resolves it per map.
   const { result } = useDerivedMap()
 
@@ -241,7 +337,14 @@ export const World = (props: WorldProps) => {
         }
         prepareMapModel(gltf.scene)
         // Derived extras (props, decals, lightmaps) hang off the model, so one dispose frees them.
-        if (result.kind === 'derived') await applyDerivedPresentation(gltf.scene, result)
+        if (result.kind === 'derived') {
+          const started = performance.now()
+          await applyDerivedPresentation(gltf.scene, result)
+          if (isPerfLoggingEnabled())
+            console.info(
+              `[Perf][Map] ${map}: presented in ${Math.round(performance.now() - started)} ms`
+            )
+        }
       } catch (error) {
         disposeMapModel(gltf.scene)
         throw error
@@ -384,6 +487,11 @@ export const World = (props: WorldProps) => {
       freezeStaticMapSubtree(mapModel)
     }
   }, [mapModel])
+
+  useEffect(
+    () => setBakedLighting(lighting === 'baked', bakedBrightness),
+    [lighting, bakedBrightness]
+  )
 
   // Swap materials for the scene mode; the model's own are kept in userData to switch back.
   useEffect(() => {
@@ -677,6 +785,12 @@ function prepareMapModel<T extends THREE.Object3D>(model: T): T {
       // Hide invisible tool materials (nodraw, clip, trigger, etc.)
       if (isInvisibleToolMaterial(material.name)) mesh.visible = false
       material.depthWrite = true
+      // Additive glows (prop light cones, see scripts/lib/source-models.mjs) add their light.
+      if (material.userData.additive) {
+        material.transparent = true
+        material.depthWrite = false
+        material.blending = THREE.AdditiveBlending
+      }
       ;(material as THREE.MeshStandardMaterial).vertexColors = false
       material.needsUpdate = true
     }
@@ -763,65 +877,87 @@ function loadGLTFBytes(bytes: Uint8Array | undefined): Promise<GLTF> {
   })
 }
 
-async function textureFromBytes(bytes: Uint8Array, color = true): Promise<THREE.Texture> {
+async function textureFromBytes(
+  bytes: Uint8Array,
+  type: string,
+  color = true
+): Promise<THREE.Texture> {
+  // Alpha is data, not coverage: TF2 base textures keep a specular mask there and lightmaps an
+  // exponent, so the bitmap must not be premultiplied (or colour-converted, for the data).
   const bitmap = await createImageBitmap(
     new Blob(
       [bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer],
-      { type: 'image/png' }
-    )
+      { type }
+    ),
+    { premultiplyAlpha: 'none', colorSpaceConversion: color ? 'default' : 'none' }
   )
   const texture = new THREE.Texture(bitmap)
   texture.flipY = false
   texture.colorSpace = color ? THREE.SRGBColorSpace : THREE.LinearSRGBColorSpace
+  if (color) {
+    // Source materials tile across faces.
+    texture.wrapS = THREE.RepeatWrapping
+    texture.wrapT = THREE.RepeatWrapping
+  } else {
+    // RGBExp32 cannot be interpolated as stored; the shader filters it after decoding.
+    texture.magFilter = THREE.NearestFilter
+    texture.minFilter = THREE.NearestFilter
+    texture.generateMipmaps = false
+  }
   texture.needsUpdate = true
   return texture
 }
 
-function sharedDecodedTexture(
-  result: Extract<DerivedMapResult, { kind: 'derived' }>,
-  lookupPath: string
-): Uint8Array | undefined {
-  const source = result.sharedIndex.resources[lookupPath]
-  const decoded = source?.dependencies
-    .map(path => result.sharedIndex.resources[path])
-    .find(descriptor => descriptor?.kind === 'decodedTexture')
-  return decoded ? result.sharedAssets.get(decoded.logicalPath) : undefined
+type MaterialFeatures = {
+  translucent?: boolean
+  additive?: boolean
+  alphaTest?: boolean
+  noCull?: boolean
+}
+
+/** materials.json, as scripts/maps/build-maps.mjs writes it. */
+type MapMaterial = {
+  materialIndex: number
+  name: string
+  features?: MaterialFeatures
+  textures?: { parameter?: string; file?: string }[]
+}
+
+/** The VMT's blending: glass, grates and decals blend or cut out by the base texture's alpha. */
+function applyMaterialFeatures(material: THREE.Material, features: MaterialFeatures | undefined) {
+  if (features?.translucent || features?.additive) {
+    material.transparent = true
+    material.depthWrite = false
+    if (features.additive) material.blending = THREE.AdditiveBlending
+  } else if (features?.alphaTest) {
+    material.alphaTest = 0.5
+  }
+  if (features?.noCull) material.side = THREE.DoubleSide
+  material.needsUpdate = true
 }
 
 /**
- * Gives a Derived Map's world model its textures, lightmaps, shared props and decals. Runs after
+ * Gives a built map's world model its textures, lightmap, props and decals. Runs after
  * prepareMapModel, on the simplified materials; props are prepared as they are attached.
  */
 async function applyDerivedPresentation(scene: THREE.Group, result: DerivedResult) {
-  const materials = textComponent(result, 'materials.json') as {
-    materials?: {
-      materialIndex?: number
-      textures?: { parameter?: string; lookupPath?: string; packageSourceIndex?: number }[]
-    }[]
-  } | null
-  const texturePackage = textComponent(result, 'material-textures.json') as {
-    sources?: { output?: { fileName?: string } }[]
-  } | null
+  const materials =
+    (textComponent(result, 'materials.json') as { materials?: MapMaterial[] } | null)?.materials ??
+    []
   const loadedTextures = new Map<string, Promise<THREE.Texture>>()
-  const textureFor = (texture: { lookupPath?: string; packageSourceIndex?: number }) => {
-    const packaged =
-      texture.packageSourceIndex === undefined
-        ? undefined
-        : texturePackage?.sources?.[texture.packageSourceIndex]?.output?.fileName
-    const bytes = packaged
-      ? result.components.get(`textures/${packaged}`)
-      : texture.lookupPath
-        ? sharedDecodedTexture(result, texture.lookupPath)
-        : undefined
-    if (!bytes) return undefined
-    const identity = packaged ?? texture.lookupPath!
-    let loaded = loadedTextures.get(identity)
+  const textureFor = (file: string | undefined) => {
+    const bytes = file ? result.components.get(file) : undefined
+    if (!file || !bytes) return undefined
+    let loaded = loadedTextures.get(file)
     if (!loaded) {
-      loaded = textureFromBytes(bytes).then(texture => trackTexture(scene, texture))
-      loadedTextures.set(identity, loaded)
+      const type = file.endsWith('.webp') ? 'image/webp' : 'image/png'
+      loaded = textureFromBytes(bytes, type).then(texture => trackTexture(scene, texture))
+      loadedTextures.set(file, loaded)
     }
     return loaded
   }
+  const textureOf = (material: MapMaterial, parameter: string) =>
+    textureFor(material.textures?.find(texture => texture.parameter === parameter)?.file)
 
   const byIndex = new Map<number, THREE.MeshStandardMaterial[]>()
   scene.traverse(node => {
@@ -832,31 +968,40 @@ async function applyDerivedPresentation(scene: THREE.Group, result: DerivedResul
       if (Number.isInteger(index)) byIndex.set(index, [...(byIndex.get(index) ?? []), material])
     }
   })
-  for (const source of materials?.materials ?? []) {
-    const targets = byIndex.get(Number(source.materialIndex)) ?? []
-    const base = source.textures?.find(
-      texture => texture.parameter?.toLowerCase() === '$basetexture'
-    )
-    const secondary = source.textures?.find(
-      texture => texture.parameter?.toLowerCase() === '$basetexture2'
-    )
-    const baseTexture = base && (await textureFor(base))
-    const secondaryTexture = secondary && (await textureFor(secondary))
-    for (const material of targets) {
-      if (baseTexture) material.map = baseTexture
-      if (secondaryTexture) secondaryTextures.set(material, secondaryTexture)
-      material.needsUpdate = true
-    }
+  const timings: Record<string, number> = {}
+  let mark = performance.now()
+  const lap = (name: string) => {
+    timings[name] = Math.round(performance.now() - mark)
+    mark = performance.now()
   }
+  // Textures decode in parallel (createImageBitmap runs off the main thread).
+  await Promise.all(
+    materials.map(async source => {
+      const targets = byIndex.get(source.materialIndex) ?? []
+      if (!targets.length) return
+      const [baseTexture, secondaryTexture] = await Promise.all([
+        textureOf(source, '$basetexture'),
+        textureOf(source, '$basetexture2'),
+      ])
+      for (const material of targets) {
+        if (baseTexture) material.map = baseTexture
+        if (secondaryTexture) secondaryTextures.set(material, secondaryTexture)
+        applyMaterialFeatures(material, source.features)
+      }
+    })
+  )
+  lap('textures')
 
   const flatBytes = result.components.get('lightmaps/flat.png')
   if (flatBytes) {
-    const flat = trackTexture(scene, await textureFromBytes(flatBytes, false))
+    const flat = trackTexture(scene, await textureFromBytes(flatBytes, 'image/png', false))
     const directional = await Promise.all(
       [0, 1, 2].map(index => {
         const bytes = result.components.get(`lightmaps/directional-${index}.png`)
         return bytes
-          ? textureFromBytes(bytes, false).then(texture => trackTexture(scene, texture))
+          ? textureFromBytes(bytes, 'image/png', false).then(texture =>
+              trackTexture(scene, texture)
+            )
           : Promise.resolve(flat)
       })
     )
@@ -870,12 +1015,23 @@ async function applyDerivedPresentation(scene: THREE.Group, result: DerivedResul
     })
     derivedLightmaps.set(scene, { flat, directional })
   }
-  await attachSharedProps(scene, result)
-  const decals = buildDecalOverlay(scene, result)
+  lap('lightmap')
+  const doors = hiddenDoors(result)
+  if (doors.brushes.size) {
+    scene.traverse(node => {
+      const brush = /^model_(\d+)_/.exec(node.name)
+      if (brush && doors.brushes.has(Number(brush[1]))) node.visible = false
+    })
+  }
+  await attachProps(scene, result, doors.props)
+  lap('props')
+  const decals = await buildDecalOverlay(scene, result, materials, textureOf)
   if (decals) {
     scene.add(decals)
     decals.updateMatrixWorld(true)
   }
+  lap('decals')
+  if (isPerfLoggingEnabled()) console.info('[Perf][Map] presentation ms', timings)
 }
 
 function installSourceMaterialShader(
@@ -884,6 +1040,9 @@ function installSourceMaterialShader(
   directional: THREE.Texture[]
 ) {
   material.onBeforeCompile = shader => {
+    shader.uniforms.bspBaked = bakedLighting
+    shader.uniforms.bspExposure = bakedExposure
+    shader.uniforms.bspRawTone = bakedRawTone
     shader.uniforms.bspLightmapFlat = { value: flat }
     shader.uniforms.bspLightmap0 = { value: directional[0] }
     shader.uniforms.bspLightmap1 = { value: directional[1] }
@@ -903,60 +1062,148 @@ function installSourceMaterialShader(
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
-        '#include <common>\nuniform sampler2D bspLightmapFlat; uniform sampler2D bspLightmap0; uniform sampler2D bspLightmap1; uniform sampler2D bspLightmap2; uniform sampler2D bspSecondaryTexture; varying vec2 vBspLightmapUv; varying float vBspDisplacementAlpha; vec3 decodeRgbExp32(vec4 value) { float exponent = value.a * 255.0; exponent -= step(127.5, exponent) * 256.0; return value.rgb * exp2(exponent); }'
+        `#include <common>
+uniform float bspBaked; uniform float bspExposure; uniform float bspRawTone; uniform sampler2D bspLightmapFlat; uniform sampler2D bspLightmap0; uniform sampler2D bspLightmap1; uniform sampler2D bspLightmap2; uniform sampler2D bspSecondaryTexture; varying vec2 vBspLightmapUv; varying float vBspDisplacementAlpha;
+vec3 decodeRgbExp32(vec4 value) { float exponent = value.a * 255.0; exponent -= step(127.5, exponent) * 256.0; return value.rgb * exp2(exponent); }
+vec3 bspLightmap(sampler2D map, vec2 uv) {
+  ivec2 size = textureSize(map, 0);
+  vec2 st = uv * vec2(size) - 0.5;
+  vec2 cell = floor(st);
+  vec2 f = st - cell;
+  ivec2 base = ivec2(cell);
+  ivec2 top = size - 1;
+  vec3 a = decodeRgbExp32(texelFetch(map, clamp(base, ivec2(0), top), 0));
+  vec3 b = decodeRgbExp32(texelFetch(map, clamp(base + ivec2(1, 0), ivec2(0), top), 0));
+  vec3 c = decodeRgbExp32(texelFetch(map, clamp(base + ivec2(0, 1), ivec2(0), top), 0));
+  vec3 d = decodeRgbExp32(texelFetch(map, clamp(base + ivec2(1, 1), ivec2(0), top), 0));
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}`
       )
       .replace(
         '#include <map_fragment>',
         '#include <map_fragment>\n#ifdef USE_MAP\nvec4 bspSecondary = texture2D(bspSecondaryTexture, vMapUv); diffuseColor.rgb = mix(diffuseColor.rgb, bspSecondary.rgb, clamp(vBspDisplacementAlpha, 0.0, 1.0));\n#endif'
       )
+      .replace('#include <tonemapping_fragment>', BAKED_TONE)
       .replace(
         '#include <opaque_fragment>',
-        'vec3 bspFlat = decodeRgbExp32(texture2D(bspLightmapFlat, vBspLightmapUv)); vec3 bspDirectional = (decodeRgbExp32(texture2D(bspLightmap0, vBspLightmapUv)) + decodeRgbExp32(texture2D(bspLightmap1, vBspLightmapUv)) + decodeRgbExp32(texture2D(bspLightmap2, vBspLightmapUv))) / 3.0; outgoingLight *= max(bspFlat, bspDirectional);\n#include <opaque_fragment>'
+        'vec3 bspFlat = bspLightmap(bspLightmapFlat, vBspLightmapUv); vec3 bspDirectional = (bspLightmap(bspLightmap0, vBspLightmapUv) + bspLightmap(bspLightmap1, vBspLightmapUv) + bspLightmap(bspLightmap2, vBspLightmapUv)) / 3.0; vec3 bspLight = max(bspFlat, bspDirectional); outgoingLight = mix(outgoingLight, diffuseColor.rgb * bspLight * bspExposure + totalEmissiveRadiance, bspBaked);\n#include <opaque_fragment>'
       )
   }
   material.userData.bspLit = true
-  material.customProgramCacheKey = () => 'bsp-rgbexp32-directional-displacement-v1'
+  material.customProgramCacheKey = () => 'bsp-rgbexp32-directional-displacement-v4'
   material.needsUpdate = true
 }
 
-async function attachSharedProps(scene: THREE.Group, result: DerivedResult) {
+/**
+ * Places the map's props. Static props (most of them, often hundreds of copies of a few dozen
+ * models) are drawn instanced: one InstancedMesh per mesh of each model and skin. Dynamic props
+ * are copied onto their nodes, which entities may move or hide.
+ */
+async function attachProps(
+  scene: THREE.Group,
+  result: DerivedResult,
+  hiddenProps: Set<number> = new Set()
+) {
   const props = textComponent(result, 'props.json') as {
-    modelAssets?: { modelAssetIndex: number; sourcePath: string }[]
-    staticProps?: { staticPropIndex: number; modelAssetIndex: number }[]
-    dynamicProps?: { entityIndex: number; modelAssetIndex?: number }[]
+    staticProps?: { staticPropIndex: number; modelAssetIndex: number; skin?: number }[]
+    dynamicProps?: { entityIndex: number; modelAssetIndex: number; skin?: number }[]
   } | null
-  const models = new Map<number, THREE.Group>()
-  for (const asset of props?.modelAssets ?? []) {
-    const path = asset.sourcePath.replace(/\\/g, '/').toLowerCase()
-    const logicalPath = path.startsWith('models/') ? path : `models/${path}`
-    const descriptor = result.sharedIndex.resources[logicalPath]
-    const glb = descriptor?.dependencies
-      .map(dependency => result.sharedIndex.resources[dependency])
-      .find(dependency => dependency?.kind === 'studioModel')
-    const bytes = glb && result.sharedAssets.get(glb.logicalPath)
-    if (bytes) models.set(asset.modelAssetIndex, (await loadGLTFBytes(bytes)).scene)
-  }
-  for (const prop of props?.staticProps ?? []) {
-    const target = scene.getObjectByName(`static_prop_${prop.staticPropIndex}`)
-    const model = models.get(prop.modelAssetIndex)
-    if (target && model) target.add(prepareMapModel(model.clone(true)))
-  }
-  for (const prop of props?.dynamicProps ?? []) {
-    let target = scene.getObjectByName(`dynamic_prop_${prop.entityIndex}`)
-    if (!target) {
-      scene.traverse(object => {
-        if (!target && object.name.startsWith(`dynamic_prop_${prop.entityIndex}_`)) target = object
-      })
+  if (!props) return
+  const lit = derivedLightmaps.has(scene)
+  const models = new Map<string, Promise<THREE.Group | null>>()
+  const modelFor = (key: string) => {
+    let model = models.get(key)
+    if (!model) {
+      const bytes = result.components.get(key)
+      model = bytes
+        ? loadGLTFBytes(bytes).then(gltf => {
+            const model = prepareMapModel(gltf.scene)
+            // Lit maps draw props dimmed under baked lighting (installPropLightShader).
+            if (lit)
+              model.traverse(node => {
+                const mesh = node as THREE.Mesh
+                if (!mesh.isMesh) return
+                for (const material of Array.isArray(mesh.material)
+                  ? mesh.material
+                  : [mesh.material])
+                  installPropLightShader(material)
+              })
+            return model
+          })
+        : Promise.resolve(null)
+      models.set(key, model)
     }
-    const model = prop.modelAssetIndex === undefined ? undefined : models.get(prop.modelAssetIndex)
+    return model
+  }
+  const propKey = (asset: number, skin = 0) => `props/${asset}_${skin}.glb`
+
+  const nodes = new Map<string, THREE.Object3D>()
+  scene.traverse(node => {
+    if (node.name.startsWith('static_prop_') || node.name.startsWith('dynamic_prop_'))
+      nodes.set(node.name, node)
+  })
+  scene.updateMatrixWorld(true)
+  const toScene = scene.matrixWorld.clone().invert()
+
+  const placements = new Map<string, THREE.Matrix4[]>()
+  for (const prop of props.staticProps ?? []) {
+    const target = nodes.get(`static_prop_${prop.staticPropIndex}`)
+    if (!target) continue
+    const key = propKey(prop.modelAssetIndex, prop.skin)
+    if (!placements.has(key)) placements.set(key, [])
+    placements.get(key)!.push(toScene.clone().multiply(target.matrixWorld))
+  }
+  const placed = new THREE.Matrix4()
+  // Every model parses at once; meshopt decoding and their textures overlap.
+  const keys = [
+    ...new Set([
+      ...placements.keys(),
+      ...(props.dynamicProps ?? [])
+        .filter(prop => !hiddenProps.has(prop.entityIndex))
+        .map(prop => propKey(prop.modelAssetIndex, prop.skin)),
+    ]),
+  ]
+  await Promise.all(keys.map(modelFor))
+  for (const [key, matrices] of placements) {
+    const model = await modelFor(key)
+    if (!model) continue
+    model.updateMatrixWorld(true)
+    model.traverse(node => {
+      const mesh = node as THREE.Mesh
+      if (!mesh.isMesh || !mesh.visible) return
+      const instanced = new THREE.InstancedMesh(mesh.geometry, mesh.material, matrices.length)
+      instanced.name = `props:${key}`
+      instanced.userData.originalMaterial = mesh.userData.originalMaterial
+      matrices.forEach((matrix, i) =>
+        instanced.setMatrixAt(i, placed.multiplyMatrices(matrix, mesh.matrixWorld))
+      )
+      instanced.instanceMatrix.needsUpdate = true
+      instanced.computeBoundingSphere()
+      scene.add(instanced)
+    })
+  }
+
+  for (const prop of props.dynamicProps ?? []) {
+    if (hiddenProps.has(prop.entityIndex)) continue
+    let target = nodes.get(`dynamic_prop_${prop.entityIndex}`)
+    if (!target) {
+      for (const [name, node] of nodes)
+        if (name.startsWith(`dynamic_prop_${prop.entityIndex}_`)) target = node
+    }
+    const model = await modelFor(propKey(prop.modelAssetIndex, prop.skin))
+    // clone() copies userData as JSON, so the copy's own materials are recorded again.
     if (target && model) target.add(prepareMapModel(model.clone(true)))
   }
 }
 
-function buildDecalOverlay(scene: THREE.Group, result: DerivedResult): THREE.Group | null {
+async function buildDecalOverlay(
+  scene: THREE.Group,
+  result: DerivedResult,
+  materials: MapMaterial[],
+  textureOf: (material: MapMaterial, parameter: string) => Promise<THREE.Texture> | undefined
+): Promise<THREE.Group | null> {
   const sidecar = textComponent(result, 'decal-overlays.json') as {
     records?: {
-      status?: string
       materialIndex?: number
       fragments?: {
         positions?: [number, number, number][]
@@ -965,19 +1212,38 @@ function buildDecalOverlay(scene: THREE.Group, result: DerivedResult): THREE.Gro
       }[]
     }[]
   } | null
-  if (!sidecar?.records) return null
-  const materials = new Map<number, THREE.Material>()
+  if (!sidecar?.records?.length) return null
+  // A decal's material: the world's own copy of it, or (decal-only materials) one made here.
+  const fromScene = new Map<number, THREE.Material>()
   scene.traverse(node => {
     if (!(node instanceof THREE.Mesh)) return
     for (const material of Array.isArray(node.material) ? node.material : [node.material]) {
       const index = Number(material.userData.sourceMaterialManifestIndex)
-      if (Number.isInteger(index) && !materials.has(index)) materials.set(index, material)
+      if (Number.isInteger(index) && !fromScene.has(index)) fromScene.set(index, material)
     }
   })
+  const byIndex = new Map(materials.map(material => [material.materialIndex, material]))
+  const made = new Map<number, Promise<THREE.Material>>()
+  const decalMaterial = (index: number) => {
+    let material = made.get(index)
+    if (!material) {
+      const scenes = fromScene.get(index)
+      const source = byIndex.get(index)
+      material = scenes
+        ? Promise.resolve(scenes.clone())
+        : Promise.resolve(source ? textureOf(source, '$basetexture') : undefined).then(map => {
+            const material = new THREE.MeshStandardMaterial({ map: map ?? null, roughness: 1 })
+            applyMaterialFeatures(material, source?.features ?? { translucent: true })
+            return material
+          })
+      made.set(index, material)
+    }
+    return material
+  }
+
   const group = new THREE.Group()
   group.name = DECAL_OVERLAY_NAME
   for (const record of sidecar.records) {
-    if (record.status !== 'handled') continue
     for (const fragment of record.fragments ?? []) {
       if (!fragment.positions?.length || !fragment.indices?.length) continue
       const geometry = new THREE.BufferGeometry()
@@ -992,9 +1258,8 @@ function buildDecalOverlay(scene: THREE.Group, result: DerivedResult): THREE.Gro
         geometry.setAttribute('uv', new THREE.Float32BufferAttribute(fragment.uvs.flat(), 2))
       }
       geometry.setIndex(fragment.indices)
-      const source = materials.get(Number(record.materialIndex))
-      const material = source?.clone() ?? new THREE.MeshStandardMaterial({ color: 0xffffff })
-      material.depthWrite = true
+      const material = await decalMaterial(Number(record.materialIndex))
+      material.depthWrite = false
       material.polygonOffset = true
       material.polygonOffsetFactor = -10
       material.polygonOffsetUnits = 1
