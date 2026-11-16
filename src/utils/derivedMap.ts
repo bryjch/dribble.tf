@@ -36,6 +36,8 @@ export type MapManifest = {
     sunlightAngles: [number, number, number] | null
   }
   skybox: string | null
+  /** Each sky face's file under models/ (content-hashed). */
+  skyboxFaces?: Record<'lf' | 'rt' | 'ft' | 'bk' | 'up' | 'dn', string> | null
   skyCamera: { origin: [number, number, number]; scale: number } | null
   components: { role: string; file: string; bytes: number; optional?: boolean }[]
   /** "<model asset index>:<skin>" -> a shared models/props/<file>. */
@@ -101,11 +103,11 @@ function legacyResult(mapName: string): DerivedMapResult | null {
   }
 }
 
-const skyboxUrls = (sky: string): SkyboxUrls =>
+const skyboxUrls = (faces: NonNullable<MapManifest['skyboxFaces']>): SkyboxUrls =>
   Object.fromEntries(
     (['lf', 'rt', 'ft', 'bk', 'up', 'dn'] as const).map(face => [
       face,
-      getAsset(`/models/skybox/${sky}/${sky}_${face}.webp`),
+      getAsset(`/models/${faces[face]}`),
     ])
   ) as unknown as SkyboxUrls
 
@@ -190,7 +192,7 @@ async function loadBuiltMap(
     kind: 'derived',
     manifest,
     components,
-    skyboxUrls: manifest.skybox ? skyboxUrls(manifest.skybox) : undefined,
+    skyboxUrls: manifest.skyboxFaces ? skyboxUrls(manifest.skyboxFaces) : undefined,
   }
 }
 

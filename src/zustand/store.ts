@@ -160,6 +160,8 @@ export type StoreState = {
   settings: {
     scene: {
       mode: SceneMode
+      /** Maps with baked lighting: drawn by it, as TF2 does, or flat. Saved settings from before lack it. */
+      lighting?: 'baked' | 'flat'
       interpolateFrames: boolean
       /** Saved RTS centres per map, Source world coordinates. */
       worldRtsCenters: Record<string, { x: number; y: number; z: number }>
@@ -276,6 +278,7 @@ export const initialState: StoreState = {
   settings: {
     scene: {
       mode: isMobile ? SceneMode.UNTEXTURED : SceneMode.TEXTURED,
+      lighting: 'baked',
       interpolateFrames: true,
       worldRtsCenters: {},
       rtsCenters: {},

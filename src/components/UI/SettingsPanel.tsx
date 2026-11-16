@@ -298,6 +298,18 @@ export const SettingsContent = () => {
         />
       </Option>
 
+      <Option label="Lighting">
+        <Segmented
+          label="Lighting"
+          options={[
+            { label: 'Flat', value: 'flat' },
+            { label: 'Baked', value: 'baked' },
+          ]}
+          value={settings.scene.lighting ?? 'baked'}
+          onChange={value => updateSettingsOption('scene.lighting', value)}
+        />
+      </Option>
+
       <ToggleOption
         label="Frame smoothing"
         checked={settings.scene.interpolateFrames}

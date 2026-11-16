@@ -73,6 +73,49 @@ const MAP_WIREFRAME_MATERIAL = new THREE.MeshStandardMaterial({
 // texture is drawn, so none is uploaded to the GPU.
 //
 
+//
+// Lighting. A Derived Map with lightmaps can be drawn two ways (Settings > Lighting):
+// - baked: as TF2 draws it. Brushes take their light from the map's lightmaps alone, which hold
+//   the sun, the shadows and every light the mapper placed; props, which have no lightmap, keep
+//   a share of the scene's lights (bakedPropLight), dimmed to sit beside them.
+// - flat: brushes and props alike lit by the scene's lights (Lights.tsx), as the Blender-built
+//   maps are. Even and bright, easy to read players against.
+// One uniform, shared by every such material, switches between them without recompiling.
+//
+
+const bakedLighting = { value: 1 }
+/**
+ * The share of the scene's light props keep under baked lighting. TF2 bakes static props'
+ * lighting too (per vertex, which bsp-to-glb doesn't export); this level sets them beside sunlit
+ * brushes, judged on cp_snakewater_final1.
+ */
+const bakedPropLight = { value: 0.35 }
+
+export function setBakedLighting(baked: boolean) {
+  bakedLighting.value = baked ? 1 : 0
+}
+
+/** Dims a prop's material under baked lighting (see above). */
+function installPropLightShader(material: THREE.Material) {
+  if (material.userData.additive || !(material instanceof THREE.MeshStandardMaterial)) return
+  material.userData.bspProp = true
+  material.onBeforeCompile = shader => {
+    shader.uniforms.bspBaked = bakedLighting
+    shader.uniforms.bspPropLight = bakedPropLight
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        '#include <common>',
+        '#include <common>\nuniform float bspBaked; uniform float bspPropLight;'
+      )
+      .replace(
+        '#include <opaque_fragment>',
+        `outgoingLight *= mix(1.0, bspPropLight, bspBaked);\n#include <opaque_fragment>`
+      )
+  }
+  material.customProgramCacheKey = () => 'bsp-prop-light-v1'
+  material.needsUpdate = true
+}
+
 /** A Derived Map's lightmaps, kept to light its plain materials too. */
 const derivedLightmaps = new WeakMap<
   THREE.Object3D,
@@ -98,6 +141,8 @@ function plainMaterialFor(model: THREE.Object3D, original: THREE.Material): THRE
   const lightmaps = derivedLightmaps.get(model)
   if (lightmaps && source.userData?.bspLit) {
     installSourceMaterialShader(plain, lightmaps.flat, lightmaps.directional)
+  } else if (lightmaps && source.userData?.bspProp) {
+    installPropLightShader(plain)
   }
   byOriginal.set(original, plain)
   return plain
@@ -146,6 +191,8 @@ const MAP_CHUNKING_ENABLED = mapChunkingConfig.enabled
 export interface WorldProps {
   map: string
   mode?: 'textured' | 'untextured' | 'wireframe'
+  /** How a Derived Map with lightmaps is lit; see setBakedLighting. */
+  lighting?: 'baked' | 'flat'
 }
 
 type BspVisibilityV2 = {
@@ -177,7 +224,7 @@ export const World = (props: WorldProps) => {
   const visibilityRequestIdRef = useRef(0)
   const [mapModel, setMapModel] = useState<THREE.Group | null>()
   const [mapVisibility, setMapVisibility] = useState<VisibilityMetadata | null>(null)
-  const { map, mode } = props
+  const { map, mode, lighting = 'baked' } = props
   // Which Derived Map (or published GLB) to draw; DerivedMapController resolves it per map.
   const { result } = useDerivedMap()
 
@@ -406,6 +453,8 @@ export const World = (props: WorldProps) => {
       freezeStaticMapSubtree(mapModel)
     }
   }, [mapModel])
+
+  useEffect(() => setBakedLighting(lighting === 'baked'), [lighting])
 
   // Swap materials for the scene mode; the model's own are kept in userData to switch back.
   useEffect(() => {
@@ -947,6 +996,7 @@ function installSourceMaterialShader(
   directional: THREE.Texture[]
 ) {
   material.onBeforeCompile = shader => {
+    shader.uniforms.bspBaked = bakedLighting
     shader.uniforms.bspLightmapFlat = { value: flat }
     shader.uniforms.bspLightmap0 = { value: directional[0] }
     shader.uniforms.bspLightmap1 = { value: directional[1] }
@@ -967,7 +1017,7 @@ function installSourceMaterialShader(
       .replace(
         '#include <common>',
         `#include <common>
-uniform sampler2D bspLightmapFlat; uniform sampler2D bspLightmap0; uniform sampler2D bspLightmap1; uniform sampler2D bspLightmap2; uniform sampler2D bspSecondaryTexture; varying vec2 vBspLightmapUv; varying float vBspDisplacementAlpha;
+uniform float bspBaked; uniform sampler2D bspLightmapFlat; uniform sampler2D bspLightmap0; uniform sampler2D bspLightmap1; uniform sampler2D bspLightmap2; uniform sampler2D bspSecondaryTexture; varying vec2 vBspLightmapUv; varying float vBspDisplacementAlpha;
 vec3 decodeRgbExp32(vec4 value) { float exponent = value.a * 255.0; exponent -= step(127.5, exponent) * 256.0; return value.rgb * exp2(exponent); }
 vec3 bspLightmap(sampler2D map, vec2 uv) {
   ivec2 size = textureSize(map, 0);
@@ -989,11 +1039,11 @@ vec3 bspLightmap(sampler2D map, vec2 uv) {
       )
       .replace(
         '#include <opaque_fragment>',
-        'vec3 bspFlat = bspLightmap(bspLightmapFlat, vBspLightmapUv); vec3 bspDirectional = (bspLightmap(bspLightmap0, vBspLightmapUv) + bspLightmap(bspLightmap1, vBspLightmapUv) + bspLightmap(bspLightmap2, vBspLightmapUv)) / 3.0; outgoingLight *= max(bspFlat, bspDirectional);\n#include <opaque_fragment>'
+        'vec3 bspFlat = bspLightmap(bspLightmapFlat, vBspLightmapUv); vec3 bspDirectional = (bspLightmap(bspLightmap0, vBspLightmapUv) + bspLightmap(bspLightmap1, vBspLightmapUv) + bspLightmap(bspLightmap2, vBspLightmapUv)) / 3.0; vec3 bspLight = max(bspFlat, bspDirectional); outgoingLight = mix(outgoingLight, diffuseColor.rgb * bspLight + totalEmissiveRadiance, bspBaked);\n#include <opaque_fragment>'
       )
   }
   material.userData.bspLit = true
-  material.customProgramCacheKey = () => 'bsp-rgbexp32-directional-displacement-v2'
+  material.customProgramCacheKey = () => 'bsp-rgbexp32-directional-displacement-v3'
   material.needsUpdate = true
 }
 
@@ -1008,13 +1058,27 @@ async function attachProps(scene: THREE.Group, result: DerivedResult) {
     dynamicProps?: { entityIndex: number; modelAssetIndex: number; skin?: number }[]
   } | null
   if (!props) return
+  const lit = derivedLightmaps.has(scene)
   const models = new Map<string, Promise<THREE.Group | null>>()
   const modelFor = (key: string) => {
     let model = models.get(key)
     if (!model) {
       const bytes = result.components.get(key)
       model = bytes
-        ? loadGLTFBytes(bytes).then(gltf => prepareMapModel(gltf.scene))
+        ? loadGLTFBytes(bytes).then(gltf => {
+            const model = prepareMapModel(gltf.scene)
+            // Lit maps draw props dimmed under baked lighting (installPropLightShader).
+            if (lit)
+              model.traverse(node => {
+                const mesh = node as THREE.Mesh
+                if (!mesh.isMesh) return
+                for (const material of Array.isArray(mesh.material)
+                  ? mesh.material
+                  : [mesh.material])
+                  installPropLightShader(material)
+              })
+            return model
+          })
         : Promise.resolve(null)
       models.set(key, model)
     }

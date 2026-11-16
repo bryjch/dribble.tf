@@ -7,7 +7,7 @@
  *   maps/<map>/*             the world model, its textures, lightmaps, props and decals, with
  *                            content-hashed names, so a rebuilt map never meets a stale cache
  *   props/<hash>.glb         prop models, shared by every map that places them
- *   skybox/<sky>/*.webp      sky faces, shared by every map with that sky
+ *   skybox/<sky>/<sky>_<face>.<sha10>.webp  sky faces, shared by every map with that sky
  *   maps/index.json          every map built this way
  *
  * A map is a map name (its BSP is downloaded from serveme.tf's FastDL, or taken from --bsp-dir)
@@ -277,13 +277,16 @@ async function mapProps(tool, vpks, props) {
   return { files, failures, built: pending.length }
 }
 
-/** Writes the sky's six faces as WebP under skybox/<sky>/, unless they're there already. */
+/**
+ * Writes the sky's six faces as square WebP under skybox/<sky>/, content-hashed so a fixed sky
+ * never meets a stale CDN copy; returns each face's path under models/, or null.
+ */
 function skyFaces(vpks, skyName) {
   if (!skyName) return null
   const faces = ['lf', 'rt', 'bk', 'ft', 'up', 'dn']
-  const outDir = path.join(modelsDir, 'skybox', skyName)
-  const target = face => path.join(outDir, `${skyName}_${face}.webp`)
-  if (faces.every(face => fs.existsSync(target(face)))) return skyName
+  const workDir = path.join(tempDir, 'sky', skyName)
+  fs.rmSync(workDir, { recursive: true, force: true })
+  fs.mkdirSync(workDir, { recursive: true })
   const jobs = []
   for (const face of faces) {
     const params = readMaterial(vpks, `materials/skybox/${skyName}${face}.vmt`)
@@ -294,10 +297,9 @@ function skyFaces(vpks, skyName) {
       console.warn(`  ! sky ${skyName}: no texture for ${face} (custom skies in the BSP aren't read yet)`)
       return null
     }
-    const local = path.join(tempDir, 'sky', path.basename(vtf))
-    fs.mkdirSync(path.dirname(local), { recursive: true })
+    const local = path.join(workDir, `${face}.vtf`)
     fs.writeFileSync(local, bytes)
-    jobs.push({ vtf: local, out: target(face), max: SKY_TEXTURE_SIZE, alpha: false })
+    jobs.push({ face, vtf: local, out: path.join(workDir, `${face}.webp`), max: SKY_TEXTURE_SIZE, sky: true })
   }
   const python = spawnSync('python3', ['-I', path.join(repoRoot, 'scripts/viewmodels/vtf-to-webp.py')], {
     input: JSON.stringify(jobs),
@@ -310,7 +312,16 @@ function skyFaces(vpks, skyName) {
     console.warn(`  ! sky ${skyName}: ${results[failed.out].error}`)
     return null
   }
-  return skyName
+  const outDir = path.join(modelsDir, 'skybox', skyName)
+  fs.mkdirSync(outDir, { recursive: true })
+  const files = {}
+  for (const job of jobs) {
+    const bytes = fs.readFileSync(job.out)
+    const file = `${skyName}_${job.face}.${sha256(bytes).slice(0, 10)}.webp`
+    fs.writeFileSync(path.join(outDir, file), bytes)
+    files[job.face] = `skybox/${skyName}/${file}`
+  }
+  return files
 }
 
 // ─── One map ───────────────────────────────────────────────────────────────────
@@ -495,7 +506,8 @@ async function buildMap(tool, vpks, input) {
     },
     worldBounds,
     environment,
-    skybox: sky,
+    skybox: sky ? environment.skyName : null,
+    skyboxFaces: sky,
     skyCamera,
     components,
     props: propFiles,
@@ -523,7 +535,7 @@ async function buildMap(tool, vpks, input) {
   console.log(
     `${name}: done in ${((Date.now() - started) / 1000).toFixed(0)} s — map ${mb(mapBytes)}, ` +
       `${Object.keys(propFiles).length} prop models ${mb(propBytes)} (${propsBuilt} new)` +
-      `${sky ? `, sky ${sky}` : ', no sky'}`
+      `${sky ? `, sky ${environment.skyName}` : ', no sky'}`
   )
   for (const failure of propFailures) console.warn(`  ! ${failure}`)
   return manifest
@@ -564,6 +576,19 @@ const unplaced = fs.existsSync(propsDir)
   : []
 for (const file of unplaced) fs.rmSync(path.join(propsDir, file))
 if (unplaced.length) console.log(`Removed ${unplaced.length} prop models no map places`)
+// Likewise sky faces (WebP only: the PNGs beside them belong to the Blender-built maps).
+const skies = new Set()
+for (const name of Object.keys(index.maps)) {
+  const file = path.join(modelsDir, 'maps', name, 'map.json')
+  if (fs.existsSync(file)) for (const face of Object.values(readJson(file).skyboxFaces ?? {})) skies.add(face)
+}
+const skyboxDir = path.join(modelsDir, 'skybox')
+for (const sky of fs.existsSync(skyboxDir) ? fs.readdirSync(skyboxDir) : []) {
+  const dir = path.join(skyboxDir, sky)
+  if (!fs.statSync(dir).isDirectory()) continue
+  for (const file of fs.readdirSync(dir))
+    if (file.endsWith('.webp') && !skies.has(`skybox/${sky}/${file}`)) fs.rmSync(path.join(dir, file))
+}
 vpks.close()
 console.log(`\n${Object.keys(index.maps).length} maps in public/models/maps/index.json`)
 if (failed.length) {
