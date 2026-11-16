@@ -12,6 +12,7 @@ import { getState, useInstance } from '@zus/store'
 import { useDerivedMap } from '@components/Scene/DerivedMap'
 import { DerivedMapResult, textComponent } from '@utils/derivedMap'
 import { reportError } from '@utils/notice'
+import { decodePng } from '@utils/png'
 import { isPerfLoggingEnabled } from '@utils/misc'
 
 const INVISIBLE_TOOL_MATERIALS = new Set([
@@ -908,6 +909,35 @@ async function textureFromBytes(
   return texture
 }
 
+/**
+ * A lightmap atlas (RGBExp32: an exponent in alpha), decoded in JS rather than by the browser:
+ * WebKit premultiplies alpha on decode regardless of premultiplyAlpha, which blacks out or
+ * saturates every texel whose exponent byte is small (red and yellow blotches on iOS).
+ */
+async function lightmapTextureFromBytes(bytes: Uint8Array): Promise<THREE.Texture> {
+  let image: Awaited<ReturnType<typeof decodePng>>
+  try {
+    image = await decodePng(bytes)
+  } catch (error) {
+    console.warn('Lightmap PNG decode failed; using the browser decoder', error)
+    return textureFromBytes(bytes, 'image/png', false)
+  }
+  const texture = new THREE.DataTexture(
+    image.data,
+    image.width,
+    image.height,
+    THREE.RGBAFormat,
+    THREE.UnsignedByteType
+  )
+  texture.colorSpace = THREE.LinearSRGBColorSpace
+  // RGBExp32 cannot be interpolated as stored; the shader filters it after decoding.
+  texture.magFilter = THREE.NearestFilter
+  texture.minFilter = THREE.NearestFilter
+  texture.generateMipmaps = false
+  texture.needsUpdate = true
+  return texture
+}
+
 type MaterialFeatures = {
   translucent?: boolean
   additive?: boolean
@@ -994,12 +1024,12 @@ async function applyDerivedPresentation(scene: THREE.Group, result: DerivedResul
 
   const flatBytes = result.components.get('lightmaps/flat.png')
   if (flatBytes) {
-    const flat = trackTexture(scene, await textureFromBytes(flatBytes, 'image/png', false))
+    const flat = trackTexture(scene, await lightmapTextureFromBytes(flatBytes))
     const directional = await Promise.all(
       [0, 1, 2].map(index => {
         const bytes = result.components.get(`lightmaps/directional-${index}.png`)
         return bytes
-          ? textureFromBytes(bytes, 'image/png', false).then(texture =>
+          ? lightmapTextureFromBytes(bytes).then(texture =>
               trackTexture(scene, texture)
             )
           : Promise.resolve(flat)
