@@ -58,7 +58,8 @@
     "convert:map": "node scripts/convert-map.mjs",
     "update:map-bounds": "node scripts/update-map-bounds.mjs",
     "build:maps": "node scripts/maps/build-maps.mjs",
-    "changelog": "node scripts/changelog.mjs"
+    "changelog": "node scripts/changelog.mjs",
+    "maps:popular": "node --no-warnings scripts/maps/popular-maps.mjs"
   },
   "browserslist": {
     "production": [
