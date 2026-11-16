@@ -59,6 +59,7 @@
     "update:map-bounds": "node scripts/update-map-bounds.mjs",
     "build:maps": "node scripts/maps/build-maps.mjs",
     "changelog": "node scripts/changelog.mjs",
+    "maps:pull": "node scripts/maps/pull-maps.mjs",
     "maps:popular": "node --no-warnings scripts/maps/popular-maps.mjs"
   },
   "browserslist": {

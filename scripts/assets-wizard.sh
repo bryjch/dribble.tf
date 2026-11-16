@@ -427,6 +427,16 @@ MAPS_INDEX=public/models/maps/index.json
 BUILT_MAPS=""
 [[ -f "$MAPS_INDEX" ]] && BUILT_MAPS=$(node -e 'process.stdout.write(Object.keys(require("./" + process.argv[1]).maps).join(" "))' "$MAPS_INDEX")
 [[ -n "$BUILT_MAPS" ]] && note "Built so far: $BUILT_MAPS"
+# Built maps aren't in git (only the index is), so a fresh checkout fetches them from the CDN
+# before building more or uploading.
+MISSING_MAPS=""
+for map in $BUILT_MAPS; do [[ -f "public/models/maps/$map/map.json" ]] || MISSING_MAPS="$MISSING_MAPS $map"; done
+if [[ -n "$MISSING_MAPS" ]]; then
+  warn "Not in this checkout yet:$MISSING_MAPS"
+  if confirm "Fetch them from the CDN (npm run maps:pull)?"; then
+    run npm run maps:pull || warn "some maps weren't fetched; scroll up for why"
+  fi
+fi
 if [[ ! -f "$GAME_DIR/tf2_misc_dir.vpk" ]]; then
   warn "TF2's files aren't there (stage 2), so there's nothing to build from. Skipping."
 elif confirm "Build maps now?"; then

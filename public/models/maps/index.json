@@ -1,1 +1,616 @@
-{"schema":"dribble.maps","version":1,"maps":{"cp_granary_pro_rc17a3":{"bspSha256":"9727d805471e1e43ff5bf34d54fb87c3d4d365cc46b56d5c24f5fdde148ca1ea","builtAt":"2026-11-16T10:13:36.244Z","skybox":"sky_granary_01"},"cp_gullywash_f9":{"bspSha256":"0606906c809756e3f40a116b66d222ed929073f636f9c3b1b2c5dbbf9cbc9a5b","builtAt":"2026-11-16T10:11:47.367Z","skybox":"sky_dustbowl_01"},"cp_metalworks_f5":{"bspSha256":"a8757d57f3408f24f551af4daa0f5157fba1f342b51d8b3fab89b9109c99e2cc","builtAt":"2026-11-16T10:15:41.835Z","skybox":"sky_night_01"},"cp_metalworks_f7":{"bspSha256":"6238103ec321666efb5ec1080e9b6b10dd8f420937f06f86f78e054601ab9db7","builtAt":"2026-11-16T11:10:38.736Z","skybox":"sky_night_01"},"cp_passage_b1a":{"bspSha256":"889774e0f06479dbc2eab08937941bdf0318105222e0ff710a779f9143c8b677","builtAt":"2026-11-16T11:18:47.318Z","skybox":"sky_hydro_01"},"cp_process_f12":{"bspSha256":"cebe58a8014d26498b4a7eee49f6ed33372aa115131488d96b2ca8364d2a64f9","builtAt":"2026-11-16T10:17:18.120Z","skybox":"sky_trainyard_01"},"cp_prolands_rc2ta":{"bspSha256":"08ea1c204af76c1d800650bd3efd8452113235f1135f7a71fd0619d5e29765a8","builtAt":"2026-11-16T10:18:32.398Z","skybox":"sky_badlands_01"},"cp_reckoner_rc6":{"bspSha256":"e2ee50c308cf26f1a972ccdb2eee3838b7884007bd92bce368c72ff1e3a6663f","builtAt":"2026-11-16T10:21:53.318Z","skybox":"sky_fuji"},"cp_snakewater_final1":{"bspSha256":"f09d406d2bbe397c8f9df9ca17f11b36b53d40fcf57e3f1532ec9af811b2a1eb","builtAt":"2026-11-16T10:10:14.937Z","skybox":"sky_well_01"},"cp_soursob_preb1a":{"bspSha256":"b7410dad74a4864c4b1ff69befc1685fe6fbcdcbc29e8913a922cddd040cc6fc","builtAt":"2026-11-16T11:30:14.934Z","skybox":"sky_well_01"},"cp_steel_f12":{"bspSha256":"18c9ecc23d9392ba393cc433e4e8e4fbaf5368db42fe564344c0b899eae799cf","builtAt":"2026-11-16T11:03:45.033Z","skybox":"sky_dustbowl_01"},"cp_subbase_b3a":{"bspSha256":"05753cea2a86fb7017fa6573a67d5051a2b6ecd7a1eb1aa115697e4c7238f7ac","builtAt":"2026-11-16T11:37:08.399Z","skybox":"sky_vickery"},"cp_sultry_b8a":{"bspSha256":"49bab2feeb53f102cd79601b38f3cbd9a30b79d19184fcb1baa24ac139aa66b2","builtAt":"2026-11-16T10:24:32.960Z","skybox":"sky_well_02_hdr"},"cp_sunshine":{"bspSha256":"ca9ad7d01f46112abbc5b02f3d144fad833e6a0ff3bd82a1fff38fa8d3c32474","builtAt":"2026-11-16T10:25:53.400Z","skybox":"sky_tf2_04"},"cp_villa_b19":{"bspSha256":"c6a6f12967da6f42a77d0b17e28d14e88781dc6417b846d907dd4ef605c6a8cb","builtAt":"2026-11-16T10:27:35.024Z","skybox":"sky_morningsnow_01"},"koth_ashville_final2":{"bspSha256":"5fa4b396963e5ea4576cf09c76be4294eac287795f9ab1e4141495b5ef37cb20","builtAt":"2026-11-16T11:05:39.062Z","skybox":"sky_midnight_01"},"koth_bagel_rc12":{"bspSha256":"c991a61edb0346e57ad4bfd256693322afb6a522d8005492418b12c094f1d680","builtAt":"2026-11-16T10:30:37.594Z","skybox":"sky_goldrush_01"},"koth_bagel_rc13":{"bspSha256":"68d8da41dc746c06b379be54075f085813e0a733119a698ba6e3f0f8605b0245","builtAt":"2026-11-16T11:12:44.902Z","skybox":"sky_goldrush_01"},"koth_cascade_rc1a":{"bspSha256":"20abfe8aa723db5ea00c993d2eddf4cfdf8beb88009fb06963befc4dfed613cd","builtAt":"2026-11-16T11:29:19.025Z","skybox":"sky_alpinestorm_01"},"koth_clearcut_b18":{"bspSha256":"73bdd9cfa5e2350c1a9abe015a45e89120b62f7602556ea9aa754a5bb13a6fb6","builtAt":"2026-11-16T10:31:34.622Z","skybox":"sky_morningsnow_01"},"koth_product_final":{"bspSha256":"f36ce3d43377cc786821c43e44ccc88ee9549b7cb30d6e793d316134c6b59b03","builtAt":"2026-11-16T10:32:40.967Z","skybox":"sky_trainyard_01"},"koth_proot_b5b":{"bspSha256":"76d9ec3d27b835dd72ab3347fca33ab3f8a3b151be2ac48a557565c38d567326","builtAt":"2026-11-16T11:13:51.574Z","skybox":"sky_eveningtoast_01"},"koth_proside_v1":{"bspSha256":"b9c412855f86b767eb5cfe6179f71647c243555db3ff9711d0dce9453edb859e","builtAt":"2026-11-16T11:35:10.692Z","skybox":"sky_hydro_01"},"koth_warmtic_f10":{"bspSha256":"14823ba127a9f05b0fdf60c3952fc425fc96901d49909c91f0d523e5cf7ac515","builtAt":"2026-11-16T11:31:53.847Z","skybox":"sky_trainyard_01"},"pass_arena2_b17":{"bspSha256":"dbf91e05cac3c223b0e57daa7bc4703f72e1664014668238a92bbcfe1e6f85d0","builtAt":"2026-11-16T11:17:25.387Z","skybox":null},"pl_eruption_b16b":{"bspSha256":"9685e6ca412cd1bd9a988cafacdfbfd0df735ab8504cfc0628a7f858a9ac96ce","builtAt":"2026-11-16T11:23:53.383Z","skybox":"sky_tf2_04"},"pl_swiftwater_final1":{"bspSha256":"43b69bdc78243baf424a4fd39da19f21ee7a46a8ae31639d44ee457e7d39cd37","builtAt":"2026-11-16T11:27:27.169Z","skybox":"sky_trainyard_01"},"pl_upward_f12":{"bspSha256":"0d9fe5486023df49f0e6d4da43ac3e777baee87f1c588933dc16750cb7c51677","builtAt":"2026-11-16T11:15:52.733Z","skybox":"sky_upward"},"pl_vigil_rc10":{"bspSha256":"553e43c17911c52a2a83de6a4249504c08b43ead58e2f6f3ea74c6ef08b7fd50","builtAt":"2026-11-16T11:08:31.655Z","skybox":"sky_vigil_01"}}}
+{
+  "schema": "dribble.maps",
+  "version": 1,
+  "maps": {
+    "cp_granary_pro_rc17a3": {
+      "bspSha256": "9727d805471e1e43ff5bf34d54fb87c3d4d365cc46b56d5c24f5fdde148ca1ea",
+      "bspBytes": 23654458,
+      "builtAt": "2026-11-16T10:13:36.244Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_granary_01",
+      "mapJson": {
+        "sha256": "c54d1eb79b30a68571f20b82422d15ce9bdfc57e7d37e87e3ed781e81a10904c",
+        "bytes": 29311
+      },
+      "files": 416,
+      "bytes": 22757860
+    },
+    "cp_gullywash_f9": {
+      "bspSha256": "0606906c809756e3f40a116b66d222ed929073f636f9c3b1b2c5dbbf9cbc9a5b",
+      "bspBytes": 13231135,
+      "builtAt": "2026-11-16T10:11:47.367Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_dustbowl_01",
+      "mapJson": {
+        "sha256": "fd6cc9dff0e61a12223877192e8b0fb338ec10a98d878ebcf0ce242ac2faa91a",
+        "bytes": 21870
+      },
+      "files": 314,
+      "bytes": 27187006
+    },
+    "cp_metalworks_f5": {
+      "bspSha256": "a8757d57f3408f24f551af4daa0f5157fba1f342b51d8b3fab89b9109c99e2cc",
+      "bspBytes": 19662300,
+      "builtAt": "2026-11-16T10:15:41.835Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_night_01",
+      "mapJson": {
+        "sha256": "442964d12b32445b48ca2ae6d250dd8f76792377f3573c5bd852dcafe6a6451c",
+        "bytes": 31944
+      },
+      "files": 430,
+      "bytes": 20262885
+    },
+    "cp_metalworks_f7": {
+      "bspSha256": "6238103ec321666efb5ec1080e9b6b10dd8f420937f06f86f78e054601ab9db7",
+      "bspBytes": 19604528,
+      "builtAt": "2026-11-16T11:10:38.736Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_night_01",
+      "mapJson": {
+        "sha256": "cea6c3453735770cbf5d86452b2660edbec2a62073242c5fc95d14c6b1264854",
+        "bytes": 31949
+      },
+      "files": 430,
+      "bytes": 20207601
+    },
+    "cp_passage_b1a": {
+      "bspSha256": "889774e0f06479dbc2eab08937941bdf0318105222e0ff710a779f9143c8b677",
+      "bspBytes": 23581558,
+      "builtAt": "2026-11-16T11:18:47.318Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_hydro_01",
+      "mapJson": {
+        "sha256": "fbdd7d95abfaa82a490223d198429d5a477fde60f6c972c0dbcedf56e4dc46fc",
+        "bytes": 23238
+      },
+      "files": 329,
+      "bytes": 21902796
+    },
+    "cp_process_f12": {
+      "bspSha256": "cebe58a8014d26498b4a7eee49f6ed33372aa115131488d96b2ca8364d2a64f9",
+      "bspBytes": 18558778,
+      "builtAt": "2026-11-16T10:17:18.120Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_trainyard_01",
+      "mapJson": {
+        "sha256": "5ca462793da4b9a62cddb3bb39f7ab70d6e6addbeb49392f4d59951a13661f83",
+        "bytes": 25349
+      },
+      "files": 341,
+      "bytes": 20103805
+    },
+    "cp_prolands_rc2ta": {
+      "bspSha256": "08ea1c204af76c1d800650bd3efd8452113235f1135f7a71fd0619d5e29765a8",
+      "bspBytes": 72398744,
+      "builtAt": "2026-11-16T10:18:32.398Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_badlands_01",
+      "mapJson": {
+        "sha256": "764eb9c5eb599ded4215cb32ae93d20e66a88017c917449fb4992a69a3aafef9",
+        "bytes": 21918
+      },
+      "files": 302,
+      "bytes": 21438933
+    },
+    "cp_reckoner_rc6": {
+      "bspSha256": "e2ee50c308cf26f1a972ccdb2eee3838b7884007bd92bce368c72ff1e3a6663f",
+      "bspBytes": 32477488,
+      "builtAt": "2026-11-16T10:21:53.318Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_fuji",
+      "mapJson": {
+        "sha256": "8644fa91a789c855a741d025f6de208aadd6d8faa773580732c32e24d361eb34",
+        "bytes": 27936
+      },
+      "files": 419,
+      "bytes": 34706260
+    },
+    "cp_snakewater_final1": {
+      "bspSha256": "f09d406d2bbe397c8f9df9ca17f11b36b53d40fcf57e3f1532ec9af811b2a1eb",
+      "bspBytes": 59590420,
+      "builtAt": "2026-11-16T10:10:14.937Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_well_01",
+      "mapJson": {
+        "sha256": "fcd9a37970988e3133a8eb9d0c45273ed0b4e373c0ec7a82ff0e29af04292757",
+        "bytes": 35667
+      },
+      "files": 532,
+      "bytes": 30912915
+    },
+    "cp_soursob_preb1a": {
+      "bspSha256": "b7410dad74a4864c4b1ff69befc1685fe6fbcdcbc29e8913a922cddd040cc6fc",
+      "bspBytes": 51336704,
+      "builtAt": "2026-11-16T11:30:14.934Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_well_01",
+      "mapJson": {
+        "sha256": "71f8ec5cc21f95dac1d712eddc5cfa1f763421353e8364942f64d3fabfa08f1f",
+        "bytes": 11896
+      },
+      "files": 144,
+      "bytes": 10292559
+    },
+    "cp_steel_f12": {
+      "bspSha256": "18c9ecc23d9392ba393cc433e4e8e4fbaf5368db42fe564344c0b899eae799cf",
+      "bspBytes": 23930991,
+      "builtAt": "2026-11-16T11:03:45.033Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_dustbowl_01",
+      "mapJson": {
+        "sha256": "ddd5f4847661fb3ff378bc453eacb15fcc5616a3e580f68e94553a5d3fa87e34",
+        "bytes": 43493
+      },
+      "files": 586,
+      "bytes": 31194149
+    },
+    "cp_subbase_b3a": {
+      "bspSha256": "05753cea2a86fb7017fa6573a67d5051a2b6ecd7a1eb1aa115697e4c7238f7ac",
+      "bspBytes": 90250981,
+      "builtAt": "2026-11-16T11:37:08.399Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+2fdc076bb5",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_vickery",
+      "mapJson": {
+        "sha256": "d448cfb7e320258d79585904eb9b126c336eea8f854b503d27aaf2863c6dd9ca",
+        "bytes": 19829
+      },
+      "files": 304,
+      "bytes": 16021611
+    },
+    "cp_sultry_b8a": {
+      "bspSha256": "49bab2feeb53f102cd79601b38f3cbd9a30b79d19184fcb1baa24ac139aa66b2",
+      "bspBytes": 38394319,
+      "builtAt": "2026-11-16T10:24:32.960Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_well_02_hdr",
+      "mapJson": {
+        "sha256": "14fa4d4e0ee72af5f87ee21023de22302af29e13371ff57dd1b4136ec5122055",
+        "bytes": 30218
+      },
+      "files": 443,
+      "bytes": 32273338
+    },
+    "cp_sunshine": {
+      "bspSha256": "ca9ad7d01f46112abbc5b02f3d144fad833e6a0ff3bd82a1fff38fa8d3c32474",
+      "bspBytes": 30319857,
+      "builtAt": "2026-11-16T10:25:53.400Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_tf2_04",
+      "mapJson": {
+        "sha256": "5c2c260ab210c4482eff6352c7f46f648377b0ffab3d281c7607822a518c031e",
+        "bytes": 26467
+      },
+      "files": 413,
+      "bytes": 26954108
+    },
+    "cp_villa_b19": {
+      "bspSha256": "c6a6f12967da6f42a77d0b17e28d14e88781dc6417b846d907dd4ef605c6a8cb",
+      "bspBytes": 46777790,
+      "builtAt": "2026-11-16T10:27:35.024Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_morningsnow_01",
+      "mapJson": {
+        "sha256": "6522ab05043a9fb99512e6de5995a341b5fa13d69d8f0b3a6dac6415f3886cb6",
+        "bytes": 18925
+      },
+      "files": 294,
+      "bytes": 30934650
+    },
+    "koth_ashville_final2": {
+      "bspSha256": "5fa4b396963e5ea4576cf09c76be4294eac287795f9ab1e4141495b5ef37cb20",
+      "bspBytes": 34479100,
+      "builtAt": "2026-11-16T11:05:39.062Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_midnight_01",
+      "mapJson": {
+        "sha256": "5ced74069a87fb0271ddd054bf71fa8383838ad9280e7da2bbaa7696c29a17ab",
+        "bytes": 21139
+      },
+      "files": 302,
+      "bytes": 14683113
+    },
+    "koth_bagel_rc12": {
+      "bspSha256": "c991a61edb0346e57ad4bfd256693322afb6a522d8005492418b12c094f1d680",
+      "bspBytes": 26486963,
+      "builtAt": "2026-11-16T10:30:37.594Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_goldrush_01",
+      "mapJson": {
+        "sha256": "8cfbe2a34691dfb79a2d2a45d346e1febfe7eec892e221c39d999daa49e10450",
+        "bytes": 29189
+      },
+      "files": 469,
+      "bytes": 25633047
+    },
+    "koth_bagel_rc13": {
+      "bspSha256": "68d8da41dc746c06b379be54075f085813e0a733119a698ba6e3f0f8605b0245",
+      "bspBytes": 26509635,
+      "builtAt": "2026-11-16T11:12:44.902Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_goldrush_01",
+      "mapJson": {
+        "sha256": "f49895134fb4bc4b5a6eab35f504b5fc639ed631f2be3a0a08d82f4cbc172c60",
+        "bytes": 29189
+      },
+      "files": 469,
+      "bytes": 25624005
+    },
+    "koth_cascade_rc1a": {
+      "bspSha256": "20abfe8aa723db5ea00c993d2eddf4cfdf8beb88009fb06963befc4dfed613cd",
+      "bspBytes": 20883803,
+      "builtAt": "2026-11-16T11:29:19.025Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_alpinestorm_01",
+      "mapJson": {
+        "sha256": "eecd2d0f975ae6e67c200e3f8574c6e38faf5f062d36e985328705ebf57d3b64",
+        "bytes": 24766
+      },
+      "files": 415,
+      "bytes": 21292968
+    },
+    "koth_clearcut_b18": {
+      "bspSha256": "73bdd9cfa5e2350c1a9abe015a45e89120b62f7602556ea9aa754a5bb13a6fb6",
+      "bspBytes": 36759648,
+      "builtAt": "2026-11-16T10:31:34.622Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_morningsnow_01",
+      "mapJson": {
+        "sha256": "9cda68c7ecb679dacefe23c8aa4c30cbaa2eaa3506f0f8d44f5a8b48a537b819",
+        "bytes": 16547
+      },
+      "files": 241,
+      "bytes": 16614563
+    },
+    "koth_product_final": {
+      "bspSha256": "f36ce3d43377cc786821c43e44ccc88ee9549b7cb30d6e793d316134c6b59b03",
+      "bspBytes": 18143384,
+      "builtAt": "2026-11-16T10:32:40.967Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_trainyard_01",
+      "mapJson": {
+        "sha256": "c1b4ece5aeaece5fdc1c8191983f8e56c9e55ca2973ad05828c97c4440b586de",
+        "bytes": 21340
+      },
+      "files": 334,
+      "bytes": 16743313
+    },
+    "koth_proot_b5b": {
+      "bspSha256": "76d9ec3d27b835dd72ab3347fca33ab3f8a3b151be2ac48a557565c38d567326",
+      "bspBytes": 22379101,
+      "builtAt": "2026-11-16T11:13:51.574Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_eveningtoast_01",
+      "mapJson": {
+        "sha256": "4a3c714d944a77b2efa872252f4fc538c184f554244e7e6e8b416a58f958b27d",
+        "bytes": 12534
+      },
+      "files": 162,
+      "bytes": 8395787
+    },
+    "koth_proside_v1": {
+      "bspSha256": "b9c412855f86b767eb5cfe6179f71647c243555db3ff9711d0dce9453edb859e",
+      "bspBytes": 27474698,
+      "builtAt": "2026-11-16T11:35:10.692Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+2fdc076bb5",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_hydro_01",
+      "mapJson": {
+        "sha256": "419410e1c8cddf63c65cc3deb08eba96caacfb0d153dc368e36ce35300d06bfc",
+        "bytes": 16433
+      },
+      "files": 256,
+      "bytes": 15783453
+    },
+    "koth_warmtic_f10": {
+      "bspSha256": "14823ba127a9f05b0fdf60c3952fc425fc96901d49909c91f0d523e5cf7ac515",
+      "bspBytes": 18534141,
+      "builtAt": "2026-11-16T11:31:53.847Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_trainyard_01",
+      "mapJson": {
+        "sha256": "c3eaf46794d4a3a7e3d04141cfa6c3256926bbdbec6160924ac6dacd5bcc3e6d",
+        "bytes": 24069
+      },
+      "files": 322,
+      "bytes": 17238606
+    },
+    "pass_arena2_b17": {
+      "bspSha256": "dbf91e05cac3c223b0e57daa7bc4703f72e1664014668238a92bbcfe1e6f85d0",
+      "bspBytes": 13682057,
+      "builtAt": "2026-11-16T11:17:25.387Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": null,
+      "mapJson": {
+        "sha256": "8204c52dd69b7c13ac90641613b01ee28816ba2f55d378669abe7944c5a9f734",
+        "bytes": 13135
+      },
+      "files": 193,
+      "bytes": 11420992
+    },
+    "pl_eruption_b16b": {
+      "bspSha256": "9685e6ca412cd1bd9a988cafacdfbfd0df735ab8504cfc0628a7f858a9ac96ce",
+      "bspBytes": 36494092,
+      "builtAt": "2026-11-16T11:23:53.383Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_tf2_04",
+      "mapJson": {
+        "sha256": "a209190eb7890744e3095509d8d3faa9f6624224844905102c2f653244c36ebd",
+        "bytes": 37025
+      },
+      "files": 567,
+      "bytes": 32961174
+    },
+    "pl_swiftwater_final1": {
+      "bspSha256": "43b69bdc78243baf424a4fd39da19f21ee7a46a8ae31639d44ee457e7d39cd37",
+      "bspBytes": 24871221,
+      "builtAt": "2026-11-16T11:27:27.169Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_trainyard_01",
+      "mapJson": {
+        "sha256": "b939eb9bff404527f71425e5d1152de17cfc63650ad129eee6d13260db195a2f",
+        "bytes": 36805
+      },
+      "files": 520,
+      "bytes": 29545141
+    },
+    "pl_upward_f12": {
+      "bspSha256": "0d9fe5486023df49f0e6d4da43ac3e777baee87f1c588933dc16750cb7c51677",
+      "bspBytes": 25252306,
+      "builtAt": "2026-11-16T11:15:52.733Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_upward",
+      "mapJson": {
+        "sha256": "177fad90b0f03331b3b8cdcf9a6ca058f75388840cb7fb327a13e54eb24b8ef8",
+        "bytes": 27796
+      },
+      "files": 470,
+      "bytes": 22974030
+    },
+    "pl_vigil_rc10": {
+      "bspSha256": "553e43c17911c52a2a83de6a4249504c08b43ead58e2f6f3ea74c6ef08b7fd50",
+      "bspBytes": 30570076,
+      "builtAt": "2026-11-16T11:08:31.655Z",
+      "builtWith": {
+        "converter": "bsp-to-glb",
+        "revision": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c",
+        "build": "7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c+e31b6d8167",
+        "pipeline": 2,
+        "textureScale": 0.5,
+        "textureLimit": 1024,
+        "propTextureSize": 512
+      },
+      "skybox": "sky_vigil_01",
+      "mapJson": {
+        "sha256": "c57863f61e8b90d60549429e6af92bef4df44974996cc4d8d552128264941308",
+        "bytes": 35889
+      },
+      "files": 550,
+      "bytes": 33797690
+    }
+  },
+  "updatedAt": "2026-11-16T12:00:40.554Z"
+}

@@ -15,9 +15,10 @@ Models are primarily served as glTF assets.
 | Command | What it does |
 | --- | --- |
 | `npm run dev` | Runs the viewer locally. Models load from `public/models`, so freshly built maps can be checked here before they're uploaded. |
-| `npm run build` | Builds the site for production, where models load from the CDN (`VITE_APP_ASSET_URL`). |
+| `npm run build` | Builds the site for production, where models load from the CDN (`VITE_APP_ASSET_URL`), so `public/models` is left out of `dist`. |
 | `npm run assets` | The step-by-step way to update the models: gets TF2's files, rebuilds viewmodels and buildings, builds maps, uploads `public/models` to the CDN and refreshes its cache. It checks your AWS login and finds the bucket itself, and every step can be skipped. |
 | `npm run build:maps -- <map>...` | Converts maps from their BSP (downloaded from serveme.tf) into `public/models/maps`. Unchanged maps are skipped; `--force` rebuilds them. |
+| `npm run maps:pull` | Downloads the built maps from the CDN into `public/models`. Built maps aren't in git (only `public/models/maps/index.json`, which records each build), so run this on a fresh clone to see them in `npm run dev`. |
 | `npm run maps:popular` | Reads recent demos from demos.tf and lists the maps with no 3D map, or shown on another version, with a `build:maps` command for the most played ones. |
 | `npm run build:viewmodels` | Rebuilds the first-person arms and weapons and the engineer's buildings from TF2's files. |
 | `npm run build:decoder` | Rebuilds the demo decoder (Rust → WebAssembly). Only needed when `decoder/` changes. |
@@ -28,7 +29,8 @@ Models are primarily served as glTF assets.
 1. `npm run maps:popular` to see what demos need.
 2. `npm run build:maps -- <map>...` to build them (a few minutes each).
 3. `npm run dev` and pick them from the Maps tab, or open a demo, to check they look right.
-4. Commit, then `npm run assets`, press Enter at the map names, and choose "built maps only" to upload. They're live once uploaded; no deploy needed.
+4. `npm run assets`, press Enter at the map names, and choose "built maps only" to upload. They're live once uploaded; no deploy needed.
+5. Commit `public/models/maps/index.json`. The built files themselves stay out of git (`.gitignore`): the CDN holds them, and `npm run maps:pull` fetches them.
 
 A demo recorded on a version nobody built is shown on the nearest built version of that map. Maps with no build fall back to the older Blender-made models, else show "No 3D model for this map yet". See [ADR 0006](docs/adr/0006-build-maps-ahead-of-time-with-bsp-to-glb.md) for how maps are built.
 

@@ -30,3 +30,13 @@ bench/
 
 # Cloned and built by scripts/viewmodels/build-viewmodels.mjs
 /scripts/tools/bsp-to-glb
+
+# Built maps (npm run build:maps) live on the asset host, not in git: maps/index.json is the
+# committed record of each build, and npm run maps:pull fetches them. The Blender-built maps'
+# files beside them (textured_compressed.glb, conversion.json, …) stay tracked.
+/public/models/maps/*/map.json
+/public/models/maps/*/*.*.*
+/public/models/maps/*/textures/
+/public/models/maps/*/lightmaps/
+/public/models/props/
+/public/models/skybox/*/*.*.webp
