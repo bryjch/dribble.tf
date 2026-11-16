@@ -11,8 +11,8 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { findAssetUrl } from '../lib/asset-url.mjs'
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const modelsDir = path.join(repoRoot, 'public/models')
@@ -30,34 +30,7 @@ for (let i = 0; i < argv.length; i++) {
   } else names.push(argv[i])
 }
 
-/** VITE_APP_ASSET_URL from the environment, else this checkout's or the main checkout's .env. */
-function assetUrl() {
-  if (options.assetUrl) return options.assetUrl
-  if (process.env.VITE_APP_ASSET_URL) return process.env.VITE_APP_ASSET_URL
-  const roots = [repoRoot]
-  try {
-    const common = execFileSync('git', ['rev-parse', '--path-format=absolute', '--git-common-dir'], {
-      cwd: repoRoot,
-      encoding: 'utf8',
-    }).trim()
-    roots.push(path.dirname(common))
-  } catch {
-    // not a git checkout
-  }
-  for (const root of roots) {
-    const file = path.join(root, '.env')
-    if (!fs.existsSync(file)) continue
-    const line = fs
-      .readFileSync(file, 'utf8')
-      .split('\n')
-      .find(entry => entry.startsWith('VITE_APP_ASSET_URL='))
-    const value = line?.slice('VITE_APP_ASSET_URL='.length).trim().replace(/^['"]|['"]$/g, '')
-    if (value) return value
-  }
-  return null
-}
-
-const base = assetUrl()?.replace(/\/+$/, '')
+const base = options.assetUrl?.replace(/\/+$/, '') ?? findAssetUrl(repoRoot)
 if (!base) {
   console.error('No asset URL: set VITE_APP_ASSET_URL (in .env) or pass --asset-url')
   process.exit(1)
@@ -105,7 +78,9 @@ for (const name of wanted) {
   try {
     const manifestBytes = await download(`maps/${name}/map.json`)
     if (recorded.mapJson && sha256(manifestBytes) !== recorded.mapJson.sha256 && !options.force) {
-      problems.push(`${name}: the asset host has another build than maps/index.json records (--force takes it)`)
+      problems.push(
+        `${name}: the asset host has another build than maps/index.json records (--force takes it)`
+      )
       continue
     }
     const manifest = JSON.parse(manifestBytes)
