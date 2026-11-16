@@ -1,0 +1,102 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 0524bfa..e71323d 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -2628,6 +2628,18 @@ fn select_lightmap_lumps(
+     Ok(selected)
+ }
+ 
++/** Encodes linear light (in rgb8 * 2^exponent units) as RGBExp32 with the smallest exponent that fits. */
++fn encode_rgb_exp32(rgb: [f64; 3]) -> [u8; 4] {
++    let max = rgb.iter().copied().fold(0.0_f64, f64::max);
++    if max <= 0.0 {
++        return [0, 0, 0, 0];
++    }
++    let exponent = ((max / 255.0).log2().ceil() as i32).clamp(-128, 127);
++    let scale = 2.0_f64.powi(-exponent);
++    let channel = |value: f64| (value * scale).round().clamp(0.0, 255.0) as u8;
++    [channel(rgb[0]), channel(rgb[1]), channel(rgb[2]), exponent as i8 as u8]
++}
++
+ fn face_styles(face: Face, face_index: usize) -> Result<Vec<u8>, String> {
+     let first_unused = face
+         .styles
+@@ -2642,14 +2654,9 @@ fn face_styles(face: Face, face_index: usize) -> Result<Vec<u8>, String> {
+             "face {face_index} has non-contiguous light styles; export aborted"
+         ));
+     }
+-    let styles = face.styles[..first_unused].to_vec();
+-    if styles.len() > 1 {
+-        return Err(format!(
+-            "face {face_index} uses multiple light styles {:?}; style composition is unsupported",
+-            styles
+-        ));
+-    }
+-    Ok(styles)
++    // A face lit by several styles (switchable lights) stores each style's samples in turn;
++    // extract_lightmaps sums them, as the game draws it with every light on.
++    Ok(face.styles[..first_unused].to_vec())
+ }
+ 
+ fn extract_lightmaps(
+@@ -2787,25 +2794,39 @@ fn extract_lightmaps(
+     let mut manifest_faces = Vec::with_capacity(candidates.len());
+ 
+     for candidate in candidates {
+-        let copy_channel = |source_offset: usize, destination: &mut [u8]| {
++        // Each style's block holds the flat samples, then the three bumped ones if any.
++        let style_bytes = candidate.sample_bytes * if candidate.bump_light { 4 } else { 1 };
++        let copy_channel = |channel_offset: usize, destination: &mut [u8]| {
+             for row in 0..candidate.placement.height as usize {
+                 let row_bytes = candidate.placement.width as usize * 4;
+-                let source_start = source_offset + row * row_bytes;
+                 let destination_start = ((candidate.placement.y as usize + row)
+                     * used_width as usize
+                     + candidate.placement.x as usize)
+                     * 4;
+-                destination[destination_start..destination_start + row_bytes]
+-                    .copy_from_slice(&light_data[source_start..source_start + row_bytes]);
++                let source_row = candidate.source_start + channel_offset + row * row_bytes;
++                if candidate.styles.len() == 1 {
++                    destination[destination_start..destination_start + row_bytes]
++                        .copy_from_slice(&light_data[source_row..source_row + row_bytes]);
++                    continue;
++                }
++                for texel in 0..candidate.placement.width as usize {
++                    let mut sum = [0.0_f64; 3];
++                    for style in 0..candidate.styles.len() {
++                        let at = source_row + style * style_bytes + texel * 4;
++                        let scale = 2.0_f64.powi(i32::from(light_data[at + 3] as i8));
++                        for (component, total) in sum.iter_mut().enumerate() {
++                            *total += f64::from(light_data[at + component]) * scale;
++                        }
++                    }
++                    let out = destination_start + texel * 4;
++                    destination[out..out + 4].copy_from_slice(&encode_rgb_exp32(sum));
++                }
+             }
+         };
+-        copy_channel(candidate.source_start, &mut flat_pixels);
++        copy_channel(0, &mut flat_pixels);
+         if candidate.bump_light {
+             for (channel, destination) in directional_pixels.iter_mut().enumerate() {
+-                copy_channel(
+-                    candidate.source_start + candidate.sample_bytes * (channel + 1),
+-                    destination,
+-                );
++                copy_channel(candidate.sample_bytes * (channel + 1), destination);
+             }
+         }
+         by_face.insert(candidate.face_index, candidate.placement);
+@@ -2862,9 +2883,9 @@ fn extract_lightmaps(
+                     .collect(),
+             },
+             styles: LightmapManifestStyles {
+-                supported_per_face: 1,
++                supported_per_face: 4,
+                 unused_value: 255,
+-                composition: "single-style",
++                composition: "sum-of-styles",
+                 storage_order: "style-major-then-flat-and-directional",
+             },
+             faces: manifest_faces,

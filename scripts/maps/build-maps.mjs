@@ -31,6 +31,7 @@ import { MeshoptEncoder } from 'meshoptimizer'
 import { VpkSet } from '../viewmodels/vpk.mjs'
 import {
   BSP_TO_GLB_REV,
+  bspToGlbBuild,
   applyTextures,
   bspToGlb,
   convertTextures,
@@ -421,7 +422,37 @@ const viewerDecals = decals => ({
     })),
 })
 
-async function buildMap(tool, vpks, input) {
+/**
+ * TF2's files with the map's own on top: the files it packs into its BSP (custom props, their
+ * materials, its sky), extracted by pakfile.py. The game looks there first, so the build does too.
+ */
+function withPakfile(vpks, bspFile, name) {
+  const dir = path.join(tempDir, 'pak', name)
+  fs.rmSync(dir, { recursive: true, force: true })
+  const python = spawnSync('python3', ['-I', path.join(repoRoot, 'scripts/maps/pakfile.py'), bspFile, dir], {
+    encoding: 'utf8',
+  })
+  if (python.status !== 0) {
+    console.warn(`  ! packed files not read: ${python.stderr.trim().split('\n').pop()}`)
+    return vpks
+  }
+  const { files, failed } = JSON.parse(python.stdout)
+  if (failed.length) console.warn(`  ! ${failed.length} packed files unreadable, e.g. ${failed[0]}`)
+  const local = file => {
+    const at = path.join(dir, file.replace(/\\/g, '/').toLowerCase())
+    return at.startsWith(dir + path.sep) && fs.existsSync(at) ? at : null
+  }
+  return {
+    packedFiles: files,
+    has: file => Boolean(local(file)) || vpks.has(file),
+    read: file => {
+      const at = local(file)
+      return at ? fs.readFileSync(at) : vpks.read(file)
+    },
+  }
+}
+
+async function buildMap(tool, tf2, input) {
   const started = Date.now()
   const { name, file: bspFile } = await findBsp(input)
   const bsp = fs.readFileSync(bspFile)
@@ -433,11 +464,13 @@ async function buildMap(tool, vpks, input) {
     !options.force &&
     previous?.bspSha256 === bspSha256 &&
     previous?.builtWith?.pipeline === PIPELINE_VERSION &&
-    previous?.builtWith?.revision === BSP_TO_GLB_REV
+    previous?.builtWith?.revision === BSP_TO_GLB_REV &&
+    previous?.builtWith?.build === bspToGlbBuild()
   ) {
     console.log(`${name}: up to date`)
     return previous
   }
+  const vpks = withPakfile(tf2, bspFile, name)
   console.log(`${name}: converting`)
 
   // The world, its materials, lightmaps, props, decals, visibility and entities.
@@ -551,6 +584,7 @@ async function buildMap(tool, vpks, input) {
     builtWith: {
       converter: 'bsp-to-glb',
       revision: BSP_TO_GLB_REV,
+      build: bspToGlbBuild(),
       pipeline: PIPELINE_VERSION,
       textureScale: TEXTURE_SCALE,
       textureLimit: TEXTURE_LIMIT,

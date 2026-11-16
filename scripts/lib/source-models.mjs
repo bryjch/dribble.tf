@@ -3,6 +3,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync, spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { parseKeyValues } from '../viewmodels/keyvalues.mjs'
 
@@ -10,12 +11,29 @@ export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 
 export const BSP_TO_GLB_REPO = 'https://github.com/Hona/bsp-to-glb'
 export const BSP_TO_GLB_REV = '7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c'
+/**
+ * Our changes on top of the pinned revision, applied in order after checkout:
+ * - light-styles: faces lit by several light styles (switchable lights) sum their styles'
+ *   lightmaps, where upstream refuses the map's lightmaps altogether.
+ */
+export const BSP_TO_GLB_PATCHES = ['bsp-to-glb-light-styles.patch'].map(file =>
+  path.join(repoRoot, 'scripts/lib', file)
+)
 const toolDir = path.join(repoRoot, 'scripts/tools/bsp-to-glb')
 
 const run = (cmd, argv, opts = {}) =>
   execFileSync(cmd, argv, { stdio: 'pipe', encoding: 'utf8', ...opts })
 
-/** Clones and builds the pinned bsp-to-glb once; returns its binary. */
+/** The pinned revision plus our patches, as recorded beside what it builds. */
+export const bspToGlbBuild = () =>
+  [
+    BSP_TO_GLB_REV,
+    ...BSP_TO_GLB_PATCHES.map(file =>
+      createHash('sha256').update(fs.readFileSync(file)).digest('hex').slice(0, 10)
+    ),
+  ].join('+')
+
+/** Clones, patches and builds the pinned bsp-to-glb once; returns its binary. */
 export function bspToGlb() {
   const binary = path.join(toolDir, 'target/release/bsp-to-glb')
   if (!fs.existsSync(path.join(toolDir, '.git'))) {
@@ -23,19 +41,22 @@ export function bspToGlb() {
     run('git', ['clone', '--quiet', BSP_TO_GLB_REPO, toolDir])
   }
   const head = run('git', ['rev-parse', 'HEAD'], { cwd: toolDir }).trim()
-  if (head !== BSP_TO_GLB_REV) {
-    run('git', ['fetch', '--quiet', 'origin'], { cwd: toolDir })
-    run('git', ['checkout', '--quiet', BSP_TO_GLB_REV], { cwd: toolDir })
-  }
+  const build = bspToGlbBuild()
   const stamp = path.join(toolDir, 'target/.built-rev')
-  if (
-    !fs.existsSync(binary) ||
-    !fs.existsSync(stamp) ||
-    fs.readFileSync(stamp, 'utf8') !== BSP_TO_GLB_REV
-  ) {
+  const built = fs.existsSync(stamp) ? fs.readFileSync(stamp, 'utf8') : null
+  if (head !== BSP_TO_GLB_REV || built !== build) {
+    // Back to the pinned revision as it was, then our patches on top.
+    run('git', ['checkout', '--quiet', '--', '.'], { cwd: toolDir })
+    if (head !== BSP_TO_GLB_REV) {
+      run('git', ['fetch', '--quiet', 'origin'], { cwd: toolDir })
+      run('git', ['checkout', '--quiet', BSP_TO_GLB_REV], { cwd: toolDir })
+    }
+    for (const patch of BSP_TO_GLB_PATCHES) run('git', ['apply', patch], { cwd: toolDir })
+  }
+  if (!fs.existsSync(binary) || built !== build) {
     console.log('Building bsp-to-glb (cargo build --release)')
     execFileSync('cargo', ['build', '--release', '--quiet'], { cwd: toolDir, stdio: 'inherit' })
-    fs.writeFileSync(stamp, BSP_TO_GLB_REV)
+    fs.writeFileSync(stamp, build)
   }
   return binary
 }
