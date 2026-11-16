@@ -328,6 +328,15 @@ export const jumpToSpectatorCamera = async () => {
 
 export const jumpToRtsCamera = async () => {
   try {
+    // Asking for the orbit camera while in it (3 again, or Orbit on a phone) resets the view.
+    if (getState().scene.controls.mode === ControlsMode.RTS) {
+      const scene = useInstance.getState().threeScene as THREE.Scene & {
+        controls?: { reset?: () => void }
+      }
+      scene.controls?.reset?.()
+      return
+    }
+
     dispatch({ type: 'CHANGE_CONTROLS_MODE', payload: 'rts' })
 
     useInstance.getState().setFocusedObject(undefined)
@@ -512,6 +521,18 @@ export const loadSettingsAction = async () => {
     // a lot of memory - and risk the device's browser crashing.
     if (settings && isMobile) {
       settings.scene.mode = SceneMode.UNTEXTURED
+    }
+
+    // Before 2026-11 the orbit camera's speeds sat at the top of `controls`, on a 1–10 scale
+    // that no longer means anything; only the inertia toggle carries over (as smoothing).
+    const legacyControls = settings?.controls as Record<string, unknown> | undefined
+    if (legacyControls && 'panSpeed' in legacyControls) {
+      if (!legacyControls.rts && legacyControls.enableDamping === false) {
+        legacyControls.rts = { smoothing: false }
+      }
+      for (const key of ['panSpeed', 'rotateSpeed', 'zoomSpeed', 'enableDamping']) {
+        delete legacyControls[key]
+      }
     }
 
     // merge writes into its first argument, so the defaults are copied first.

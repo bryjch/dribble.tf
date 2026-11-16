@@ -177,10 +177,14 @@ export type StoreState = {
       fov: number
     }
     controls: {
-      panSpeed: number
-      rotateSpeed: number
-      zoomSpeed: number
-      enableDamping: boolean
+      /** The orbit (RTS) camera. Speeds are multipliers: 1 is the default feel. */
+      rts: {
+        rotateSpeed: number
+        zoomSpeed: number
+        keyPanSpeed: number
+        /** Ease the camera toward where it is going, rather than jumping there. */
+        smoothing: boolean
+      }
       lookSpeed: number
       moveSpeed: number
     }
@@ -293,11 +297,12 @@ export const initialState: StoreState = {
       fov: 90,
     },
     controls: {
-      // RTS camera settings
-      panSpeed: 5,
-      rotateSpeed: 3,
-      zoomSpeed: 5,
-      enableDamping: true,
+      rts: {
+        rotateSpeed: 1,
+        zoomSpeed: 1,
+        keyPanSpeed: 1,
+        smoothing: true,
+      },
 
       // Spectator camera settings
       lookSpeed: 3,

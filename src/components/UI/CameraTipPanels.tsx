@@ -145,23 +145,18 @@ export const RtsCameraTipPanel = () => {
       initial={false}
     >
       <div className="ui-tip__title flex">
-        <strong>RTS Camera</strong>
+        <strong>Orbit Camera</strong>
       </div>
 
       <motion.div>
         <div className="ui-tip__row">
           <span>Rotate</span>
-                    <kbd>LMB</kbd>
+          <kbd>LMB</kbd>
         </div>
 
         <div className="ui-tip__row">
           <span>Pan</span>
-                    <kbd>RMB</kbd>
-        </div>
-
-        <div className="ui-tip__row">
-          <span>Movement</span>
-                    <kbd className="ml-0.5">W</kbd>
+          <kbd>RMB</kbd> / <kbd className="ml-0.5">W</kbd>
           <kbd className="ml-0.5">A</kbd>
           <kbd className="ml-0.5">S</kbd>
           <kbd className="ml-0.5">D</kbd>
@@ -169,7 +164,23 @@ export const RtsCameraTipPanel = () => {
 
         <div className="ui-tip__row">
           <span>Zoom</span>
-                    <kbd>Scroll</kbd>
+          <kbd>Scroll</kbd>
+        </div>
+
+        <div className="ui-tip__row">
+          <span>Turn</span>
+          <kbd className="ml-0.5">Q</kbd>
+          <kbd className="ml-0.5">E</kbd>
+        </div>
+
+        <div className="ui-tip__row">
+          <span>Centre on spot</span>
+          <kbd>Double-click</kbd>
+        </div>
+
+        <div className="ui-tip__row">
+          <span>Reset view</span>
+          <kbd>R</kbd>
         </div>
       </motion.div>
     </motion.div>

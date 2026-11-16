@@ -7,7 +7,6 @@ import { PerspectiveCamera } from '@react-three/drei'
 import { PlayerOutlines } from '@components/Scene/PlayerOutlines'
 
 // Scene items
-// @ts-ignore
 import { RtsControls } from '@components/Controls/RtsControls'
 // @ts-ignore
 import { SpectatorControls } from '@components/Controls/SpectatorControls'
@@ -79,8 +78,10 @@ THREE.Cache.enabled = true
 extend({ RtsControls, SpectatorControls })
 
 const SPECTATOR_CAMERA_OFFSET = new THREE.Vector3(0, 45, 150)
-const RTS_CAMERA_OFFSET = new THREE.Vector3(0, 250, 1000)
-const RTS_TARGET_DISTANCE = 1500
+// Leaving a player's POV for the orbit camera: look at them from behind, this far and this many
+// radians from straight above.
+const RTS_POV_DISTANCE = 1000
+const RTS_POV_ANGLE = 0.9
 const ENABLE_DEBUG_MAP_OFFSET = false
 const MARKER_COLOR = '#37ff5f'
 
@@ -114,7 +115,7 @@ const getFocusedViewTransform = (focusedObject?: THREE.Object3D) => {
 // This component is messy af but whatever yolo
 const Controls = () => {
   const cameraRef = useRef<THREE.PerspectiveCamera>(null)
-  const controlsRef = useRef<any>()
+  const controlsRef = useRef<RtsControls>(null)
   const spectatorRef = useRef<any>()
   const pendingSetupCameraRef = useRef<SavedSetupCamera | null>(null)
   const skipSpectatorAutoEnableRef = useRef(false)
@@ -156,14 +157,8 @@ const Controls = () => {
     const newPos = focusedView?.position ?? bounds.defaultRtsCenter
     let cameraOffset = bounds.defaultCameraOffset
 
-    if (focusedView) {
-      if (controlsMode === 'rts') {
-        cameraOffset = RTS_CAMERA_OFFSET.clone().applyQuaternion(focusedView.quaternion)
-      }
-
-      if (controlsMode === 'spectator') {
-        cameraOffset = SPECTATOR_CAMERA_OFFSET.clone().applyQuaternion(focusedView.quaternion)
-      }
+    if (focusedView && controlsMode === 'spectator') {
+      cameraOffset = SPECTATOR_CAMERA_OFFSET.clone().applyQuaternion(focusedView.quaternion)
     }
 
     cameraRef.current.position.copy(newPos).add(cameraOffset)
@@ -171,16 +166,26 @@ const Controls = () => {
     cameraRef.current.far = settings.ui.viewDistance || 15000
 
     if (controlsMode === 'rts' && controlsRef.current) {
-      const nextTarget = focusedView
-        ? cameraRef.current.position
-            .clone()
-            .add(focusedView.direction.clone().multiplyScalar(RTS_TARGET_DISTANCE))
-        : bounds.defaultRtsCenter.clone()
+      const controls = controlsRef.current
+      controls.setBounds(bounds.min, bounds.max)
 
-      controlsRef.current.target.copy(nextTarget)
-      cameraRef.current.lookAt(nextTarget)
-      controlsRef.current.update()
-      controlsRef.current.saveState()
+      // The map's overview is what R (or 3 again) goes back to.
+      controls.setLookAt(
+        bounds.defaultRtsCenter.clone().add(bounds.defaultCameraOffset),
+        bounds.defaultRtsCenter
+      )
+      controls.saveState()
+
+      // From a POV: orbit the player's feet, from behind them.
+      if (focusedView && lastFocusedPOV) {
+        const { x, y } = focusedView.direction
+        controls.setOrbit({
+          target: lastFocusedPOV.getWorldPosition(new THREE.Vector3()),
+          radius: RTS_POV_DISTANCE,
+          theta: Math.hypot(x, y) > 1e-3 ? Math.atan2(-y, -x) : 0,
+          phi: RTS_POV_ANGLE,
+        })
+      }
     }
 
     if (controlsMode === 'spectator' && spectatorRef.current) {
@@ -264,11 +269,10 @@ const Controls = () => {
     if (pendingCamera.mode === 'rts') {
       if (controlsMode !== ControlsMode.RTS || !controlsRef.current) return false
 
-      cameraRef.current.position.set(...pendingCamera.position)
-      controlsRef.current.target.set(...pendingCamera.target)
-      cameraRef.current.lookAt(controlsRef.current.target)
-      controlsRef.current.update()
-      controlsRef.current.saveState()
+      controlsRef.current.setLookAt(
+        new THREE.Vector3(...pendingCamera.position),
+        new THREE.Vector3(...pendingCamera.target)
+      )
       pendingSetupCameraRef.current = null
       return true
     }
@@ -321,8 +325,8 @@ const Controls = () => {
     tryApplyPendingSetupCamera()
   }, [bounds, controlsMode, tryApplyPendingSetupCamera])
 
-  useFrame(() => {
-    if (controlsRef.current) controlsRef.current.update()
+  useFrame((_, delta) => {
+    if (controlsRef.current) controlsRef.current.update(delta)
     if (spectatorRef.current) spectatorRef.current.update()
 
     if (
@@ -357,8 +361,11 @@ const Controls = () => {
           ref={controlsRef}
           name="rts"
           attach="controls"
-          args={[cameraRef.current, gl.domElement]}
-          {...settings.controls}
+          args={[cameraRef.current, gl.domElement, scene]}
+          rotateSpeed={settings.controls.rts.rotateSpeed}
+          zoomSpeed={settings.controls.rts.zoomSpeed}
+          keyPanSpeed={settings.controls.rts.keyPanSpeed}
+          smoothing={settings.controls.rts.smoothing}
         />
       )}
 
@@ -369,7 +376,8 @@ const Controls = () => {
           name="spectator"
           attach="controls"
           args={[cameraRef.current, gl.domElement]}
-          {...settings.controls}
+          lookSpeed={settings.controls.lookSpeed}
+          moveSpeed={settings.controls.moveSpeed}
         />
       )}
     </>
