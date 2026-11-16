@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
+import { AutoHeight } from '@components/UI/Shared/AutoHeight'
 import { ChangelogList, useHasUnseenChanges } from '@components/UI/Changelog'
 import { RecentsList, useSavedDownloads } from '@components/UI/StorageList'
 import { FileIcon, LinkIcon, PlayCircleIcon, TiInfoLargeIcon } from '@components/Misc/Icons'
@@ -10,15 +11,15 @@ import { useStore } from '@zus/store'
 import { toggleOnlyUIPanelAction, onUploadDemoAction, loadEmptySceneMapAction } from '@zus/actions'
 import { loadSampleDemoAction } from '@utils/sampleDemo'
 import { openMatchLink } from '@utils/matchLink'
-import { cn } from '@utils/styling'
 import { builtMapNames } from '@utils/derivedMap'
 import { newestPerFamily } from '@utils/mapVersions'
 
 //
 // ─── ABOUT PANEL ────────────────────────────────────────────────────────────────
 //
-// The first thing open on load, and the first thing most people see: open your own demo
-// (a file or a link), or watch the sample match, then the controls and maps below.
+// The first thing open on load, and the first thing most people see: the name and what it's
+// for, then the three ways in as tiles (your own file, a link, the sample match), then
+// recent demos, controls, maps and the changelog as tabs.
 //
 
 const TFTV_URL = 'https://www.teamfortress.tv/57837/dribble-tf-stv-demo-replay-in-browser'
@@ -41,39 +42,20 @@ const useOpenFile = () => {
   return { open, input: <input {...getInputProps()} /> }
 }
 
-const FileButton = ({ onClick }: { onClick: () => void }) => (
-  <button type="button" className="ui-dropbox" onClick={onClick}>
-    <span className="ui-dropbox__icon">
-      <FileIcon />
-    </span>
-    <span>
-      <span className="ui-dropbox__title">
-        Open a <code>.dem</code> file
-      </span>
-      <span className="ui-dropbox__hint">or drop one anywhere on the page</span>
-    </span>
-  </button>
-)
-
 /** A link to a demo or a live match, from any host. The field and its button read as one control. */
-const LinkField = ({ label }: { label?: string }) => {
+const LinkField = ({ autoFocus }: { autoFocus?: boolean }) => {
   const id = useId()
   const [value, setValue] = useState('')
   const [error, setError] = useState<string | null>(null)
 
   return (
     <form
-      className="ui-link-field"
+      className="ui-about__link"
       onSubmit={event => {
         event.preventDefault()
         setError(openMatchLink(value))
       }}
     >
-      {label && (
-        <label htmlFor={id} className="ui-field-label">
-          {label}
-        </label>
-      )}
       <div className="ui-input-group" data-invalid={!!error}>
         <LinkIcon className="ui-input-group__icon" aria-hidden />
         <input
@@ -82,9 +64,10 @@ const LinkField = ({ label }: { label?: string }) => {
           inputMode="url"
           autoComplete="off"
           spellCheck={false}
+          autoFocus={autoFocus}
           className="ui-input-group__input"
           placeholder="demos.tf/… or stv.tf/w/…"
-          aria-label={label ? undefined : 'Link to a demo or a live match'}
+          aria-label="Link to a demo or a live match"
           aria-invalid={!!error}
           aria-describedby={error ? `${id}-error` : undefined}
           value={value}
@@ -105,17 +88,6 @@ const LinkField = ({ label }: { label?: string }) => {
     </form>
   )
 }
-
-const SampleButton = ({ className }: { className?: string }) => (
-  <button
-    type="button"
-    className={cn('ui-btn ui-btn--primary ui-btn--cta', className)}
-    onClick={loadSampleDemoAction}
-  >
-    <PlayCircleIcon className="h-5 w-5" />
-    Watch a sample match
-  </button>
-)
 
 const CONTROLS: [string[], string][] = [
   [['LMB'], 'Rotate camera'],
@@ -193,7 +165,8 @@ type ReferenceTab = 'recents' | 'controls' | 'maps' | 'changelog'
 
 /**
  * Recent demos (when there are any), controls, maps and the changelog as underlined tabs, under
- * the ways in. Recents opens first when it's there, until another tab is picked.
+ * the ways in. Recents opens first when it's there, until another tab is picked. The panel eases
+ * to each tab's height rather than jumping.
  */
 const Reference = () => {
   const id = useId()
@@ -236,12 +209,14 @@ const Reference = () => {
           </button>
         ))}
       </div>
-      <div role="tabpanel" id={`${id}-${tab}-panel`} aria-labelledby={`${id}-${tab}`}>
-        {tab === 'recents' && <RecentsList />}
-        {tab === 'controls' && <ControlsList />}
-        {tab === 'maps' && <MapsList />}
-        {tab === 'changelog' && <ChangelogList />}
-      </div>
+      <AutoHeight>
+        <div role="tabpanel" id={`${id}-${tab}-panel`} aria-labelledby={`${id}-${tab}`}>
+          {tab === 'recents' && <RecentsList />}
+          {tab === 'controls' && <ControlsList />}
+          {tab === 'maps' && <MapsList />}
+          {tab === 'changelog' && <ChangelogList />}
+        </div>
+      </AutoHeight>
     </section>
   )
 }
@@ -260,20 +235,58 @@ export const AboutFooter = () => (
 
 //
 // ─── BODY ───────────────────────────────────────────────────────────────────────
-// Your own demo first (a file, or a link), then the sample match for a first visit.
+// The name, then the ways in as three tiles: your own file, a link (its field unfolds under
+// the tiles), and the sample match for a first visit.
 //
+
+const AboutHead = () => (
+  <header className="ui-about__head">
+    <img src="/logo192.png" alt="" className="ui-about__logo" />
+    <h1 className="ui-about__name">
+      dribble<span className="ui-about__tld">.tf</span>
+    </h1>
+    <p className="ui-about__tagline">Watch TF2 matches in your browser.</p>
+  </header>
+)
 
 const AboutBody = () => {
   const file = useOpenFile()
+  const [linkOpen, setLinkOpen] = useState(false)
   return (
     <>
-      <p className="ui-about__lede">Replay TF2 matches in 3D, tick by tick, in your browser.</p>
-      <div className="ui-about__actions">
-        {file.input}
-        <FileButton onClick={file.open} />
-        <LinkField label="Or paste a link" />
-        <SampleButton className="ui-about__sample w-full" />
+      <AboutHead />
+      {file.input}
+      <div className="ui-about__tiles">
+        <button
+          type="button"
+          className="ui-about__tile"
+          title="Or drop one anywhere on the page"
+          onClick={file.open}
+        >
+          <FileIcon />
+          <span>
+            Open <code>.dem</code>
+          </span>
+        </button>
+        <button
+          type="button"
+          className="ui-about__tile"
+          aria-expanded={linkOpen}
+          onClick={() => setLinkOpen(open => !open)}
+        >
+          <LinkIcon />
+          <span>Paste link</span>
+        </button>
+        <button
+          type="button"
+          className="ui-about__tile ui-about__tile--primary"
+          onClick={loadSampleDemoAction}
+        >
+          <PlayCircleIcon />
+          <span>Sample</span>
+        </button>
       </div>
+      {linkOpen && <LinkField autoFocus />}
     </>
   )
 }
@@ -304,12 +317,6 @@ export const AboutPanel = () => {
       <TogglePanel
         className="ui-about-panel w-[min(380px,calc(100vw-5rem))]"
         bodyClassName="ui-about"
-        title={
-          <span className="ui-about-title">
-            <img src="/logo192.png" alt="" className="ui-about-title__logo" />
-            dribble.tf
-          </span>
-        }
         showCloseButton
         isOpen={isOpen}
         onClickClose={toggleUIPanel}

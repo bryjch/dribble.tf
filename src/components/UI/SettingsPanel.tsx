@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { clamp } from 'lodash'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
+import { AutoHeight } from '@components/UI/Shared/AutoHeight'
 import { StorageTab } from '@components/UI/StorageList'
 import { Segmented, Switch } from '@components/UI/Shared/Controls'
 import {
@@ -210,14 +211,23 @@ const useSettingsTab = () => {
 }
 
 /**
- * The tabs: one line across the desktop panel, which is wide enough for all of them, and a grid
- * of buttons in a phone's sheet, where a line wouldn't fit. Neither scrolls sideways.
+ * The tabs: one line across the desktop panel, which is wide enough for all of them; in a
+ * phone's sheet, the same underlined tabs in a line that scrolls sideways, keeping the picked
+ * one in view.
  */
-const SettingsTabs = ({ layout }: { layout: 'row' | 'grid' }) => {
+const SettingsTabs = ({ layout }: { layout: 'row' | 'scroll' }) => {
   const { tabs, current } = useSettingsTab()
+  const listRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (layout !== 'scroll') return
+    listRef.current
+      ?.querySelector('[aria-selected="true"]')
+      ?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' })
+  }, [layout, current])
   return (
     <div
-      className={layout === 'row' ? 'ui-tabs ui-tabs--fill ui-tabs--fit' : 'ui-tab-grid'}
+      ref={listRef}
+      className={layout === 'row' ? 'ui-tabs ui-tabs--fill ui-tabs--fit' : 'ui-tabs ui-tabs--scroll'}
       role="tablist"
       aria-label="Settings"
     >
@@ -227,7 +237,7 @@ const SettingsTabs = ({ layout }: { layout: 'row' | 'grid' }) => {
           type="button"
           role="tab"
           aria-selected={current === tab.id}
-          className={layout === 'row' ? 'ui-tab' : 'ui-tab-grid__item'}
+          className="ui-tab"
           onClick={() => setSettingsTabAction(tab.id)}
         >
           {tab.label}
@@ -280,7 +290,9 @@ export const SettingsPanel = () => {
         isOpen={isOpen}
         onClickClose={toggleUIPanel}
       >
-        <SettingsTabBody />
+        <AutoHeight>
+          <SettingsTabBody />
+        </AutoHeight>
       </TogglePanel>
     </div>
   )
@@ -289,7 +301,7 @@ export const SettingsPanel = () => {
 /** The tabs and their settings, for the phone sheets (the desktop panel puts the tabs in its header). */
 export const SettingsContent = () => (
   <div>
-    <SettingsTabs layout="grid" />
+    <SettingsTabs layout="scroll" />
     <div className="pt-3">
       <SettingsTabBody />
     </div>

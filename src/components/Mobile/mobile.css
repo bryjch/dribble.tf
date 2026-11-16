@@ -551,6 +551,12 @@
   background: rgb(30 33 37 / 0.98); /* stv.tf's sidebar, as Modern's panels */
 }
 
+/* The menu: one height whatever its tab holds, so switching tabs doesn't move the sheet; a
+   short tab leaves space under it, a long one scrolls. */
+.m-sheet--menu {
+  height: 88dvh;
+}
+
 .m-sheet--snapping {
   /* Vaul measures snap offsets from the top of the screen, so the sheet must start there. */
   height: 100dvh;
@@ -578,13 +584,6 @@
   padding: 10px 12px calc(16px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
   overscroll-behavior: contain;
-}
-
-.m-sheet__brand {
-  flex-shrink: 0;
-  padding: 2px 16px 8px;
-  font-family: var(--ui-font-display);
-  font-weight: 700;
 }
 
 .m-tabs {
@@ -662,26 +661,12 @@
 
 /* ─── No demo yet ─────────────────────────────────────────────────────────────── */
 
-.m-nodemo {
+/* The menu button, top left, as in the match view (.m-theater__top). */
+.m-nodemo__top {
   position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.m-nodemo__btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 52px;
-  padding: 0 22px;
-  border-radius: var(--ui-radius-control);
-  background: rgb(var(--ui-accent));
-  color: rgb(var(--ui-accent-ink));
-  font-family: var(--ui-font-hud);
-  font-size: 16px;
-  font-weight: 800;
+  top: calc(var(--m-safe-t) + var(--m-gutter));
+  left: calc(var(--m-safe-l) + var(--m-gutter));
+  z-index: 2;
 }
 
 /* ═══ THEATER ═══════════════════════════════════════════════════════════════════ */
@@ -842,4 +827,33 @@
 
 [data-variant='theater']:not([data-chrome]) .m-theater__hairline {
   opacity: 1;
+}
+
+/* ─── About, sideways ─────────────────────────────────────────────────────────── */
+
+/* A landscape phone is short: the About tiles become one row of buttons, the name smaller. */
+@media (orientation: landscape) {
+  .m-sheet .ui-about__head {
+    padding-bottom: 14px;
+  }
+
+  .m-sheet .ui-about__logo {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 10px;
+  }
+
+  .m-sheet .ui-about__name {
+    font-size: 22px;
+  }
+
+  .m-sheet .ui-about__tile {
+    height: 44px;
+    flex-direction: row;
+  }
+
+  .m-sheet .ui-about__tile svg {
+    width: 18px;
+    height: 18px;
+  }
 }

@@ -621,19 +621,51 @@
     text-align: center;
   }
 
+  /* A panel's body easing to its content's height (Shared/AutoHeight); clipped only while it
+     moves, so focus rings at its edges show the rest of the time. */
+  .ui-auto-height {
+    transition: height 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .ui-auto-height[data-animating='true'] {
+    overflow: hidden;
+  }
+
+  /* Keeps the content's own top and bottom margins inside, so they're measured, and clipping
+     while it moves doesn't change the spacing (margins would otherwise pass through it). */
+  .ui-auto-height__inner {
+    display: flow-root;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ui-auto-height,
+    .ui-auto-height[data-animating='true'] {
+      overflow: visible;
+      transition: none;
+    }
+  }
+
   /* ─── About panel ──────────────────────────────────────────────────────────
    * The first screen. Set in px on one 4px rhythm so it reads the same at every root size,
    * and scoped under .ui-about-panel so a theme's general panel and button rules don't
    * shrink it; themes restyle it through the same tokens as everything else.
    */
 
+  /* No title bar: the close button floats over the body's top corner, and the name sits
+     centred in the body under it. */
   .ui-panel.ui-about-panel .ui-panel__header {
-    padding: 16px 12px 10px 20px;
-    border-bottom: 0;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 1;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
   }
 
   .ui-panel .ui-panel__body.ui-about {
-    padding: 12px 20px 20px;
+    padding: 28px 20px 20px;
   }
 
   .ui-about-panel .ui-panel__footer {
@@ -644,98 +676,96 @@
     margin-top: 0;
   }
 
-  .ui-about-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 16px;
-    letter-spacing: -0.01em;
-  }
-
-  .ui-about-title__logo {
-    width: 24px;
-    height: 24px;
-  }
-
-  .ui-about__lede {
-    margin: 0 0 16px;
-    text-wrap: balance;
-    color: rgb(var(--ui-ink-muted));
-    font-size: 14px;
-    line-height: 1.45;
-  }
-
-  .ui-about__actions {
+  .ui-about__head {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-  }
-
-  .ui-about-panel .ui-about__sample {
-    margin-top: 4px;
-  }
-
-  /* A file picker that reads as a drop target. */
-  .ui-about-panel .ui-dropbox {
-    display: flex;
-    width: 100%;
     align-items: center;
-    gap: 12px;
-    padding: 12px 14px;
-    border: 1px dashed rgb(var(--ui-ink) / 0.28);
-    border-radius: var(--ui-radius-control);
+    padding-bottom: 20px;
+    text-align: center;
+  }
+
+  .ui-about__logo {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 14px;
+  }
+
+  .ui-about__name {
+    margin: 0 0 6px;
     color: rgb(var(--ui-ink));
-    text-align: left;
+    font-family: var(--ui-font-display);
+    font-size: 26px;
+    font-weight: 750;
+    letter-spacing: -0.025em;
+    line-height: 1;
+    text-transform: none;
+  }
+
+  .ui-about__tld {
+    color: rgb(var(--ui-ink-muted));
+    font-weight: 500;
+  }
+
+  .ui-about__tagline {
+    margin: 0;
+    color: rgb(var(--ui-ink-muted));
+    font-size: 12.5px;
+    line-height: 1.35;
+  }
+
+  /* The three ways in: a file, a link, the sample (the primary one). */
+  .ui-about__tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .ui-about__tile {
+    display: flex;
+    height: 88px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid rgb(var(--ui-line) / calc(var(--ui-line-alpha) * 1.4));
+    border-radius: calc(var(--ui-radius-control) + 4px);
+    background: rgb(var(--ui-raised) / var(--ui-raised-alpha));
+    color: rgb(var(--ui-ink));
+    font-size: 12.5px;
+    font-weight: 600;
     transition:
       border-color 0.15s,
-      background-color 0.15s;
+      filter 0.15s;
   }
 
-  .ui-about-panel .ui-dropbox:hover {
+  .ui-about__tile svg {
+    width: 22px;
+    height: 22px;
+    color: rgb(var(--ui-ink-muted));
+  }
+
+  .ui-about__tile:hover,
+  .ui-about__tile[aria-expanded='true'] {
     border-color: rgb(var(--ui-accent));
-    background: rgb(var(--ui-accent) / 0.07);
   }
 
-  .ui-about-panel .ui-dropbox__icon {
-    display: grid;
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
-    place-items: center;
-    border-radius: var(--ui-radius-control);
-    background: rgb(var(--ui-raised) / calc(var(--ui-raised-alpha) * 1.6));
-    color: rgb(var(--ui-ink-muted));
-    transition: color 0.15s;
+  .ui-about__tile--primary,
+  .ui-about__tile--primary:hover {
+    border-color: transparent;
+    background: rgb(var(--ui-accent));
+    color: rgb(var(--ui-accent-ink));
   }
 
-  .ui-about-panel .ui-dropbox__icon svg {
-    width: 18px;
-    height: 18px;
+  .ui-about__tile--primary:hover {
+    filter: brightness(1.08);
   }
 
-  .ui-about-panel .ui-dropbox:hover .ui-dropbox__icon {
-    color: rgb(var(--ui-accent));
+  .ui-about__tile--primary svg {
+    color: inherit;
   }
 
-  .ui-about-panel .ui-dropbox__title {
-    display: block;
-    font-size: 14px;
-    font-weight: 600;
-    line-height: 1.3;
-  }
-
-  .ui-about-panel .ui-dropbox__hint {
-    display: block;
-    margin-top: 2px;
-    color: rgb(var(--ui-ink-muted));
-    font-size: 12.5px;
-  }
-
-  .ui-about-panel .ui-field-label {
-    display: block;
-    margin-bottom: 6px;
-    color: rgb(var(--ui-ink-muted));
-    font-size: 12.5px;
+  .ui-about__link {
+    margin-top: 8px;
   }
 
   .ui-about-panel .ui-field-error {
@@ -812,20 +842,6 @@
     cursor: default;
   }
 
-  /* The sample match: the call to action for a first visit. */
-  .ui-about-panel .ui-btn.ui-btn--cta {
-    height: 36px;
-    gap: 8px;
-    padding: 0 16px;
-    font-size: 13.5px;
-    font-weight: 600;
-  }
-
-  .ui-about-panel .ui-btn.ui-btn--cta svg {
-    width: 17px;
-    height: 17px;
-  }
-
   /* Controls and maps, under the ways in. */
   .ui-reference {
     margin-top: 24px;
@@ -857,34 +873,28 @@
     gap: 8px;
   }
 
-  /* A phone's Settings sheet: the tabs as a grid of buttons, which never scrolls sideways. */
-  .ui-tab-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 4px;
-    padding: 3px;
-    border-radius: var(--ui-radius-control);
-    background: rgb(var(--ui-raised) / var(--ui-raised-alpha));
+  /* A phone's Settings sheet: the same tabs in a line that scrolls sideways. The divider is
+     an inset shadow and the underline sits inside, since the scroll box clips what overhangs. */
+  .ui-tabs--scroll {
+    margin-bottom: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-bottom: 0;
+    box-shadow: inset 0 -1px 0 rgb(var(--ui-line) / var(--ui-line-alpha));
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
   }
 
-  .ui-tab-grid__item {
-    padding: 6px 10px;
-    border-radius: calc(var(--ui-radius-control) * 0.75);
-    color: rgb(var(--ui-ink-muted));
-    font-size: 13px;
-    font-weight: 600;
-    transition:
-      background-color 0.12s,
-      color 0.12s;
+  .ui-tabs--scroll::-webkit-scrollbar {
+    display: none;
   }
 
-  .ui-tab-grid__item:hover {
-    color: rgb(var(--ui-ink));
+  .ui-tabs--scroll .ui-tab {
+    flex-shrink: 0;
   }
 
-  .ui-tab-grid__item[aria-selected='true'] {
-    background: rgb(var(--ui-accent));
-    color: rgb(var(--ui-accent-ink));
+  .ui-tabs--scroll .ui-tab[aria-selected='true']::after {
+    bottom: 0;
   }
 
   .ui-tab {
