@@ -114,6 +114,9 @@ async function inParallel(tasks: (() => Promise<void>)[]) {
   )
 }
 
+/** Maps the dev server loaded from the asset host, told once each in the console. */
+const toldProxied = new Set<string>()
+
 async function loadBuiltMap(
   folder: string,
   signal: AbortSignal,
@@ -127,6 +130,15 @@ async function loadBuiltMap(
     throw new MapResolutionError(
       'DownloadFailed',
       `${folder}'s map.json returned HTTP ${manifestResponse.status}`
+    )
+  }
+  // The dev server's stand-in for a map this checkout hasn't built or pulled (vite.config.mts).
+  const proxiedFrom = import.meta.env.DEV && manifestResponse.headers.get('x-models-source')
+  if (proxiedFrom && !toldProxied.has(folder)) {
+    toldProxied.add(folder)
+    console.info(
+      `[maps] ${folder} isn't in public/models: loading it from ${proxiedFrom} ` +
+        `(npm run maps:pull -- ${folder} keeps a copy)`
     )
   }
   const manifest = (await manifestResponse.json()) as MapManifest
