@@ -16,6 +16,8 @@ import { Actors } from '@components/Scene/Actors'
 import { Projectiles } from '@components/Scene/Projectiles'
 import { Viewmodel } from '@components/Scene/Viewmodel'
 import { DamageNumbers } from '@components/Scene/DamageNumbers'
+import { DamageIndicator } from '@components/Scene/DamageIndicator'
+import { SniperScope } from '@components/Scene/SniperScope'
 import { Buildings } from '@components/Scene/Buildings'
 import { Objectives } from '@components/Scene/Objectives'
 import { ObjectiveHud } from '@components/UI/ObjectiveHud'
@@ -719,6 +721,12 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
           {/* In POV, the damage the spectated player deals, over whoever they hit */}
 
           <DamageNumbers match={demo} />
+
+          {/* In POV, a scoped sniper's zoom and scope, and arrows toward where hits come from */}
+
+          <SniperScope />
+
+          <DamageIndicator match={demo} />
 
           {/* The spectated player's arms and weapon, over everything, in POV */}
 

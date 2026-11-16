@@ -457,6 +457,25 @@ const PlayersTab = () => {
         onChange={checked => updateSettingsOption('ui.damageNumbers', checked)}
       />
 
+      {ui.damageNumbers && (
+        <OptionGroup>
+          <SliderOption
+            label="Combine hits within (s)"
+            min={0}
+            max={2}
+            step={0.05}
+            value={ui.damageBatchSeconds}
+            onChange={value => updateSettingsOption('ui.damageBatchSeconds', value)}
+          />
+        </OptionGroup>
+      )}
+
+      <ToggleOption
+        label="Damage direction in POV"
+        checked={ui.damageIndicator}
+        onChange={checked => updateSettingsOption('ui.damageIndicator', checked)}
+      />
+
       <ToggleOption
         label="Nameplates"
         keyCode="N"

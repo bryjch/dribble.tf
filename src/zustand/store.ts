@@ -47,6 +47,8 @@ export type InstanceState = {
   match?: MatchSource
   focusedObject?: THREE.Object3D
   lastFocusedPOV?: THREE.Object3D
+  /** In POV, the spectated player is a sniper looking down their scope (Scene/SniperScope). */
+  povScoped: boolean
   drawingCanvas?: CanvasDraw
   runtimePerf: {
     renderCalls: number
@@ -63,6 +65,7 @@ export type InstanceState = {
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => void
   setFocusedObject: (focusedObject?: THREE.Object3D) => void
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => void
+  setPovScoped: (povScoped: boolean) => void
   setMapCenterPickerActive: (mapCenterPickerActive: boolean) => void
   setMapOffsetDebug: (mapOffsetDebug: { cameraOffset: { x: number; y: number; z: number } }) => void
   setRuntimePerf: (
@@ -93,6 +96,7 @@ const useInstance = create<InstanceState>()(set => ({
   match: undefined,
   focusedObject: undefined,
   lastFocusedPOV: undefined,
+  povScoped: false,
   drawingCanvas: undefined,
   runtimePerf: {
     renderCalls: 0,
@@ -106,6 +110,7 @@ const useInstance = create<InstanceState>()(set => ({
   setDrawingCanvas: (drawingCanvas: CanvasDraw) => set({ drawingCanvas }),
   setFocusedObject: (focusedObject?: THREE.Object3D) => set({ focusedObject }),
   setLastFocusedPOV: (lastFocusedPOV?: THREE.Object3D) => set({ lastFocusedPOV }),
+  setPovScoped: (povScoped: boolean) => set({ povScoped }),
   setMapCenterPickerActive: (mapCenterPickerActive: boolean) => set({ mapCenterPickerActive }),
   setMapOffsetDebug: mapOffsetDebug =>
     set(state => {
@@ -218,6 +223,10 @@ export type StoreState = {
       playerOutlines: boolean
       /** In POV, the damage the spectated player deals, over whoever they hit. */
       damageNumbers: boolean
+      /** Hits on one player closer together than this many seconds add up into one number. */
+      damageBatchSeconds: number
+      /** In POV, arrows round the crosshair toward where the spectated player is being hit from. */
+      damageIndicator: boolean
       /** Sentries: a line to who they are shooting at, and a ring of how far they reach. */
       buildings: {
         sentryTargets: boolean
@@ -342,6 +351,8 @@ export const initialState: StoreState = {
       rails: 'full' as RailsMode,
       playerOutlines: true,
       damageNumbers: true,
+      damageBatchSeconds: 0.75,
+      damageIndicator: true,
       buildings: {
         sentryTargets: true,
         sentryRange: false,
