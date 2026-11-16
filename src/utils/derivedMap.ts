@@ -8,6 +8,7 @@
 //
 
 import mapChunkingConfig from '@constants/mapChunking.json'
+import { pickMapVersion } from '@utils/mapVersions'
 import { getAsset, isPerfLoggingEnabled } from '@utils/misc'
 import {
   getMapConversionUrl,
@@ -39,6 +40,8 @@ export type MapManifest = {
   /** Each sky face's file under models/ (content-hashed). */
   skyboxFaces?: Record<'lf' | 'rt' | 'ft' | 'bk' | 'up' | 'dn', string> | null
   skyCamera: { origin: [number, number, number]; scale: number } | null
+  /** Where play happens (control points, else flags, else spawns), Source coordinates. */
+  focus?: [number, number, number] | null
   components: { role: string; file: string; bytes: number; optional?: boolean }[]
   /** Doors: each brush model (model_<n>_ nodes) and dynamic prop entities that move with it. */
   doors?: {
@@ -83,6 +86,11 @@ export class MapResolutionError extends Error {
 }
 
 let indexRequest: Promise<MapIndex | null> | undefined
+
+/** The names of every map built ahead of time (empty when the index can't be read). */
+export async function builtMapNames(): Promise<string[]> {
+  return Object.keys((await mapIndex())?.maps ?? {})
+}
 
 /** The maps built ahead of time; null when the asset host has no index (or is unreachable). */
 function mapIndex(): Promise<MapIndex | null> {
@@ -217,9 +225,12 @@ async function resolve(
     throw new MapResolutionError('Invalid', `${mapName} isn't a map name`)
   const index = await mapIndex()
   if (abort.signal.aborted) throw new MapResolutionError('Cancelled', 'map load was superseded')
-  // This exact map, else the version dribble.tf has of it (cp_snakewater_u13 -> _final1).
-  const family = resolveMapFolderName(mapName)
-  const folder = index?.maps[mapName] ? mapName : index?.maps[family] ? family : null
+  // This exact map, else the nearest built version of it (cp_snakewater_u13 -> _final1), else
+  // the version the Blender-built table names.
+  const picked = index ? pickMapVersion(mapName, Object.keys(index.maps)) : null
+  const legacyFolder = resolveMapFolderName(mapName)
+  const folder = picked?.map ?? (index?.maps[legacyFolder] ? legacyFolder : null)
+  if (picked && !picked.exact) console.info(`[Map] ${mapName} isn't built; showing ${picked.map}`)
   if (folder) {
     try {
       return await loadBuiltMap(folder, abort.signal, stage)

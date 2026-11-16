@@ -45,7 +45,7 @@ export const DerivedMapController = ({ map }: { map: string }) => {
         publish(result)
         finishDownloadAction(downloadKey)
         if (result.kind === 'derived' && result.manifest.worldBounds)
-          void applyDerivedMapBoundsAction(map, result.manifest.worldBounds)
+          void applyDerivedMapBoundsAction(map, result.manifest.worldBounds, result.manifest.focus)
       })
       .catch(cause => {
         if (id !== loadId.current) return

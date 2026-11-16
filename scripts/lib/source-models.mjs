@@ -12,11 +12,14 @@ export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)
 export const BSP_TO_GLB_REPO = 'https://github.com/Hona/bsp-to-glb'
 export const BSP_TO_GLB_REV = '7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c'
 /**
- * Our changes on top of the pinned revision, applied in order after checkout:
- * - light-styles: faces lit by several light styles (switchable lights) sum their styles'
- *   lightmaps, where upstream refuses the map's lightmaps altogether.
+ * Our changes on top of the pinned revision, applied after checkout (scripts/lib/bsp-to-glb.patch):
+ * - faces lit by several light styles (switchable lights) sum their styles' lightmaps, where
+ *   upstream refuses the map's lightmaps altogether;
+ * - a material that can't be resolved (a Patch VMT whose include is missing) is left unresolved,
+ *   and a face whose texdata has no size is left out, where upstream fails the whole map.
+ * To change it: edit scripts/tools/bsp-to-glb, then `git diff > ../../lib/bsp-to-glb.patch` there.
  */
-export const BSP_TO_GLB_PATCHES = ['bsp-to-glb-light-styles.patch'].map(file =>
+export const BSP_TO_GLB_PATCHES = ['bsp-to-glb.patch'].map(file =>
   path.join(repoRoot, 'scripts/lib', file)
 )
 const toolDir = path.join(repoRoot, 'scripts/tools/bsp-to-glb')

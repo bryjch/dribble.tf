@@ -1,5 +1,5 @@
 diff --git a/src/lib.rs b/src/lib.rs
-index 0524bfa..e71323d 100644
+index 0524bfa..42a2ce3 100644
 --- a/src/lib.rs
 +++ b/src/lib.rs
 @@ -2628,6 +2628,18 @@ fn select_lightmap_lumps(
@@ -100,3 +100,48 @@ index 0524bfa..e71323d 100644
                  storage_order: "style-major-then-flat-and-directional",
              },
              faces: manifest_faces,
+@@ -4030,8 +4051,10 @@ fn export_bsp_internal(
+             let texture = texdata.get(material_index).ok_or_else(|| {
+                 format!("face {face_index} references missing texdata {material_index}")
+             })?;
++            // vbsp writes a missing material's texdata with no size; such faces are left out
++            // rather than failing the whole map.
+             if texture.width <= 0 || texture.height <= 0 {
+-                return Err(format!("face {face_index} has invalid texture dimensions"));
++                continue;
+             }
+             let base_positions = face_positions(face, &surfedges, &edges, &vertices, face_index)?;
+             let plane_normal = planes
+diff --git a/src/materials.rs b/src/materials.rs
+index 301493c..c8970a6 100644
+--- a/src/materials.rs
++++ b/src/materials.rs
+@@ -1616,12 +1616,26 @@ fn build_materials(
+             });
+             (None, ResourceProvenance::Unresolved)
+         };
+-        let resolved_vmt = vmt_data
++        // A material that can't be resolved (a Patch VMT whose include is missing, say) is left
++        // unresolved, as a missing VMT is, rather than failing the whole map.
++        let resolved_vmt = match vmt_data
+             .as_deref()
+             .map(|data| {
+                 resolve_effective_vmt(data, &vmt_path, embedded_resources, &by_path, resolver)
+             })
+-            .transpose()?;
++            .transpose()
++        {
++            Ok(resolved) => resolved,
++            Err(_) => {
++                unresolved_assets.push(UnresolvedAsset {
++                    kind: PakResourceKind::Vmt,
++                    lookup_path: vmt_path.clone(),
++                    referenced_by: name.clone(),
++                    role: "materialDefinition".to_owned(),
++                });
++                None
++            }
++        };
+         let dependencies = resolved_vmt
+             .as_ref()
+             .map(|resolved| resolved.dependencies.clone())

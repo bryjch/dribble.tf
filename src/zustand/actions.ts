@@ -200,13 +200,19 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
  */
 export const applyDerivedMapBoundsAction = async (
   mapName: string,
-  worldBounds: { mins: [number, number, number]; maxs: [number, number, number] }
+  worldBounds: { mins: [number, number, number]; maxs: [number, number, number] },
+  /** Where play happens (map.json's focus): the RTS camera's centre unless one was saved. */
+  focus?: [number, number, number] | null
 ) => {
   try {
     if (getState().scene.map !== mapName || useInstance.getState().match) return
     const [minX, minY, minZ] = worldBounds.mins
     const [maxX, maxY, maxZ] = worldBounds.maxs
-    const rtsCenter = await savedRtsCenter(mapName)
+    const rtsCenter =
+      (await savedRtsCenter(mapName)) ??
+      (focus && !getMapBoundaries(mapName)?.rtsCenter
+        ? { x: focus[0], y: focus[1], z: focus[2] }
+        : undefined)
     if (getState().scene.map !== mapName || useInstance.getState().match) return
     dispatch({
       type: 'SET_SCENE_BOUNDS',
@@ -905,7 +911,8 @@ export const toggleUIPanelAction = async (name: UIPanelType, active?: boolean) =
 
 export const setScoreboardOpenAction = (open?: boolean) => {
   const next = open ?? !getState().ui.scoreboardOpen
-  if (next !== getState().ui.scoreboardOpen) dispatch({ type: 'SET_SCOREBOARD_OPEN', payload: next })
+  if (next !== getState().ui.scoreboardOpen)
+    dispatch({ type: 'SET_SCOREBOARD_OPEN', payload: next })
 }
 
 /** Opens a toolbar panel and closes the others, or closes it if it is open. */

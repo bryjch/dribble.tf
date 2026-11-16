@@ -1,5 +1,7 @@
 import { LiveSource, StreamMessage } from '@components/Analyse/Data/LiveSource'
 import { getMapModelUrls } from '@utils/game'
+import { builtMapNames } from '@utils/derivedMap'
+import { pickMapVersion } from '@utils/mapVersions'
 import { setUrlDemoStatus } from '@utils/notice'
 import { goToTickAction, loadSceneFromDemoAction, setMaxTicksAction } from '@zus/actions'
 import { getState, useInstance } from '@zus/store'
@@ -87,7 +89,8 @@ const resolveLink = async (link: string): Promise<LiveRequest> => {
   if (url.pathname.endsWith('/start')) {
     url.searchParams.set('format', 'json')
     const response = await fetch(url)
-    if (!response.ok) throw new Error(`${url.hostname} could not start this match (${response.status})`)
+    if (!response.ok)
+      throw new Error(`${url.hostname} could not start this match (${response.status})`)
     const { page } = await response.json()
     return watchPage(new URL(page, url))
   }
@@ -152,11 +155,14 @@ export const connectLiveAction = (request: LiveRequest) => {
     const edge = Math.max(1, live.latestTick - lagTicks(live))
     setMaxTicksAction(edge)
     goToTickAction(edge)
-    if (getMapModelUrls(live.header.map)) clear()
+    const map = live.header.map
+    const built = await builtMapNames()
+    if (source !== live) return
+    if (getMapModelUrls(map) || pickMapVersion(map, built)) clear()
     else
       setUrlDemoStatus({
         state: 'notice',
-        message: `dribble.tf has no 3D model of ${live.header.map} yet: the players move over an empty scene.`,
+        message: `dribble.tf has no 3D model of ${map} yet: the players move over an empty scene.`,
       })
   }
 

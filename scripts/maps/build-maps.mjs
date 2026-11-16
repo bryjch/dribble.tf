@@ -122,6 +122,24 @@ const keyValues = entity =>
 const numbers = value =>
   typeof value === 'string' ? value.trim().split(/\s+/).map(Number).filter(Number.isFinite) : []
 
+/**
+ * Where play happens, for a camera with nothing better to aim at: the control points' centre, else
+ * the flags', else the spawns'. Null when the map has none.
+ */
+export function readFocus(entities) {
+  for (const classname of ['team_control_point', 'item_teamflag', 'info_player_teamspawn']) {
+    const origins = entities
+      .filter(entity => entity.classname === classname)
+      .map(entity => numbers(keyValues(entity).origin))
+      .filter(origin => origin.length === 3)
+    if (origins.length)
+      return [0, 1, 2].map(axis =>
+        Math.round(origins.reduce((sum, origin) => sum + origin[axis], 0) / origins.length)
+      )
+  }
+  return null
+}
+
 /** Bounds, lighting, sky and 3D sky camera, from the entities. */
 function readEnvironment(entities) {
   const byClass = name => entities.find(entity => entity.classname === name)
@@ -464,8 +482,7 @@ async function buildMap(tool, tf2, input) {
     !options.force &&
     previous?.bspSha256 === bspSha256 &&
     previous?.builtWith?.pipeline === PIPELINE_VERSION &&
-    previous?.builtWith?.revision === BSP_TO_GLB_REV &&
-    previous?.builtWith?.build === bspToGlbBuild()
+    previous?.builtWith?.revision === BSP_TO_GLB_REV
   ) {
     console.log(`${name}: up to date`)
     return previous
@@ -595,6 +612,7 @@ async function buildMap(tool, tf2, input) {
     skybox: sky ? environment.skyName : null,
     skyboxFaces: sky,
     skyCamera,
+    focus: readFocus(entities),
     doors,
     components,
     props: propFiles,
