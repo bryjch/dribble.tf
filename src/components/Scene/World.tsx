@@ -90,10 +90,23 @@ const bakedLighting = { value: 1 }
  * brushes, judged on cp_snakewater_final1.
  */
 const bakedPropLight = { value: 0.35 }
+/** Baked light's brightness (Settings > Lighting > Brightness). */
+const bakedExposure = { value: 1.3 }
+/**
+ * 1 lets baked surfaces skip the renderer's tone mapping (ACES): TF2 has none, and it darkens and
+ * flattens the lightmaps' midtones. Players and the Blender-built maps keep it.
+ */
+const bakedRawTone = { value: 1 }
 
-export function setBakedLighting(baked: boolean) {
+export function setBakedLighting(baked: boolean, brightness = 1.3) {
   bakedLighting.value = baked ? 1 : 0
+  bakedExposure.value = brightness
 }
+
+/** Under baked lighting, lit brushes and props skip the renderer's tone mapping (by bspRawTone). */
+const BAKED_TONE = `vec3 bspUntoned = gl_FragColor.rgb;
+#include <tonemapping_fragment>
+gl_FragColor.rgb = mix(gl_FragColor.rgb, clamp(bspUntoned, 0.0, 1.0), bspBaked * bspRawTone);`
 
 /** Dims a prop's material under baked lighting (see above). */
 function installPropLightShader(material: THREE.Material) {
@@ -102,17 +115,20 @@ function installPropLightShader(material: THREE.Material) {
   material.onBeforeCompile = shader => {
     shader.uniforms.bspBaked = bakedLighting
     shader.uniforms.bspPropLight = bakedPropLight
+    shader.uniforms.bspExposure = bakedExposure
+    shader.uniforms.bspRawTone = bakedRawTone
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
-        '#include <common>\nuniform float bspBaked; uniform float bspPropLight;'
+        '#include <common>\nuniform float bspBaked; uniform float bspPropLight; uniform float bspExposure; uniform float bspRawTone;'
       )
       .replace(
         '#include <opaque_fragment>',
-        `outgoingLight *= mix(1.0, bspPropLight, bspBaked);\n#include <opaque_fragment>`
+        'outgoingLight *= mix(1.0, bspPropLight * bspExposure, bspBaked);\n#include <opaque_fragment>'
       )
+      .replace('#include <tonemapping_fragment>', BAKED_TONE)
   }
-  material.customProgramCacheKey = () => 'bsp-prop-light-v1'
+  material.customProgramCacheKey = () => 'bsp-prop-light-v2'
   material.needsUpdate = true
 }
 
@@ -191,8 +207,9 @@ const MAP_CHUNKING_ENABLED = mapChunkingConfig.enabled
 export interface WorldProps {
   map: string
   mode?: 'textured' | 'untextured' | 'wireframe'
-  /** How a Derived Map with lightmaps is lit; see setBakedLighting. */
+  /** How a Derived Map with lightmaps is lit, and how bright baked light is; see setBakedLighting. */
   lighting?: 'baked' | 'flat'
+  bakedBrightness?: number
 }
 
 type BspVisibilityV2 = {
@@ -224,7 +241,7 @@ export const World = (props: WorldProps) => {
   const visibilityRequestIdRef = useRef(0)
   const [mapModel, setMapModel] = useState<THREE.Group | null>()
   const [mapVisibility, setMapVisibility] = useState<VisibilityMetadata | null>(null)
-  const { map, mode, lighting = 'baked' } = props
+  const { map, mode, lighting = 'baked', bakedBrightness = 1.3 } = props
   // Which Derived Map (or published GLB) to draw; DerivedMapController resolves it per map.
   const { result } = useDerivedMap()
 
@@ -454,7 +471,10 @@ export const World = (props: WorldProps) => {
     }
   }, [mapModel])
 
-  useEffect(() => setBakedLighting(lighting === 'baked'), [lighting])
+  useEffect(
+    () => setBakedLighting(lighting === 'baked', bakedBrightness),
+    [lighting, bakedBrightness]
+  )
 
   // Swap materials for the scene mode; the model's own are kept in userData to switch back.
   useEffect(() => {
@@ -997,6 +1017,8 @@ function installSourceMaterialShader(
 ) {
   material.onBeforeCompile = shader => {
     shader.uniforms.bspBaked = bakedLighting
+    shader.uniforms.bspExposure = bakedExposure
+    shader.uniforms.bspRawTone = bakedRawTone
     shader.uniforms.bspLightmapFlat = { value: flat }
     shader.uniforms.bspLightmap0 = { value: directional[0] }
     shader.uniforms.bspLightmap1 = { value: directional[1] }
@@ -1017,7 +1039,7 @@ function installSourceMaterialShader(
       .replace(
         '#include <common>',
         `#include <common>
-uniform float bspBaked; uniform sampler2D bspLightmapFlat; uniform sampler2D bspLightmap0; uniform sampler2D bspLightmap1; uniform sampler2D bspLightmap2; uniform sampler2D bspSecondaryTexture; varying vec2 vBspLightmapUv; varying float vBspDisplacementAlpha;
+uniform float bspBaked; uniform float bspExposure; uniform float bspRawTone; uniform sampler2D bspLightmapFlat; uniform sampler2D bspLightmap0; uniform sampler2D bspLightmap1; uniform sampler2D bspLightmap2; uniform sampler2D bspSecondaryTexture; varying vec2 vBspLightmapUv; varying float vBspDisplacementAlpha;
 vec3 decodeRgbExp32(vec4 value) { float exponent = value.a * 255.0; exponent -= step(127.5, exponent) * 256.0; return value.rgb * exp2(exponent); }
 vec3 bspLightmap(sampler2D map, vec2 uv) {
   ivec2 size = textureSize(map, 0);
@@ -1037,13 +1059,14 @@ vec3 bspLightmap(sampler2D map, vec2 uv) {
         '#include <map_fragment>',
         '#include <map_fragment>\n#ifdef USE_MAP\nvec4 bspSecondary = texture2D(bspSecondaryTexture, vMapUv); diffuseColor.rgb = mix(diffuseColor.rgb, bspSecondary.rgb, clamp(vBspDisplacementAlpha, 0.0, 1.0));\n#endif'
       )
+      .replace('#include <tonemapping_fragment>', BAKED_TONE)
       .replace(
         '#include <opaque_fragment>',
-        'vec3 bspFlat = bspLightmap(bspLightmapFlat, vBspLightmapUv); vec3 bspDirectional = (bspLightmap(bspLightmap0, vBspLightmapUv) + bspLightmap(bspLightmap1, vBspLightmapUv) + bspLightmap(bspLightmap2, vBspLightmapUv)) / 3.0; vec3 bspLight = max(bspFlat, bspDirectional); outgoingLight = mix(outgoingLight, diffuseColor.rgb * bspLight + totalEmissiveRadiance, bspBaked);\n#include <opaque_fragment>'
+        'vec3 bspFlat = bspLightmap(bspLightmapFlat, vBspLightmapUv); vec3 bspDirectional = (bspLightmap(bspLightmap0, vBspLightmapUv) + bspLightmap(bspLightmap1, vBspLightmapUv) + bspLightmap(bspLightmap2, vBspLightmapUv)) / 3.0; vec3 bspLight = max(bspFlat, bspDirectional); outgoingLight = mix(outgoingLight, diffuseColor.rgb * bspLight * bspExposure + totalEmissiveRadiance, bspBaked);\n#include <opaque_fragment>'
       )
   }
   material.userData.bspLit = true
-  material.customProgramCacheKey = () => 'bsp-rgbexp32-directional-displacement-v3'
+  material.customProgramCacheKey = () => 'bsp-rgbexp32-directional-displacement-v4'
   material.needsUpdate = true
 }
 
