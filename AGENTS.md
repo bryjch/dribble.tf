@@ -19,7 +19,7 @@
 - **Model assets wizard**: `npm run assets` (`scripts/assets-wizard.sh`) is the human path for TF2 files → viewmodel and building rebuild → map builds → S3 upload → CloudFront invalidation; it saves `ASSET_AWS_PROFILE`, `ASSET_S3_BUCKET`, `ASSET_S3_ORIGIN_PATH`, `ASSET_S3_REGION`, `ASSET_CLOUDFRONT_DISTRIBUTION_ID` and `TF2_STEAM_USERNAME` to the main checkout's `.env`. Production loads `/models/...` from `VITE_APP_ASSET_URL` (CloudFront → S3), so new or changed files in `public/models` need uploading. The library above its STAGES marker comes from the /wizard skill template; edit only the stages
 - **Framework**: React + Three.js (react-three-fiber) + Zustand + Tailwind
 
-- **Changelog**: a PR players would notice adds one file to `changelog/` (`npm run changelog -- new "Title" --type new|improved|fixed --pr <n>`; format in changelog/README.md), written for players in one or two sentences; the About panel's Changelog tab reads the folder at build time. `npm run changelog -- missing` lists merged PRs with no entry; PRs players won't notice go in `changelog/.skip`
+- **Changelog**: a PR players would notice adds one file to `changelog/` (`npm run changelog -- new "Title" --type new|improved|fixed --pr <n>`; format in changelog/README.md), with a one-to-three-word title and one or two plain sentences for players (style in changelog/README.md); the About panel's Changelog tab reads the folder at build time. `npm run changelog -- missing` lists merged PRs with no entry; PRs players won't notice go in `changelog/.skip`
 
 ## Project Structure
 

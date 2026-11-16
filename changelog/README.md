@@ -7,27 +7,31 @@ conflict over a shared list.
 ```md
 ---
 date: 2026-11-16
-title: Reworked orbit camera
+title: Orbit camera
 type: improved
 pr: 90
 highlight: true
 ---
 
-One or two sentences for someone watching demos: what they can now do or see.
+Drag to pan, scroll to zoom toward the cursor, Q and E to turn, R to reset, double-click to centre.
 ```
 
-- **File name**: `YYYY-MM-DD-slug.md`, the day it shipped (merged into `dev`).
+- **File name**: `YYYY-MM-DD-slug.md`, the day it shipped (merged into `dev`). Don't rename a
+  shipped entry's file: the tab's "new" dot tracks entries by it.
+- **title**: one to three words naming the feature, like a menu label: `Theming`,
+  `Enhanced outlines`, `Damage numbers`. No sentence, no selling.
 - **type**: `new` (something you couldn't do before), `improved` (something that works better,
   looks better or runs faster) or `fixed` (something that was broken). The list shows it as an icon.
 - **pr**: the PR number, or several (`82, 89`). `missing` uses it to tell which PRs are covered.
 - **highlight**: `true` for the changes worth leading with; leave it out otherwise.
-- **Body**: plain text, written for players, not developers. Name the setting or key if there
-  is one. No implementation detail.
+- **Body**: one or two short, plain sentences for players: what it does and where to find it
+  (name the setting or key). State it; don't sell it (no "now", "a real", "that don't cost",
+  exclamation). No implementation detail.
 
 ## Commands
 
 ```bash
-npm run changelog -- new "Reworked orbit camera" --type improved --pr 90 --highlight
+npm run changelog -- new "Orbit camera" --type improved --pr 90 --highlight
 npm run changelog -- missing
 ```
 
