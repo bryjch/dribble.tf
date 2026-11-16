@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
 
 import { TogglePanel, TogglePanelButton } from '@components/UI/Shared/TogglePanel'
+import { ChangelogList, useHasUnseenChanges } from '@components/UI/Changelog'
 import { FileIcon, LinkIcon, PlayCircleIcon, TiInfoLargeIcon } from '@components/Misc/Icons'
 
 import { useStore } from '@zus/store'
@@ -176,14 +177,16 @@ const MapsList = () => (
   </ul>
 )
 
-/** Controls and maps as underlined tabs, under the ways in. */
+/** Controls, maps and the changelog as underlined tabs, under the ways in. */
 const Reference = () => {
   const id = useId()
-  const [tab, setTab] = useState<'controls' | 'maps'>('controls')
+  const [tab, setTab] = useState<'controls' | 'maps' | 'changelog'>('controls')
   const tabs = [
     { value: 'controls', label: 'Controls' },
     { value: 'maps', label: 'Maps' },
+    { value: 'changelog', label: 'Changelog' },
   ] as const
+  const hasUnseenChanges = useHasUnseenChanges()
 
   return (
     <section className="ui-reference">
@@ -200,17 +203,25 @@ const Reference = () => {
             onClick={() => setTab(t.value)}
           >
             {t.label}
+            {t.value === 'changelog' && hasUnseenChanges && (
+              <span className="ui-tab__dot" title="New changes since your last visit">
+                <span className="sr-only">(new)</span>
+              </span>
+            )}
           </button>
         ))}
       </div>
       <div role="tabpanel" id={`${id}-${tab}-panel`} aria-labelledby={`${id}-${tab}`}>
-        {tab === 'controls' ? <ControlsList /> : <MapsList />}
+        {tab === 'controls' && <ControlsList />}
+        {tab === 'maps' && <MapsList />}
+        {tab === 'changelog' && <ChangelogList />}
       </div>
     </section>
   )
 }
 
-const Footer = () => (
+/** Pinned under the scrolling body in the desktop panel; at the end of the phone sheet. */
+export const AboutFooter = () => (
   <footer className="ui-panel-foot">
     <a href={TFTV_URL} target="_blank" rel="noopener noreferrer" className="ui-link">
       teamfortress.tv
@@ -241,12 +252,11 @@ const AboutBody = () => {
   )
 }
 
-/** Opening a demo, then the controls and maps: shared by the desktop panel and the phone sheets. */
+/** Opening a demo, then the reference tabs: shared by the desktop panel and the phone sheets. */
 export const AboutContent = () => (
   <>
     <AboutBody />
     <Reference />
-    <Footer />
   </>
 )
 
@@ -277,6 +287,7 @@ export const AboutPanel = () => {
         showCloseButton
         isOpen={isOpen}
         onClickClose={toggleUIPanel}
+        footer={<AboutFooter />}
       >
         <AboutContent />
       </TogglePanel>

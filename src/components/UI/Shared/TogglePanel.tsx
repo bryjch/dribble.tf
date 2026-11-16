@@ -24,6 +24,8 @@ export interface TogglePanelProps {
   onClickClose?: () => void
   className?: string
   bodyClassName?: string
+  /** Stays at the bottom while the body scrolls (desktop); after the body in a phone sheet. */
+  footer?: React.ReactNode
   children?: React.ReactNode
 }
 
@@ -69,6 +71,7 @@ export const TogglePanel = (props: TogglePanelProps) => {
     children,
     className,
     bodyClassName,
+    footer,
   } = props
 
   const isMobile = useIsMobile()
@@ -112,6 +115,7 @@ export const TogglePanel = (props: TogglePanelProps) => {
           </div>
           {header}
           <div className={cn('ui-panel__body', bodyClassName)}>{children}</div>
+          {footer && <div className="ui-panel__footer">{footer}</div>}
         </motion.div>
       </>
     )
@@ -132,6 +136,7 @@ export const TogglePanel = (props: TogglePanelProps) => {
     >
       {header}
       <div className={cn('ui-panel__body ui-scroll', bodyClassName)}>{children}</div>
+      {footer && <div className="ui-panel__footer">{footer}</div>}
     </motion.div>
   )
 }
