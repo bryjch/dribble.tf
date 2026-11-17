@@ -407,9 +407,16 @@ const useStore = create(redux<StoreState, StoreAction>(rootReducer as any, initi
 // and are essentially the Redux equivalents (makes migration/adoption easier)
 const { dispatch, getState } = useStore
 
+// Settings changed on the /debug page stay in memory: a session there is throwaway.
+let settingsPersisted = true
+export const setSettingsPersisted = (persisted: boolean) => {
+  settingsPersisted = persisted
+}
+
 // Settings and setups are saved whenever they change, outside the reducers so those stay pure.
 useStore.subscribe((state, previous) => {
-  if (state.settings !== previous.settings) localForage.setItem('settings', state.settings)
+  if (state.settings !== previous.settings && settingsPersisted)
+    localForage.setItem('settings', state.settings)
   if (state.setups.items !== previous.setups.items)
     localForage.setItem('setups', state.setups.items)
 })

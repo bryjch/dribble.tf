@@ -3,6 +3,18 @@
     {
       "source": "/umami/:match*",
       "destination": "https://analytics.umami.is/:match*"
+    },
+    { "source": "/debug", "destination": "/index.html" },
+    { "source": "/debug/:path*", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/debug",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/debug/:path*",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     }
   ]
 }

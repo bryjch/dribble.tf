@@ -14,11 +14,16 @@
       rel="stylesheet"
     />
 
-    <script
-      defer
-      src="/umami/script.js"
-      data-website-id="2fdd491f-9c46-474d-b5d6-589b08cbfc3b"
-    ></script>
+    <!-- Analytics, except on /debug (the rendering test page, src/components/Debug). -->
+    <script>
+      if (!/^\/debug(\/|$)/.test(location.pathname)) {
+        var umami = document.createElement('script')
+        umami.defer = true
+        umami.src = '/umami/script.js'
+        umami.setAttribute('data-website-id', '2fdd491f-9c46-474d-b5d6-589b08cbfc3b')
+        document.head.appendChild(umami)
+      }
+    </script>
 
     <title>TF2 Demo Replay | dribble.tf</title>
   </head>

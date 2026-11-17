@@ -66,10 +66,17 @@ const sceneToWorld = (point: Tuple3): Tuple3 => point
 
 const frames = () => new Promise(resolve => requestAnimationFrame(() => resolve(undefined)))
 
+let benchApi: Record<string, unknown> | undefined
+
+/** Adds a namespace to window.__dribble (the /debug page's `debug`, say) when ?bench is on. */
+export const extendBench = (name: string, value: unknown) => {
+  if (benchApi) benchApi[name] = value
+}
+
 export const installBench = () => {
   if (!benchEnabled()) return
 
-  const api = {
+  const api: Record<string, unknown> = {
     status: () => {
       const demo = useInstance.getState().match as any
       const { playback, scene, downloads } = getState()
@@ -100,7 +107,8 @@ export const installBench = () => {
       useInstance.getState().threeScene.traverse(node => {
         const material = (node as THREE.Mesh).material
         for (const m of Array.isArray(material) ? material : material ? [material] : []) {
-          for (const value of Object.values(m)) if ((value as THREE.Texture)?.isTexture) seen.add(value)
+          for (const value of Object.values(m))
+            if ((value as THREE.Texture)?.isTexture) seen.add(value)
         }
       })
       return { reachable: seen.size, renderer: renderer?.info.memory.textures ?? 0 }
@@ -189,5 +197,6 @@ export const installBench = () => {
     sceneDelayTicks: () => sceneDelayTicks,
   }
 
+  benchApi = api
   ;(window as any).__dribble = api
 }
