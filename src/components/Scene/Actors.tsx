@@ -2,15 +2,24 @@ import { useRef, useEffect, useLayoutEffect, useMemo, useCallback, memo, Suspens
 
 import * as THREE from 'three'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Html, useGLTF, Clone } from '@react-three/drei'
+import { Html, useGLTF } from '@react-three/drei'
 
 import { HealBeam } from '@components/Scene/HealBeam'
 import { Nameplate } from '@components/Scene/Nameplate'
 import { markOutlined } from '@components/Scene/PlayerOutlines'
+import {
+  type ModelLook,
+  PLAIN_LOOK,
+  applyModelEffects,
+  cloneMaterials,
+  disposeMaterials,
+  effectTime,
+  lookKey,
+  playerLook,
+} from '@components/Scene/modelEffects'
 import { SCENE_PRIORITY, isScenePlayer, sceneFrame } from '@components/Scene/PlaybackDriver'
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
 import { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
-import { hasCondition } from '@components/Analyse/Data/StreamEvents'
 
 import { useInstance, useStore } from '@zus/store'
 import { CLASS_MAP, PLAYER_DIMENSIONS } from '@constants/mappings'
@@ -32,44 +41,8 @@ export interface PlayerModelProps {
   classId: number
   visible?: boolean
   backface?: boolean
-  /** A cloaked spy: drawn faintly. */
-  cloaked?: boolean
-  /** A glow over the model, such as an über's team colour. */
-  tint?: string | null
-}
-
-const CLOAKED_OPACITY = 0.2
-const TINT_INTENSITY = 0.55
-
-type EffectMaterial = THREE.Material & { emissive?: THREE.Color; emissiveIntensity?: number }
-
-/** Sets a model's own materials (cloned per model) for its cloak and tint, keeping the originals. */
-function applyModelEffects(root: THREE.Object3D, cloaked: boolean, tint: string | null) {
-  root.traverse(object => {
-    const mesh = object as THREE.Mesh
-    if (!mesh.isMesh) return
-    const materials = (
-      Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-    ) as EffectMaterial[]
-    for (const material of materials) {
-      const original = (material.userData.original ??= {
-        transparent: material.transparent,
-        opacity: material.opacity,
-        depthWrite: material.depthWrite,
-        emissive: material.emissive?.clone(),
-        emissiveIntensity: material.emissiveIntensity,
-      })
-      material.transparent = cloaked || original.transparent
-      material.opacity = cloaked ? CLOAKED_OPACITY : original.opacity
-      material.depthWrite = cloaked ? false : original.depthWrite
-      if (material.emissive && original.emissive) {
-        if (tint) material.emissive.set(tint)
-        else material.emissive.copy(original.emissive)
-        material.emissiveIntensity = tint ? TINT_INTENSITY : original.emissiveIntensity
-      }
-      material.needsUpdate = true
-    }
-  })
+  /** How the player's conditions show on the model: a cloak, an über's glow, and so on. */
+  look?: ModelLook
 }
 
 export const PlayerModel = (props: PlayerModelProps) => {
@@ -81,20 +54,32 @@ export const PlayerModel = (props: PlayerModelProps) => {
   const modelUrl = getAsset(`/models/players/${CLASS_MAP[props.classId]}_${props.team}.glb`)
   const gltf = useGLTF(modelUrl, true, false)
   const ref = useRef<THREE.Group>(null)
-  const { cloaked = false, tint = null, visible, team } = props
+  const { look = PLAIN_LOOK, visible, team } = props
+
+  // Each model its own materials, so one's look is not everyone's. Cloned once per model: drei's
+  // <Clone deep> clones them again on every render, which dropped an über's tint (or a cloak)
+  // whenever the player's health or conditions changed under it.
+  const scene = useMemo(() => {
+    const clone = gltf.scene.clone()
+    cloneMaterials(clone)
+    return clone
+  }, [gltf.scene])
+
+  useEffect(() => () => disposeMaterials(scene), [scene])
 
   useLayoutEffect(() => {
     if (ref.current) markOutlined(ref.current, team)
-  }, [team, gltf.scene])
+  }, [team, scene])
 
+  const key = lookKey(look)
   useLayoutEffect(() => {
-    if (ref.current) applyModelEffects(ref.current, cloaked, tint)
-  }, [cloaked, tint, gltf.scene])
+    applyModelEffects(scene, look)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key, scene])
 
   return (
     <group ref={ref} visible={visible} rotation={[Math.PI * 0.5, Math.PI * 0.5, 0]}>
-      {/* Each model its own materials, so one's cloak or tint is not everyone's. */}
-      <Clone object={gltf.scene} deep="materialsOnly" />
+      <primitive object={scene} />
     </group>
   )
 }
@@ -151,7 +136,8 @@ export const Actors = ({ match }: ActorsProps) => {
     [match, tick]
   )
 
-  useFrame(({ camera }) => {
+  useFrame(({ camera, clock }) => {
+    effectTime.value = clock.elapsedTime
     camera.getWorldPosition(_cameraPosition)
     for (const player of sceneFrame.players) {
       const actor = handles.current.get(player.user.entityId)
@@ -243,8 +229,11 @@ const Actor = memo(({ player, register, positionOf }: ActorProps) => {
 
   const { classId, health, team, user, healTarget, conditions, ubered } = player
   const entityId = user.entityId
-  const cloaked = hasCondition(conditions, 'cloaked')
-  const tint = ubered ? (team === 'red' ? '#ff3b3b' : '#3b8bff') : null
+  const look = useMemo(
+    () => playerLook({ team, conditions, ubered }),
+    [team, conditions, ubered]
+  )
+  const shielded = !!ubered?.startsWith('vaccinator')
   const isFocusedPOV = focusedObject?.userData?.entityId === entityId
   const alive = health > 0
   const color = team === 'red' ? '#ff0202' : team === 'blue' ? '#0374ff' : undefined
@@ -278,12 +267,17 @@ const Actor = memo(({ player, register, positionOf }: ActorProps) => {
               visible={alive && !isFocusedPOV}
               team={team}
               classId={classId}
-              cloaked={cloaked}
-              tint={tint}
+              look={look}
             />
           ) : null}
         </Suspense>
       </group>
+
+      {/* A Vaccinator über's shield */}
+
+      {shielded && alive && !isFocusedPOV && (team === 'red' || team === 'blue') && (
+        <VaccinatorBubble team={team} />
+      )}
 
       {/* Player aim */}
 
@@ -324,6 +318,43 @@ const Actor = memo(({ player, register, positionOf }: ActorProps) => {
     </group>
   )
 }, sameLook)
+
+// The Vaccinator's shield: a team-coloured bubble, clear in the middle and bright at its edge.
+const BUBBLE_RADIUS = ActorDimensions.z * 0.72
+const bubbleGeometry = new THREE.SphereGeometry(BUBBLE_RADIUS, 32, 20)
+const bubbleMaterial = (color: string) =>
+  new THREE.ShaderMaterial({
+    uniforms: { color: { value: new THREE.Color(color) } },
+    vertexShader: /* glsl */ `
+      varying vec3 vNormal;
+      varying vec3 vView;
+      void main() {
+        vec4 view = modelViewMatrix * vec4(position, 1.0);
+        vNormal = normalize(normalMatrix * normal);
+        vView = -view.xyz;
+        gl_Position = projectionMatrix * view;
+      }`,
+    fragmentShader: /* glsl */ `
+      uniform vec3 color;
+      varying vec3 vNormal;
+      varying vec3 vView;
+      void main() {
+        float facing = abs(dot(normalize(vNormal), normalize(vView)));
+        gl_FragColor = vec4(color, 0.06 + 0.55 * pow(1.0 - facing, 2.5));
+      }`,
+    transparent: true,
+    depthWrite: false,
+  })
+const bubbleMaterials = { red: bubbleMaterial('#ff4a4a'), blue: bubbleMaterial('#4a9dff') }
+
+const VaccinatorBubble = ({ team }: { team: 'red' | 'blue' }) => (
+  <mesh
+    name="vaccinatorBubble"
+    geometry={bubbleGeometry}
+    material={bubbleMaterials[team]}
+    position={[0, 0, ActorDimensions.z / 2]}
+  />
+)
 
 export interface POVCameraProps {}
 

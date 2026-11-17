@@ -10,6 +10,13 @@ import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js
 import type { CachedPlayer } from '@components/Analyse/Data/PlayerTracks'
 import { hasCondition } from '@components/Analyse/Data/StreamEvents'
 import { SCENE_PRIORITY, sceneFrame } from '@components/Scene/PlaybackDriver'
+import {
+  applyModelEffects,
+  cloneMaterials,
+  disposeMaterials,
+  lookKey,
+  viewmodelLook,
+} from '@components/Scene/modelEffects'
 import { getState, useInstance, useStore } from '@zus/store'
 import { CLASS_MAP } from '@constants/mappings'
 import { getAsset } from '@utils/misc'
@@ -264,6 +271,8 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: Viewmod
       mesh.bind(new THREE.Skeleton(merged, mesh.skeleton.boneInverses), mesh.bindMatrix)
     })
     for (const scene of [armsScene, weaponScene]) {
+      // Their own materials, for the player's look (modelEffects).
+      cloneMaterials(scene)
       scene.traverse(o => {
         if ((o as THREE.Mesh).isMesh) o.frustumCulled = false
       })
@@ -289,8 +298,11 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: Viewmod
         })
     return {
       root,
+      armsScene,
       weaponScene,
       nozzle: null as Nozzle | null,
+      /** The look the materials have now, set when the player's changes. */
+      look: '',
       mixer,
       idle: actions(clips.idle),
       fire: actions(clips.fire),
@@ -301,6 +313,7 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: Viewmod
   useEffect(
     () => () => {
       rig.mixer.stopAllAction()
+      disposeMaterials(rig.root)
       if (viewmodelMuzzle.entityId === entityId) viewmodelMuzzle.entityId = -1
     },
     [rig, entityId]
@@ -309,7 +322,21 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: Viewmod
   useFrame(({ camera }) => {
     const now = sceneFrame.tick
     const intervalPerTick = sceneFrame.match?.intervalPerTick || 0.015
-    const lastShotTick = sceneFrame.playersByEntity.get(entityId)?.lastShotTick ?? null
+    const player = sceneFrame.playersByEntity.get(entityId)
+    const lastShotTick = player?.lastShotTick ?? null
+
+    // A cloaked spy sees their arms faintly, an übered player sees them glow, and a crit
+    // boosted one sees their weapon's edges glow.
+    if (player) {
+      const arms = viewmodelLook(player, false)
+      const weapon = viewmodelLook(player, true)
+      const look = `${lookKey(arms)}/${lookKey(weapon)}`
+      if (look !== rig.look) {
+        rig.look = look
+        applyModelEffects(rig.armsScene, arms)
+        applyModelEffects(rig.weaponScene, weapon)
+      }
+    }
     const seconds = (fromTick: number) => (now - fromTick) * intervalPerTick
 
     for (const action of [...rig.idle, ...rig.fire, ...rig.draw]) action.weight = 0
