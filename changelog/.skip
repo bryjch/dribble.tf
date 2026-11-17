@@ -3,3 +3,4 @@
 96 # built maps out of git, Blender pipeline retired: tooling
 99 # assets wizard cache headers: tooling
 101 # dev server loads missing map files from the asset host: tooling
+105 # /debug rendering test page: unlinked dev tool (its POV weapon fix left out of the changelog by request)
