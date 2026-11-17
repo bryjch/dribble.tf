@@ -18,6 +18,7 @@ import { Viewmodel } from '@components/Scene/Viewmodel'
 import { DamageNumbers } from '@components/Scene/DamageNumbers'
 import { DamageIndicator } from '@components/Scene/DamageIndicator'
 import { SniperScope } from '@components/Scene/SniperScope'
+import { PovEffects } from '@components/Scene/PovEffects'
 import { Buildings } from '@components/Scene/Buildings'
 import { Objectives } from '@components/Scene/Objectives'
 import { ObjectiveHud } from '@components/UI/ObjectiveHud'
@@ -725,6 +726,7 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
           {/* In POV, a scoped sniper's zoom and scope, and arrows toward where hits come from */}
 
           <SniperScope />
+          <PovEffects />
 
           <DamageIndicator match={demo} />
 
