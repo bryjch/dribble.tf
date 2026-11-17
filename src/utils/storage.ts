@@ -230,15 +230,19 @@ export async function readSavedDemo(url: string): Promise<ArrayBuffer | null> {
   if (!storageAvailable()) return null
   const demo = await findSavedDemo({ url })
   if (!demo) return null
-  const saved = await (await caches.open(DEMO_CACHE)).match(url)
-  if (!saved) {
+  const cache = await caches.open(DEMO_CACHE)
+  const saved = await cache.match(url)
+  const bytes = saved && (await saved.arrayBuffer())
+  // Not all there: Safari saved demos empty before saveDemo copied them, so those download again.
+  if (!bytes || bytes.byteLength !== demo.bytes) {
     index.demos = index.demos.filter(other => other !== demo)
+    if (saved) await cache.delete(url)
     changed()
     return null
   }
   demo.lastOpened = Date.now()
   changed()
-  return saved.arrayBuffer()
+  return bytes
 }
 
 export async function saveDemo(
@@ -246,9 +250,13 @@ export async function saveDemo(
   bytes: ArrayBuffer
 ) {
   if (!storageAvailable()) return
-  // A Response copies the bytes as it is made, so the caller may hand `bytes` on (parsing
-  // transfers it to a worker) as soon as this returns its promise.
-  const response = new Response(bytes, { headers: { 'content-type': 'application/octet-stream' } })
+  // The caller hands `bytes` on (parsing transfers it to a worker, which empties it here) as soon
+  // as this returns its promise, so the Response gets its own copy. Chrome's Response copies
+  // the bytes as it is made, but Safari's keeps the buffer and stores whatever is left in it when
+  // cache.put runs: an empty file once it has been transferred.
+  const response = new Response(bytes.slice(0), {
+    headers: { 'content-type': 'application/octet-stream' },
+  })
   const byteLength = bytes.byteLength
   await loadIndex()
   const cache = await caches.open(DEMO_CACHE)
