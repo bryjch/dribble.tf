@@ -145,7 +145,12 @@ export const Viewmodel = () => {
       <PerspectiveCamera makeDefault fov={sourceVerticalFov(settings.fov)} near={1} far={256} />
       <ambientLight intensity={2.2} />
       <directionalLight position={[2, 3, 1]} intensity={2.4} />
-      {entityId != null && <ViewmodelSelector manifest={manifest} entityId={entityId} />}
+      {/* Keyed by player: a rig is one player's. Handed to another with the same arms and weapon
+          (two BLU scouts with scatterguns), its cleanup stopped its animations, and the arms
+          went to their bind pose, off screen. */}
+      {entityId != null && (
+        <ViewmodelSelector key={entityId} manifest={manifest} entityId={entityId} />
+      )}
     </Hud>
   )
 }
