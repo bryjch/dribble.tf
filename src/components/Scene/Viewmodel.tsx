@@ -247,6 +247,16 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: Viewmod
     armsScene.traverse(o => {
       if ((o as THREE.Bone).isBone) bones.set(o.name, o as THREE.Bone)
     })
+    // Bones the arms don't have (a whip's end, an ornament, a minigun's barrel) keep their own
+    // pose but under the merged bone they hang from, as in Source; left in the weapon's own
+    // skeleton they would stay at its rest pose while the hand moves.
+    const unmerged: THREE.Bone[] = []
+    weaponScene.traverse(o => {
+      const bone = o as THREE.Bone
+      if (bone.isBone && !bones.has(bone.name) && bone.parent && bones.has(bone.parent.name))
+        unmerged.push(bone)
+    })
+    for (const bone of unmerged) bones.get(bone.parent!.name)!.add(bone)
     weaponScene.traverse(o => {
       const mesh = o as THREE.SkinnedMesh
       if (!mesh.isSkinnedMesh) return
