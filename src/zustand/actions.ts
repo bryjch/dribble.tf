@@ -63,7 +63,11 @@ export const onUploadDemoAction = async (files: File[]) => {
 }
 
 /** Reads a demo already in memory (at `tick`, if given), noting what it is on its saved copy. */
-export const openDemoBytesAction = async (fileBuffer: ArrayBuffer, savedUrl?: string, tick?: number) => {
+export const openDemoBytesAction = async (
+  fileBuffer: ArrayBuffer,
+  savedUrl?: string,
+  tick?: number
+) => {
   try {
     const match = await parseDemoAction(fileBuffer)
     if (savedUrl) rememberOpenedDemo(savedUrl, match)
@@ -203,6 +207,12 @@ export const loadEmptySceneMapAction = async (mapName: string) => {
   }
 }
 
+/** A demo or live match brings the world's bounds from its own data; a debug match takes the map's. */
+const hasOwnWorld = () => {
+  const match = useInstance.getState().match
+  return !!match && match.kind !== 'debug'
+}
+
 /**
  * Bounds a Derived Map's manifest gives the camera, when the scene shows that map without a
  * match (a match brings the world's bounds from its own data). In Source world coordinates.
@@ -214,7 +224,7 @@ export const applyDerivedMapBoundsAction = async (
   focus?: [number, number, number] | null
 ) => {
   try {
-    if (getState().scene.map !== mapName || useInstance.getState().match) return
+    if (getState().scene.map !== mapName || hasOwnWorld()) return
     const [minX, minY, minZ] = worldBounds.mins
     const [maxX, maxY, maxZ] = worldBounds.maxs
     const rtsCenter =
@@ -222,7 +232,7 @@ export const applyDerivedMapBoundsAction = async (
       (focus && !getMapBoundaries(mapName)?.rtsCenter
         ? { x: focus[0], y: focus[1], z: focus[2] }
         : undefined)
-    if (getState().scene.map !== mapName || useInstance.getState().match) return
+    if (getState().scene.map !== mapName || hasOwnWorld()) return
     dispatch({
       type: 'SET_SCENE_BOUNDS',
       payload: parseMapBoundaries({

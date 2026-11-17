@@ -9,8 +9,9 @@ import type { MatchUberEvent } from '@utils/matchEvents'
 // ─── MATCH SOURCE ───────────────────────────────────────────────────────────────
 //
 // Whatever answers "what was the state at tick N" for a match (CONTEXT.md): a demo decoded up
-// front (DemoSource) or a live match fed by an stv.tf event stream (LiveSource). The viewer
-// reads matches through this and nothing else.
+// front (DemoSource), a live match fed by an stv.tf event stream (LiveSource), or a scripted
+// scene from the /debug page (DebugSource, src/components/Debug). The viewer reads matches
+// through this and nothing else.
 //
 // Ticks may be fractional: a source interpolates between the ticks around one, so the scene
 // can be drawn at any moment between two ticks.
@@ -65,7 +66,11 @@ export interface ScoreLine {
 }
 
 export interface MatchSource {
-  readonly kind: 'demo' | 'live'
+  /**
+   * A debug match plays like a demo (it stops at its end), but is never remembered: no saved
+   * demo, no Recents progress, no bookmarks.
+   */
+  readonly kind: 'demo' | 'live' | 'debug'
   readonly header: Header
   /** Seconds per tick. */
   readonly intervalPerTick: number

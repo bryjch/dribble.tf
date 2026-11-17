@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { Suspense, lazy } from 'react'
 
 import { ViewerPage } from '@pages/ViewerPage'
+import type { DebugView } from '@components/Debug/scenario'
 import {
   bootstrapSharedSetupFromHashAction,
   goToTickAction,
@@ -9,7 +10,7 @@ import {
   loadSettingsAction,
   updateSettingsOptionAction,
 } from '@zus/actions'
-import { getState } from '@zus/store'
+import { getState, setSettingsPersisted } from '@zus/store'
 import { applyTheme, getThemeFromUrl } from '@theme/themes'
 import { getLayoutFromUrl } from '@components/Mobile/useMobileLayout'
 import { loadUrlDemoAction, resolveUrlDemoAction } from '@utils/embed'
@@ -18,9 +19,33 @@ import { listenForPastedMatchLinks } from '@utils/matchLink'
 import { installBench } from '@utils/bench'
 import { trackPlayback } from '@utils/storage'
 
+// /debug: the viewer driven by a scripted match, for testing rendering (src/components/Debug).
+// Not linked anywhere; loaded only there, so the viewer's own bundle doesn't grow.
+const isDebugPage = () => /^\/debug(\/|$)/.test(window.location.pathname)
+const DebugPage = lazy(() => import('@components/Debug/DebugPage'))
+
+// No context menu over the viewer (right-drag pans the camera), except in text fields, where
+// it has paste and spellcheck.
+const blockContextMenu = () =>
+  window.addEventListener('contextmenu', event => {
+    const target = event.target as HTMLElement | null
+    if (target?.closest?.('input, textarea, [contenteditable="true"]')) return
+    event.preventDefault()
+  })
+
+/** ?theme= and ?mobile pick a look and an interface; elsewhere they are remembered. */
+async function applyUrlSettings() {
+  const urlTheme = getThemeFromUrl()
+  if (urlTheme) await updateSettingsOptionAction('ui.theme', urlTheme)
+  applyTheme(getState().settings.ui.theme)
+  const urlLayout = getLayoutFromUrl()
+  if (urlLayout) await updateSettingsOptionAction('ui.layout', urlLayout)
+}
+
 class App extends React.Component {
-  state = {
+  state: { isReady: boolean; debug: boolean; debugView?: DebugView } = {
     isReady: false,
+    debug: isDebugPage(),
   }
 
   //
@@ -28,16 +53,14 @@ class App extends React.Component {
   //
 
   async componentDidMount() {
+    if (this.state.debug) return this.bootDebugPage()
+
     installBench()
     await loadSettingsAction()
 
     // ?theme= picks a look and remembers it; after that the overlays follow the setting.
-    const urlTheme = getThemeFromUrl()
-    if (urlTheme) await updateSettingsOptionAction('ui.theme', urlTheme)
-    applyTheme(getState().settings.ui.theme)
     // ?mobile / ?mobile=off pick the interface the same way.
-    const urlLayout = getLayoutFromUrl()
-    if (urlLayout) await updateSettingsOptionAction('ui.layout', urlLayout)
+    await applyUrlSettings()
     await loadSetupsAction()
     const sharedSetup = await bootstrapSharedSetupFromHashAction()
 
@@ -61,14 +84,24 @@ class App extends React.Component {
     if (live) connectLiveAction(live)
     listenForPastedMatchLinks()
     trackPlayback()
+    blockContextMenu()
+  }
 
-    // No context menu over the viewer (right-drag pans the camera), except in text fields, where
-    // it has paste and spellcheck.
-    window.addEventListener('contextmenu', event => {
-      const target = event.target as HTMLElement | null
-      if (target?.closest?.('input, textarea, [contenteditable="true"]')) return
-      event.preventDefault()
-    })
+  /**
+   * /debug boots without the viewer's ways in (a demo or live match from the URL, a shared
+   * setup, pasted match links) and without tracking playback for Recents. Settings changed there
+   * (?theme= included) stay in memory: a session there is throwaway.
+   */
+  async bootDebugPage() {
+    setSettingsPersisted(false)
+    installBench()
+    await loadSettingsAction()
+    await applyUrlSettings()
+    await loadSetupsAction()
+    const { bootDebug } = await import('@components/Debug/session')
+    const debugView = await bootDebug()
+    this.setState({ isReady: true, debugView })
+    blockContextMenu()
   }
 
   //
@@ -76,7 +109,13 @@ class App extends React.Component {
   //
 
   render() {
-    return this.state.isReady ? <ViewerPage /> : null
+    if (!this.state.isReady) return null
+    if (!this.state.debug) return <ViewerPage />
+    return (
+      <Suspense fallback={null}>
+        <DebugPage view={this.state.debugView} />
+      </Suspense>
+    )
   }
 }
 

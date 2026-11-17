@@ -21,6 +21,7 @@ import { getState, useInstance, useStore } from '@zus/store'
 import { CLASS_MAP } from '@constants/mappings'
 import { getAsset } from '@utils/misc'
 import { sourceVerticalFov } from '@utils/fov'
+import { useViewmodelDebug } from '@components/Scene/viewmodelDebug'
 
 //
 // ─── VIEWMODEL ──────────────────────────────────────────────────────────────────
@@ -38,7 +39,7 @@ import { sourceVerticalFov } from '@utils/fov'
 // scrubbing or playing backwards.
 //
 
-interface ViewmodelManifest {
+export interface ViewmodelManifest {
   classes: Record<
     string,
     {
@@ -51,7 +52,7 @@ interface ViewmodelManifest {
   items: Record<string, Record<string, [model: string, slot: string]>>
 }
 
-interface Clips {
+export interface Clips {
   idle?: string[]
   fire?: string[]
   draw?: string[]
@@ -61,7 +62,8 @@ interface Clips {
 const FIRE_BLEND_SECONDS = 0.12
 
 let manifestRequest: Promise<ViewmodelManifest | null> | null = null
-const loadManifest = () =>
+/** The manifest, fetched once; null when it can't be read. The /debug page browses it too. */
+export const loadManifest = () =>
   (manifestRequest ??= fetch(getAsset('/models/viewmodels/manifest.json'))
     .then(response => (response.ok ? response.json() : null))
     .catch(() => null))
@@ -89,7 +91,6 @@ const loadGltf = (url: string) => {
   }
   return request
 }
-
 
 /**
  * Where the spectated medic's medigun nozzle is on screen, for the heal beam to start from: its
@@ -194,6 +195,7 @@ const ViewmodelLoader = ({ selection, entityId }: { selection: Selection; entity
   if (!models) return null
   return (
     <ViewmodelRig
+      selection={selection}
       arms={models[0]}
       anims={models[1]}
       weapon={models[2]}
@@ -209,6 +211,7 @@ const ViewmodelLoader = ({ selection, entityId }: { selection: Selection; entity
 //
 
 interface ViewmodelRigProps {
+  selection: Selection
   arms: GLTF
   anims: GLTF
   weapon: GLTF
@@ -245,7 +248,21 @@ function findNozzle(weapon: THREE.Object3D, camera: THREE.Camera): Nozzle | null
   return best
 }
 
-const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: ViewmodelRigProps) => {
+/** Whether a bone is under `root` (a weapon bone hung from the arms' skeleton is). */
+const hangsFrom = (bone: THREE.Object3D, root: THREE.Object3D) => {
+  for (let parent = bone.parent; parent; parent = parent.parent) if (parent === root) return true
+  return false
+}
+
+const ViewmodelRig = ({
+  selection,
+  arms,
+  anims,
+  weapon,
+  clips,
+  entityId,
+  medigun,
+}: ViewmodelRigProps) => {
   // The weapon came out (this rig mounted during playback): the draw animation plays from this
   // tick. Paused, or jumping to another player or tick, it is simply in hand.
   const drawTick = useRef(getState().playback.playing ? sceneFrame.tick : -Infinity)
@@ -269,9 +286,16 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: Viewmod
         unmerged.push(bone)
     })
     for (const bone of unmerged) bones.get(bone.parent!.name)!.add(bone)
+    // For the /debug page: the weapon's bones, and those the arms have none of by name.
+    const weaponBones = new Set<THREE.Bone>()
+    const unmatched = new Set<THREE.Bone>()
     weaponScene.traverse(o => {
       const mesh = o as THREE.SkinnedMesh
       if (!mesh.isSkinnedMesh) return
+      for (const bone of mesh.skeleton.bones) {
+        weaponBones.add(bone)
+        if (!bones.has(bone.name)) unmatched.add(bone)
+      }
       const merged = mesh.skeleton.bones.map(b => bones.get(b.name) ?? b)
       mesh.bind(new THREE.Skeleton(merged, mesh.skeleton.boneInverses), mesh.bindMatrix)
     })
@@ -301,10 +325,26 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: Viewmod
           action.weight = 0
           return action
         })
+    const clipNames = { idle: clips.idle ?? [], draw: clips.draw ?? [], fire: clips.fire ?? [] }
     return {
       root,
       armsScene,
       weaponScene,
+      armsBones: [...bones.values()],
+      unmatched: [...unmatched],
+      info: {
+        key: selection.key,
+        weaponUrl: selection.weaponUrl,
+        clips: clipNames,
+        missingClips: Object.values(clipNames)
+          .flat()
+          .filter(name => !byName.has(name)),
+        weaponBones: weaponBones.size,
+        unmatchedBones: [...unmatched].map(bone => bone.name),
+        strandedBones: [...unmatched]
+          .filter(bone => !hangsFrom(bone, armsScene))
+          .map(bone => bone.name),
+      },
       nozzle: null as Nozzle | null,
       /** The look the materials have now, set when the player's changes. */
       look: '',
@@ -313,7 +353,7 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: Viewmod
       fire: actions(clips.fire),
       draw: actions(clips.draw),
     }
-  }, [arms, anims, weapon, clips])
+  }, [arms, anims, weapon, clips, selection])
 
   useEffect(
     () => () => {
@@ -323,6 +363,20 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: Viewmod
     },
     [rig, entityId]
   )
+
+  // The /debug page's hooks (viewmodelDebug.ts): what this rig is, and its bones on request.
+  const makeBones = useViewmodelDebug(state => state.bones)
+  const bonesOverlay = useMemo(
+    () => (makeBones ? makeBones(rig.armsBones, rig.unmatched) : null),
+    [makeBones, rig]
+  )
+  useEffect(() => () => bonesOverlay?.dispose(), [bonesOverlay])
+  useEffect(() => {
+    useViewmodelDebug.setState({ rig: rig.info })
+    return () => {
+      if (useViewmodelDebug.getState().rig === rig.info) useViewmodelDebug.setState({ rig: null })
+    }
+  }, [rig])
 
   useFrame(({ camera }) => {
     const now = sceneFrame.tick
@@ -346,38 +400,52 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: Viewmod
 
     for (const action of [...rig.idle, ...rig.fire, ...rig.draw]) action.weight = 0
 
-    const idle = rig.idle[0]
-    // A shot from before this weapon came out was another weapon's.
-    const fireElapsed =
-      lastShotTick != null && lastShotTick >= drawTick.current ? seconds(lastShotTick) : Infinity
-    // Melee swings and the like have a few to pick from: the same one for the same shot.
-    const fire =
-      lastShotTick != null ? rig.fire[lastShotTick % Math.max(1, rig.fire.length)] : undefined
-    const drawElapsed = seconds(drawTick.current)
-    const draw = rig.draw[0]
-
-    let played = false
-    if (fire && fireElapsed >= 0 && fireElapsed < fire.getClip().duration) {
-      const left = fire.getClip().duration - fireElapsed
-      const blend = idle ? Math.min(1, left / FIRE_BLEND_SECONDS) : 1
-      fire.time = fireElapsed
-      fire.weight = blend
-      if (idle && blend < 1) {
-        idle.time = 0
-        idle.weight = 1 - blend
+    // The /debug page can loop one clip (each variant in turn) in place of the tick's.
+    const forced = useViewmodelDebug.getState().clip
+    if (forced !== 'auto') {
+      const loop = rig[forced]
+      const duration = loop[0]?.getClip().duration ?? 0
+      if (duration > 0) {
+        const elapsed = Math.max(0, now * intervalPerTick)
+        const action = loop[Math.floor(elapsed / duration) % loop.length]
+        action.time = elapsed % duration
+        action.weight = 1
       }
-      played = true
-    } else if (draw && drawElapsed >= 0 && drawElapsed < draw.getClip().duration) {
-      draw.time = drawElapsed
-      draw.weight = 1
-      played = true
-    }
-    if (!played && idle) {
-      const duration = idle.getClip().duration
-      idle.time = duration > 0 ? (((now * intervalPerTick) % duration) + duration) % duration : 0
-      idle.weight = 1
+    } else {
+      const idle = rig.idle[0]
+      // A shot from before this weapon came out was another weapon's.
+      const fireElapsed =
+        lastShotTick != null && lastShotTick >= drawTick.current ? seconds(lastShotTick) : Infinity
+      // Melee swings and the like have a few to pick from: the same one for the same shot.
+      const fire =
+        lastShotTick != null ? rig.fire[lastShotTick % Math.max(1, rig.fire.length)] : undefined
+      const drawElapsed = seconds(drawTick.current)
+      const draw = rig.draw[0]
+
+      let played = false
+      if (fire && fireElapsed >= 0 && fireElapsed < fire.getClip().duration) {
+        const left = fire.getClip().duration - fireElapsed
+        const blend = idle ? Math.min(1, left / FIRE_BLEND_SECONDS) : 1
+        fire.time = fireElapsed
+        fire.weight = blend
+        if (idle && blend < 1) {
+          idle.time = 0
+          idle.weight = 1 - blend
+        }
+        played = true
+      } else if (draw && drawElapsed >= 0 && drawElapsed < draw.getClip().duration) {
+        draw.time = drawElapsed
+        draw.weight = 1
+        played = true
+      }
+      if (!played && idle) {
+        const duration = idle.getClip().duration
+        idle.time = duration > 0 ? (((now * intervalPerTick) % duration) + duration) % duration : 0
+        idle.weight = 1
+      }
     }
     rig.mixer.update(0)
+    bonesOverlay?.update()
 
     if (medigun) {
       // Posed bones now, so the nozzle is where this frame draws it.
@@ -393,5 +461,10 @@ const ViewmodelRig = ({ arms, anims, weapon, clips, entityId, medigun }: Viewmod
     }
   })
 
-  return <primitive object={rig.root} />
+  return (
+    <>
+      <primitive object={rig.root} />
+      {bonesOverlay && <primitive object={bonesOverlay} />}
+    </>
+  )
 }
