@@ -524,6 +524,13 @@ html[data-theme='modern'] body {
   margin: 0;
 }
 
+/* The transport row sits at the dock's left edge here, so the sticker palette opens from that edge
+   rather than centred on that narrow row, which pushed its left side off screen. */
+[data-theme='modern'] .hud-sticker-anchor {
+  left: 0;
+  transform: none;
+}
+
 [data-theme='modern'] .hud-transport,
 [data-theme='modern'] .hud-transport[data-dimmed='true'] {
   gap: 0.15rem;

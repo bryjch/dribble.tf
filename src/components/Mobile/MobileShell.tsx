@@ -2,7 +2,19 @@ import { useLayoutEffect, useState } from 'react'
 
 import type { MatchSource } from '@components/Analyse/Data/MatchSource'
 
-import { IconButton, Sheet, SheetTabs } from './parts'
+import { StickerPalette } from '@components/UI/StickerPalette'
+import { useStore } from '@zus/store'
+
+import {
+  BookmarkButton,
+  IconButton,
+  Scrubber,
+  Sheet,
+  SheetTabs,
+  SpeedButton,
+  StickersButton,
+  TimeReadout,
+} from './parts'
 import { PANEL_TABS, PanelBody, PanelId } from './panels'
 import { MenuGlyph, Theater } from './Theater'
 
@@ -16,7 +28,7 @@ import './mobile.css'
 
 export const MobileShell = ({ landscape, match }: { landscape: boolean; match?: MatchSource }) => {
   usePhoneRootFont()
-  return match ? <Theater match={match} landscape={landscape} /> : <NoDemo />
+  return match ? <Theater match={match} landscape={landscape} /> : <NoDemo landscape={landscape} />
 }
 
 /**
@@ -44,17 +56,37 @@ const NO_DEMO_TABS: PanelId[] = ['about', 'settings']
 /**
  * Before a demo: the map to look around, with the menu button where the match view has it.
  * The sheet opens on About (open a file, paste a link, the sample), with Settings beside it.
+ * The match view's bottom bar shows here too, greyed out but for its sticker button, so stickers
+ * can be placed on the empty map.
  */
-const NoDemo = () => {
+const NoDemo = ({ landscape }: { landscape: boolean }) => {
   const [open, setOpen] = useState(true)
   const [panel, setPanel] = useState<PanelId>('about')
+  const stickersOpen = useStore(state => state.drawing.stickersPanelOpen)
   return (
-    <div className="m-shell">
+    <div className="m-shell" data-landscape={landscape ? 'true' : undefined}>
       <div className="m-nodemo__top">
         <IconButton label="Menu" size="md" onClick={() => setOpen(true)}>
           <MenuGlyph />
         </IconButton>
       </div>
+      <div className="m-theater__bottom">
+        <div className="m-theater__bar m-nodemo__bar">
+          <div className="m-theater__meta">
+            <TimeReadout className="m-nodemo__off" />
+            <span className="flex-1" />
+            <SpeedButton size="sm" disabled />
+            <BookmarkButton size="sm" disabled />
+            <StickersButton size="sm" />
+          </div>
+          <Scrubber disabled />
+        </div>
+      </div>
+      {stickersOpen && (
+        <div className="m-stickers m-stickers--nodemo">
+          <StickerPalette compact />
+        </div>
+      )}
       <Sheet
         open={open}
         onOpenChange={setOpen}

@@ -15,13 +15,12 @@ import {
 import { STICKER_CLASS_IDS } from '@constants/stickers'
 import { CLASS_ORDER_MAP } from '@constants/mappings'
 import {
-  ControlsMode,
   StickerAnnotation,
   StickerDefinition,
   StickerSymbol,
   StickerTeam,
 } from '@constants/types'
-import { useIsMobile } from '@utils/hooks'
+import { isObjectShown } from '@utils/scene'
 
 const STICKER_GROUP_NAME = 'stickers'
 const STICKER_MARKER_NAME = 'sticker-marker'
@@ -56,14 +55,9 @@ type SceneStickerProps = {
   dragPreviewPositionRef?: MutableRefObject<THREE.Vector3 | null>
 }
 
-// No stickers on mobile. The check lives out here so the scene below always runs the same hooks
-// (useIsMobile flips when the window is resized across its breakpoint).
-export const Stickers = () => (useIsMobile() ? null : <StickersScene />)
-
-const StickersScene = () => {
+export const Stickers = () => {
   const { camera, gl, scene } = useThree()
 
-  const controlsMode = useStore(state => state.scene.controls.mode)
   const stickers = useStore(state => state.drawing.stickerHistory.present)
   const stickerDrag = useStore(state => state.drawing.stickerDrag)
   const selectedStickerId = useStore(state => state.drawing.selectedStickerId)
@@ -83,11 +77,8 @@ const StickersScene = () => {
   const dragPlaneAnchorRef = useRef(new THREE.Vector3())
   const dragPlaneIntersectionRef = useRef(new THREE.Vector3())
 
-  const interactionEnabled =
-    controlsMode === ControlsMode.RTS || controlsMode === ControlsMode.SPECTATOR
-
   useEffect(() => {
-    if (!interactionEnabled || stickerDrag.active) return
+    if (stickerDrag.active) return
 
     const handlePointerDownCapture = (event: PointerEvent) => {
       if (event.button !== 0) return
@@ -132,10 +123,10 @@ const StickersScene = () => {
     return () => {
       window.removeEventListener('pointerdown', handlePointerDownCapture, true)
     }
-  }, [camera, gl, interactionEnabled, scene, selectedStickerId, stickerDrag.active])
+  }, [camera, gl, scene, selectedStickerId, stickerDrag.active])
 
   useEffect(() => {
-    if (!interactionEnabled || !stickerDrag.active) return
+    if (!stickerDrag.active) return
 
     const currentControls = (useInstance.getState().threeScene as any).controls
     if (currentControls) {
@@ -237,7 +228,6 @@ const StickersScene = () => {
   }, [
     camera,
     gl,
-    interactionEnabled,
     scene,
     stickerDrag.active,
     stickerDrag.kind,
@@ -248,7 +238,7 @@ const StickersScene = () => {
   ])
 
   useFrame(() => {
-    if (!interactionEnabled || !stickerDrag.active || !dragCursorRef.current) return
+    if (!stickerDrag.active || !dragCursorRef.current) return
 
     const { screenX, screenY } = dragCursorRef.current
     const hasCommittedDrag = hasExceededStickerDragThreshold(
@@ -333,7 +323,7 @@ const StickersScene = () => {
         />
       ))}
 
-      {interactionEnabled && stickerDrag.active && stickerDrag.kind === 'create' ? (
+      {stickerDrag.active && stickerDrag.kind === 'create' ? (
         <SceneSticker
           texture={previewTexture}
           position={[0, 0, 0]}
@@ -730,7 +720,7 @@ function getSurfaceHitFromScreen({
   nextRaycaster.setFromCamera(nextPointer, camera)
 
   const intersections = nextRaycaster.intersectObject(world, true)
-  const intersection = intersections.find(item => item.object.visible)
+  const intersection = intersections.find(item => isObjectShown(item.object))
 
   if (!intersection) return null
 

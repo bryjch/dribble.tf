@@ -11,6 +11,7 @@ import {
   BsBookmarkIcon,
   IoMdPauseIcon,
   IoMdPlayIcon,
+  StickerToolIcon,
 } from '@components/Misc/Icons'
 import { ControlsMode } from '@constants/types'
 
@@ -21,6 +22,7 @@ import {
   goToTickAction,
   jumpToRtsCamera,
   jumpToSpectatorCamera,
+  setStickersPanelOpenAction,
   toggleBookmarkAction,
   togglePlaybackAction,
 } from '@zus/actions'
@@ -234,9 +236,11 @@ export const SeekButton = ({
 export const BookmarkButton = ({
   size = 'md',
   variant = 'ghost',
+  disabled,
 }: {
   size?: IconButtonProps['size']
   variant?: IconButtonProps['variant']
+  disabled?: boolean
 }) => {
   const tick = useStore(state => state.playback.tick)
   const bookmarked = useStore(state => state.bookmarks.includes(tick))
@@ -246,9 +250,32 @@ export const BookmarkButton = ({
       size={size}
       variant={variant}
       active={bookmarked}
+      disabled={disabled}
       onClick={() => toggleBookmarkAction()}
     >
       {bookmarked ? <BsBookmarkFillIcon /> : <BsBookmarkIcon />}
+    </IconButton>
+  )
+}
+
+/** Opens the sticker palette over the scene (Theater shows it). */
+export const StickersButton = ({
+  size = 'md',
+  variant = 'ghost',
+}: {
+  size?: IconButtonProps['size']
+  variant?: IconButtonProps['variant']
+}) => {
+  const open = useStore(state => state.drawing.stickersPanelOpen)
+  return (
+    <IconButton
+      label={open ? 'Close stickers' : 'Stickers'}
+      size={size}
+      variant={variant}
+      active={open}
+      onClick={() => setStickersPanelOpenAction(!open)}
+    >
+      <StickerToolIcon />
     </IconButton>
   )
 }
@@ -261,9 +288,11 @@ const SPEEDS = PLAYBACK_SPEED_OPTIONS.map(option => option.value)
 export const SpeedButton = ({
   size = 'md',
   variant = 'ghost',
+  disabled,
 }: {
   size?: IconButtonProps['size']
   variant?: IconButtonProps['variant']
+  disabled?: boolean
 }) => {
   const speed = useStore(state => state.playback.speed)
   const next = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length] ?? 1
@@ -272,6 +301,7 @@ export const SpeedButton = ({
       label={`Playback speed ${speed}×, tap for ${next}×`}
       size={size}
       variant={variant}
+      disabled={disabled}
       onClick={() => changePlaySpeedAction(next)}
     >
       <span className="m-speed">{speed}×</span>
@@ -384,7 +414,7 @@ const useKillMarks = (match: MatchSource | undefined) =>
  * The timeline, sized for a thumb: a tall invisible hit area around a thin track that thickens
  * while dragged, with the time over the thumb.
  */
-export const Scrubber = ({ className }: { className?: string }) => {
+export const Scrubber = ({ className, disabled }: { className?: string; disabled?: boolean }) => {
   const match = useInstance(state => state.match)
   const tick = useStore(state => state.playback.tick)
   const maxTicks = useStore(state => state.playback.maxTicks)
@@ -405,6 +435,7 @@ export const Scrubber = ({ className }: { className?: string }) => {
         step={1}
         value={[shown]}
         aria-label="Timeline"
+        disabled={disabled}
         onValueChange={([value]) => {
           setDragTick(value)
           goToTickAction(value)
@@ -458,7 +489,10 @@ export const Scrubber = ({ className }: { className?: string }) => {
 
 export const TimeReadout = ({ className }: { className?: string }) => {
   const tick = useStore(state => state.playback.tick)
-  const maxTicks = useStore(state => state.playback.maxTicks)
+  const length = useStore(state => state.playback.maxTicks)
+  const hasMatch = useInstance(state => !!state.match)
+  // Before a match loads, the store's default length isn't one: show none.
+  const maxTicks = hasMatch ? length : 0
   return (
     <span className={cn('m-time', className)}>
       {getDurationFromTicks(tick).formatted}

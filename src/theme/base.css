@@ -3072,3 +3072,16 @@
     }
   }
 }
+
+/* Before a demo is loaded the playback bar still shows (its stickers button works), with the rest
+   greyed out. Outside the layer, so it wins over the themes' own button opacity. */
+.hud-playback .hud-transport-btn:disabled {
+  cursor: default;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.hud-playback .hud-timeline__slider[data-disabled] {
+  opacity: 0.4;
+  pointer-events: none;
+}
