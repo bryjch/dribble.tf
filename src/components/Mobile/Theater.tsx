@@ -5,6 +5,7 @@ import { isScenePlayer } from '@components/Scene/PlaybackDriver'
 import { FocusedPlayer } from '@components/UI/FocusedPlayer'
 import { Killfeed } from '@components/UI/Killfeed'
 import { ObjectiveHud } from '@components/UI/ObjectiveHud'
+import { StickerPalette } from '@components/UI/StickerPalette'
 
 import { useStore } from '@zus/store'
 import { setScoreboardOpenAction } from '@zus/actions'
@@ -21,6 +22,7 @@ import {
   Sheet,
   SheetTabs,
   SpeedButton,
+  StickersButton,
   TimeReadout,
   useDoubleTapSeek,
   useSceneTaps,
@@ -50,6 +52,7 @@ export const Theater = ({ match, landscape }: { match: MatchSource; landscape: b
   const [panel, setPanel] = useState<PanelId | null>(null)
   // Opened out into the scoreboard: the same state as holding Tab on desktop.
   const expanded = useStore(state => state.ui.scoreboardOpen)
+  const stickersOpen = useStore(state => state.drawing.stickersPanelOpen)
   const { onDoubleTap, rippleElement } = useDoubleTapSeek()
 
   useSceneTaps({
@@ -119,6 +122,7 @@ export const Theater = ({ match, landscape }: { match: MatchSource; landscape: b
               <span className="flex-1" />
               <SpeedButton size="sm" />
               <BookmarkButton size="sm" />
+              <StickersButton size="sm" />
             </div>
             <Scrubber />
           </div>
@@ -129,6 +133,13 @@ export const Theater = ({ match, landscape }: { match: MatchSource; landscape: b
       </div>
 
       {rippleElement}
+
+      {/* Stays up while the controls fade, so stickers can be placed during play */}
+      {stickersOpen && (
+        <div className="m-stickers">
+          <StickerPalette compact />
+        </div>
+      )}
 
       <Sheet
         open={panel !== null}

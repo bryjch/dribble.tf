@@ -752,11 +752,11 @@ export const DemoViewer = memo(({ demo, map }: DemoViewerProps) => {
             <>
               <DoubleTapSeek />
 
-              {demo && (
-                <div className="ui-layer mb-4 items-end justify-center text-center">
-                  <PlaybackPanel />
-                </div>
-              )}
+              {/* Always shown: before a demo, its playback controls are greyed out and the
+                  stickers work, to plan on an empty map */}
+              <div className="ui-layer mb-4 items-end justify-center text-center">
+                <PlaybackPanel />
+              </div>
 
               <MatchHud match={demo} />
 

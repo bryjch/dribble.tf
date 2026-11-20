@@ -1,5 +1,7 @@
 import * as THREE from 'three'
 
+import { isObjectShown } from './scene'
+
 export function getWorldIntersectionFromScreen({
   camera,
   domElement,
@@ -30,7 +32,7 @@ export function getWorldIntersectionFromScreen({
   raycaster.setFromCamera(pointer, camera)
 
   const intersections = raycaster.intersectObject(world, true)
-  const hit = intersections.find(intersection => intersection.object.visible)
+  const hit = intersections.find(intersection => isObjectShown(intersection.object))
 
   return hit ? hit.point.clone() : null
 }

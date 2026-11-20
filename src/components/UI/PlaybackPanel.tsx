@@ -33,7 +33,7 @@ import { useIsMobile } from '@utils/hooks'
  * A theme that docks the playback bar along the bottom edge (`--ui-dock: docked` on
  * .hud-playback) gets --ui-dock-clearance set to how far the bar reaches up the screen, so
  * chat, camera tips, the FPS counter and panels keep clear of it. Measured, not a constant: the
- * bar's height changes with the theme, the screen width (it wraps on phones) and the strip.
+ * bar's height changes with the theme and the screen width (it wraps on phones).
  */
 const useDockClearance = (theme: string | undefined) => {
   const ref = useRef<HTMLDivElement>(null)
@@ -79,6 +79,8 @@ interface PlaybackActionProps {
   onClick?: () => void
   kind?: string
   active?: boolean
+  /** Greyed out: before a demo is loaded, there is nothing to play. */
+  disabled?: boolean
   size?: 'small'
   /** Radix doesn't open tooltips on touch, so let a tap open this one. */
   mobileTooltipBypass?: boolean
@@ -94,6 +96,7 @@ const PlaybackAction = (props: PlaybackActionProps) => (
       data-size={props.size}
       aria-label={props.label}
       aria-pressed={props.active}
+      disabled={props.disabled}
       onClick={props.onClick}
     >
       {props.icon}
@@ -124,6 +127,8 @@ export const PlaybackPanel = () => {
   const isMobile = useIsMobile()
   const theme = useStore(state => state.settings.ui.theme)
   const dockRef = useDockClearance(theme)
+  // The bar shows before a demo too, for the stickers; everything else waits for a match.
+  const noMatch = !match
 
   // A live match's rounds grow while it is watched: look again every ten seconds or so.
   const liveRefresh = match?.kind === 'live' ? Math.floor(maxTicks / 660) : 0
@@ -207,22 +212,21 @@ export const PlaybackPanel = () => {
       )}
 
       <div className="hud-transport-row relative mt-4 flex justify-center">
-        {!isMobile && (
-          <div className="pointer-events-none absolute bottom-full left-1/2 z-30 mb-4 -translate-x-1/2">
-            <motion.div
-              className="pointer-events-auto"
-              initial={false}
-              animate={stickersOpen ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 12, scale: 0.96 }}
-              transition={{ duration: 0.18 }}
-            >
-              {stickersOpen ? <StickerPalette /> : null}
-            </motion.div>
-          </div>
-        )}
+        <div className="hud-sticker-anchor pointer-events-none absolute bottom-full left-1/2 z-30 mb-4 -translate-x-1/2">
+          <motion.div
+            className="pointer-events-auto"
+            initial={false}
+            animate={stickersOpen ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: 12, scale: 0.96 }}
+            transition={{ duration: 0.18 }}
+          >
+            {stickersOpen ? <StickerPalette compact={isMobile} /> : null}
+          </motion.div>
+        </div>
 
         <div className={cn('hud-transport z-20', isMobile && 'gap-3')} data-dimmed={dimmed ? 'true' : undefined}>
           {!isMobile && (
             <PlaybackAction
+              disabled={noMatch}
               mobileTooltipBypass
               label={`Tick ${tick}. Jump to a tick`}
               kind="tick"
@@ -265,6 +269,7 @@ export const PlaybackPanel = () => {
           )}
 
           <PlaybackAction
+            disabled={noMatch}
             label="Jump to start"
             icon={<AiFillFastForwardIcon className="rotate-180" />}
             content="Jump to start"
@@ -272,6 +277,7 @@ export const PlaybackPanel = () => {
           />
 
           <PlaybackAction
+            disabled={noMatch}
             label="Seek back"
             icon={<AiFillStepForwardIcon className="rotate-180" />}
             content={
@@ -285,6 +291,7 @@ export const PlaybackPanel = () => {
           />
 
           <PlaybackAction
+            disabled={noMatch}
             label={playing ? 'Pause' : 'Play'}
             kind="play"
             icon={playing ? <IoMdPauseIcon /> : <IoMdPlayIcon />}
@@ -293,6 +300,7 @@ export const PlaybackPanel = () => {
           />
 
           <PlaybackAction
+            disabled={noMatch}
             label="Seek forward"
             icon={<AiFillStepForwardIcon />}
             content={
@@ -306,6 +314,7 @@ export const PlaybackPanel = () => {
           />
 
           <PlaybackAction
+            disabled={noMatch}
             label="Jump to end"
             icon={<AiFillFastForwardIcon />}
             content="Jump to end"
@@ -314,6 +323,7 @@ export const PlaybackPanel = () => {
 
           {!isMobile && (
             <PlaybackAction
+              disabled={noMatch}
               mobileTooltipBypass
               label={`Playback speed ${speed}×`}
               kind="speed"
@@ -346,6 +356,7 @@ export const PlaybackPanel = () => {
           )}
 
           <PlaybackAction
+            disabled={noMatch}
             label={isBookmarked ? 'Remove bookmark' : 'Bookmark this tick'}
             kind="bookmark"
             size="small"
@@ -358,20 +369,18 @@ export const PlaybackPanel = () => {
             }}
           />
 
-          {!isMobile && (
-            <PlaybackAction
-              label="Stickers"
-              kind="stickers"
-              active={stickersOpen || stickerDragActive}
-              icon={
-                <span>
-                  <StickerToolIcon />
-                </span>
-              }
-              content={<KeyRow label="Toggle stickers" keys={['G']} />}
-              onClick={toggleStickers}
-            />
-          )}
+          <PlaybackAction
+            label="Stickers"
+            kind="stickers"
+            active={stickersOpen || stickerDragActive}
+            icon={
+              <span>
+                <StickerToolIcon />
+              </span>
+            }
+            content={<KeyRow label="Toggle stickers" keys={['G']} />}
+            onClick={toggleStickers}
+          />
         </div>
       </div>
 
@@ -384,6 +393,7 @@ export const PlaybackPanel = () => {
             value={[tick]}
             step={1}
             aria-label="Timeline"
+            disabled={noMatch}
             onValueChange={([value]) => goToTick(value)}
           >
             <Slider.Track className={cn('hud-timeline__track', isMobile && 'h-3')}>
@@ -428,18 +438,19 @@ export const PlaybackPanel = () => {
             ))}
           </div>
 
-          {!isMobile && <TimelineHover containerRef={timelineRef} maxTicks={maxTicks} />}
+          {!isMobile && !noMatch && <TimelineHover containerRef={timelineRef} maxTicks={maxTicks} />}
 
-          {bookmarks.map(bookmarkTick => (
-            <button
-              key={`bookmark-marker-${bookmarkTick}`}
-              type="button"
-              className="hud-timeline__marker"
-              aria-label={`Go to bookmark at tick ${bookmarkTick}`}
-              style={{ left: toPercent(bookmarkTick) }}
-              onClick={() => goToTick(bookmarkTick)}
-            />
-          ))}
+          {!noMatch &&
+            bookmarks.map(bookmarkTick => (
+              <button
+                key={`bookmark-marker-${bookmarkTick}`}
+                type="button"
+                className="hud-timeline__marker"
+                aria-label={`Go to bookmark at tick ${bookmarkTick}`}
+                style={{ left: toPercent(bookmarkTick) }}
+                onClick={() => goToTick(bookmarkTick)}
+              />
+            ))}
         </div>
 
         <div className="hud-timeline__meta">
@@ -470,7 +481,10 @@ export const PlaybackPanel = () => {
             )}
             <span className="hud-clock__now">{getDurationFromTicks(tick).formatted}</span>
             <span className="hud-clock__sep">/</span>
-            <span className="hud-clock__total">{getDurationFromTicks(maxTicks).formatted}</span>
+            <span className="hud-clock__total">
+              {/* The store's default length isn't a match's: show none before one loads */}
+              {getDurationFromTicks(noMatch ? 0 : maxTicks).formatted}
+            </span>
           </div>
         </div>
       </div>

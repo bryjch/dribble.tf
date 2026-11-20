@@ -80,8 +80,6 @@
   /* Height of a playback bar docked along the bottom edge; bottom-anchored overlays (chat,
      camera tips, the FPS counter, panels) keep clear of it. A theme that docks it sets this. */
   --ui-dock-clearance: 0px;
-  /* Height of the phone player strip along the bottom edge (set by base.css while it shows). */
-  --ui-strip-clearance: 0px;
   /* Phones (phone.css): panel sheets are scaled by this, since an 8px root font leaves rem-sized
      text too small to read. A theme that sizes its panel text in px sets 1. */
   --ui-sheet-zoom: 1.5;

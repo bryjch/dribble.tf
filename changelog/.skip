@@ -4,3 +4,4 @@
 99 # assets wizard cache headers: tooling
 101 # dev server loads missing map files from the asset host: tooling
 105 # /debug rendering test page: unlinked dev tool (its POV weapon fix left out of the changelog by request)
+106 # sticker fixes and extensions, narrow-window player strip removed: left out of the changelog by request

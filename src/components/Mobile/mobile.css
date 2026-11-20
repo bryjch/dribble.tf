@@ -669,6 +669,18 @@
   z-index: 2;
 }
 
+/* The match view's bottom bar before a demo: greyed out but for the sticker button. */
+.m-nodemo__bar {
+  align-self: stretch;
+}
+
+.m-nodemo__off,
+.m-nodemo__bar .m-btn:disabled,
+.m-nodemo__bar .m-scrub__root[data-disabled] {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 /* ═══ THEATER ═══════════════════════════════════════════════════════════════════ */
 
 [data-variant='theater'] {
@@ -801,6 +813,32 @@
   .m-theater__focused .hud-focused {
     transform: translateX(1.5rem);
   }
+}
+
+/* The sticker palette, above the controls; drag its header to move it. */
+.m-stickers {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--m-safe-b) + 150px);
+  z-index: 3;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+/* A touch on a sticker is a drag: without this the shell's button rule (manipulation) lets the
+   browser take the finger for a pan and cancel the drag. */
+.m-stickers [data-sticker-panel] button[aria-label^='Drag'] {
+  touch-action: none;
+}
+
+.m-shell[data-landscape='true'] .m-stickers {
+  bottom: calc(var(--m-safe-b) + 92px);
+}
+
+/* Before a demo the bar has no player card above it, so the palette sits lower. */
+.m-stickers--nodemo,
+.m-shell[data-landscape='true'] .m-stickers--nodemo {
+  bottom: calc(var(--m-safe-b) + 100px);
 }
 
 .m-theater__meta {

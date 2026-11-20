@@ -10,8 +10,9 @@ import { CameraSwitch, RemZoom, SheetTab } from './parts'
 //
 // ─── PANEL CONTENTS ─────────────────────────────────────────────────────────────
 //
-// What the phone sheets show. Setups, stickers and drawing are left out on phones: they are
-// desktop tools (saving camera setups, annotating a frame) with no good touch equivalent.
+// What the phone sheets show. Setups and drawing are left out on phones: they are desktop tools
+// (saving camera setups, annotating a frame) with no good touch equivalent. Stickers are not a
+// sheet: the Theater's sticker button opens their palette over the scene, as on desktop.
 //
 
 export type PanelId = 'events' | 'bookmarks' | 'settings' | 'about'
