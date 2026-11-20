@@ -7,7 +7,6 @@ import { MEDIGUN_LABELS, UBERED_LABELS } from '@components/UI/ConditionBadges'
 
 import { sortPlayersByClassId, parseClassHealth } from '@utils/players'
 import { focusMainCanvas } from '@utils/misc'
-import { useIsMobile } from '@utils/hooks'
 
 import { useInstance, useStore } from '@zus/store'
 import { jumpToPlayerPOVCamera } from '@zus/actions'
@@ -91,7 +90,6 @@ export interface PlayerStatusesProps {
 }
 
 export const PlayerStatuses = (props: PlayerStatusesProps) => {
-  const isMobile = useIsMobile()
   const bluePlayers: CachedPlayer[] = []
   const redPlayers: CachedPlayer[] = []
 
@@ -108,32 +106,6 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
   for (const player of players) {
     if (player.team === 'blue') bluePlayers.push(player)
     if (player.team === 'red') redPlayers.push(player)
-  }
-
-  if (isMobile) {
-    return (
-      <div className="hud-strip">
-        {(['blue', 'red'] as const).map((team, teamIndex) => (
-          <div key={team} className="contents">
-            {teamIndex === 1 && <div className="hud-strip__divider" />}
-            <div className="hud-strip__team" data-team={team}>
-              {(team === 'blue' ? bluePlayers : redPlayers)
-                .sort(sortPlayersByClassId)
-                .map((player, index) => (
-                  <MobileStatusItem
-                    key={`${team}-mobile-${index}`}
-                    player={player}
-                    team={team}
-                    focused={focusedEntityId === player.user.entityId}
-                    tick={tick}
-                    intervalPerTick={intervalPerTick}
-                  />
-                ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    )
   }
 
   const blueMedics = bluePlayers.filter(({ classId }) => classId === 5)
@@ -187,52 +159,6 @@ export const PlayerStatuses = (props: PlayerStatusesProps) => {
         )
       })}
     </>
-  )
-}
-
-//
-// ─── MOBILE STATUS ITEM ─────────────────────────────────────────────────────────
-//
-
-interface MobileStatusItemProps {
-  player: CachedPlayer
-  team: 'blue' | 'red'
-  focused?: boolean
-  tick: number
-  intervalPerTick: number
-}
-
-const MobileStatusItem = (props: MobileStatusItemProps) => {
-  const { player, team, focused, tick, intervalPerTick } = props
-  const health = player.health
-  const { percentage } = parseClassHealth(player.classId, health)
-
-  const onClickItem = async () => {
-    const entityId = player?.user?.entityId || null
-    if (entityId) await jumpToPlayerPOVCamera(entityId)
-    focusMainCanvas()
-  }
-
-  return (
-    <div
-      className="hud-mini"
-      data-team={team}
-      data-dead={health === 0}
-      data-focused={focused}
-      data-hp={hpState(percentage, health)}
-      onClick={onClickItem}
-    >
-      <div className="flex h-5 w-5 shrink-0 items-center justify-center">
-        <ClassIcon classId={player.classId} />
-      </div>
-      <span>
-        {health > 0
-          ? health
-          : player.respawnTick != null
-            ? Math.ceil((player.respawnTick - tick) * intervalPerTick)
-            : ''}
-      </span>
-    </div>
   )
 }
 

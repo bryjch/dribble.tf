@@ -33,7 +33,7 @@ import { useIsMobile } from '@utils/hooks'
  * A theme that docks the playback bar along the bottom edge (`--ui-dock: docked` on
  * .hud-playback) gets --ui-dock-clearance set to how far the bar reaches up the screen, so
  * chat, camera tips, the FPS counter and panels keep clear of it. Measured, not a constant: the
- * bar's height changes with the theme, the screen width (it wraps on phones) and the strip.
+ * bar's height changes with the theme and the screen width (it wraps on phones).
  */
 const useDockClearance = (theme: string | undefined) => {
   const ref = useRef<HTMLDivElement>(null)

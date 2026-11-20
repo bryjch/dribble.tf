@@ -1714,59 +1714,6 @@
     padding: 0 0.375rem;
   }
 
-  /* Phone: one strip along the bottom. */
-  .ui-root:has(.hud-strip) {
-    --ui-strip-clearance: 2rem;
-  }
-
-  .hud-strip {
-    position: absolute;
-    inset: auto 0 0 0;
-    display: flex;
-    height: 2rem;
-    align-items: stretch;
-  }
-
-  .hud-strip__team {
-    display: flex;
-    flex: 1;
-    gap: 1px;
-  }
-
-  .hud-strip__divider {
-    width: 1px;
-    background: rgb(var(--ui-ink) / 0.2);
-  }
-
-  .hud-mini {
-    display: flex;
-    flex: 1;
-    align-items: center;
-    justify-content: center;
-    gap: 0.125rem;
-    background: rgb(var(--team-fill) / 0.4);
-    cursor: pointer;
-    font-family: var(--ui-font-hud);
-    font-size: 0.75rem;
-    font-weight: 700;
-  }
-
-  .hud-mini[data-dead='true'] {
-    opacity: 0.4;
-  }
-
-  .hud-mini[data-focused='true'] {
-    outline: 1px solid rgb(var(--ui-focus));
-  }
-
-  .hud-mini[data-hp='over'] {
-    color: rgb(var(--ui-good));
-  }
-
-  .hud-mini[data-hp='low'] {
-    color: rgb(var(--ui-bad));
-  }
-
   /* ─── HUD: killfeed ───────────────────────────────────────────────────────── */
 
   .hud-killfeed {
@@ -2209,7 +2156,7 @@
   .hud-playback {
     position: relative;
     width: min(52rem, calc(100vw - var(--ui-sidebar-width, 0px) - 2rem));
-    margin: 0 1rem calc(0.5rem + var(--ui-strip-clearance));
+    margin: 0 1rem 0.5rem;
     font-family: var(--ui-font-hud);
   }
 
@@ -2680,7 +2627,7 @@
   .hud-fps {
     position: fixed;
     right: var(--ui-sidebar-width, 0px);
-    bottom: max(var(--ui-dock-clearance), var(--ui-strip-clearance));
+    bottom: var(--ui-dock-clearance);
     z-index: 2000000000;
     padding: 0.15rem 0.5rem;
     background: rgb(var(--ui-ground) / var(--ui-hud-alpha));

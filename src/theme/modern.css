@@ -499,7 +499,7 @@ html[data-theme='modern'] body {
   width: calc(100vw - var(--ui-sidebar-width, 0px));
   align-items: center;
   gap: 0.75rem;
-  margin: 0 0 calc(var(--ui-strip-clearance) - 1rem);
+  margin: 0 0 -1rem;
   padding: 0.45rem 0.75rem;
   border-top: 1px solid rgb(var(--ui-line));
   background: rgb(var(--ui-ground) / 0.92);
