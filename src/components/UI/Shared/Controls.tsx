@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 
 import { cn } from '@utils/styling'
@@ -72,6 +72,11 @@ export const Segmented = <T extends string | number>({
 /**
  * A themed tooltip. Radix doesn't open tooltips on touch, so `tapToOpen` lets a tap toggle it
  * (https://github.com/radix-ui/primitives/issues/1573).
+ *
+ * `tapToOpen` is also for tooltips with controls in them (a field, buttons): a click on the
+ * trigger, or any press inside the tooltip, pins it open, and it stays until a click outside it,
+ * Escape or another click on the trigger. Radix closes a tooltip whenever its trigger loses focus
+ * or the pointer leaves, which would shut it the moment its own field is clicked.
  */
 export const HudTooltip = ({
   content,
@@ -85,12 +90,37 @@ export const HudTooltip = ({
   tapToOpen?: boolean
 }) => {
   const [open, setOpen] = useState(false)
-  const root = tapToOpen ? { open, onOpenChange: setOpen } : {}
-  const trigger = tapToOpen
+  // A ref, not state: Radix asks to close in the same event that unpins it (Escape, a click
+  // outside), after the unpin, and must see it at once.
+  const pinned = useRef(false)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+
+  const setPinned = (next: boolean) => {
+    pinned.current = next
+    setOpen(next)
+  }
+
+  const root = tapToOpen
     ? {
-        onClick: () => setOpen(prev => !prev),
-        onFocus: () => setTimeout(() => setOpen(true), 0),
-        onBlur: () => setOpen(false),
+        open,
+        // Hover still opens and closes it as usual; only a pinned one ignores Radix's closes.
+        onOpenChange: (next: boolean) => {
+          if (!next && pinned.current) return
+          setOpen(next)
+        },
+      }
+    : {}
+  const trigger = tapToOpen ? { ref: triggerRef, onClick: () => setPinned(!pinned.current) } : {}
+  const contentProps = tapToOpen
+    ? {
+        onPointerDownCapture: () => (pinned.current = true),
+        onFocusCapture: () => (pinned.current = true),
+        onEscapeKeyDown: () => (pinned.current = false),
+        onPointerDownOutside: (event: Event) => {
+          // The trigger's own click toggles it.
+          if (triggerRef.current?.contains(event.target as Node)) return event.preventDefault()
+          pinned.current = false
+        },
       }
     : {}
 
@@ -101,7 +131,7 @@ export const HudTooltip = ({
           {children}
         </Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Content side={side} sideOffset={6} className="ui-root">
+          <Tooltip.Content side={side} sideOffset={6} className="ui-root" {...contentProps}>
             <div className="ui-tooltip">{content}</div>
             <Tooltip.Arrow className="ui-tooltip__arrow" />
           </Tooltip.Content>
