@@ -13,7 +13,8 @@ import { pickMapVersion } from '@utils/mapVersions'
 import { getAsset, isPerfLoggingEnabled } from '@utils/misc'
 import { fetchMapFile, fetchMapManifest, recordMap } from '@utils/storage'
 
-const MAP_NAME = /^[a-z0-9_]{1,128}$/
+// Map names are lowercase letters, digits, _ and - (koth_proot_b6c-alt2), never starting with -.
+const MAP_NAME = /^[a-z0-9_][a-z0-9_-]{0,127}$/
 const FETCH_CONCURRENCY = 12
 
 export type SkyboxUrls = Record<'lf' | 'rt' | 'ft' | 'bk' | 'up' | 'dn', string>

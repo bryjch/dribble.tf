@@ -1,8 +1,44 @@
+diff --git a/src/bsp_pak.rs b/src/bsp_pak.rs
+index f2f8215..abd97f4 100644
+--- a/src/bsp_pak.rs
++++ b/src/bsp_pak.rs
+@@ -184,11 +184,13 @@ pub fn read_pak_archive(data: &[u8]) -> Result<BspPakArchive, String> {
+             ),
+         };
+         let lookup = path.to_ascii_lowercase();
+-        if let Some(existing) = paths.insert(lookup, path.clone()) {
+-            return Err(format!(
+-                "BSP PAK has ambiguous duplicate paths {existing:?} and {path:?}"
+-            ));
++        // TF2 reads packed files case-insensitively, so maps ship with paths that differ only
++        // in case (e.g. materials/Skybox/x.vtf and materials/skybox/x.vtf); keep the first.
++        if let Some(existing) = paths.get(&lookup) {
++            eprintln!("BSP PAK: skipping {path:?}, a case variant of {existing:?}");
++            continue;
+         }
++        paths.insert(lookup, path.clone());
+         if file.is_dir() {
+             continue;
+         }
 diff --git a/src/lib.rs b/src/lib.rs
-index 0524bfa..42a2ce3 100644
+index 0524bfa..516efe9 100644
 --- a/src/lib.rs
 +++ b/src/lib.rs
-@@ -2628,6 +2628,18 @@ fn select_lightmap_lumps(
+@@ -2040,9 +2040,10 @@ fn parse_entities(data: &[u8]) -> Result<Vec<Entity>, String> {
+             data.len()
+         ));
+     }
+-    let text = std::str::from_utf8(data)
+-        .map_err(|error| format!("entity lump is not valid UTF-8: {error}"))?;
+-    let tokens = tokenize_entities(text)?;
++    // Hammer writes key values in the mapper's code page (Latin-1 signs and messages), not
++    // always UTF-8; the keys and values this reads are ASCII, so stray bytes are replaced.
++    let text = String::from_utf8_lossy(data);
++    let tokens = tokenize_entities(&text)?;
+     let mut entities = Vec::new();
+     let mut index = 0;
+     let mut key_value_count = 0;
+@@ -2628,6 +2629,18 @@ fn select_lightmap_lumps(
      Ok(selected)
  }
  
@@ -21,7 +57,7 @@ index 0524bfa..42a2ce3 100644
  fn face_styles(face: Face, face_index: usize) -> Result<Vec<u8>, String> {
      let first_unused = face
          .styles
-@@ -2642,14 +2654,9 @@ fn face_styles(face: Face, face_index: usize) -> Result<Vec<u8>, String> {
+@@ -2642,14 +2655,9 @@ fn face_styles(face: Face, face_index: usize) -> Result<Vec<u8>, String> {
              "face {face_index} has non-contiguous light styles; export aborted"
          ));
      }
@@ -39,7 +75,7 @@ index 0524bfa..42a2ce3 100644
  }
  
  fn extract_lightmaps(
-@@ -2787,25 +2794,39 @@ fn extract_lightmaps(
+@@ -2787,25 +2795,39 @@ fn extract_lightmaps(
      let mut manifest_faces = Vec::with_capacity(candidates.len());
  
      for candidate in candidates {
@@ -88,7 +124,7 @@ index 0524bfa..42a2ce3 100644
              }
          }
          by_face.insert(candidate.face_index, candidate.placement);
-@@ -2862,9 +2883,9 @@ fn extract_lightmaps(
+@@ -2862,9 +2884,9 @@ fn extract_lightmaps(
                      .collect(),
              },
              styles: LightmapManifestStyles {
@@ -100,7 +136,7 @@ index 0524bfa..42a2ce3 100644
                  storage_order: "style-major-then-flat-and-directional",
              },
              faces: manifest_faces,
-@@ -4030,8 +4051,10 @@ fn export_bsp_internal(
+@@ -4030,8 +4052,10 @@ fn export_bsp_internal(
              let texture = texdata.get(material_index).ok_or_else(|| {
                  format!("face {face_index} references missing texdata {material_index}")
              })?;
@@ -113,10 +149,20 @@ index 0524bfa..42a2ce3 100644
              let base_positions = face_positions(face, &surfedges, &edges, &vertices, face_index)?;
              let plane_normal = planes
 diff --git a/src/materials.rs b/src/materials.rs
-index 301493c..c8970a6 100644
+index 301493c..c26c45e 100644
 --- a/src/materials.rs
 +++ b/src/materials.rs
-@@ -1616,12 +1616,26 @@ fn build_materials(
+@@ -366,7 +366,8 @@ fn push_token(tokens: &mut Vec<Token>, token: Token) -> Result<(), String> {
+ 
+ fn tokenize_keyvalues(data: &[u8]) -> Result<Vec<Token>, String> {
+     let data = data.strip_prefix(b"\xef\xbb\xbf").unwrap_or(data);
+-    let text = std::str::from_utf8(data).map_err(|error| format!("VMT is not UTF-8: {error}"))?;
++    // VMTs aren't always UTF-8 (Latin-1 comments); the parameters this reads are ASCII.
++    let text = String::from_utf8_lossy(data);
+     let bytes = text.as_bytes();
+     let mut tokens = Vec::new();
+     let mut index = 0;
+@@ -1616,12 +1617,26 @@ fn build_materials(
              });
              (None, ResourceProvenance::Unresolved)
          };

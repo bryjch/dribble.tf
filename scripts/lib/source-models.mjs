@@ -16,7 +16,11 @@ export const BSP_TO_GLB_REV = '7b7f7fc803b65e53791d3fc6eab04c0a2e355c6c'
  * - faces lit by several light styles (switchable lights) sum their styles' lightmaps, where
  *   upstream refuses the map's lightmaps altogether;
  * - a material that can't be resolved (a Patch VMT whose include is missing) is left unresolved,
- *   and a face whose texdata has no size is left out, where upstream fails the whole map.
+ *   and a face whose texdata has no size is left out, where upstream fails the whole map;
+ * - a packed file whose path differs from another's only in case is skipped (the first is kept),
+ *   where upstream refuses the map's pakfile as ambiguous;
+ * - an entity lump or VMT that isn't valid UTF-8 (Latin-1 text) is read with the stray bytes
+ *   replaced, where upstream fails the map.
  * To change it: edit scripts/tools/bsp-to-glb, then `git diff > ../../lib/bsp-to-glb.patch` there.
  */
 export const BSP_TO_GLB_PATCHES = ['bsp-to-glb.patch'].map(file =>

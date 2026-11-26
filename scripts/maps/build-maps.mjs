@@ -52,7 +52,7 @@ const TEXTURE_LIMIT = 1024
 const PROP_TEXTURE_SIZE = 512
 const SKY_TEXTURE_SIZE = 1024
 const FASTDL = 'https://fastdl.serveme.tf/maps'
-const MAP_NAME = /^[a-z0-9_]{1,128}$/
+const MAP_NAME = /^[a-z0-9_][a-z0-9_-]{0,127}$/ // as src/utils/derivedMap.ts
 
 const modelsDir = path.join(repoRoot, 'public/models')
 const tempDir = path.join(repoRoot, 'scripts/temp/maps')
@@ -255,12 +255,17 @@ function mapTextures(exportDir, outDir, materials, packageManifest) {
       })
     }
   }
-  const python = spawnSync('python3', ['-I', path.join(repoRoot, 'scripts/maps/textures-to-webp.py')], {
-    input: JSON.stringify(jobs),
+  // The jobs go in a file: fed on stdin (about 1 MB for a big map), Python sometimes waited on
+  // its input forever (cp_granary_pro_rc4, koth_trainsawlaser).
+  const jobsFile = path.join(exportDir, 'texture-jobs.json')
+  writeJson(jobsFile, jobs)
+  const python = spawnSync('python3', ['-I', path.join(repoRoot, 'scripts/maps/textures-to-webp.py'), jobsFile], {
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
+    timeout: 15 * 60 * 1000, // a map takes a minute or two
   })
-  if (python.status !== 0) throw new Error(`texture conversion failed: ${python.stderr}`)
+  if (python.status !== 0)
+    throw new Error(`texture conversion failed: ${python.error?.message ?? python.stderr}`)
   const results = JSON.parse(python.stdout)
   for (const job of jobs) if (results[job.out]?.error) console.warn(`  ! ${job.png}: ${results[job.out].error}`)
   return files

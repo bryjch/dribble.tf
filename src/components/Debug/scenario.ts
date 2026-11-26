@@ -339,7 +339,7 @@ export function normalizeScenario(raw: any): Scenario {
   const view = raw?.view && typeof raw.view === 'object' ? (raw.view as DebugView) : undefined
   return {
     v: 1,
-    map: typeof raw?.map === 'string' && /^[a-z0-9_]{1,128}$/.test(raw.map) ? raw.map : DEFAULT_MAP,
+    map: typeof raw?.map === 'string' && /^[a-z0-9_][a-z0-9_-]{0,127}$/.test(raw.map) ? raw.map : DEFAULT_MAP,
     players,
     projectiles,
     buildings,
