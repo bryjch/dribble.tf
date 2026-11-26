@@ -26,12 +26,17 @@ def main():
     if length <= 0:
         json.dump({'files': 0, 'failed': []}, sys.stdout)
         return
-    written, failed = 0, []
+    written, failed, seen = 0, [], set()
     with zipfile.ZipFile(io.BytesIO(data[offset:offset + length])) as pak:
         for info in pak.infolist():
             if info.is_dir():
                 continue
             name = info.filename.replace('\\', '/').lower().lstrip('/')
+            # Some maps pack one file twice, its paths differing only in case; keep the first,
+            # as bsp-to-glb does (scripts/lib/bsp-to-glb.patch).
+            if name in seen:
+                continue
+            seen.add(name)
             target = os.path.abspath(os.path.join(out_dir, name))
             if not target.startswith(out_dir + os.sep):
                 failed.append(info.filename)

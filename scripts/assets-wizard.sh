@@ -687,15 +687,21 @@ elif confirm "Upload $PENDING file(s) to $DEST?"; then
   # dry run. Content-hashed files go first and the JSON that names them last, so nothing ever
   # names a file that isn't up yet.
   upload_class() {
-    local class="$1" cc includes=() path
+    local class="$1" cc includes=() path i count
     cc=$(cache_control "$class")
     for path in "${PENDING_FILES[@]}"; do
       [[ "$(cache_class "$path")" == "$class" ]] && includes+=(--include "$path")
     done
     (( ${#includes[@]} )) || return 0
-    step "$(( ${#includes[@]} / 2 )) $class file(s), Cache-Control: $cc"
-    aws s3 sync "$UPLOAD_LOCAL" "$DEST" --profile "$ASSET_AWS_PROFILE" "${S3_REGION_ARGS[@]+"${S3_REGION_ARGS[@]}"}" \
-      --exclude "*" "${includes[@]}" --cache-control "$cc" --only-show-errors
+    count=$(( ${#includes[@]} / 2 ))
+    step "$count $class file(s), Cache-Control: $cc"
+    # A thousand files a sync: one --include per file, and a whole map build's worth (30,000+
+    # files) is more than macOS lets one command take ("Argument list too long").
+    for (( i = 0; i < ${#includes[@]}; i += 2000 )); do
+      (( count > 1000 )) && note "  files $(( i / 2 + 1 ))-$(( (i + 2000 < ${#includes[@]} ? i + 2000 : ${#includes[@]}) / 2 )) of $count"
+      aws s3 sync "$UPLOAD_LOCAL" "$DEST" --profile "$ASSET_AWS_PROFILE" "${S3_REGION_ARGS[@]+"${S3_REGION_ARGS[@]}"}" \
+        --exclude "*" "${includes[@]:i:2000}" --cache-control "$cc" --only-show-errors || return 1
+    done
   }
   if upload_class hashed && upload_class model && upload_class json; then
     ok "uploaded $PENDING file(s)"

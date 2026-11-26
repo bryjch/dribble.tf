@@ -2,7 +2,7 @@
 """Converts a map's decoded textures (PNG, from bsp-to-glb) to WebP for build-maps.mjs.
 
 Reads a JSON list of {"png": path, "out": path, "scale": factor, "max": pixels, "alpha": bool}
-on stdin. Each image is scaled by `scale`, then down so neither side exceeds `max`, and keeps its
+from the file named by its argument (or stdin without one). Each image is scaled by `scale`, then down so neither side exceeds `max`, and keeps its
 alpha channel only when `alpha` asks for it (TF2 keeps a specular mask there otherwise). Outputs
 that already exist are kept. Prints a JSON object mapping each output path to {} or {"error": ...}.
 """
@@ -35,7 +35,12 @@ def convert(job):
 
 def main():
     results = {}
-    for job in json.load(sys.stdin):
+    if len(sys.argv) > 1:
+        with open(sys.argv[1], encoding='utf8') as handle:
+            jobs = json.load(handle)
+    else:
+        jobs = json.load(sys.stdin)
+    for job in jobs:
         try:
             results[job['out']] = convert(job)
         except Exception as error:  # noqa: BLE001 - reported per texture
